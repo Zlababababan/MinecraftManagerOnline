@@ -1,0 +1,172 @@
+{
+  "$comment": "Vérité terrain des fixtures (relevée à la main sur les dossiers d'origine). null = dossier non qualifié. loaderVersion/java/launch optionnels.",
+  "neoforge-atm10": {
+    "loader": "neoforge",
+    "mcVersion": "1.21.1",
+    "loaderVersion": "21.1.219",
+    "maxRamMb": 8192,
+    "minRamMb": 4096,
+    "gamePort": 25565,
+    "javaMajor": 21,
+    "launch": "argfile",
+    "eula": true
+  },
+  "neoforge-ftbskies2": {
+    "loader": "neoforge",
+    "mcVersion": "1.21.1",
+    "loaderVersion": "21.1.180",
+    "maxRamMb": 6144,
+    "javaMajor": 21,
+    "launch": "argfile"
+  },
+  "neoforge-ftbstoneblock4": {
+    "loader": "neoforge",
+    "mcVersion": "1.21.1",
+    "loaderVersion": "21.1.213",
+    "maxRamMb": 8192,
+    "launch": "argfile"
+  },
+  "neoforge-oceanblock2": {
+    "loader": "neoforge",
+    "mcVersion": "1.21.1",
+    "loaderVersion": "21.1.172",
+    "maxRamMb": 6144,
+    "launch": "argfile"
+  },
+  "neoforge-allofcreate-spc": {
+    "loader": "neoforge",
+    "mcVersion": "1.21.1",
+    "loaderVersion": "21.1.219",
+    "maxRamMb": 4096,
+    "launch": "argfile"
+  },
+  "forge-atm8": {
+    "loader": "forge",
+    "mcVersion": "1.19.2",
+    "loaderVersion": "43.2.8",
+    "maxRamMb": 6144,
+    "javaMajor": 17,
+    "launch": "argfile"
+  },
+  "forge-atm9": {
+    "loader": "forge",
+    "mcVersion": "1.20.1",
+    "loaderVersion": "47.2.20",
+    "maxRamMb": 8192,
+    "javaMajor": 17,
+    "launch": "argfile"
+  },
+  "forge-dawncraft": {
+    "loader": "forge",
+    "mcVersion": "1.18.2",
+    "loaderVersion": "40.2.10",
+    "maxRamMb": 4096,
+    "ramSource": "default",
+    "launch": "argfile"
+  },
+  "forge-vaulthunters": {
+    "loader": "forge",
+    "mcVersion": "1.18.2",
+    "loaderVersion": "40.2.9",
+    "maxRamMb": 4096,
+    "ramSource": "default"
+  },
+  "forge-mceternal2": {
+    "loader": "forge",
+    "mcVersion": "1.20.1",
+    "loaderVersion": "47.4.2",
+    "maxRamMb": 8192
+  },
+  "forge-bettermc": {
+    "loader": "forge",
+    "mcVersion": "1.19.2",
+    "loaderVersion": "43.1.57",
+    "maxRamMb": 4096,
+    "ramSource": "default"
+  },
+  "forge-momo": {
+    "loader": "forge",
+    "mcVersion": "1.19.2",
+    "loaderVersion": "43.2.3",
+    "maxRamMb": 4096,
+    "ramSource": "default",
+    "gamePort": 26210,
+    "rconPort": 26211,
+    "rconEnabled": true
+  },
+  "forge-create2mekanism": {
+    "loader": "forge",
+    "mcVersion": "1.19.2",
+    "loaderVersion": "43.2.21",
+    "maxRamMb": 6144
+  },
+  "forge-fearnightfall": {
+    "loader": "forge",
+    "mcVersion": "1.19.2",
+    "loaderVersion": "43.3.2",
+    "maxRamMb": 6144
+  },
+  "forge-legacy-skyfactory4": {
+    "loader": "forge",
+    "mcVersion": "1.12.2",
+    "loaderVersion": "14.23.5.2860",
+    "maxRamMb": 4096,
+    "minRamMb": 2048,
+    "javaMajor": 8,
+    "javaStrict": true,
+    "launch": "jar",
+    "launchJar": "forge-1.12.2-14.23.5.2860.jar"
+  },
+  "forge-legacy-rad2": {
+    "loader": "forge",
+    "mcVersion": "1.16.5",
+    "loaderVersion": "36.2.39",
+    "maxRamMb": 4096,
+    "javaMajor": 8,
+    "javaStrict": true,
+    "launch": "jar",
+    "launchJar": "forge-1.16.5-36.2.39.jar"
+  },
+  "fabric-dungeonheroes-spc": {
+    "loader": "fabric",
+    "mcVersion": "1.21.1",
+    "loaderVersion": "0.17.3",
+    "maxRamMb": 4096,
+    "javaMajor": 21,
+    "launch": "jar",
+    "launchJar": "fabric-server-launcher.jar"
+  },
+  "fabric-prominence2-spc": {
+    "loader": "fabric",
+    "mcVersion": "1.20.1",
+    "loaderVersion": "0.15.11",
+    "maxRamMb": 4096,
+    "javaMajor": 17,
+    "launch": "jar"
+  },
+  "vanilla-1.20.1": {
+    "loader": "vanilla",
+    "mcVersion": "1.20.1",
+    "maxRamMb": 4096,
+    "ramSource": "default",
+    "javaMajor": 17,
+    "launch": "jar",
+    "launchJar": "server.jar"
+  },
+  "vanilla-1.19.2-bundler": {
+    "loader": "vanilla",
+    "mcVersion": "1.19.2",
+    "maxRamMb": 4096,
+    "minRamMb": 2048,
+    "javaMajor": 17,
+    "launch": "jar"
+  },
+  "forge-atm8-not-installed": {
+    "loader": "forge",
+    "mcVersion": "1.19.2",
+    "maxRamMb": 6144,
+    "needsInstall": true,
+    "eula": false
+  },
+  "not-a-server-forge-libs-only": null
+}

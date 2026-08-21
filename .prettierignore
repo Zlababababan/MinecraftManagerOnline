@@ -8,3 +8,6 @@ docs/*.md
 docs/spikes/**
 CLAUDE.md
 README.md
+CONTRIBUTING.md
+# Fixtures copiées de vrais dossiers serveurs : jamais reformatées
+packages/shared/test/fixtures/servers/**

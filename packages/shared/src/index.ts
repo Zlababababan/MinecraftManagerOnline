@@ -1,14 +1,15 @@
 /**
- * @mmo/shared — code commun panel/agent.
- * Phase 2 y ajoutera : i18n fr/en, mapping MC→Java, parsing de logs, heuristiques de détection.
+ * @mmo/shared — code commun panel/agent/front (doc 03 §1) : i18n fr/en, mapping MC→Java, parsing
+ * de logs, heuristiques de détection. Ce point d'entrée n'importe aucun module Node ; l'adaptateur
+ * système de fichiers vit dans `@mmo/shared/node`.
  */
-
 export const PROJECT_NAME = 'MinecraftManagerOnline';
 
-/** Langues supportées (i18n dès la première chaîne — doc 07, règle 4). */
-export const LOCALES = ['fr', 'en'] as const;
-export type Locale = (typeof LOCALES)[number];
-
-export function isLocale(value: string): value is Locale {
-  return (LOCALES as readonly string[]).includes(value);
-}
+export * from './i18n/index.js';
+export * from './minecraft/version.js';
+export * from './java/index.js';
+export * from './logs/parser.js';
+export * from './logs/patterns.js';
+export * from './detection/fs.js';
+export * from './detection/detect.js';
+export * from './detection/scan.js';

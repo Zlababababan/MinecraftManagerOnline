@@ -1,0 +1,14 @@
+{
+  "source": "forge_43.2.3",
+  "files": [
+    "libraries/net/minecraftforge/forge/1.19.2-43.2.3/forge-1.19.2-43.2.3-server.jar (placeholder)",
+    "libraries/net/minecraftforge/forge/1.19.2-43.2.3/forge-1.19.2-43.2.3-universal.jar (placeholder)",
+    "libraries/net/minecraftforge/forge/1.19.2-43.2.3/unix_args.txt",
+    "libraries/net/minecraftforge/forge/1.19.2-43.2.3/win_args.txt",
+    "libraries/net/minecraft/server/1.19.2/",
+    "libraries/net/minecraft/server/1.19.2-20220805.130853/",
+    "run.bat",
+    "run.sh",
+    "user_jvm_args.txt"
+  ]
+}

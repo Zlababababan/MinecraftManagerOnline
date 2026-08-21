@@ -1,0 +1,20 @@
+{
+  "source": "AllTheMods",
+  "files": [
+    "config/ (vide)",
+    "defaultconfigs/ (vide)",
+    "forge-1.19.2-43.1.55-installer.jar",
+    "installer.log (placeholder)",
+    "INSTRUCTIONS -- READ ME.txt (placeholder)",
+    "kubejs/ (vide)",
+    "mods/MysticalAgradditions-1.19.2-6.0.2.jar",
+    "mods/RSInfinityBooster-1.19.2-3.0+23.jar",
+    "mods/tesseract-1.0.27b-forge-mc1.19.jar",
+    "mods/jei-1.19.2-forge-11.4.0.290.jar",
+    "mods/Controlling-forge-1.19.2-10.0+7.jar",
+    "mods/refinedcooking-3.0.3.jar",
+    "server-icon.png (placeholder)",
+    "server.properties",
+    "user_jvm_args.txt"
+  ]
+}

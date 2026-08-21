@@ -1,0 +1,17 @@
+{
+  "source": "Localhost/1.19.2_v1.1.0",
+  "files": [
+    "banned-ips.json (placeholder)",
+    "banned-players.json (placeholder)",
+    "eula.txt",
+    "launch_server.bat",
+    "logs/latest.log (extrait anonymisé)",
+    "ops.json (placeholder)",
+    "server.jar",
+    "server.properties",
+    "usercache.json (placeholder)",
+    "versions/1.19.2/server-1.19.2.jar",
+    "whitelist.json (placeholder)",
+    "world/ (vide)"
+  ]
+}
