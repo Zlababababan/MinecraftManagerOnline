@@ -1,0 +1,10 @@
+{
+  "name": "mmo-spikes",
+  "private": true,
+  "type": "module",
+  "description": "Scripts des spikes de validation (phase 0). Hors workspace pnpm.",
+  "dependencies": {
+    "pidusage": "^4.0.1",
+    "systeminformation": "^5.27.7"
+  }
+}

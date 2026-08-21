@@ -1,0 +1,190 @@
+{
+  "dh-fabric1211": {
+    "label": "Fabric 1.21.1 (Dungeon Heroes)",
+    "results": [
+      {
+        "scenario": "parent-crash",
+        "javaPid": 3896,
+        "agentPid": 21720,
+        "startSeconds": 70,
+        "cpuBeforeEof": {
+          "cpuPctOneCore": 83.4,
+          "rssMb": 2976
+        },
+        "rconBefore": {
+          "ok": true,
+          "body": "There are 0 of a max of 101 players online:"
+        },
+        "aliveAfter3s": true,
+        "cpuAfterEof": {
+          "cpuPctOneCore": 10.6,
+          "rssMb": 2991
+        },
+        "rconList": {
+          "ok": true,
+          "body": "There are 0 of a max of 101 players online:"
+        },
+        "rconSay": {
+          "ok": true,
+          "body": ""
+        },
+        "latestLogStillWritten": true,
+        "aliveAfter20s": true,
+        "rconStop": {
+          "ok": true,
+          "body": "Stopping the server"
+        },
+        "exitedWithin120s": true,
+        "logAnomalies": [
+          "[20:49:42] [Server thread/INFO]: [Rcon] spike-after-eof"
+        ],
+        "stdoutTail": [
+          "[20:49:25] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started",
+          "[20:49:25] [Server thread/INFO]: [Rcon] spike-marker-1787338165258",
+          "[20:49:25] [RCON Client /127.0.0.1 #3/INFO]: Thread RCON Client /127.0.0.1 shutting down"
+        ]
+      },
+      {
+        "scenario": "stdin-eof",
+        "javaPid": 26152,
+        "startSeconds": 36,
+        "cpuBeforeEof": {
+          "cpuPctOneCore": 79.6,
+          "rssMb": 2353
+        },
+        "aliveAfter3s": true,
+        "cpuAfterEof": {
+          "cpuPctOneCore": 14.4,
+          "rssMb": 2331
+        },
+        "rconList": {
+          "ok": true,
+          "body": "There are 0 of a max of 101 players online:"
+        },
+        "rconSay": {
+          "ok": true,
+          "body": ""
+        },
+        "latestLogStillWritten": true,
+        "aliveAfter20s": true,
+        "rconStop": {
+          "ok": true,
+          "body": "Stopping the server"
+        },
+        "exitedWithin120s": true,
+        "stdoutStillFlowingAfterEof": true,
+        "stdoutAfterEof": [
+          "[20:50:55] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started",
+          "[20:50:55] [RCON Client /127.0.0.1 #3/INFO]: Thread RCON Client /127.0.0.1 shutting down",
+          "[20:50:55] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started",
+          "[20:50:55] [Server thread/INFO]: [Rcon] spike-after-eof",
+          "[20:50:55] [RCON Client /127.0.0.1 #4/INFO]: Thread RCON Client /127.0.0.1 shutting down",
+          "[20:50:57] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started",
+          "[20:50:57] [Server thread/INFO]: [Rcon: Stopping the server]",
+          "[20:50:57] [RCON Client /127.0.0.1 #5/INFO]: Thread RCON Client /127.0.0.1 shutting down"
+        ],
+        "exitInfo": {
+          "code": 0,
+          "signal": null
+        },
+        "logAnomalies": [
+          "[20:50:55] [Server thread/INFO]: [Rcon] spike-after-eof"
+        ]
+      }
+    ]
+  },
+  "atm10-neoforge1211": {
+    "label": "NeoForge 1.21.1 (ATM10)",
+    "results": [
+      {
+        "scenario": "parent-crash",
+        "javaPid": 1320,
+        "agentPid": 17288,
+        "startSeconds": 157,
+        "cpuBeforeEof": {
+          "cpuPctOneCore": 345.4,
+          "rssMb": 8289
+        },
+        "rconBefore": {
+          "ok": false,
+          "error": "rcon timeout (list)"
+        },
+        "aliveAfter3s": true,
+        "cpuAfterEof": {
+          "cpuPctOneCore": 21.8,
+          "rssMb": 8286
+        },
+        "rconList": {
+          "ok": true,
+          "body": "There are 0 of a max of 20 players online:"
+        },
+        "rconSay": {
+          "ok": true,
+          "body": ""
+        },
+        "latestLogStillWritten": true,
+        "aliveAfter20s": true,
+        "rconStop": {
+          "ok": true,
+          "body": "Stopping the server"
+        },
+        "exitedWithin120s": true,
+        "logAnomalies": [
+          "[21Aug2026 20:54:21.121] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: [Rcon] spike-after-eof"
+        ],
+        "stdoutTail": [
+          "[20:54:03] [RCON Client /127.0.0.1 #2/INFO] [minecraft/RconClient]: Thread RCON Client /127.0.0.1 shutting down",
+          "[20:54:03] [Server thread/INFO] [minecraft/MinecraftServer]: [Rcon] spike-marker-1787338438969",
+          "[20:54:03] [RCON Client /127.0.0.1 #3/INFO] [minecraft/RconClient]: Thread RCON Client /127.0.0.1 shutting down"
+        ]
+      },
+      {
+        "scenario": "stdin-eof",
+        "javaPid": 20608,
+        "startSeconds": 137,
+        "cpuBeforeEof": {
+          "cpuPctOneCore": 415.9,
+          "rssMb": 7389
+        },
+        "aliveAfter3s": true,
+        "cpuAfterEof": {
+          "cpuPctOneCore": 20.6,
+          "rssMb": 7405
+        },
+        "rconList": {
+          "ok": true,
+          "body": "There are 0 of a max of 20 players online:"
+        },
+        "rconSay": {
+          "ok": true,
+          "body": ""
+        },
+        "latestLogStillWritten": true,
+        "aliveAfter20s": true,
+        "rconStop": {
+          "ok": true,
+          "body": "Stopping the server"
+        },
+        "exitedWithin120s": true,
+        "stdoutStillFlowingAfterEof": true,
+        "stdoutAfterEof": [
+          "[20:57:21] [RCON Listener #1/INFO] [minecraft/GenericThread]: Thread RCON Client /127.0.0.1 started",
+          "[20:57:21] [RCON Client /127.0.0.1 #3/INFO] [minecraft/RconClient]: Thread RCON Client /127.0.0.1 shutting down",
+          "[20:57:21] [RCON Listener #1/INFO] [minecraft/GenericThread]: Thread RCON Client /127.0.0.1 started",
+          "[20:57:21] [Server thread/INFO] [minecraft/MinecraftServer]: [Rcon] spike-after-eof",
+          "[20:57:21] [RCON Client /127.0.0.1 #4/INFO] [minecraft/RconClient]: Thread RCON Client /127.0.0.1 shutting down",
+          "[20:57:23] [RCON Listener #1/INFO] [minecraft/GenericThread]: Thread RCON Client /127.0.0.1 started",
+          "[20:57:23] [Server thread/INFO] [minecraft/MinecraftServer]: [Rcon: Stopping the server]",
+          "[20:57:23] [RCON Client /127.0.0.1 #5/INFO] [minecraft/RconClient]: Thread RCON Client /127.0.0.1 shutting down"
+        ],
+        "exitInfo": {
+          "code": 0,
+          "signal": null
+        },
+        "logAnomalies": [
+          "[21Aug2026 20:57:21.035] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: [Rcon] spike-after-eof"
+        ]
+      }
+    ]
+  }
+}

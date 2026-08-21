@@ -1,0 +1,201 @@
+{
+  "sf4-forge112": {
+    "label": "Forge 1.12.2 (SkyFactory 4)",
+    "results": [
+      {
+        "scenario": "parent-crash",
+        "javaPid": 29208,
+        "agentPid": 23664,
+        "startSeconds": 66,
+        "cpuBeforeEof": {
+          "cpuPct": 2,
+          "rssMb": 2151
+        },
+        "rconBefore": {
+          "ok": true,
+          "body": "There are 0/200 players online:"
+        },
+        "aliveAfter3s": true,
+        "cpuAfterEof": {
+          "cpuPct": 0,
+          "rssMb": 2152
+        },
+        "rconList": {
+          "ok": true,
+          "body": "There are 0/200 players online:"
+        },
+        "rconSay": {
+          "ok": true,
+          "body": ""
+        },
+        "latestLogStillWritten": true,
+        "aliveAfter20s": true,
+        "rconStop": {
+          "ok": true,
+          "body": "Stopping the server"
+        },
+        "exitedWithin120s": true,
+        "logAnomalies": [
+          "[20:34:11] [RCON Client #5/INFO] [net.minecraft.server.dedicated.DedicatedServer]: [Rcon] spike-after-eof"
+        ],
+        "stdoutTail": [
+          "[20:33:57] [RCON Listener #1/INFO] [minecraft/MinecraftServer]: Rcon connection from: /127.0.0.1",
+          "[20:33:57] [RCON Listener #1/INFO] [minecraft/MinecraftServer]: Rcon connection from: /127.0.0.1",
+          "[20:33:57] [RCON Client #3/INFO] [minecraft/DedicatedServer]: [Rcon] spike-marker-1787337237149"
+        ]
+      },
+      {
+        "scenario": "stdin-eof",
+        "javaPid": 28080,
+        "startSeconds": 70,
+        "cpuBeforeEof": {
+          "cpuPct": 1.7,
+          "rssMb": 2153
+        },
+        "aliveAfter3s": true,
+        "cpuAfterEof": {
+          "cpuPct": 0,
+          "rssMb": 2155
+        },
+        "rconList": {
+          "ok": true,
+          "body": "There are 0/200 players online:"
+        },
+        "rconSay": {
+          "ok": true,
+          "body": ""
+        },
+        "latestLogStillWritten": true,
+        "aliveAfter20s": true,
+        "rconStop": {
+          "ok": true,
+          "body": "Stopping the server"
+        },
+        "exitedWithin120s": true,
+        "stdoutStillFlowingAfterEof": true,
+        "stdoutAfterEof": [
+          "[20:35:53] [RCON Listener #1/INFO] [minecraft/MinecraftServer]: Rcon connection from: /127.0.0.1",
+          "[20:35:53] [RCON Listener #1/INFO] [minecraft/MinecraftServer]: Rcon connection from: /127.0.0.1",
+          "[20:35:53] [RCON Client #4/INFO] [minecraft/DedicatedServer]: [Rcon] spike-after-eof",
+          "[20:35:55] [RCON Listener #1/INFO] [minecraft/MinecraftServer]: Rcon connection from: /127.0.0.1",
+          "[20:35:55] [RCON Client #5/INFO] [minecraft/DedicatedServer]: [Rcon: Stopping the server]",
+          "[20:35:55] [Server thread/INFO] [AromaBackup]: No backup in progress. No server delay needed.",
+          "[20:35:55] [Server thread/INFO] [Prestige]: Saving data for f48f4683-bee4-4263-87af-b10e3e155efc.",
+          "[20:35:55] [Server thread/INFO] [Prestige]: Saving data for 5ad05311-a856-4793-aae9-962b490c4b1c."
+        ],
+        "exitInfo": {
+          "code": 0,
+          "signal": null
+        },
+        "logAnomalies": [
+          "[20:35:53] [RCON Client #4/INFO] [net.minecraft.server.dedicated.DedicatedServer]: [Rcon] spike-after-eof"
+        ]
+      }
+    ]
+  },
+  "rad2-forge116": {
+    "label": "Forge 1.16.5 (RAD2)",
+    "results": [
+      {
+        "scenario": "parent-crash",
+        "javaPid": 25504,
+        "agentPid": 26112,
+        "startSeconds": 103,
+        "cpuBeforeEof": {
+          "cpuPct": 11.6,
+          "rssMb": 2674
+        },
+        "rconBefore": {
+          "ok": true,
+          "body": "There are 0 of a max of 5 players online:"
+        },
+        "aliveAfter3s": true,
+        "cpuAfterEof": {
+          "cpuPct": 1.1,
+          "rssMb": 2688
+        },
+        "rconList": {
+          "ok": true,
+          "body": "There are 0 of a max of 5 players online:"
+        },
+        "rconSay": {
+          "ok": true,
+          "body": ""
+        },
+        "latestLogStillWritten": true,
+        "aliveAfter20s": true,
+        "rconStop": {
+          "ok": true,
+          "body": "Stopping the server"
+        },
+        "exitedWithin120s": true,
+        "logAnomalies": [
+          "[21Aug2026 20:38:08.783] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: [Rcon] spike-after-eof"
+        ],
+        "stdoutTail": [
+          "[20:37:54] [RCON Client /127.0.0.1 #2/INFO] [minecraft/ClientThread]: Thread RCON Client /127.0.0.1 shutting down",
+          "[20:37:54] [Server thread/INFO] [minecraft/DedicatedServer]: [Rcon] spike-marker-1787337474087",
+          "[20:37:54] [RCON Client /127.0.0.1 #3/INFO] [minecraft/ClientThread]: Thread RCON Client /127.0.0.1 shutting down"
+        ]
+      },
+      {
+        "scenario": "stdin-eof",
+        "javaPid": 21980,
+        "startSeconds": 64,
+        "cpuBeforeEof": {
+          "cpuPct": 9.1,
+          "rssMb": 2634
+        },
+        "aliveAfter3s": true,
+        "cpuAfterEof": {
+          "cpuPct": 0.2,
+          "rssMb": 2633
+        },
+        "rconList": {
+          "ok": true,
+          "body": "There are 0 of a max of 5 players online:"
+        },
+        "rconSay": {
+          "ok": true,
+          "body": ""
+        },
+        "latestLogStillWritten": true,
+        "aliveAfter20s": true,
+        "rconStop": {
+          "ok": true,
+          "body": "Stopping the server"
+        },
+        "exitedWithin120s": true,
+        "stdoutStillFlowingAfterEof": true,
+        "stdoutAfterEof": [
+          "[20:39:47] [RCON Listener #1/INFO] [minecraft/RConThread]: Thread RCON Client /127.0.0.1 started",
+          "[20:39:47] [RCON Client /127.0.0.1 #3/INFO] [minecraft/ClientThread]: Thread RCON Client /127.0.0.1 shutting down",
+          "[20:39:47] [RCON Listener #1/INFO] [minecraft/RConThread]: Thread RCON Client /127.0.0.1 started",
+          "[20:39:47] [Server thread/INFO] [minecraft/DedicatedServer]: [Rcon] spike-after-eof",
+          "[20:39:47] [RCON Client /127.0.0.1 #4/INFO] [minecraft/ClientThread]: Thread RCON Client /127.0.0.1 shutting down",
+          "[20:39:49] [RCON Listener #1/INFO] [minecraft/RConThread]: Thread RCON Client /127.0.0.1 started",
+          "[20:39:49] [Server thread/INFO] [minecraft/DedicatedServer]: [Rcon: Stopping the server]",
+          "[20:39:49] [RCON Client /127.0.0.1 #5/INFO] [minecraft/ClientThread]: Thread RCON Client /127.0.0.1 shutting down"
+        ],
+        "exitInfo": {
+          "code": 0,
+          "signal": null
+        },
+        "logAnomalies": [
+          "[21Aug2026 20:39:47.249] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: [Rcon] spike-after-eof"
+        ]
+      }
+    ]
+  },
+  "prom2-fabric1201": {
+    "label": "Fabric 1.20.1 (Prominence II)",
+    "results": [
+      {
+        "scenario": "parent-crash",
+        "javaPid": 27548,
+        "agentPid": 29972,
+        "error": "java exited before Done"
+      }
+    ]
+  }
+}

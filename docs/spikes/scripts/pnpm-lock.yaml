@@ -1,0 +1,41 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      pidusage:
+        specifier: ^4.0.1
+        version: 4.0.1
+      systeminformation:
+        specifier: ^5.27.7
+        version: 5.33.1
+
+packages:
+
+  pidusage@4.0.1:
+    resolution: {integrity: sha512-yCH2dtLHfEBnzlHUJymR/Z1nN2ePG3m392Mv8TFlTP1B0xkpMQNHAnfkY0n2tAi6ceKO6YWhxYfZ96V4vVkh/g==}
+    engines: {node: '>=18'}
+
+  safe-buffer@5.2.1:
+    resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
+
+  systeminformation@5.33.1:
+    resolution: {integrity: sha512-DEN6ICHk3Tk0Uf/hrAHh7xlt7iL5CJFBtPZinA0H62DrGG/KPKqq/Nzj6lCXPS4Ay/sf/14zNnk9LpqKzBIc+w==}
+    engines: {node: '>=10.0.0'}
+    os: [darwin, linux, win32, freebsd, openbsd, netbsd, sunos, android]
+    hasBin: true
+
+snapshots:
+
+  pidusage@4.0.1:
+    dependencies:
+      safe-buffer: 5.2.1
+
+  safe-buffer@5.2.1: {}
+
+  systeminformation@5.33.1: {}
