@@ -6,6 +6,10 @@ Application web de pilotage à distance de serveurs Minecraft auto-hébergés : 
 
 - [Présentation du projet](docs/01-presentation.md)
 - [Fonctionnalités](docs/02-fonctionnalites.md)
+- [Socle technique](docs/03-socle-technique.md)
+- [Base de données](docs/04-base-de-donnees.md)
+- [Protocole panel-agent](docs/05-protocole.md)
+- [Serveurs Minecraft](docs/06-minecraft.md)
 
 ## Licence
 

@@ -64,5 +64,8 @@ Application multi-comptes destinée à un cercle privé (le propriétaire et ses
 
 ## Documents du projet
 
-- [02-fonctionnalites.md](02-fonctionnalites.md) — liste complète des fonctionnalités
-- Socle technique — à venir
+- [02-fonctionnalites.md](02-fonctionnalites.md) — liste complète des fonctionnalités (V1 / futur)
+- [03-socle-technique.md](03-socle-technique.md) — stack, distribution, couche d'accès, sécurité, tests
+- [04-base-de-donnees.md](04-base-de-donnees.md) — schéma SQLite complet et règles d'exploitation
+- [05-protocole.md](05-protocole.md) — protocole panel ↔ agent (catalogue des messages)
+- [06-minecraft.md](06-minecraft.md) — lancement, détection et pilotage des serveurs Minecraft

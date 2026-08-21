@@ -1,0 +1,432 @@
+# 04 — Base de données
+
+SQLite, deux fichiers : **`mmo.db`** (métier) et **`metrics.db`** (métriques haute fréquence — isolées car SQLite n'a qu'un écrivain par fichier). Schéma géré par migrations Drizzle commitées.
+
+## Conventions
+
+- Timestamps : `INTEGER` epoch **millisecondes** (suffixe `_at` / colonne `ts`) — partout, y compris dans les payloads du protocole (conversion en bordure d'UI uniquement).
+- IDs métier : `TEXT` ULID (triables chronologiquement). Tables append-only volumineuses (events, audit, sessions joueurs, historique de commandes) : `INTEGER PRIMARY KEY` (rowid).
+- Booléens : `INTEGER` 0/1. Structures libres : `TEXT` JSON.
+- À chaque ouverture de connexion : `PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000; PRAGMA synchronous=NORMAL;` (`foreign_keys` est **par connexion** — l'oublier désactive silencieusement les FK).
+
+## 1. Utilisateurs, sessions, notifications
+
+```sql
+CREATE TABLE users (
+  id            TEXT PRIMARY KEY,
+  username      TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  password_hash TEXT NOT NULL,                          -- argon2id
+  role          TEXT NOT NULL DEFAULT 'viewer'
+                CHECK (role IN ('admin','operator','viewer')),
+  locale        TEXT NOT NULL DEFAULT 'fr' CHECK (locale IN ('fr','en')),
+  theme         TEXT NOT NULL DEFAULT 'dark',
+  is_active     INTEGER NOT NULL DEFAULT 1,
+  created_at    INTEGER NOT NULL,
+  last_login_at INTEGER
+);
+
+CREATE TABLE sessions (
+  id           INTEGER PRIMARY KEY,
+  user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash   TEXT NOT NULL UNIQUE,                    -- sha256 du token du cookie
+  created_at   INTEGER NOT NULL,
+  expires_at   INTEGER NOT NULL,
+  last_seen_at INTEGER,
+  ip           TEXT,
+  user_agent   TEXT
+);
+CREATE INDEX idx_sessions_user    ON sessions(user_id);
+CREATE INDEX idx_sessions_expires ON sessions(expires_at);
+
+CREATE TABLE push_subscriptions (
+  id              INTEGER PRIMARY KEY,
+  user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  endpoint        TEXT NOT NULL UNIQUE,
+  p256dh          TEXT NOT NULL,
+  auth            TEXT NOT NULL,
+  created_at      INTEGER NOT NULL,
+  last_success_at INTEGER,
+  fail_count      INTEGER NOT NULL DEFAULT 0            -- purge des endpoints morts (410)
+);
+CREATE INDEX idx_push_user ON push_subscriptions(user_id);
+
+CREATE TABLE notification_prefs (
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL,                             -- 'server.crashed', 'player.joined'…
+  enabled    INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (user_id, event_type)
+);
+```
+
+Extension future sans refonte : `user_server_permissions(user_id, server_id, role)` pour des droits par serveur.
+
+## 2. Machines, appairage, agent, répertoires, Java
+
+```sql
+CREATE TABLE machines (
+  id               TEXT PRIMARY KEY,
+  name             TEXT NOT NULL UNIQUE,
+  os               TEXT CHECK (os IN ('windows','linux','macos')),
+  arch             TEXT CHECK (arch IN ('x64','arm64')),
+  hostname         TEXT,
+  agent_version    TEXT,
+  protocol_version INTEGER,
+  agent_token_hash TEXT,                                -- sha256 du secret d'agent
+  status           TEXT NOT NULL DEFAULT 'pending'
+                   CHECK (status IN ('pending','online','offline','disabled')),
+  last_seen_at     INTEGER,
+  cpu_model        TEXT,
+  cpu_cores        INTEGER,
+  ram_total_mb     INTEGER,
+  created_at       INTEGER NOT NULL
+);
+
+CREATE TABLE pairing_codes (
+  id         INTEGER PRIMARY KEY,
+  code_hash  TEXT NOT NULL UNIQUE,                      -- jamais le code en clair
+  attempts   INTEGER NOT NULL DEFAULT 0,                -- max 5, rate-limit sur l'endpoint
+  created_by TEXT REFERENCES users(id),
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,                          -- TTL 15 min
+  used_at    INTEGER,
+  machine_id TEXT REFERENCES machines(id)               -- rempli à l'usage
+);
+
+-- Bundle agent UNIVERSEL (identique tous OS/arch) — voir doc 03 §3.
+CREATE TABLE agent_releases (
+  version          TEXT PRIMARY KEY,
+  protocol_version INTEGER NOT NULL,
+  channel          TEXT NOT NULL DEFAULT 'stable',
+  released_at      INTEGER NOT NULL,
+  bundle_path      TEXT NOT NULL,
+  bundle_sha256    TEXT NOT NULL,
+  bundle_signature TEXT NOT NULL,                       -- Ed25519
+  bundle_size      INTEGER NOT NULL,
+  runtime_version  TEXT,                                -- version Node recommandée (canal runtime séparé)
+  notes            TEXT
+);
+
+CREATE TABLE watched_directories (
+  id           TEXT PRIMARY KEY,
+  machine_id   TEXT NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
+  path         TEXT NOT NULL,
+  enabled      INTEGER NOT NULL DEFAULT 1,
+  last_scan_at INTEGER,
+  UNIQUE (machine_id, path)
+);
+
+CREATE TABLE java_runtimes (
+  id            TEXT PRIMARY KEY,
+  machine_id    TEXT NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
+  major_version INTEGER NOT NULL,                       -- 8, 17, 21…
+  full_version  TEXT,
+  vendor        TEXT,                                   -- 'temurin' | 'zulu' | 'system'
+  path          TEXT NOT NULL,
+  managed       INTEGER NOT NULL DEFAULT 1,
+  installed_at  INTEGER NOT NULL,
+  UNIQUE (machine_id, path)
+);
+CREATE INDEX idx_java_machine ON java_runtimes(machine_id, major_version);
+```
+
+## 3. Serveurs Minecraft
+
+**Autorité des identifiants** : `servers.id` est attribué **par le panel**. L'agent dépose un marqueur `.mmo-server.json` dans le dossier ; si un marqueur déjà connu réapparaît sur un autre chemin ou une autre machine (backup restauré, dossier copié), le panel traite un **conflit explicite** (UI : « copie ? migration ? ») et fait réécrire un nouvel ID si c'est une copie. Cas couvert par un test dédié.
+
+```sql
+CREATE TABLE servers (
+  id                  TEXT PRIMARY KEY,
+  machine_id          TEXT NOT NULL REFERENCES machines(id),
+  directory_id        TEXT REFERENCES watched_directories(id) ON DELETE SET NULL,
+  path                TEXT NOT NULL,
+  name                TEXT NOT NULL,
+  loader              TEXT NOT NULL DEFAULT 'unknown'
+                      CHECK (loader IN ('vanilla','forge','neoforge','fabric','unknown')),
+  mc_version          TEXT,
+  loader_version      TEXT,
+  detected            INTEGER NOT NULL DEFAULT 0,
+  java_runtime_id     TEXT REFERENCES java_runtimes(id) ON DELETE SET NULL,
+  java_major_required INTEGER,                          -- déduit, surchargeable
+  java_args           TEXT,
+  min_ram_mb          INTEGER NOT NULL DEFAULT 1024,
+  max_ram_mb          INTEGER NOT NULL DEFAULT 4096,    -- garde-fou vérifié avant lancement
+  game_port           INTEGER,
+  rcon_enabled        INTEGER NOT NULL DEFAULT 1,       -- auto-provisionné (doc 03)
+  rcon_port           INTEGER,
+  rcon_password_enc   TEXT,                             -- chiffré (clé dans la config, pas en base)
+  eula_accepted       INTEGER NOT NULL DEFAULT 0,
+  expose_mode         TEXT NOT NULL DEFAULT 'tailnet'
+                      CHECK (expose_mode IN ('tailnet','direct')),  -- adresse à donner aux joueurs
+  provisioning        TEXT NOT NULL DEFAULT 'installing'
+                      CHECK (provisioning IN ('installing','install_failed','ready',
+                                              'archived','migrating')),
+  run_state           TEXT NOT NULL DEFAULT 'stopped'
+                      CHECK (run_state IN ('stopped','starting','running','stopping','crashed')),
+  desired_state       TEXT NOT NULL DEFAULT 'stopped'
+                      CHECK (desired_state IN ('stopped','running')),
+  attach_mode         TEXT NOT NULL DEFAULT 'attached'
+                      CHECK (attach_mode IN ('attached','detached')), -- detached = stdin perdu, pilotage RCON
+  last_exit_reason    TEXT,                             -- 'stop' | 'kill' | 'crash' | 'freeze_kill'
+  auto_restart        INTEGER NOT NULL DEFAULT 0,
+  crash_loop_max      INTEGER NOT NULL DEFAULT 3,
+  watchdog_freeze_s   INTEGER NOT NULL DEFAULT 120,
+  pid                 INTEGER,
+  started_at          INTEGER,
+  stopped_at          INTEGER,
+  created_at          INTEGER NOT NULL,
+  updated_at          INTEGER NOT NULL,
+  UNIQUE (machine_id, path)
+);
+CREATE INDEX idx_servers_machine ON servers(machine_id);
+CREATE INDEX idx_servers_run     ON servers(run_state);
+CREATE INDEX idx_servers_ports   ON servers(machine_id, game_port);
+```
+
+**Machines à états** (deux axes indépendants) :
+
+- `provisioning` : `installing → ready` | `install_failed` (reprenable) ; `ready ↔ archived` ; `ready → migrating → ready` (échec → retour source).
+- `run_state` : `stopped → starting → running → stopping → stopped` ; `starting|running → crashed` (exit non demandé, timeout de démarrage, freeze tué) ; kill manuel → `stopped` avec `last_exit_reason='kill'` ; `crashed → starting` (auto-restart borné par `crash_loop_max`, ou relance manuelle) ; `crashed → stopped` (acquittement).
+- Restart = `running → stopping → stopped → starting`, orchestré avec `desired_state='running'` maintenu.
+- Agent hors ligne : « inaccessible » est **dérivé** de `machines.status`, jamais stocké dans `run_state`.
+- **Ports** : pas d'UNIQUE sur `(machine_id, game_port)` — deux serveurs arrêtés peuvent déclarer le même port. Conflit détecté applicativement au lancement (parmi `starting`/`running` de la machine, ports game + RCON) et en avertissement à l'édition.
+
+```sql
+CREATE TABLE command_history (
+  id        INTEGER PRIMARY KEY,
+  server_id TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  user_id   TEXT REFERENCES users(id) ON DELETE SET NULL,
+  command   TEXT NOT NULL,
+  via       TEXT NOT NULL DEFAULT 'stdin' CHECK (via IN ('stdin','rcon')),
+  ts        INTEGER NOT NULL
+);
+CREATE INDEX idx_cmdhist ON command_history(server_id, user_id, ts DESC);
+
+-- Index de navigation ; les fichiers restent sur la machine de l'agent,
+-- la recherche plein texte est exécutée PAR L'AGENT en streaming (pas de FTS central).
+CREATE TABLE server_log_files (
+  id         INTEGER PRIMARY KEY,
+  server_id  TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  file_name  TEXT NOT NULL,
+  size_bytes INTEGER,
+  first_ts   INTEGER,
+  last_ts    INTEGER,
+  UNIQUE (server_id, file_name)
+);
+```
+
+## 4. Joueurs
+
+Whitelist/ops/bans ne sont **pas dupliqués en base** : les fichiers JSON du serveur restent la source de vérité (édités via l'agent, tracés dans l'audit).
+
+```sql
+CREATE TABLE players (
+  uuid          TEXT PRIMARY KEY,                       -- identité = UUID (name = cache d'affichage)
+  last_name     TEXT NOT NULL,
+  first_seen_at INTEGER NOT NULL,
+  last_seen_at  INTEGER NOT NULL
+);
+
+CREATE TABLE player_sessions (
+  id          INTEGER PRIMARY KEY,
+  server_id   TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  player_uuid TEXT NOT NULL REFERENCES players(uuid),
+  player_name TEXT NOT NULL,
+  joined_at   INTEGER NOT NULL,
+  left_at     INTEGER                                    -- NULL = en ligne
+);
+CREATE INDEX idx_psess_server ON player_sessions(server_id, joined_at DESC);
+CREATE INDEX idx_psess_player ON player_sessions(player_uuid, joined_at DESC);
+CREATE INDEX idx_psess_online ON player_sessions(server_id) WHERE left_at IS NULL;
+```
+
+**Règle de clôture** : sur `run_state → stopped|crashed` et à chaque réconciliation `sync.state`, toutes les sessions ouvertes du serveur sont clôturées (`left_at = ts` de l'événement) — sinon la liste « en ligne » ment après un crash.
+
+## 5. Backups, planificateur, tasks, migrations
+
+Partition d'exécution (voir doc 05) : **backups planifiés, rotation et watchdog = exécutés par l'agent** (survivent à un panel éteint) ; **start/stop/restart programmés et annonces = exécutés par le panel**. Les suppressions faites par la rotation locale remontent via l'événement `backup.rotated` pour que cette table ne diverge jamais du disque.
+
+```sql
+CREATE TABLE backup_policies (
+  id              TEXT PRIMARY KEY,
+  server_id       TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  cron            TEXT NOT NULL,
+  destination     TEXT,                                 -- NULL = défaut (app_settings)
+  keep_last       INTEGER,
+  keep_days       INTEGER,
+  only_if_running INTEGER NOT NULL DEFAULT 0,
+  enabled         INTEGER NOT NULL DEFAULT 1,
+  created_at      INTEGER NOT NULL
+);
+CREATE INDEX idx_bpol_server ON backup_policies(server_id);
+
+CREATE TABLE backups (
+  id           TEXT PRIMARY KEY,
+  server_id    TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  policy_id    TEXT REFERENCES backup_policies(id) ON DELETE SET NULL,
+  kind         TEXT NOT NULL CHECK (kind IN ('manual','scheduled','pre_migration','pre_restore')),
+  status       TEXT NOT NULL CHECK (status IN ('running','success','failed','deleted')),
+  machine_id   TEXT NOT NULL REFERENCES machines(id),   -- où réside l'archive
+  archive_path TEXT,
+  size_bytes   INTEGER,
+  sha256       TEXT,
+  started_at   INTEGER NOT NULL,
+  finished_at  INTEGER,
+  error        TEXT,
+  created_by   TEXT REFERENCES users(id)
+);
+CREATE INDEX idx_backups_server ON backups(server_id, started_at DESC);
+
+CREATE TABLE scheduled_tasks (
+  id          TEXT PRIMARY KEY,
+  server_id   TEXT REFERENCES servers(id) ON DELETE CASCADE,
+  action      TEXT NOT NULL CHECK (action IN ('start','stop','restart','backup','command','announce')),
+  cron        TEXT NOT NULL,
+  payload     TEXT,                                     -- JSON, ex. annonces avant stop
+  enabled     INTEGER NOT NULL DEFAULT 1,
+  last_run_at INTEGER,
+  last_status TEXT,
+  next_run_at INTEGER,
+  created_by  TEXT REFERENCES users(id),
+  created_at  INTEGER NOT NULL
+);
+CREATE INDEX idx_tasks_next ON scheduled_tasks(enabled, next_run_at);
+
+-- Opérations longues du protocole (backup, restore, migration, scan, java.install, update).
+-- Permet au panel de survivre à son propre redémarrage : réconciliation via task.list.
+CREATE TABLE tasks (
+  id          TEXT PRIMARY KEY,                         -- taskId du protocole
+  kind        TEXT NOT NULL,
+  machine_id  TEXT REFERENCES machines(id),
+  server_id   TEXT REFERENCES servers(id),
+  status      TEXT NOT NULL CHECK (status IN ('pending','running','stalled','done','failed','cancelled')),
+  progress    REAL,
+  payload     TEXT,                                     -- JSON
+  ref_id      TEXT,                                     -- ex. backups.id, server_migrations.id
+  created_by  TEXT REFERENCES users(id),
+  created_at  INTEGER NOT NULL,
+  finished_at INTEGER,
+  error       TEXT
+);
+CREATE INDEX idx_tasks_status ON tasks(status, created_at DESC);
+
+CREATE TABLE server_migrations (
+  id              TEXT PRIMARY KEY,
+  server_id       TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  from_machine_id TEXT NOT NULL REFERENCES machines(id),
+  to_machine_id   TEXT NOT NULL REFERENCES machines(id),
+  to_directory_id TEXT REFERENCES watched_directories(id),
+  backup_id       TEXT REFERENCES backups(id),
+  status          TEXT NOT NULL CHECK (status IN ('pending','backing_up','transferring',
+                                     'restoring','verifying','done','failed','rolled_back')),
+  progress_pct    REAL,
+  started_at      INTEGER NOT NULL,
+  finished_at     INTEGER,
+  error           TEXT,
+  created_by      TEXT REFERENCES users(id)
+);
+CREATE INDEX idx_migr_server ON server_migrations(server_id, started_at DESC);
+```
+
+## 6. Événements, audit, réglages
+
+```sql
+-- Bus d'événements persistant ; rowid = curseur de reprise des consommateurs
+-- (push, UI temps réel, webhooks futurs). Sans FK volontairement : un événement
+-- survit à la suppression de sa cible. Purge configurable (défaut 90 j).
+CREATE TABLE events (
+  id         INTEGER PRIMARY KEY,
+  ts         INTEGER NOT NULL,
+  type       TEXT NOT NULL,        -- 'server.started','server.crashed','player.joined',
+                                   -- 'backup.failed','backup.rotated','agent.offline',…
+  severity   TEXT NOT NULL DEFAULT 'info'
+             CHECK (severity IN ('debug','info','warning','error','critical')),
+  machine_id TEXT,
+  server_id  TEXT,
+  user_id    TEXT,
+  payload    TEXT
+);
+CREATE INDEX idx_events_ts     ON events(ts);
+CREATE INDEX idx_events_server ON events(server_id, ts);
+CREATE INDEX idx_events_type   ON events(type, ts);
+
+-- Audit des actions humaines et système ; username dénormalisé (survit à la
+-- suppression du compte) ; details = diff JSON. Rétention ≥ 1 an.
+CREATE TABLE audit_log (
+  id           INTEGER PRIMARY KEY,
+  ts           INTEGER NOT NULL,
+  user_id      TEXT,                                    -- NULL = système
+  username     TEXT,
+  action       TEXT NOT NULL,       -- 'server.start','file.edit','whitelist.add',…
+  target_type  TEXT,
+  target_id    TEXT,
+  target_label TEXT,
+  details      TEXT,
+  ip           TEXT
+);
+CREATE INDEX idx_audit_ts   ON audit_log(ts);
+CREATE INDEX idx_audit_user ON audit_log(user_id, ts);
+
+-- Réglages clé/valeur (VAPID, destination backups par défaut, rétentions,
+-- mode d'accès, domaine/API DNS du mode direct…). La clé de chiffrement de
+-- rcon_password_enc vit dans la config/env, PAS en base (et sa perte n'est pas
+-- critique : les mots de passe RCON sont relisibles depuis server.properties).
+CREATE TABLE app_settings (
+  key        TEXT PRIMARY KEY,
+  value      TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+```
+
+Les migrations de schéma sont gérées par drizzle-kit (table interne `__drizzle_migrations`).
+
+## 7. `metrics.db` — métriques CPU/RAM/TPS
+
+Échantillonnage **15 s** (5 s réservé à un mode « inspection » temporaire, non persisté en brut). Envoi par lots par les agents (buffer local 1 h en cas de coupure, rejoué avec timestamps), écriture par transactions groupées — jamais un INSERT par échantillon. `PRAGMA auto_vacuum=INCREMENTAL`.
+
+| Niveau | Résolution | Rétention | Volume estimé (~56 serveurs) |
+|---|---|---|---|
+| brut | 15 s | 48 h | ~650 k lignes |
+| 1 min | 60 s | 14 j | ~1,1 M lignes |
+| 1 h | 3600 s | 2 ans | ~1 M lignes |
+
+Job horaire : agrégation brut→1min→1h (min/max/avg), DELETE des tranches expirées, `incremental_vacuum` occasionnel. À < 3 M lignes au régime permanent, SQLite est très à l'aise.
+
+```sql
+CREATE TABLE metrics_server_raw (
+  server_id TEXT NOT NULL,
+  ts        INTEGER NOT NULL,
+  cpu_pct   REAL, ram_mb INTEGER, tps REAL, mspt REAL, players INTEGER,
+  PRIMARY KEY (server_id, ts)
+) WITHOUT ROWID;
+
+CREATE TABLE metrics_machine_raw (
+  machine_id  TEXT NOT NULL,
+  ts          INTEGER NOT NULL,
+  cpu_pct     REAL, ram_used_mb INTEGER, disk_used_gb REAL, disk_total_gb REAL,
+  PRIMARY KEY (machine_id, ts)
+) WITHOUT ROWID;
+
+CREATE TABLE metrics_server_1m (
+  server_id  TEXT NOT NULL,
+  ts         INTEGER NOT NULL,                          -- début de tranche
+  cpu_avg REAL, cpu_max REAL,
+  ram_avg INTEGER, ram_max INTEGER,
+  tps_avg REAL, tps_min REAL,
+  players_max INTEGER,
+  samples INTEGER NOT NULL,
+  PRIMARY KEY (server_id, ts)
+) WITHOUT ROWID;
+-- metrics_server_1h : DDL identique. metrics_machine_1m / _1h : agrégats machine.
+```
+
+`tps`/`mspt` sont NULL quand non mesurables (voir doc 06 §TPS). L'**uptime** se calcule depuis `events`, pas depuis les métriques.
+
+## 8. Règles d'exploitation
+
+1. **Un seul écrivain par fichier** : toutes les écritures passent par une connexion unique du panel (better-sqlite3 synchrone = sérialisation naturelle par l'event loop). `busy_timeout` en ceinture de sécurité.
+2. **La console ne va jamais en SQLite** : flux WebSocket + ring buffer mémoire ; archivage en fichiers côté agent.
+3. **WAL** : checkpoint `TRUNCATE` périodique en période calme ; paginer les grosses lectures (un long SELECT bloque le checkpoint et fait gonfler le `-wal`).
+4. **Sauvegarde du panel lui-même** : tâche périodique `VACUUM INTO` (jamais de copie de fichier à chaud, jamais de SQLite sur partage réseau).
+5. **Réconciliation** au reconnect d'un agent : comparer le snapshot `sync.state` (vérité terrain) à `run_state`/`desired_state`, corriger, émettre les événements manquants, clôturer les sessions joueurs orphelines.
+6. **Purges planifiées** : sessions expirées, pairing codes consommés, events > rétention, push_subscriptions mortes, command_history > N k lignes/serveur, tasks terminées anciennes.
+7. **Exclusions de scan** : `.mmo-trash/` (corbeille agent) et les destinations de backups situées sous un répertoire surveillé sont exclues du scan, des backups et des migrations (sinon : backup de corbeille, récursion backup-de-backup).
