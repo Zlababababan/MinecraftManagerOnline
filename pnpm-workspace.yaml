@@ -9,3 +9,6 @@ allowBuilds:
   esbuild: true
 
 minimumReleaseAge: 4320
+
+# Versions exactes (pnpm 11 lit ses réglages ici ; `.npmrc` conservé pour les outils tiers).
+saveExact: true
