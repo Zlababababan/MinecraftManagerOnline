@@ -1,0 +1,25 @@
+# Dépendances
+node_modules/
+
+# Builds
+dist/
+build/
+out/
+
+# Environnement et secrets
+.env
+.env.*
+!.env.example
+
+# Données locales
+*.sqlite
+*.sqlite3
+*.db
+logs/
+*.log
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
