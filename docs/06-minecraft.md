@@ -24,6 +24,8 @@ Chemins argfiles : `libraries/net/minecraftforge/forge/<mc>-<forge>/` ou `librar
 - `-Djava.awt.headless=true` + `nogui` (sinon fenêtre Swing qui bloque)
 - `-Dlog4j.skipJansi=true` (natives jansi problématiques sur certains Windows/ARM)
 
+> **Implémentation (phase 3)** : `apps/agent` — `buildLaunchCommand` (`src/minecraft/launch.ts`, fonction pure : 2 templates `jar`/`argfile`, flags injectés, choix `win_args.txt`/`unix_args.txt`, `E_NOT_FOUND` si l'argfile de l'OS manque). Atténuation Log4Shell : `log4ShellMitigation` (config `log4j2_112-116.xml` embarquée écrite dans le dossier pour 1.12–1.16.5, `-Dlog4j2.formatMsgNoLookups=true` pour 1.17–1.18.0, rien ensuite). Spawn **détaché** (`detached:true`, `windowsHide`), jamais via shell/`.bat` (`src/minecraft/server-process.ts`). Garde-fous → erreurs typées avant lancement (`src/minecraft/server-manager.ts`) : `E_EULA_REQUIRED`, `E_JAVA_UNAVAILABLE` (sélection `src/platform/java.ts` : version majeure exacte, sinon la plus petite ≥ requise hors mode strict Forge ≤ 1.16.5), `E_RAM_GUARD` (RAM machine − réserve − serveurs en marche), `E_PORT_IN_USE` (port de jeu, test IPv4+IPv6). RCON auto-provisionné dans `server.properties` (`src/minecraft/provisioning.ts`), client maison file sérialisée + paquet junk (`src/minecraft/rcon.ts`). Ré-adoption PID + heure de démarrage + `cmdline` (`src/platform/process-info.ts` : `Get-CimInstance` Windows, `/proc` Linux, `ps` macOS). Validé en CI par le **fake Java server** (`test/fake-java-server.mjs`) et à la main sur un vrai Vanilla 1.20.1 (start → `Done` → RCON `list` → stop propre ; ré-adoption après « mort » de l'agent, java survivant → stop RCON).
+
 ## 2. Auto-détection d'un dossier serveur
 
 ### Signaux
@@ -96,7 +98,7 @@ de backups exclus) :
 
 Le code de sortie n'est **pas fiable** (0, 1, -1 selon les cas ; OOM parfois sans exit). Faisceau :
 
-1. **Signal principal : exit alors qu'aucun stop n'a été demandé par l'app.**
+1. **Signal principal : exit alors qu'aucun stop n'a été demandé par l'app.** — nuance actée en phase 3 : la ligne `Stopping the server` (événement `stopping`) compte aussi comme demande d'arrêt volontaire, même si le `stop` a été tapé **dans la console** (ou envoyé par un mod/RCON) hors de la séquence `server.stop` : l'exit qui suit est classé `stopped`/`exitReason: stop`, jamais `crashed`. Sans ce signal ni `server.stop`, un exit reste un crash.
 2. Nouveau `crash-reports/crash-*-server.txt` pendant la session → attaché à l'événement (parsing du header : cause, mod fautif).
 3. Patterns : `Encountered an unexpected exception`, `Exception in server tick loop`, `java.lang.OutOfMemoryError`, `A single server tick took 60.00 seconds`.
 4. `hs_err_pid*.log` à la racine = crash JVM natif.

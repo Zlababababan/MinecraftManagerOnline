@@ -61,7 +61,9 @@ Admin (UI)                Panel                              Agent (nouvelle mac
 
 ## 6. Catalogue des messages
 
-> **Implémentation (phase 2)** : le jalon A vit dans `packages/protocol` — `REQUESTS` / `EVENTS` (`src/catalog.ts`, direction + schémas Zod requête/réponse), enveloppe (`envelope.ts`), `ProtocolError` (`errors.ts`), pair RPC typé `RpcPeer` (`rpc/peer.ts` : idempotence, timeouts, `E_UNSUPPORTED_TYPE`/`E_INVALID_PAYLOAD`), négociation (`version.ts`). Tests de contrat sur `test/fixtures/v1/messages.json` (un échantillon par type, tolérance aux champs inconnus). Les types `scan.run`, `task.*`, `backup.*`, `java.install`, `agent.update`, `runtime.update` et `fs.*transfer*` (jalons B/C) s’ajoutent au catalogue sans bump.
+> **Implémentation (phase 2)** : le jalon A vit dans `packages/protocol` — `REQUESTS` / `EVENTS` (`src/catalog.ts`, direction + schémas Zod requête/réponse), enveloppe (`envelope.ts`), `ProtocolError` (`errors.ts`), pair RPC typé `RpcPeer` (`rpc/peer.ts` : idempotence, timeouts, `E_UNSUPPORTED_TYPE`/`E_INVALID_PAYLOAD`), négociation (`version.ts`). Tests de contrat sur `test/fixtures/v1/messages.json` (un échantillon par type, tolérance aux champs inconnus). Les types `task.*`, `backup.*`, `java.install`, `agent.update`, `runtime.update` et `fs.*transfer*` (jalons B/C) s’ajoutent au catalogue sans bump.
+
+> **Amendement (phase 3, sans bump)** : `scan.run` est **implémenté et ajouté au catalogue** — requête `{ directoryIds?, paths? }`, réponse `{ scannedPaths, servers: detectedServerSchema[] }` (scan immédiat, en plus des `server.detected` diffusés en événements). `agent.configure` porte désormais un tableau **`servers`** (`serverConfigSchema` : `serverId`, `path`, `maxRamMb`/`minRamMb`, `loader`, `mcVersion`, `launch`, `javaMajor`/`javaStrict`/`javaPath`, `jvmArgs`, `startTimeoutSec`/`stopTimeoutSec`) : la config de lancement poussée par le panel (autorité des IDs) et **persistée côté agent** dans `agent-state.json`, indispensable pour lancer/relancer un serveur sans panel (restauration au boot, watchdog). Liste complète si présente : un serveur absent mais **arrêté** est oublié ; un serveur en marche est conservé.
 
 ### Cycle de vie agent
 
@@ -82,7 +84,7 @@ Admin (UI)                Panel                              Agent (nouvelle mac
 
 | Type | Dir. | Description |
 |---|---|---|
-| `scan.run` | P→A | Task : scan des répertoires surveillés |
+| `scan.run` | P→A | Scan immédiat des répertoires surveillés (ou de `paths` ad hoc) → `{ scannedPaths, servers }` **et** événements `server.detected`/`updated`/`removed` (diff). Implémenté phase 3 |
 | `server.detected` | A→P (event) | Serveur découvert : loader, version MC, RAM détectée + source, ports, EULA, **score de confiance + evidence**. Schéma `detectedServerSchema` = sortie exacte de `detectServer()` (`@mmo/shared`) : champs `{ value, confidence, source }`, `evidence[]` = codes traduits par l’UI, `launch` (template doc 06 §1), `javaRequirement` (table ; affiné par le panel via le manifest), `needsInstall` |
 | `server.removed` / `server.updated` | A→P (event) | Dossier disparu / métadonnées changées |
 
