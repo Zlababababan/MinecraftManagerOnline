@@ -44,10 +44,14 @@ Décisions validées le 2026-08-21. Ce document est la référence : toute déro
 
 ### Bibliothèques sensibles de l'agent
 
-- Process : `child_process.spawn` **détaché** + persistance PID (voir doc 05, ré-adoption).
-- Métriques : `systeminformation` + `pidusage` — à valider par le spike n°2 (§10).
+- Process : `child_process.spawn` **détaché** (`detached: true` — indispensable sous Windows, sinon libuv place l'enfant dans un Job Object tué avec l'agent) + stdin/stdout/stderr pipés + persistance PID (voir doc 05, ré-adoption). **Validé par le spike n°1** ([`docs/spikes/01-eof-stdin.md`](spikes/01-eof-stdin.md)) : tous les loaders testés survivent à la mort de l'agent et à l'EOF stdin, restent pilotables par RCON et s'arrêtent proprement.
+- Métriques — **amendé le 2026-08-21 par le spike n°2** ([`docs/spikes/02-monitoring-windows.md`](spikes/02-monitoring-windows.md)) : sous Windows, toute comptabilité CPU « par ticks » (`GetProcessTimes`, WMI, compteurs `% Processor Time`, donc `pidusage` et `systeminformation`) est fausse d'un facteur 25–60× dès qu'Hyper-V est actif (WSL2, Docker, VBS). L'agent utilise donc :
+  - **Windows** : un **sidecar PowerShell persistant** (script embarqué dans le bundle, P/Invoke `QueryProcessCycleTime` via `Add-Type`, compteur `% Processor Utility` pour la machine) — aucun module natif ; repli `pidusage` + drapeau `cpuSource: 'ticks'` si PowerShell est indisponible.
+  - **Linux / macOS** : `pidusage` (`/proc`, `ps`) — comptabilité exacte.
+  - `systeminformation` pour l'inventaire (OS, CPU, RAM, volumes) et `mem()`/`fsSize()` périodiques (session `powerShellStart()` sur Windows) ; jamais pour la charge CPU Windows.
+  - Les deux bibliothèques fonctionnent **sans `wmic`** (Windows 24H2+), vérifié.
 - RCON : implémentation maison (~100 lignes, protocole trivial) avec file de commandes sérialisée.
-- Backups : `archiver` (zip/tar streaming) dans un **worker_thread**. Compression par défaut : **gzip** (`node:zlib`, stable) ; zstd = capacité négociée si le spike n°3 (§10) valide l'API Node 24.
+- Backups : `archiver` (zip/tar streaming) dans un **worker_thread**. Compression par défaut — **amendé le 2026-08-21 par le spike n°3** ([`docs/spikes/03-zstd-node24.md`](spikes/03-zstd-node24.md)) : **zstd niveau 3** (`node:zlib`, Node ≥ 22.15, 5–9× plus rapide que gzip à ratio égal), `checksumFlag` activé, **gzip en repli** (runtime sans zstd ou choix utilisateur). Règles absolues : jamais `ZSTD_c_nbWorkers` (perte silencieuse de données constatée) ; l'intégrité d'une archive repose sur le **manifeste (sha256 + taille)**, jamais sur le codec (un flux zstd tronqué est accepté sans erreur par Node).
 
 ## 2. Structure du monorepo
 
@@ -79,6 +83,7 @@ Archive par plateforme (win-x64, linux-x64, linux-arm64, darwin-arm64) = `runtim
 - **Windows** : service via **shawl** (embarqué dans l'archive ; fallback documenté : WinSW). **Identité : compte de l'utilisateur** (pas LocalSystem — ACL sur les dossiers serveurs, lecteurs mappés). À tester sur un poste réel.
 - **Linux** : unit systemd (`User=mmo`, `Restart=on-failure`).
 - **macOS** : LaunchDaemon (`KeepAlive=true`).
+- **Contrainte commune (spike n°1)** : le superviseur ne doit **jamais tuer l'arbre de processus** de l'agent, sinon les serveurs Java tombent avec lui. Un `taskkill /T` sur l'agent tue les serveurs détachés (constaté) ; idem `KillMode=control-group` (défaut systemd) ou un groupe de processus launchd. À imposer en phase 11 : systemd `KillMode=process` (ou serveurs lancés dans un scope transient), launchd `AbandonProcessGroup=true`, Windows : vérifier que shawl/WinSW n'enrôlent pas l'enfant dans un Job Object « kill on close » — test dédié par OS.
 
 ### Mise à jour de l'agent (modèle unifié — fait autorité)
 
@@ -145,11 +150,11 @@ Wizard first-run : si la table `users` est vide → création du compte admin (e
 | E2E | Playwright | flux PWA complets, viewports mobile + desktop, fr + en |
 | CI | GitHub Actions : windows, ubuntu, **ubuntu-arm**, macos | rendue possible par le fake server |
 
-## 10. Spikes à réaliser AVANT le code de l'agent
+## 10. Spikes de validation (réalisés le 2026-08-21 — voir [docs/spikes/](spikes/README.md))
 
-1. **Comportement EOF stdin** : que fait chaque couple version×loader quand le pipe stdin se ferme (mort de l'agent) ? Conditionne le modèle « les serveurs survivent à l'agent ». Si un loader s'arrête sur EOF → lancer java avec stdin non pipé et piloter 100 % RCON pour le mode détaché.
-2. **Monitoring Windows 11 24H2+** : `systeminformation`/`pidusage` sans `wmic` (supprimé des builds récents). Fallback à prévoir : PowerShell CIM maison, testé en CI Windows.
-3. **zstd dans Node 24** : statut de l'API `node:zlib` zstd (streaming). Sinon : gzip par défaut, zstd = capacité future.
+1. **Comportement EOF stdin** — ✅ [confirmé](spikes/01-eof-stdin.md) : Vanilla 1.20.1, Forge 1.12.2/1.16.5, Fabric 1.21.1, NeoForge 1.21.1 survivent tous à la mort de l'agent et à l'EOF, restent pilotables par RCON et s'arrêtent proprement. Le modèle « serveurs détachés, stdin principal + RCON » est retenu tel quel ; la variante « java sans stdin, 100 % RCON » n'est pas nécessaire. Conditions : `detached: true` (Windows) et superviseur qui ne tue jamais l'arbre de processus (§3).
+2. **Monitoring Windows 11 24H2+** — ✅/❗ [résultat](spikes/02-monitoring-windows.md) : `systeminformation` et `pidusage` n'utilisent plus `wmic` ; mais la comptabilité CPU par ticks est fausse sous Hyper-V → sidecar PowerShell + `QueryProcessCycleTime` (§1). Le fallback « CIM maison » initialement prévu aurait été faux lui aussi.
+3. **zstd dans Node 24** — ✅ [validé](spikes/03-zstd-node24.md) : API streaming complète (Node ≥ 22.15), 5–9× plus rapide que gzip → zstd 3 par défaut, gzip en repli ; interdits/garde-fous en §1.
 
 ## 11. Risques assumés
 

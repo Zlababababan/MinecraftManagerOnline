@@ -129,7 +129,7 @@ Rattrapage : ring buffer agent (5 000 lignes / 2 Mo par serveur), `seq` monotone
 | Type | Dir. | Description |
 |---|---|---|
 | `metrics.configure` | P→A | Intervalle par défaut **15 s** (5 s = mode inspection temporaire, non persisté en brut) |
-| `metrics.sample` | A→P (event) | Machine + par serveur : CPU, RSS, TPS/MSPT si disponibles, joueurs (buffer local 1 h hors-ligne, rejoué avec timestamps) |
+| `metrics.sample` | A→P (event) | Machine + par serveur : CPU, RSS, TPS/MSPT si disponibles, joueurs (buffer local 1 h hors-ligne, rejoué avec timestamps). Champ optionnel `cpuSource: 'cycles' \| 'proc' \| 'ticks'` (spike n°2) : `ticks` = valeur potentiellement sous-évaluée (Windows sans PowerShell), l'UI l'affiche avec un avertissement |
 | `watchdog.alert` | A→P (event) | Crash/freeze : `{ kind, action, attempt }` — politique poussée par `agent.configure`, **exécutée localement** |
 | `port.conflict` | A→P (event) | Conflit de port détecté sur la machine |
 
@@ -224,5 +224,5 @@ migration.export (task, source) → transfer.serve (source) → migration.import
 | Code d'appairage | TTL 15 min, usage unique, 5 essais |
 | Timeout requêtes de contrôle | 30 s |
 | Task sans progression | 120 s → `stalled` |
-| Compression | gzip (zstd = capacité si spike concluant) |
+| Compression | **zstd niveau 3** par défaut (spike n°3 concluant, Node ≥ 22.15), gzip garanti en repli ; capacité `zstd` annoncée dans `auth.hello` — jamais présumée |
 | Support de versions | N et N-1 ; amorçage figé à vie |

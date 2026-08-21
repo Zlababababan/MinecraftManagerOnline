@@ -64,7 +64,7 @@ de backups exclus) :
 
 ## 3. Console (stdin/stdout)
 
-- **Le pipe stdin/stdout suffit** pour tous les loaders/versions ciblés : commandes envoyées **sans** slash initial, terminées par `\n`, flush immédiat. **Ne jamais fermer stdin** (déclenche l'arrêt de la boucle console sur certaines versions — cf. spike EOF, doc 03 §10).
+- **Le pipe stdin/stdout suffit** pour tous les loaders/versions ciblés : commandes envoyées **sans** slash initial, terminées par `\n`, flush immédiat. **Ne jamais fermer stdin volontairement** : le spike EOF (doc 03 §10, [`docs/spikes/01-eof-stdin.md`](spikes/01-eof-stdin.md)) montre que tous les loaders testés (Vanilla, Forge 1.12/1.16, Fabric 1.21, NeoForge 1.21) **survivent** à l'EOF stdin et à la mort de l'agent — mais la boucle console est alors définitivement close : le serveur n'est plus pilotable que par RCON jusqu'à son prochain redémarrage (mode `detached`).
 - **Encodage — le piège n°1 sur Windows** : Java ≤ 17 encode stdout selon le charset système (cp1252 sur un Windows FR) → accents cassés. Réglé par les flags UTF-8 injectés (§1) ; côté agent, pipes toujours décodés UTF-8 en mode tolérant (les mods écrivent parfois n'importe quoi). Filtre d'échappement ANSI prévu (certains packs forcent la couleur).
 - **stdout = source de vérité temps réel** (contient les messages hors log4j : warnings JVM, crashs précoces, hs_err). `logs/latest.log` + `logs/*.log.gz` = archives pour la recherche. `logs/debug.log` non streamé par défaut.
 - **Parsing des lignes** — deux formats + fallback :

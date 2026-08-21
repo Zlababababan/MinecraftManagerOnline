@@ -11,6 +11,17 @@ Application web de pilotage à distance de serveurs Minecraft auto-hébergés : 
 - [Protocole panel-agent](docs/05-protocole.md)
 - [Serveurs Minecraft](docs/06-minecraft.md)
 - [Plan de développement](docs/07-plan-de-developpement.md)
+- [Spikes de validation](docs/spikes/) — résultats des vérifications techniques de la phase 0
+- [Contribuer](CONTRIBUTING.md) — prérequis, commandes, conventions
+
+## Développement
+
+```bash
+pnpm install
+pnpm check   # build + typecheck + lint + test
+```
+
+Monorepo pnpm + Turborepo : `apps/panel` (API Fastify), `apps/web` (PWA React), `apps/agent` (bundle universel), `packages/protocol`, `packages/shared`, `packages/config`. Node 24 LTS (voir `.node-version`).
 
 ## Licence
 
