@@ -19,6 +19,7 @@ export type RunState = z.infer<typeof runStateSchema>;
 
 export const desiredStateSchema = z.enum(['stopped', 'running']);
 export const attachModeSchema = z.enum(['attached', 'detached']);
+export type AttachMode = z.infer<typeof attachModeSchema>;
 export const provisioningSchema = z.enum([
   'installing',
   'install_failed',
@@ -27,6 +28,7 @@ export const provisioningSchema = z.enum([
   'migrating',
 ]);
 export const exitReasonSchema = z.enum(['stop', 'kill', 'crash', 'freeze_kill']);
+export type ExitReason = z.infer<typeof exitReasonSchema>;
 
 export const logLevelSchema = z.enum(['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL']);
 export type LogLevel = z.infer<typeof logLevelSchema>;

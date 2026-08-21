@@ -10,6 +10,7 @@ import {
   emptyPayloadSchema,
   epochMsSchema,
   javaRuntimeSchema,
+  loaderSchema,
   logLevelSchema,
   machineInfoSchema,
   portSchema,
@@ -17,6 +18,7 @@ import {
   serverIdSchema,
   ulidSchema,
 } from '../common.js';
+import { launchPlanSchema } from './server.js';
 
 // --- pair.request (A→P) -------------------------------------------------------------------------
 
@@ -156,8 +158,39 @@ export const backupScheduleSchema = z.object({
   enabled: z.boolean().default(true),
 });
 
+/**
+ * Configuration de lancement d'un serveur, poussée par le panel (autorité des IDs et des réglages)
+ * et **persistée côté agent** : l'agent doit savoir lancer un serveur sans panel (restauration au
+ * boot, watchdog). L'agent dépose le marqueur `.mmo-server.json` dans `path`. Ajout phase 3 (sans bump).
+ */
+export const serverConfigSchema = z.object({
+  serverId: serverIdSchema,
+  /** Chemin absolu du dossier sur la machine de l'agent. */
+  path: z.string().min(1),
+  name: z.string().optional(),
+  maxRamMb: z.int().positive(),
+  minRamMb: z.int().positive().optional(),
+  loader: loaderSchema.optional(),
+  mcVersion: z.string().optional(),
+  /** Template de lancement (doc 06 §1) ; absent ⇒ redétection du dossier au démarrage. */
+  launch: launchPlanSchema.optional(),
+  /** Version Java majeure requise (override utilisateur ou manifest) ; absente ⇒ table par version MC. */
+  javaMajor: z.int().positive().optional(),
+  /** Exactement cette version majeure (Forge ≤ 1.16.5). */
+  javaStrict: z.boolean().optional(),
+  /** Exécutable java imposé (ignore la sélection automatique). */
+  javaPath: z.string().optional(),
+  /** Arguments JVM supplémentaires (après les flags injectés par l'agent). */
+  jvmArgs: z.array(z.string()).optional(),
+  startTimeoutSec: z.int().positive().optional(),
+  stopTimeoutSec: z.int().positive().optional(),
+});
+export type ServerConfig = z.infer<typeof serverConfigSchema>;
+
 export const agentConfigureSchema = z.object({
   watchedDirectories: z.array(watchedDirectorySchema).optional(),
+  /** Serveurs adoptés par le panel (liste complète si présente : un serveur absent est oublié par l'agent). */
+  servers: z.array(serverConfigSchema).optional(),
   backupDestination: z.string().optional(),
   watchdog: z.array(watchdogPolicySchema).optional(),
   backupSchedules: z.array(backupScheduleSchema).optional(),

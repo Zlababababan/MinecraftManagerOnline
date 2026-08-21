@@ -75,6 +75,18 @@ export const serverDetectedSchema = z.object({
   directoryId: z.string().optional(),
   server: detectedServerSchema,
 });
+/** `scan.run` (P→A) : scan immédiat des répertoires surveillés (ou d'une sélection), phase 3. */
+export const scanRunSchema = z.object({
+  /** Restreint aux répertoires surveillés listés ; absent ⇒ tous. */
+  directoryIds: z.array(z.string()).optional(),
+  /** Chemins ad hoc à scanner en plus (assistant « ajouter un dossier »). */
+  paths: z.array(z.string()).optional(),
+});
+export const scanRunResponseSchema = z.object({
+  scannedPaths: z.array(z.string()),
+  servers: z.array(detectedServerSchema),
+});
+
 export const serverRemovedSchema = z.object({
   eventId: ulidSchema,
   ts: epochMsSchema,

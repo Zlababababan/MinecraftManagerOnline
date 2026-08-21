@@ -55,6 +55,8 @@ import {
 import {
   playerEventSchema,
   playerListResponseSchema,
+  scanRunResponseSchema,
+  scanRunSchema,
   serverCommandResponseSchema,
   serverCommandSchema,
   serverDetectedSchema,
@@ -107,6 +109,8 @@ export const REQUESTS = {
   'agent.configure': req('p2a', agentConfigureSchema, agentConfigureResponseSchema),
   'agent.rotateSecret': req('p2a', agentRotateSecretSchema, emptyPayloadSchema),
   'agent.restart': req('p2a', agentRestartSchema, agentRestartResponseSchema),
+  // Détection
+  'scan.run': req('p2a', scanRunSchema, scanRunResponseSchema),
   // Contrôle des serveurs
   'server.start': req('p2a', serverRefSchema, serverStartResponseSchema),
   'server.stop': req('p2a', serverStopSchema, serverStopResponseSchema),

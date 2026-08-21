@@ -105,6 +105,26 @@
         "backupSchedules": [
           { "id": "sch_01", "serverId": "srv_01", "cron": "0 4 * * *", "keep": 7, "enabled": true }
         ],
+        "servers": [
+          {
+            "serverId": "srv_01",
+            "path": "E:\\srv\\ATM10_6.0",
+            "name": "ATM10",
+            "maxRamMb": 8192,
+            "minRamMb": 4096,
+            "loader": "neoforge",
+            "mcVersion": "1.21.1",
+            "launch": {
+              "kind": "argfile",
+              "argfileDir": "libraries/net/neoforged/neoforge/21.1.219",
+              "hasWinArgs": true,
+              "hasUnixArgs": true
+            },
+            "javaMajor": 21,
+            "jvmArgs": ["-XX:+UseG1GC"],
+            "startTimeoutSec": 600
+          }
+        ],
         "desiredStates": { "srv_01": "running" },
         "restoreOnBoot": true,
         "metricsIntervalSec": 15
@@ -123,6 +143,26 @@
       "type": "agent.restart",
       "request": { "reason": "update" },
       "response": { "accepted": true }
+    },
+    {
+      "type": "scan.run",
+      "request": { "directoryIds": ["dir_01"], "paths": ["E:\\autre\\serveur"] },
+      "response": {
+        "scannedPaths": ["E:\\srv", "E:\\autre\\serveur"],
+        "servers": [
+          {
+            "path": "E:\\srv\\Vanilla",
+            "name": "Vanilla",
+            "loader": { "value": "vanilla", "confidence": "high", "source": "jar_name" },
+            "mcVersion": { "value": "1.20.1", "confidence": "high", "source": "version_json" },
+            "maxRamMb": { "value": 4096, "confidence": "low", "source": "default" },
+            "eulaAccepted": true,
+            "launch": { "kind": "jar", "jar": "server.jar" },
+            "confidence": "high",
+            "evidence": [{ "code": "vanilla_jar", "detail": "server.jar" }]
+          }
+        ]
+      }
     },
     {
       "type": "server.start",
