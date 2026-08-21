@@ -1,0 +1,24 @@
+{
+  "name": "@mmo/config",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Configurations partagées : tsconfig stricts, ESLint, Prettier",
+  "type": "module",
+  "exports": {
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./tsconfig.node.json": "./tsconfig.node.json",
+    "./tsconfig.web.json": "./tsconfig.web.json",
+    "./eslint": "./eslint.config.js",
+    "./prettier": "./prettier.config.js"
+  },
+  "dependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.8.1",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.11.0",
+    "typescript-eslint": "8.67.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.0"
+  }
+}

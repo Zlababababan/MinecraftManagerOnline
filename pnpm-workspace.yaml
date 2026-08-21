@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Hygiène chaîne d'approvisionnement (pnpm ≥ 10/11) :
+# - scripts postinstall bloqués par défaut → liste blanche explicite ;
+# - aucune version publiée depuis moins de 3 jours n'est installée (fenêtre de détection des compromissions).
+allowBuilds:
+  esbuild: true
+
+minimumReleaseAge: 4320

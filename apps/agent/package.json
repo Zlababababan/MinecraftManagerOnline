@@ -1,0 +1,27 @@
+{
+  "name": "@mmo/agent",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Agent (1 par machine) : bundle esbuild universel + launcher. Règle : AUCUN module natif.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mmo/protocol": "workspace:*",
+    "@mmo/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@mmo/config": "workspace:*",
+    "@types/node": "24.13.3",
+    "esbuild": "0.28.2",
+    "eslint": "10.8.1",
+    "tsx": "4.23.12",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

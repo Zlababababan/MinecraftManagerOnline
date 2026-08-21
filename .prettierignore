@@ -1,0 +1,10 @@
+node_modules
+dist
+.turbo
+pnpm-lock.yaml
+docs/spikes/scripts/results
+# Prose validée et scripts de spike : hors périmètre du formateur
+docs/*.md
+docs/spikes/**
+CLAUDE.md
+README.md

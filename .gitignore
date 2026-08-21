@@ -1,25 +1,14 @@
-# Dépendances
 node_modules/
-
-# Builds
 dist/
-build/
-out/
-
-# Environnement et secrets
+.turbo/
+coverage/
+*.tsbuildinfo
+.eslintcache
 .env
 .env.*
 !.env.example
-
-# Données locales
-*.sqlite
-*.sqlite3
-*.db
-logs/
 *.log
-
-# IDE / OS
-.idea/
-.vscode/
 .DS_Store
 Thumbs.db
+# spikes : résultats bruts volumineux
+docs/spikes/scripts/results/*.log

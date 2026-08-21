@@ -1,0 +1,27 @@
+{
+  "name": "mmo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "MinecraftManagerOnline — pilotage à distance de serveurs Minecraft auto-hébergés",
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "packageManager": "pnpm@11.15.0",
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=11"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "check": "turbo run build typecheck lint test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@mmo/config": "workspace:*",
+    "prettier": "3.9.6",
+    "turbo": "2.10.11"
+  }
+}

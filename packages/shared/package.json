@@ -1,0 +1,29 @@
+{
+  "name": "@mmo/shared",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Code partagé panel/agent : i18n fr/en, mapping MC→Java, parsing de logs, heuristiques de détection",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@mmo/config": "workspace:*",
+    "@types/node": "24.13.3",
+    "eslint": "10.8.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

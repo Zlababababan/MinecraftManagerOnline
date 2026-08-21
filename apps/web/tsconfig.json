@@ -1,0 +1,4 @@
+{
+  "extends": "@mmo/config/tsconfig.web.json",
+  "include": ["src"]
+}

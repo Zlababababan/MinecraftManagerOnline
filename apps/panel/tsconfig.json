@@ -1,0 +1,10 @@
+{
+  "extends": "@mmo/config/tsconfig.node.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["src"]
+}

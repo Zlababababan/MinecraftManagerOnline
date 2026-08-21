@@ -1,0 +1,29 @@
+{
+  "name": "@mmo/panel",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Panel central : API Fastify, WebSocket agents/clients, SQLite, push ; sert le front et les artefacts agent",
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mmo/protocol": "workspace:*",
+    "@mmo/shared": "workspace:*",
+    "fastify": "5.12.0"
+  },
+  "devDependencies": {
+    "@mmo/config": "workspace:*",
+    "@types/node": "24.13.3",
+    "eslint": "10.8.1",
+    "tsx": "4.23.12",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}
