@@ -25,9 +25,10 @@ Version de protocole décrite : `1`. Schémas définis en Zod dans `packages/pro
 ```
 
 - `ts` : epoch **millisecondes** (comme partout — doc 04), informatif, jamais un élément de sécurité.
+- Champs optionnels actés en phase 2 : `userId` sur les `req` du panel (audit, §12) ; `id` sur les `event` **critiques** (§6 « Tasks et événements fiables ») — c’est cet identifiant, recopié dans `payload.eventId`, qu’acquitte `event.ack`.
 - Réponse : `kind:"res"`, `re:<id>`, `ok:true|false`, `payload` ou `error`.
 - **Erreur** : `{ code, message, retryable, details }`. `message` = anglais technique (logs) ; **l'UI traduit `code` + `details`** via l'i18n de `packages/shared`.
-- Codes standard : `E_AUTH`, `E_PAIRING_CODE_INVALID`, `E_UNSUPPORTED_VERSION`, `E_UNSUPPORTED_TYPE`, `E_NOT_FOUND`, `E_CONFLICT`, `E_BUSY`, `E_TIMEOUT`, `E_CANCELLED`, `E_IO`, `E_PORT_IN_USE`, `E_RAM_GUARD`, `E_EULA_REQUIRED`, `E_JAVA_UNAVAILABLE`, `E_CHECKSUM_MISMATCH`, `E_INTERRUPTED`, `E_INTERNAL`.
+- Codes standard : `E_AUTH`, `E_PAIRING_CODE_INVALID`, `E_UNSUPPORTED_VERSION`, `E_UNSUPPORTED_TYPE`, `E_INVALID_PAYLOAD` (ajouté en phase 2 : payload ou réponse non conforme au schéma — jamais de déconnexion), `E_NOT_FOUND`, `E_CONFLICT`, `E_BUSY`, `E_TIMEOUT`, `E_CANCELLED`, `E_IO`, `E_PORT_IN_USE`, `E_RAM_GUARD`, `E_EULA_REQUIRED`, `E_JAVA_UNAVAILABLE`, `E_CHECKSUM_MISMATCH`, `E_INTERRUPTED`, `E_INTERNAL`.
 
 ## 3. Appairage
 
@@ -46,7 +47,7 @@ Admin (UI)                Panel                              Agent (nouvelle mac
 
 ## 4. Authentification et session
 
-`auth.hello` (agent → panel) : `agentId`, `agentSecret`, `agentVersion`, `protoMin/protoMax`, `capabilities` (`rcon`, `zstd`, `direct-transfer`…), `resume` (tasks en attente, dernier req acquitté).
+`auth.hello` (agent → panel) : `agentId`, `agentSecret`, `agentVersion`, `protoMin/protoMax`, `capabilities` (`rcon`, `zstd`, `direct-transfer`…), `compression` (codecs supportés par le runtime, spike n°3 — le panel choisit et renvoie `compression` dans `auth.ok`), `resume` (tasks en attente, dernier req acquitté), `machine` (hostname, OS, arch, CPU, RAM).
 
 `auth.ok` : version négociée (`min(panelMax, agentMax)` si compatible, sinon `E_UNSUPPORTED_VERSION` + ordre de mise à jour), `heartbeatIntervalSec`, `wantFullSync`, `subscriptions` (ré-abonnements avec `sinceSeq`).
 
@@ -59,6 +60,8 @@ Admin (UI)                Panel                              Agent (nouvelle mac
 - Agent sans panel : reconnexion en backoff (1 s → 60 s, jitter ±20 %), et **autonomie totale** — watchdog, backups planifiés, redémarrage des serveurs `desired_state='running'` au boot de la machine (le `desired_state` par serveur est poussé et **persisté côté agent** via `agent.configure`, politique « restaurer au boot » configurable).
 
 ## 6. Catalogue des messages
+
+> **Implémentation (phase 2)** : le jalon A vit dans `packages/protocol` — `REQUESTS` / `EVENTS` (`src/catalog.ts`, direction + schémas Zod requête/réponse), enveloppe (`envelope.ts`), `ProtocolError` (`errors.ts`), pair RPC typé `RpcPeer` (`rpc/peer.ts` : idempotence, timeouts, `E_UNSUPPORTED_TYPE`/`E_INVALID_PAYLOAD`), négociation (`version.ts`). Tests de contrat sur `test/fixtures/v1/messages.json` (un échantillon par type, tolérance aux champs inconnus). Les types `scan.run`, `task.*`, `backup.*`, `java.install`, `agent.update`, `runtime.update` et `fs.*transfer*` (jalons B/C) s’ajoutent au catalogue sans bump.
 
 ### Cycle de vie agent
 
@@ -80,7 +83,7 @@ Admin (UI)                Panel                              Agent (nouvelle mac
 | Type | Dir. | Description |
 |---|---|---|
 | `scan.run` | P→A | Task : scan des répertoires surveillés |
-| `server.detected` | A→P (event) | Serveur découvert : loader, version MC, RAM détectée + source, ports, EULA, **score de confiance + evidence** |
+| `server.detected` | A→P (event) | Serveur découvert : loader, version MC, RAM détectée + source, ports, EULA, **score de confiance + evidence**. Schéma `detectedServerSchema` = sortie exacte de `detectServer()` (`@mmo/shared`) : champs `{ value, confidence, source }`, `evidence[]` = codes traduits par l’UI, `launch` (template doc 06 §1), `javaRequirement` (table ; affiné par le panel via le manifest), `needsInstall` |
 | `server.removed` / `server.updated` | A→P (event) | Dossier disparu / métadonnées changées |
 
 Identifiants : marqueur `.mmo-server.json` déposé dans le dossier, mais **le panel est l'autorité** — marqueur dupliqué (copie/restore) = conflit explicite, voir doc 04 §3.

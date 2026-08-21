@@ -132,7 +132,7 @@ Portabilité : si Tailscale change ses conditions → **Headscale** (serveur de 
 
 ## 7. i18n et erreurs
 
-- Tout texte visible passe par i18next (`fr`/`en`) dès la première ligne.
+- Tout texte visible passe par i18next (`fr`/`en`) dès la première ligne. Phase 2 : ressources en **modules TS typés** (`packages/shared/src/i18n/locales/{en,fr}.ts`, parité de clés vérifiée à la compilation par `satisfies` + test), espaces de noms `common` / `errors` (un texte par code protocole) / `detection` (sources et evidence) ; `createI18n(locale)` = instance isolée (le panel localise chaque push selon son destinataire), `resources` branché sur `react-i18next` côté web.
 - **Règle protocole** : `error.message` = anglais technique (logs) ; l'UI traduit à partir de `error.code` + `error.details`. Idem pour les textes de push (localisés par le panel selon la langue du destinataire).
 
 ## 8. Premier démarrage (bootstrap)

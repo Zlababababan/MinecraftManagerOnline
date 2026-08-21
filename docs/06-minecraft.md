@@ -31,19 +31,21 @@ Chemins argfiles : `libraries/net/minecraftforge/forge/<mc>-<forge>/` ou `librar
 | Signal | Donne |
 |---|---|
 | `libraries/net/neoforged/neoforge/<v>/` | NeoForge ; MC dérivée du schéma de version (`21.1.x` → 1.21.1) |
-| `libraries/net/minecraftforge/forge/<mc>-<forge>/` | Forge ; argfiles présents ⇒ moderne, absents ⇒ jar universal |
-| `forge-*.jar` racine sans `install_profile.json` | Forge legacy, MC dans le nom |
-| `fabric-server-launch.jar` / `.fabric/` / `fabric-server-mc.*` | Fabric |
-| `server.jar` | Vanilla ; version via `version.json` **dans** le jar (zip, champ `id`, ~1.14+) |
-| `mods/*.jar` (échantillonner 3–5) | Confirmation : `fabric.mod.json` ⇒ Fabric ; `META-INF/mods.toml` ⇒ Forge ; `META-INF/neoforge.mods.toml` ⇒ NeoForge ; `mcmod.info` ⇒ Forge 1.12 |
+| `libraries/net/minecraftforge/forge/<mc>-<forge>/` | Forge ; argfiles présents ⇒ moderne, absents ⇒ jar universal. Plusieurs versions possibles (RAD2 : 9 dossiers) : retenir celle référencée par `run.bat`/`run.sh` (`@libraries/…/<v>/win_args.txt`), sinon la plus haute |
+| `forge-*.jar` racine sans `install_profile.json` | Forge legacy, MC dans le nom. Discriminant robuste : `Main-Class` du manifeste (`…installer.SimpleInstaller` = installeur ; `…ServerLaunchWrapper` / `…server.ServerMain` = serveur). Installeur présent **sans** `libraries/` ⇒ loader connu, `needsInstall` |
+| `fabric-server-launch.jar` / **`fabric-server-launcher.jar`** (packs ServerPackCreator) / `.fabric/` / `fabric-server-mc.*` | Fabric ; versions MC + loader dans `install.properties` du lanceur, vanilla extrait dans `versions/<mc>/server-<mc>.jar` |
+| `server.jar` | Vanilla ; version via `version.json` **dans** le jar (zip, champ `id`, ~1.14+). **Vérifier `Main-Class`** (`net.minecraft.bundler.Main` / `net.minecraft.server.Main`) : un `server.jar` peut être un **ServerStarterJar NeoForge** (`net.neoforged.serverstarterjar.Main8`, 25 Ko — AllOfCreate) |
+| `mods/*.jar` (échantillonner 3–5, **y compris `mods/<mc>/`** — SkyFactory 4) | Confirmation : `fabric.mod.json` ⇒ Fabric ; `META-INF/mods.toml` ⇒ famille Forge (compatible Forge **et** NeoForge ≤ 1.20.4) ; `META-INF/neoforge.mods.toml` ⇒ NeoForge ; `mcmod.info` ⇒ Forge 1.12 ; jar multi-loader (plusieurs descripteurs) = ambigu, ne vote pas |
 | `user_jvm_args.txt` | RAM (`-Xmx`) Forge/NeoForge modernes |
-| `variables.txt` | RAM des packs All The Mods (`JAVA_ARGS`) |
-| `*.bat` / `*.sh` / `settings.cfg` / `server-setup-config.yaml` | Regex `-Xmx(\d+)([GgMmKk]?)` ; le yaml FTB ServerStarter contient MC + modloader |
+| `variables.txt` | **ServerPackCreator** (DungeonHeroes, Prominence II, AllOfCreate…) : `MODLOADER`, `MODLOADER_VERSION`, `MINECRAFT_VERSION`, `JAVA_ARGS` (RAM) — loader/version de confiance moyenne, RAM de confiance haute |
+| `*.bat` / `*.sh` / `*.ps1` / `settings.*` / `server-setup-config.yaml` | Regex `-Xmx(\d+)([GgMmKk]?)` en **ignorant les lignes commentées** (`#`, `REM`, `::`, `echo`, chaînes `"#` des `.ps1` BetterMC) ; `settings.bat/.sh` : `MAX_RAM=`/`MIN_RAM=` (SkyFactory 4) ; scripts de l’OS de l’agent en priorité, valeurs divergentes ⇒ confiance faible + evidence ; le yaml FTB ServerStarter contient MC + modloader (`install: mcVersion/loaderVersion/modLoader`) |
 | `server.properties` | port, RCON, motd, level-name |
 | `logs/latest.log` | `Starting minecraft server version <X>` — excellent fallback |
 | `eula.txt` | état EULA |
 
 ### Algorithme ordonné
+
+> Implémenté en phase 2 : `detectServer()` / `scanForServers()` dans `@mmo/shared` (cœur pur sur une interface `DetectFs`, adaptateur Node + lecteur de jar sans dépendance dans `@mmo/shared/node`). Validé sur 22 fixtures copiées/anonymisées de vrais dossiers (`packages/shared/test/fixtures/servers/`, collecteur `collect-fixtures.mjs`) : 22/22 corrects (loader, version MC, version loader, RAM). Ordre effectif des signaux de loader : libraries NeoForge → argfiles Forge → jar universal Forge → lanceur Fabric → installeur seul → déclaration de pack (`variables.txt` / yaml FTB) → vote des mods → jar vanilla (sans mods) → inconnu ; les mods servent ensuite de **confirmation** (montée en confiance) ou de **contradiction** (confiance faible + evidence).
 
 ```
 Pour chaque sous-dossier D (profondeur 2 par défaut, .mmo-trash/ et destinations
@@ -67,9 +69,10 @@ de backups exclus) :
 - **Le pipe stdin/stdout suffit** pour tous les loaders/versions ciblés : commandes envoyées **sans** slash initial, terminées par `\n`, flush immédiat. **Ne jamais fermer stdin volontairement** : le spike EOF (doc 03 §10, [`docs/spikes/01-eof-stdin.md`](spikes/01-eof-stdin.md)) montre que tous les loaders testés (Vanilla, Forge 1.12/1.16, Fabric 1.21, NeoForge 1.21) **survivent** à l'EOF stdin et à la mort de l'agent — mais la boucle console est alors définitivement close : le serveur n'est plus pilotable que par RCON jusqu'à son prochain redémarrage (mode `detached`).
 - **Encodage — le piège n°1 sur Windows** : Java ≤ 17 encode stdout selon le charset système (cp1252 sur un Windows FR) → accents cassés. Réglé par les flags UTF-8 injectés (§1) ; côté agent, pipes toujours décodés UTF-8 en mode tolérant (les mods écrivent parfois n'importe quoi). Filtre d'échappement ANSI prévu (certains packs forcent la couleur).
 - **stdout = source de vérité temps réel** (contient les messages hors log4j : warnings JVM, crashs précoces, hs_err). `logs/latest.log` + `logs/*.log.gz` = archives pour la recherche. `logs/debug.log` non streamé par défaut.
-- **Parsing des lignes** — deux formats + fallback :
+- **Parsing des lignes** (phase 2 : `parseLogLine` / `LogLineClassifier` / `parseLogText` et `matchServerLogEvent` dans `@mmo/shared`) — deux formats + fallback :
   - Vanilla/Fabric/Forge 1.12 : `[HH:mm:ss] [Thread/LEVEL]…`
-  - Forge/NeoForge modernes : `[ddMMMyyyy HH:mm:ss.SSS] [Thread/LEVEL] [logger/]: …`
+  - Forge/NeoForge modernes : `[ddMMMyyyy HH:mm:ss.SSS] [Thread/LEVEL] [logger/]: …` — **le mois suit la locale JVM** (`[14sept.2023 …]`, `[07janv.2023 …]` sur un Windows FR, constaté sur DawnCraft/RAD2) : ne jamais exiger un mois anglais
+  - Forge 1.12 : format classique avec un logger intercalé `[HH:mm:ss] [Thread/LEVEL] [FML]: …`
   - Toute ligne qui ne matche aucun pattern (stacktraces) est rattachée à l'entrée précédente, même niveau. Niveaux : INFO/WARN/ERROR/FATAL/DEBUG/TRACE.
 - **Autocomplétion console (V1 honnête)** : liste statique des commandes vanilla + pseudos depuis `usercache.json` + historique de l'utilisateur (pas d'accès à l'arbre Brigadier des mods).
 
