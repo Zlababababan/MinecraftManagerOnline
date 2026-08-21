@@ -69,3 +69,4 @@ Application multi-comptes destinée à un cercle privé (le propriétaire et ses
 - [04-base-de-donnees.md](04-base-de-donnees.md) — schéma SQLite complet et règles d'exploitation
 - [05-protocole.md](05-protocole.md) — protocole panel ↔ agent (catalogue des messages)
 - [06-minecraft.md](06-minecraft.md) — lancement, détection et pilotage des serveurs Minecraft
+- [07-plan-de-developpement.md](07-plan-de-developpement.md) — feuille de route en 13 phases jusqu'à la 1.0
