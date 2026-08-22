@@ -27,6 +27,9 @@
 // Phase 6 : `whitelist add|remove|list|on|off|reload`, `op`, `deop`, `ban`, `pardon`, `ban-ip`,
 // `pardon-ip`, `kick` — écrivent whitelist.json / ops.json / banned-*.json dans le cwd comme le
 // vrai serveur (UUID hors ligne v3, `online-mode=false` implicite).
+// Phase 8 : `save-off` / `save-all [flush]` / `save-on` (backups à chaud) — `save-all` écrit
+// `world/level.dat` (compteur de sauvegardes) puis journalise « Saved the game » ; l'historique des
+// commandes de sauvegarde reçues est tenu dans `world/save-log.txt` (vérifié par les tests).
 import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
@@ -75,6 +78,15 @@ if (rconPort === undefined && existsSync('server.properties')) {
 const rconDelay = Number(opt('rcon-delay', Math.max(0, doneAfter - 20)));
 
 const players = new Set();
+let saveCount = 0;
+function saveLog(entry) {
+  mkdirSync(path.join(process.cwd(), 'world'), { recursive: true });
+  appendFileSync(
+    path.join(process.cwd(), 'world', 'save-log.txt'),
+    `${entry}
+`,
+  );
+}
 let stopping = false;
 let logStream;
 if (logDir !== undefined) {
@@ -187,6 +199,27 @@ function runCommand(cmd) {
       const msg = rest.join(' ');
       log(`[Server] ${msg}`);
       return '';
+    }
+    case 'save-off':
+      saveLog('save-off');
+      log('Automatic saving is now disabled');
+      return 'Automatic saving is now disabled';
+    case 'save-on':
+      saveLog('save-on');
+      log('Automatic saving is now enabled');
+      return 'Automatic saving is now enabled';
+    case 'save-all': {
+      saveLog(`save-all${rest.length > 0 ? ' ' + rest.join(' ') : ''}`);
+      log('Saving the game (this may take a moment!)');
+      saveCount++;
+      mkdirSync(path.join(process.cwd(), 'world'), { recursive: true });
+      writeFileSync(
+        path.join(process.cwd(), 'world', 'level.dat'),
+        `saves=${saveCount}
+`,
+      );
+      log('Saved the game');
+      return 'Saved the game';
     }
     case 'list': {
       const names = [...players];

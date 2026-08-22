@@ -92,10 +92,21 @@ function wsTransport(ws: WebSocket): RpcTransport {
       ws.send(data);
     },
     onMessage: (handler) => {
-      ws.on('message', (data) => {
+      ws.on('message', (data, isBinary) => {
+        if (isBinary) return;
         handler(typeof data === 'string' ? data : Buffer.from(data as Buffer).toString('utf8'));
       });
     },
+    sendBinary: (data) => {
+      ws.send(data, { binary: true });
+    },
+    onBinary: (handler) => {
+      ws.on('message', (data, isBinary) => {
+        if (!isBinary) return;
+        handler(Buffer.isBuffer(data) ? data : Buffer.concat(data as Buffer[]));
+      });
+    },
+    bufferedAmount: () => ws.bufferedAmount,
     onClose: (handler) => {
       ws.on('close', (code, reason) => {
         handler(`${String(code)} ${reason.toString()}`);

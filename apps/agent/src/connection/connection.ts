@@ -55,6 +55,8 @@ export interface ConnectionOptions {
   buildSyncState: () => RequestPayload<'sync.state'>;
   /** Heartbeat périodique. */
   buildHeartbeat: () => EventPayload<'agent.heartbeat'>;
+  /** Tasks encore en cours côté agent (`auth.hello.resume`). */
+  pendingTaskIds?: () => string[];
   /** Session établie (après sync + rejeu). */
   onSession?: (session: SessionInfo, peer: AgentPeer) => void | Promise<void>;
   onDisconnect?: (reason: string | undefined) => void;
@@ -317,7 +319,7 @@ export class AgentConnection {
       protoMax: PROTOCOL_VERSION,
       capabilities: this.options.capabilities ?? ['rcon'],
       compression: supportedCompression(),
-      resume: { pendingTaskIds: [] },
+      resume: { pendingTaskIds: this.options.pendingTaskIds?.() ?? [] },
       machine: machineInfo(),
     });
     peer.version = ok.protocolVersion;

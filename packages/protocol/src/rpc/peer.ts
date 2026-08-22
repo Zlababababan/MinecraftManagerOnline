@@ -23,9 +23,11 @@ import {
   type ParsedEventPayload,
   type ParsedRequestPayload,
   type ParsedResponsePayload,
+  type EventTypesTo,
   type RequestPayload,
   type RequestType,
   type RequestTypesFrom,
+  type RequestTypesTo,
   type ResponsePayload,
   type Role,
 } from '../catalog.js';
@@ -40,11 +42,19 @@ import { PROTOCOL_VERSION } from '../version.js';
 import { IdempotencyCache, type IdempotencyCacheOptions } from './idempotency.js';
 import { ulid } from './ulid.js';
 
-/** Transport texte minimal (les frames binaires du jalon C passent à côté). */
+/**
+ * Transport minimal : frames texte (enveloppes JSON) et, optionnellement, frames binaires
+ * (transferts du jalon C, `transfer/frame.ts`) sur le même canal.
+ */
 export interface RpcTransport {
   send(data: string): void;
   onMessage(handler: (data: string) => void): void;
   onClose(handler: (reason?: string) => void): void;
+  /** Frames binaires (transferts) ; absent = transport texte seul. */
+  sendBinary?(data: Uint8Array): void;
+  onBinary?(handler: (data: Uint8Array) => void): void;
+  /** Octets en attente d'émission dans le socket (priorité basse des transferts). */
+  bufferedAmount?(): number;
 }
 
 export interface RequestContext {
@@ -149,6 +159,29 @@ export class RpcPeer<R extends Role = Role> {
     return this.pending.size;
   }
 
+  /** Le transport accepte les frames binaires (transferts, jalon C). */
+  get supportsBinary(): boolean {
+    return typeof this.transport.sendBinary === 'function';
+  }
+
+  sendBinary(data: Uint8Array): void {
+    if (this.closed) {
+      throw new ProtocolError('E_INTERRUPTED', 'transport closed', { retryable: true });
+    }
+    if (!this.transport.sendBinary) {
+      throw new ProtocolError('E_UNSUPPORTED_TYPE', 'transport without binary frames');
+    }
+    this.transport.sendBinary(data);
+  }
+
+  onBinary(handler: (data: Uint8Array) => void): void {
+    this.transport.onBinary?.(handler);
+  }
+
+  bufferedAmount(): number {
+    return this.transport.bufferedAmount?.() ?? 0;
+  }
+
   // --- Émission -------------------------------------------------------------------------------
 
   async request<T extends RequestTypesFrom<R>>(
@@ -226,18 +259,12 @@ export class RpcPeer<R extends Role = Role> {
 
   // --- Réception ------------------------------------------------------------------------------
 
-  handle<T extends Exclude<RequestType, RequestTypesFrom<R>>>(
-    type: T,
-    handler: RequestHandler<T>,
-  ): this {
+  handle<T extends RequestTypesTo<R>>(type: T, handler: RequestHandler<T>): this {
     this.requestHandlers.set(type, handler);
     return this;
   }
 
-  on<T extends Exclude<EventType, EventTypesFrom<R>>>(
-    type: T,
-    handler: EventHandler<T>,
-  ): () => void {
+  on<T extends EventTypesTo<R>>(type: T, handler: EventHandler<T>): () => void {
     let set = this.eventHandlers.get(type);
     if (!set) {
       set = new Set();

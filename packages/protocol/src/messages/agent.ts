@@ -152,11 +152,16 @@ export const watchdogPolicySchema = z.object({
 export const backupScheduleSchema = z.object({
   id: z.string(),
   serverId: serverIdSchema,
-  /** Expression cron 5 champs, évaluée localement par l'agent. */
+  /** Expression cron 5 champs, évaluée localement par l'agent (heure locale de la machine). */
   cron: z.string(),
-  keep: z.int().positive(),
+  /** Rotation : garde les N plus récentes de cette politique. */
+  keep: z.int().positive().optional(),
+  keepDays: z.int().positive().optional(),
+  onlyIfRunning: z.boolean().default(false),
+  destination: z.string().optional(),
   enabled: z.boolean().default(true),
 });
+export type BackupSchedule = z.infer<typeof backupScheduleSchema>;
 
 /**
  * Configuration de lancement d'un serveur, poussée par le panel (autorité des IDs et des réglages)

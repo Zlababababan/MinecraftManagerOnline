@@ -43,6 +43,7 @@ export function mmoEslint({ tsconfigRootDir, kind = 'node', extra = [] }) {
     },
     ...(kind === 'protocol' ? [protocolRules] : []),
     ...(kind === 'agent' ? [agentRules] : []),
+    ...(kind === 'node' ? [zstdRules] : []),
     ...extra,
     prettier,
   );
@@ -63,10 +64,27 @@ const protocolRules = {
   },
 };
 
-/** Agent : aucun module natif (bundle esbuild universel). */
+/** Jamais `ZSTD_c_nbWorkers` : perte silencieuse de données constatée (spike n°3, docs/spikes/03-zstd-node24.md). */
+const zstdSelectors = [
+  {
+    selector: "MemberExpression[property.name='ZSTD_c_nbWorkers']",
+    message: 'Interdit : ZSTD_c_nbWorkers perd silencieusement des données (spike n°3).',
+  },
+  {
+    selector: "Literal[value='ZSTD_c_nbWorkers']",
+    message: 'Interdit : ZSTD_c_nbWorkers (spike n°3).',
+  },
+];
+const zstdRules = {
+  files: ['src/**/*.ts'],
+  rules: { 'no-restricted-syntax': ['error', ...zstdSelectors] },
+};
+
+/** Agent : aucun module natif (bundle esbuild universel) ; jamais `ZSTD_c_nbWorkers` (spike n°3). */
 const agentRules = {
   files: ['src/**/*.ts'],
   rules: {
+    'no-restricted-syntax': ['error', ...zstdSelectors],
     'no-restricted-imports': [
       'error',
       {

@@ -596,6 +596,192 @@
         "eventIds": ["01J5X8ZK3Q9WYE2R7M4T6B8N1E", "01J5X8ZK3Q9WYE2R7M4T6B8N1F"]
       },
       "response": {}
+    },
+    {
+      "type": "task.cancel",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A"
+      },
+      "response": {
+        "cancelled": true,
+        "status": "running"
+      }
+    },
+    {
+      "type": "task.ackResult",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A"
+      },
+      "response": {}
+    },
+    {
+      "type": "task.list",
+      "request": {},
+      "response": {
+        "tasks": [
+          {
+            "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+            "kind": "backup.create",
+            "serverId": "srv_01",
+            "status": "running",
+            "phase": "archiving",
+            "pct": 42.5,
+            "startedAt": 1787330455000,
+            "updatedAt": 1787330475000
+          },
+          {
+            "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2B",
+            "kind": "backup.create",
+            "serverId": "srv_01",
+            "status": "done",
+            "startedAt": 1787330000000,
+            "updatedAt": 1787330100000,
+            "finishedAt": 1787330100000,
+            "result": {
+              "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C",
+              "serverId": "srv_01",
+              "kind": "scheduled",
+              "policyId": "pol_01",
+              "createdAt": 1787330455000,
+              "codec": "zstd",
+              "archivePath": "E:\\MMO\\backups\\srv_01\\bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C.tar.zst",
+              "sizeBytes": 734003200,
+              "sha256": "a3f5e2c1d4b6a7980f1e2d3c4b5a69788796a5b4c3d2e1f00112233445566778",
+              "files": 1842,
+              "bytesRaw": 1288490188,
+              "hot": true,
+              "serverName": "Survie",
+              "mcVersion": "1.20.1",
+              "loader": "forge",
+              "agentVersion": "0.8.0"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "backup.create",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "serverId": "srv_01",
+        "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C",
+        "kind": "manual",
+        "codec": "zstd",
+        "comment": "avant mise à jour des mods"
+      },
+      "response": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C"
+      }
+    },
+    {
+      "type": "backup.list",
+      "request": {
+        "serverId": "srv_01",
+        "destinations": ["D:\\old-backups"]
+      },
+      "response": {
+        "backups": [
+          {
+            "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C",
+            "serverId": "srv_01",
+            "kind": "scheduled",
+            "policyId": "pol_01",
+            "createdAt": 1787330455000,
+            "codec": "zstd",
+            "archivePath": "E:\\MMO\\backups\\srv_01\\bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C.tar.zst",
+            "sizeBytes": 734003200,
+            "sha256": "a3f5e2c1d4b6a7980f1e2d3c4b5a69788796a5b4c3d2e1f00112233445566778",
+            "files": 1842,
+            "bytesRaw": 1288490188,
+            "hot": true,
+            "serverName": "Survie",
+            "mcVersion": "1.20.1",
+            "loader": "forge",
+            "agentVersion": "0.8.0"
+          }
+        ]
+      }
+    },
+    {
+      "type": "backup.restore",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "serverId": "srv_01",
+        "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C",
+        "safetyBackup": true,
+        "safetyBackupId": "bk_safety",
+        "restartAfter": true
+      },
+      "response": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A"
+      }
+    },
+    {
+      "type": "backup.delete",
+      "request": {
+        "serverId": "srv_01",
+        "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C"
+      },
+      "response": {
+        "deleted": true
+      }
+    },
+    {
+      "type": "fs.fetch",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "serverId": "srv_01",
+        "path": "mods/spark-1.10.53-forge.jar",
+        "url": "https://example.invalid/spark-1.10.53-forge.jar",
+        "sha1": "0123456789abcdef0123456789abcdef01234567",
+        "overwrite": false
+      },
+      "response": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A"
+      }
+    },
+    {
+      "type": "fs.download.start",
+      "request": {
+        "transferId": "0123456789abcdef0123456789abcdef",
+        "serverId": "srv_01",
+        "path": "world/region/r.0.0.mca",
+        "offset": 1048576,
+        "compression": "zstd"
+      },
+      "response": {
+        "size": 8388608,
+        "modifiedAt": 1787330455000,
+        "chunkSize": 1048576,
+        "compression": "zstd"
+      }
+    },
+    {
+      "type": "fs.upload.start",
+      "request": {
+        "transferId": "0123456789abcdef0123456789abcdef",
+        "serverId": "srv_01",
+        "path": "mods/new.jar",
+        "size": 123456,
+        "overwrite": true
+      },
+      "response": {
+        "offset": 0,
+        "chunkSize": 1048576,
+        "compression": "none"
+      }
+    },
+    {
+      "type": "fs.transfer.done",
+      "request": {
+        "transferId": "0123456789abcdef0123456789abcdef",
+        "size": 8388608,
+        "sha256": "a3f5e2c1d4b6a7980f1e2d3c4b5a69788796a5b4c3d2e1f00112233445566778"
+      },
+      "response": {
+        "verified": true
+      }
     }
   ],
   "events": [
@@ -834,6 +1020,95 @@
         "action": "none",
         "attempt": 0,
         "detail": "rss 9800 MB > 1.5 × maxRamMb (6144)"
+      }
+    },
+    {
+      "type": "task.progress",
+      "payload": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "kind": "backup.create",
+        "serverId": "srv_01",
+        "ts": 1787330460000,
+        "phase": "archiving",
+        "pct": 42.5,
+        "detail": "world/region",
+        "etaSec": 30
+      }
+    },
+    {
+      "type": "task.completed",
+      "payload": {
+        "eventId": "01J5X8ZK3Q9WYE2R7M4T6B8N2B",
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "kind": "backup.create",
+        "serverId": "srv_01",
+        "startedAt": 1787330455000,
+        "finishedAt": 1787330500000,
+        "result": {
+          "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C",
+          "serverId": "srv_01",
+          "kind": "scheduled",
+          "policyId": "pol_01",
+          "createdAt": 1787330455000,
+          "codec": "zstd",
+          "archivePath": "E:\\MMO\\backups\\srv_01\\bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C.tar.zst",
+          "sizeBytes": 734003200,
+          "sha256": "a3f5e2c1d4b6a7980f1e2d3c4b5a69788796a5b4c3d2e1f00112233445566778",
+          "files": 1842,
+          "bytesRaw": 1288490188,
+          "hot": true,
+          "serverName": "Survie",
+          "mcVersion": "1.20.1",
+          "loader": "forge",
+          "agentVersion": "0.8.0",
+          "durationMs": 45000
+        }
+      }
+    },
+    {
+      "type": "task.failed",
+      "payload": {
+        "eventId": "01J5X8ZK3Q9WYE2R7M4T6B8N2D",
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "kind": "backup.restore",
+        "serverId": "srv_01",
+        "startedAt": 1787330455000,
+        "finishedAt": 1787330500000,
+        "error": {
+          "code": "E_CHECKSUM_MISMATCH",
+          "message": "archive sha256 mismatch",
+          "retryable": false
+        },
+        "cancelled": false
+      }
+    },
+    {
+      "type": "backup.rotated",
+      "payload": {
+        "eventId": "01J5X8ZK3Q9WYE2R7M4T6B8N2E",
+        "serverId": "srv_01",
+        "ts": 1787330455000,
+        "policyId": "pol_01",
+        "deleted": [
+          {
+            "backupId": "bk_old",
+            "archivePath": "E:\\MMO\\backups\\srv_01\\bk_old.tar.zst"
+          }
+        ]
+      }
+    },
+    {
+      "type": "fs.transfer.ack",
+      "payload": {
+        "transferId": "0123456789abcdef0123456789abcdef",
+        "offset": 2097152
+      }
+    },
+    {
+      "type": "fs.transfer.cancel",
+      "payload": {
+        "transferId": "0123456789abcdef0123456789abcdef",
+        "reason": "user"
       }
     }
   ]

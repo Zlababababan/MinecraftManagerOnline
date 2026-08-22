@@ -80,14 +80,19 @@ describe('catalogue v1 — tests de contrat sur fixtures', () => {
     }
   });
 
-  it('une requête P→A/A→P a une direction déclarée', () => {
-    for (const t of REQUEST_TYPES) expect(['p2a', 'a2p']).toContain(REQUESTS[t].dir);
-    for (const t of EVENT_TYPES) expect(['p2a', 'a2p']).toContain(EVENTS[t].dir);
+  it('une requête P→A/A→P a une direction déclarée (both = contrôle des transferts)', () => {
+    for (const t of REQUEST_TYPES) expect(['p2a', 'a2p', 'both']).toContain(REQUESTS[t].dir);
+    for (const t of EVENT_TYPES) expect(['p2a', 'a2p', 'both']).toContain(EVENTS[t].dir);
+    expect(REQUEST_TYPES.filter((t) => REQUESTS[t].dir === 'both')).toEqual(['fs.transfer.done']);
+    expect(EVENT_TYPES.filter((t) => EVENTS[t].dir === 'both')).toEqual([
+      'fs.transfer.ack',
+      'fs.transfer.cancel',
+    ]);
   });
 
   it('un type inconnu n’est ni une requête ni un événement', () => {
-    expect(isRequestType('backup.create')).toBe(false);
-    expect(isEventType('task.progress')).toBe(false);
+    expect(isRequestType('migration.export')).toBe(false);
+    expect(isEventType('migration.progress')).toBe(false);
     expect(isRequestType('__proto__')).toBe(false);
   });
 });

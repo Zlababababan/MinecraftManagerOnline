@@ -39,3 +39,5 @@ export function createNodeDetectFs(): DetectFs {
     },
   };
 }
+
+export * from './codecs.js';

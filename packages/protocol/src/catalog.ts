@@ -1,7 +1,8 @@
 /**
- * Catalogue des messages du jalon A (doc 05 §6) : requêtes (avec direction, schéma de requête et
- * de réponse) et événements. Les jalons B (tasks) et C (transferts) s'ajoutent ici sans bump de
- * version — le protocole n'évolue que par ajout.
+ * Catalogue des messages (doc 05 §6) : requêtes (avec direction, schéma de requête et de réponse)
+ * et événements. Jalon A (phase 2), puis jalons B (tasks, backups) et C (transferts binaires) en
+ * phase 8 — ajoutés sans bump de version, le protocole n'évolue que par ajout. Les messages de
+ * contrôle des transferts sont bidirectionnels (`both`) : chaque pair peut être émetteur ou récepteur.
  */
 import type { z } from 'zod';
 
@@ -77,9 +78,38 @@ import {
   serverStopSchema,
   serverUpdatedSchema,
 } from './messages/server.js';
+import {
+  backupCreateResponseSchema,
+  backupCreateSchema,
+  backupDeleteResponseSchema,
+  backupDeleteSchema,
+  backupListResponseSchema,
+  backupListSchema,
+  backupRestoreSchema,
+  backupRotatedSchema,
+  fsFetchSchema,
+  taskAcceptedSchema,
+  taskAckResultSchema,
+  taskCancelResponseSchema,
+  taskCancelSchema,
+  taskCompletedSchema,
+  taskFailedSchema,
+  taskListResponseSchema,
+  taskProgressSchema,
+} from './messages/tasks.js';
+import {
+  fsDownloadStartResponseSchema,
+  fsDownloadStartSchema,
+  fsTransferAckSchema,
+  fsTransferCancelSchema,
+  fsTransferDoneResponseSchema,
+  fsTransferDoneSchema,
+  fsUploadStartResponseSchema,
+  fsUploadStartSchema,
+} from './messages/transfer.js';
 
-/** Direction : `p2a` = panel → agent, `a2p` = agent → panel. */
-export type Direction = 'p2a' | 'a2p';
+/** Direction : `p2a` = panel → agent, `a2p` = agent → panel, `both` = les deux (transferts). */
+export type Direction = 'p2a' | 'a2p' | 'both';
 
 export interface RequestDefinition {
   readonly dir: Direction;
@@ -148,6 +178,19 @@ export const REQUESTS = {
   'java.list': req('p2a', emptyPayloadSchema, javaListResponseSchema),
   // Événements fiables
   'event.ack': req('p2a', eventAckSchema, emptyPayloadSchema),
+  // Jalon B — tasks et backups (phase 8)
+  'task.cancel': req('p2a', taskCancelSchema, taskCancelResponseSchema),
+  'task.ackResult': req('p2a', taskAckResultSchema, emptyPayloadSchema),
+  'task.list': req('p2a', emptyPayloadSchema, taskListResponseSchema),
+  'backup.create': req('p2a', backupCreateSchema, backupCreateResponseSchema),
+  'backup.list': req('p2a', backupListSchema, backupListResponseSchema),
+  'backup.restore': req('p2a', backupRestoreSchema, taskAcceptedSchema),
+  'backup.delete': req('p2a', backupDeleteSchema, backupDeleteResponseSchema),
+  'fs.fetch': req('p2a', fsFetchSchema, taskAcceptedSchema),
+  // Jalon C — transferts binaires (phase 8)
+  'fs.download.start': req('p2a', fsDownloadStartSchema, fsDownloadStartResponseSchema),
+  'fs.upload.start': req('p2a', fsUploadStartSchema, fsUploadStartResponseSchema),
+  'fs.transfer.done': req('both', fsTransferDoneSchema, fsTransferDoneResponseSchema),
 } as const satisfies Record<string, RequestDefinition>;
 
 export const EVENTS = {
@@ -162,6 +205,14 @@ export const EVENTS = {
   'metrics.sample': evt('a2p', metricsSampleSchema),
   'watchdog.alert': evt('a2p', watchdogAlertSchema, true),
   'port.conflict': evt('a2p', portConflictSchema),
+  // Jalon B
+  'task.progress': evt('a2p', taskProgressSchema),
+  'task.completed': evt('a2p', taskCompletedSchema, true),
+  'task.failed': evt('a2p', taskFailedSchema, true),
+  'backup.rotated': evt('a2p', backupRotatedSchema, true),
+  // Jalon C
+  'fs.transfer.ack': evt('both', fsTransferAckSchema),
+  'fs.transfer.cancel': evt('both', fsTransferCancelSchema),
 } as const satisfies Record<string, EventDefinition>;
 
 export type RequestType = keyof typeof REQUESTS;
@@ -177,15 +228,24 @@ export type ParsedResponsePayload<T extends RequestType> = z.output<
 export type EventPayload<T extends EventType> = z.input<(typeof EVENTS)[T]['payload']>;
 export type ParsedEventPayload<T extends EventType> = z.output<(typeof EVENTS)[T]['payload']>;
 
-/** Rôle d'un pair ; détermine les types qu'il peut émettre. */
+/** Rôle d'un pair ; détermine les types qu'il peut émettre et ceux qu'il reçoit. */
 export type Role = 'panel' | 'agent';
 type DirFor<R extends Role> = R extends 'panel' ? 'p2a' : 'a2p';
+type DirTo<R extends Role> = R extends 'panel' ? 'a2p' : 'p2a';
 
+/** Types qu'un pair de rôle `R` peut émettre (`both` inclus). */
 export type RequestTypesFrom<R extends Role> = {
-  [T in RequestType]: (typeof REQUESTS)[T]['dir'] extends DirFor<R> ? T : never;
+  [T in RequestType]: (typeof REQUESTS)[T]['dir'] extends DirFor<R> | 'both' ? T : never;
 }[RequestType];
 export type EventTypesFrom<R extends Role> = {
-  [T in EventType]: (typeof EVENTS)[T]['dir'] extends DirFor<R> ? T : never;
+  [T in EventType]: (typeof EVENTS)[T]['dir'] extends DirFor<R> | 'both' ? T : never;
+}[EventType];
+/** Types qu'un pair de rôle `R` reçoit (donc traite via `handle`/`on`). */
+export type RequestTypesTo<R extends Role> = {
+  [T in RequestType]: (typeof REQUESTS)[T]['dir'] extends DirTo<R> | 'both' ? T : never;
+}[RequestType];
+export type EventTypesTo<R extends Role> = {
+  [T in EventType]: (typeof EVENTS)[T]['dir'] extends DirTo<R> | 'both' ? T : never;
 }[EventType];
 
 export function isRequestType(type: string): type is RequestType {

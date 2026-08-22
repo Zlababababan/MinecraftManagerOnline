@@ -3,12 +3,16 @@
  * des événements (`server.stateChanged`, `console.lines`, `player.event`, `server.detected`…).
  * Phase 7 : collecteur `metrics.sample` (tampon hors ligne rejoué) et watchdog local
  * (crash/freeze/RAM/ports → `watchdog.alert`, `port.conflict`), politique poussée par `agent.configure`.
+ * Phase 8 : tasks (journal WAL, `task.*`), backups (création à chaud, restauration, rotation,
+ * plannings locaux autonomes), transferts binaires (`fs.download/upload`, `fs.fetch`).
  */
 import os from 'node:os';
 
 import {
   PROTOCOL_VERSION,
   ProtocolError,
+  ulid,
+  type Compression,
   type EventPayload,
   type EventTypesFrom,
   type Os,
@@ -23,6 +27,8 @@ import {
   type SessionInfo,
 } from './connection/connection.js';
 import type { WebSocketFactory } from './connection/ws-transport.js';
+import { BackupService } from './backup/backup-service.js';
+import { BackupScheduler } from './backup/scheduler.js';
 import { Logger, errorMessage } from './log.js';
 import { ServerManager, type ServerManagerOptions } from './minecraft/server-manager.js';
 import type { ServerProcessEvent } from './minecraft/server-process.js';
@@ -32,8 +38,12 @@ import { Watchdog, type WatchdogOptions } from './monitoring/watchdog.js';
 import { JavaRegistry, defaultManagedJavaDir } from './platform/java.js';
 import { Scanner, type ScanDiff, type ScanTarget } from './scan/scanner.js';
 import { StateStore } from './state/store.js';
+import { TaskJournal } from './tasks/journal.js';
+import { TaskRunner } from './tasks/runner.js';
+import { AgentTransfers } from './transfer/transfers.js';
 
-export const AGENT_VERSION = '0.7.0';
+export const AGENT_VERSION = '0.8.0';
+export const AGENT_CAPABILITIES = ['rcon', 'tasks', 'backups', 'transfers'];
 
 export function currentOs(): Os {
   return process.platform === 'win32'
@@ -86,6 +96,12 @@ export interface AgentOptions {
     >
   >;
   backoff?: { baseMs?: number; maxMs?: number };
+  /** Période d'évaluation des plannings de backups (défaut 30 s ; 0 = désactivé). */
+  backupSchedulerTickMs?: number;
+  /** Attente de confirmation console après `save-all` en stdin (tests : court). */
+  saveSettleMs?: number;
+  /** `fetch` pour `fs.fetch` (tests : serveur local). */
+  fetchImpl?: typeof fetch;
   /** Sortie du processus (agent.restart) — injectable en test. */
   exit?: (code: number) => void;
   restrictPermissions?: boolean;
@@ -101,7 +117,12 @@ export class Agent {
   readonly java: JavaRegistry;
   readonly metrics: MetricsCollector;
   readonly watchdog: Watchdog;
+  readonly tasks: TaskRunner;
+  readonly backups: BackupService;
+  readonly backupScheduler: BackupScheduler;
+  readonly transfers: AgentTransfers;
   private readonly sampler: ProcessSampler;
+  private sessionCompression: Compression | undefined;
   private connection: AgentConnection | undefined;
   private readonly consoleSubscriptions = new Set<string>();
   private scanTimer: ReturnType<typeof setInterval> | undefined;
@@ -158,6 +179,47 @@ export class Agent {
         this.watchdog.onRamExceeded(serverId, rssMb, maxRamMb);
       },
     });
+    this.tasks = new TaskRunner({
+      journal: new TaskJournal(options.stateDir),
+      logger: this.logger.child('tasks'),
+      emit: (type, payload) => {
+        this.emit(type, payload);
+      },
+    });
+    this.backups = new BackupService({
+      stateDir: options.stateDir,
+      store: this.store,
+      manager: this.manager,
+      logger: this.logger.child('backups'),
+      agentVersion: AGENT_VERSION,
+      ...(options.saveSettleMs === undefined ? {} : { saveSettleMs: options.saveSettleMs }),
+      onRotated: ({ serverId, policyId, deleted }) => {
+        this.emit('backup.rotated', (eventId) => ({
+          eventId,
+          serverId,
+          ts: Date.now(),
+          ...(policyId === undefined ? {} : { policyId }),
+          deleted,
+        }));
+      },
+    });
+    this.backupScheduler = new BackupScheduler({
+      store: this.store,
+      manager: this.manager,
+      backups: this.backups,
+      tasks: this.tasks,
+      logger: this.logger.child('schedules'),
+      ...(options.backupSchedulerTickMs === undefined || options.backupSchedulerTickMs <= 0
+        ? {}
+        : { tickMs: options.backupSchedulerTickMs }),
+    });
+    this.transfers = new AgentTransfers({
+      manager: this.manager,
+      backups: this.backups,
+      logger: this.logger.child('transfers'),
+      sessionCompression: () => this.sessionCompression,
+      ...(options.fetchImpl === undefined ? {} : { fetchImpl: options.fetchImpl }),
+    });
   }
 
   get isConnected(): boolean {
@@ -178,6 +240,7 @@ export class Agent {
       });
     }
     await this.manager.init();
+    await this.tasks.journal.load();
     if (panelUrl !== undefined) {
       this.connection = new AgentConnection({
         panelUrl,
@@ -185,14 +248,19 @@ export class Agent {
         logger: this.logger.child('ws'),
         agentVersion: AGENT_VERSION,
         pairCode: this.options.pairCode,
-        capabilities: ['rcon'],
+        capabilities: AGENT_CAPABILITIES,
         registerHandlers: (peer) => {
           this.registerHandlers(peer);
         },
         buildSyncState: () => this.buildSyncState(),
         buildHeartbeat: () => this.buildHeartbeat(),
+        pendingTaskIds: () => this.tasks.journal.running().map((t) => t.taskId),
         onSession: (session, peer) => {
           this.onSession(session, peer);
+        },
+        onDisconnect: () => {
+          this.sessionCompression = undefined;
+          void this.transfers.detachAll();
         },
         ...(this.options.webSocketFactory === undefined
           ? {}
@@ -202,6 +270,11 @@ export class Agent {
       this.connection.start();
     } else {
       this.logger.warn('no panel URL configured: running standalone');
+    }
+    // Après la création de la connexion : les `task.failed` sont journalisés même hors ligne.
+    const interrupted = await this.tasks.recover();
+    if (interrupted > 0) {
+      this.logger.warn('interrupted tasks failed at boot', { count: interrupted });
     }
     const interval = this.options.scanIntervalMs ?? 5 * 60_000;
     if (interval > 0) {
@@ -229,6 +302,7 @@ export class Agent {
     for (const target of this.manager.metricsTargets()) {
       this.watchdog.onStateChanged(target.serverId, target.state);
     }
+    if ((this.options.backupSchedulerTickMs ?? 30_000) > 0) this.backupScheduler.start();
   }
 
   async stop(): Promise<void> {
@@ -236,8 +310,11 @@ export class Agent {
     this.scanTimer = undefined;
     if (this.trashTimer !== undefined) clearInterval(this.trashTimer);
     this.trashTimer = undefined;
+    this.backupScheduler.stop();
     this.metrics.stop();
     this.watchdog.dispose();
+    await this.tasks.dispose();
+    await this.transfers.detachAll();
     await this.connection?.stop();
     this.manager.dispose();
     this.sampler.close();
@@ -248,6 +325,7 @@ export class Agent {
   // --- Session --------------------------------------------------------------------------------
 
   private onSession(session: SessionInfo, peer: AgentPeer): void {
+    this.sessionCompression = session.compression;
     const replayed = this.metrics.replay();
     if (replayed > 0) this.logger.info('replayed buffered metrics', { count: replayed });
     this.consoleSubscriptions.clear();
@@ -267,7 +345,12 @@ export class Agent {
   private buildSyncState(): RequestPayload<'sync.state'> {
     return {
       servers: this.manager.snapshotServers(),
-      tasks: [],
+      tasks: this.tasks.list().map((t) => ({
+        taskId: t.taskId,
+        type: t.kind,
+        status: t.status,
+        updatedAt: t.updatedAt,
+      })),
       seqs: { ...this.store.get().seqs },
       portsInUse: this.manager.portsInUse(),
       javaRuntimes: [],
@@ -287,7 +370,7 @@ export class Agent {
         ? {}
         : { diskUsedGb: m.diskUsedGb, diskTotalGb: m.diskTotalGb }),
       activeServers: this.manager.runningCount,
-      activeTasks: 0,
+      activeTasks: this.tasks.activeCount + this.transfers.activeCount,
     };
   }
 
@@ -310,6 +393,8 @@ export class Agent {
   // --- Handlers -------------------------------------------------------------------------------
 
   private registerHandlers(peer: AgentPeer): void {
+    this.transfers.bind(peer);
+    this.registerTaskHandlers(peer);
     peer
       .handle('agent.info', async () => ({
         machine: machineInfo(),
@@ -318,7 +403,7 @@ export class Agent {
         volumes: [],
         javaRuntimes: await this.java.list(),
         watchedDirectories: this.store.get().watchedDirectories.map((d) => d.path),
-        capabilities: ['rcon'],
+        capabilities: AGENT_CAPABILITIES,
       }))
       .handle('agent.configure', async (cfg) => {
         const rescan = cfg.watchedDirectories !== undefined;
@@ -331,7 +416,12 @@ export class Agent {
             s.watchdog = {};
             for (const { serverId, ...policy } of cfg.watchdog) s.watchdog[serverId] = policy;
           }
+          if (cfg.backupDestination !== undefined) {
+            s.backupDestination = cfg.backupDestination === '' ? undefined : cfg.backupDestination;
+          }
+          if (cfg.backupSchedules) s.backupSchedules = cfg.backupSchedules;
         });
+        if (cfg.backupSchedules) await this.backupScheduler.prune();
         if (cfg.metricsIntervalSec !== undefined && this.options.metricsIntervalMs === undefined) {
           this.metrics.setInterval(cfg.metricsIntervalSec * 1000);
         }
@@ -480,6 +570,63 @@ export class Agent {
         return {};
       })
       .handle('java.list', async () => ({ runtimes: await this.java.list(true) }));
+  }
+
+  // --- Tasks, backups, fs.fetch (phase 8) -----------------------------------------------------
+
+  /** Une seule task backup/restore à la fois par serveur (`E_BUSY`), sauf rejeu du même `taskId`. */
+  private ensureServerIdle(serverId: string, taskId: string): void {
+    const active = this.tasks.activeFor(serverId, ['backup.create', 'backup.restore']);
+    if (active && active.taskId !== taskId) {
+      throw new ProtocolError('E_BUSY', 'another backup task is running for this server', {
+        details: { serverId, taskId: active.taskId, kind: active.kind },
+      });
+    }
+  }
+
+  private registerTaskHandlers(peer: AgentPeer): void {
+    peer
+      .handle('task.cancel', ({ taskId }) => {
+        const r = this.tasks.cancel(taskId);
+        return { cancelled: r.cancelled, ...(r.status === undefined ? {} : { status: r.status }) };
+      })
+      .handle('task.ackResult', async ({ taskId }) => {
+        await this.tasks.ack(taskId);
+        return {};
+      })
+      .handle('task.list', () => ({ tasks: this.tasks.list() }))
+      .handle('backup.create', async ({ taskId, ...req }) => {
+        this.ensureServerIdle(req.serverId, taskId);
+        const request = { ...req, backupId: req.backupId ?? ulid(Date.now()) };
+        const record = await this.tasks.start(
+          { taskId, kind: 'backup.create', serverId: req.serverId, payload: request },
+          (ctx) => this.backups.create(request, ctx),
+        );
+        const payload = record.payload as { backupId?: string } | undefined;
+        return { taskId, backupId: payload?.backupId ?? request.backupId };
+      })
+      .handle('backup.list', async ({ serverId, destinations }) => ({
+        backups: await this.backups.list(serverId, destinations ?? []),
+      }))
+      .handle('backup.delete', async ({ serverId, backupId, archivePath }) => ({
+        deleted: await this.backups.delete(serverId, backupId, archivePath),
+      }))
+      .handle('backup.restore', async ({ taskId, ...req }) => {
+        this.ensureServerIdle(req.serverId, taskId);
+        this.watchdog.cancel(req.serverId);
+        await this.tasks.start(
+          { taskId, kind: 'backup.restore', serverId: req.serverId, payload: req },
+          (ctx) => this.backups.restore(req, ctx),
+        );
+        return { taskId };
+      })
+      .handle('fs.fetch', async ({ taskId, ...req }) => {
+        await this.tasks.start(
+          { taskId, kind: 'fs.fetch', serverId: req.serverId, payload: req },
+          (ctx) => this.transfers.fetchToServer(req, ctx),
+        );
+        return { taskId };
+      });
   }
 
   // --- Scan -----------------------------------------------------------------------------------

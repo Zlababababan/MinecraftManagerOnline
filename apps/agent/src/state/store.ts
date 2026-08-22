@@ -12,6 +12,7 @@ import path from 'node:path';
 import { z } from 'zod';
 
 import {
+  backupScheduleSchema,
   desiredStateSchema,
   serverConfigSchema,
   watchdogPolicySchema,
@@ -65,6 +66,11 @@ export const agentStateSchema = z.object({
   /** Politique watchdog par serveur (phase 7), poussée par `agent.configure.watchdog`. */
   watchdog: z.record(z.string(), watchdogPolicySchema.omit({ serverId: true })).default({}),
   metricsIntervalSec: z.int().positive().default(15),
+  /** Phase 8 : destination globale des backups (`agent.configure.backupDestination`) et plannings locaux. */
+  backupDestination: z.string().optional(),
+  backupSchedules: z.array(backupScheduleSchema).default([]),
+  /** Dernière exécution par planning (évite les doublons, pas de rattrapage des occurrences manquées). */
+  backupScheduleRuns: z.record(z.string(), z.int().nonnegative()).default({}),
   seqs: z.record(z.string(), z.int().nonnegative()).default({}),
   pendingEvents: z.array(pendingEventSchema).default([]),
 });

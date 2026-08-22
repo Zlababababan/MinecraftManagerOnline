@@ -1,13 +1,17 @@
 /**
  * Transport `RpcTransport` au-dessus du `WebSocket` global de Node (≥ 22, API navigateur — aucune
- * dépendance, donc rien à bundler). Les frames binaires (transferts, jalon C) passeront à côté.
+ * dépendance, donc rien à bundler). Frames texte = enveloppes JSON ; frames binaires = transferts
+ * (jalon C), livrées telles quelles aux abonnés `onBinary`.
  */
 import type { RpcTransport } from '@mmo/protocol';
 
 /** Sous-ensemble de l'API WebSocket navigateur utilisé par l'agent (permet un faux en test). */
 export interface WebSocketLike {
   readonly readyState: number;
-  send(data: string): void;
+  /** Octets en attente d'émission (priorité basse des transferts). */
+  readonly bufferedAmount?: number;
+  binaryType?: string;
+  send(data: string | ArrayBuffer | Uint8Array): void;
   close(code?: number, reason?: string): void;
   addEventListener(type: 'open', listener: () => void): void;
   addEventListener(
@@ -30,18 +34,27 @@ export interface WsTransport extends RpcTransport {
 /** Enveloppe un socket déjà ouvert. */
 export function createWsTransport(ws: WebSocketLike): WsTransport {
   const messageHandlers = new Set<(data: string) => void>();
+  const binaryHandlers = new Set<(data: Uint8Array) => void>();
   const closeHandlers = new Set<(reason?: string) => void>();
   let closed = false;
   const onMessage = (data: string): void => {
     for (const h of messageHandlers) h(data);
   };
+  const onBinary = (data: Uint8Array): void => {
+    for (const h of binaryHandlers) h(data);
+  };
 
+  // Frames binaires livrées en ArrayBuffer (pas en Blob) par le WebSocket WHATWG de Node.
+  if ('binaryType' in ws) ws.binaryType = 'arraybuffer';
   ws.addEventListener('message', (event) => {
     const { data } = event;
     if (typeof data === 'string') onMessage(data);
-    else if (data instanceof ArrayBuffer) onMessage(Buffer.from(data).toString('utf8'));
-    else if (Buffer.isBuffer(data)) onMessage(data.toString('utf8'));
-    // Blob ou autre : ignoré (frames binaires réservées au jalon C)
+    else if (data instanceof ArrayBuffer) onBinary(new Uint8Array(data));
+    else if (Buffer.isBuffer(data)) onBinary(data);
+    else if (ArrayBuffer.isView(data)) {
+      onBinary(new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
+    }
+    // Blob ou autre : ignoré
   });
   const fireClose = (reason?: string): void => {
     if (closed) return;
@@ -66,6 +79,16 @@ export function createWsTransport(ws: WebSocketLike): WsTransport {
     },
     onMessage(handler) {
       messageHandlers.add(handler);
+    },
+    sendBinary(data) {
+      if (closed || ws.readyState !== WS_OPEN) throw new Error('websocket not open');
+      ws.send(data);
+    },
+    onBinary(handler) {
+      binaryHandlers.add(handler);
+    },
+    bufferedAmount() {
+      return ws.bufferedAmount ?? 0;
     },
     onClose(handler) {
       closeHandlers.add(handler);
