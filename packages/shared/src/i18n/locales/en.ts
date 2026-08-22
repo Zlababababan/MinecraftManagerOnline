@@ -94,6 +94,7 @@ export const en = {
     E_PRECHECK_FAILED: 'Pre-checks on the target machine failed.',
     E_SIGNATURE_INVALID: 'Invalid bundle signature — update refused.',
     E_UNREACHABLE: 'No direct address reachable; relaying through the panel.',
+    E_TOO_LARGE: 'The file or transfer exceeds the allowed size.',
     E_INTERNAL: 'Internal error.',
     // Codes propres au panel (`@mmo/protocol/client`, phase 4)
     E_FORBIDDEN: 'You do not have permission to do this.',

@@ -41,7 +41,14 @@ export interface AgentTransfersOptions {
   /** Codecs acceptés par la session courante (négociés à `auth.hello`). */
   sessionCompression: () => Compression | undefined;
   fetchImpl?: typeof fetch;
+  /** Phase 12 (doc 03 §6) : plafond d'un `fs.fetch` (défaut 8 Gio). */
+  maxFetchBytes?: number;
+  /** Phase 12 : plafond d'un upload (taille déclarée ; défaut 64 Gio). */
+  maxUploadBytes?: number;
 }
+
+export const DEFAULT_MAX_FETCH_BYTES = 8 * 1024 ** 3;
+export const DEFAULT_MAX_UPLOAD_BYTES = 64 * 1024 ** 3;
 
 interface Download {
   sender: TransferSender;
@@ -237,6 +244,12 @@ export class AgentTransfers {
       this.uploads.delete(p.transferId);
     }
     assertNotReserved(normalizeRelative(p.path), 'upload to');
+    const maxUpload = this.options.maxUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES;
+    if (p.size > maxUpload) {
+      throw new ProtocolError('E_TOO_LARGE', 'upload exceeds the allowed size', {
+        details: { size: p.size, max: maxUpload },
+      });
+    }
     const finalPath = await this.options.manager.files(p.serverId).jail.resolveChecked(p.path);
     if (!p.overwrite && (await exists(finalPath))) {
       throw new ProtocolError('E_CONFLICT', 'target file exists', { details: { path: p.path } });
@@ -254,6 +267,12 @@ export class AgentTransfers {
         codec: chunkCodec(compression),
         hash: sha256Hasher,
         write: async (data, at) => {
+          // Jamais au-delà de la taille annoncée par `fs.upload.start` (flux non borné sinon).
+          if (at + data.byteLength > p.size) {
+            throw new ProtocolError('E_TOO_LARGE', 'upload exceeds the declared size', {
+              details: { declared: p.size, received: at + data.byteLength },
+            });
+          }
           await handle.write(data, 0, data.byteLength, at);
         },
         sendAck: (acked) => {
@@ -318,6 +337,17 @@ export class AgentTransfers {
     ctx: TaskContext,
   ): Promise<{ path: string; size: number; sha256: string }> {
     assertNotReserved(normalizeRelative(req.path), 'fetch to');
+    const maxBytes = this.options.maxFetchBytes ?? DEFAULT_MAX_FETCH_BYTES;
+    if (!/^https?:$/i.test(new URL(req.url).protocol)) {
+      throw new ProtocolError('E_INVALID_PAYLOAD', 'only http(s) URLs can be fetched', {
+        details: { url: req.url },
+      });
+    }
+    if (req.size !== undefined && req.size > maxBytes) {
+      throw new ProtocolError('E_TOO_LARGE', 'file exceeds the allowed size', {
+        details: { size: req.size, max: maxBytes },
+      });
+    }
     const finalPath = await this.options.manager.files(req.serverId).jail.resolveChecked(req.path);
     if (!req.overwrite && (await exists(finalPath))) {
       throw new ProtocolError('E_CONFLICT', 'target file exists', { details: { path: req.path } });
@@ -340,6 +370,14 @@ export class AgentTransfers {
       });
     }
     const total = req.size ?? Number(response.headers.get('content-length') ?? 0);
+    const tooLarge = (size: number): ProtocolError =>
+      new ProtocolError('E_TOO_LARGE', 'file exceeds the allowed size', {
+        details: { size, max: maxBytes, url: req.url },
+      });
+    if (total > maxBytes) {
+      await response.body.cancel().catch(() => undefined);
+      throw tooLarge(total);
+    }
     const sha256 = createHash('sha256');
     const sha1 = createHash('sha1');
     let size = 0;
@@ -347,6 +385,11 @@ export class AgentTransfers {
     try {
       for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
         ctx.throwIfCancelled();
+        if (size + chunk.byteLength > maxBytes) {
+          await handle.close();
+          await rm(partPath, { force: true }).catch(() => undefined);
+          throw tooLarge(size + chunk.byteLength);
+        }
         await handle.write(chunk);
         sha256.update(chunk);
         sha1.update(chunk);
@@ -358,7 +401,7 @@ export class AgentTransfers {
         );
       }
     } finally {
-      await handle.close();
+      await handle.close().catch(() => undefined);
     }
     const digest256 = sha256.digest('hex');
     const digest1 = sha1.digest('hex');

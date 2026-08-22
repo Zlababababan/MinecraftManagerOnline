@@ -117,6 +117,8 @@ export interface AgentOptions {
   saveSettleMs?: number;
   /** `fetch` pour `fs.fetch`, `java.install`, `migration.import`, `agent.update` (tests : serveur local). */
   fetchImpl?: typeof fetch;
+  /** Phase 12 : plafonds des transferts (`fs.fetch`, upload) — tests ; défauts dans `AgentTransfers`. */
+  transferLimits?: { maxFetchBytes?: number; maxUploadBytes?: number };
   /** Phase 9 : dossier géré par le launcher (défaut `MMO_AGENT_HOME`) ; absent = mises à jour refusées. */
   agentHome?: string | undefined;
   /** Phase 9 : clés publiques Ed25519 acceptées (tests) ; défaut : clés embarquées. */
@@ -256,6 +258,12 @@ export class Agent {
       logger: this.logger.child('transfers'),
       sessionCompression: () => this.sessionCompression,
       ...(options.fetchImpl === undefined ? {} : { fetchImpl: options.fetchImpl }),
+      ...(options.transferLimits?.maxFetchBytes === undefined
+        ? {}
+        : { maxFetchBytes: options.transferLimits.maxFetchBytes }),
+      ...(options.transferLimits?.maxUploadBytes === undefined
+        ? {}
+        : { maxUploadBytes: options.transferLimits.maxUploadBytes }),
     });
     const panelOrigin = (): string | undefined =>
       panelHttpOrigin(this.options.panelUrl ?? this.store.get().panelUrl);

@@ -61,6 +61,8 @@ export type MigrationImportRequest = Omit<ParsedRequestPayload<'migration.import
 
 export class AgentMigration {
   private readonly served = new Map<string, Served>();
+  /** Phase 12 : chemins exportés par migration (`migrationId` → dossier), seuls renommables au finalize. */
+  private readonly exported = new Map<string, string>();
   private readonly now: () => number;
 
   constructor(private readonly options: AgentMigrationOptions) {
@@ -81,6 +83,10 @@ export class AgentMigration {
     const startedAt = this.now();
     if (!this.options.store.getServer(req.serverId)) {
       throw new ProtocolError('E_NOT_FOUND', `unknown server ${req.serverId}`);
+    }
+    const exportedPath = this.options.store.getServer(req.serverId)?.config.path;
+    if (exportedPath !== undefined) {
+      this.exported.set(req.migrationId, path.resolve(exportedPath));
     }
     const wasRunning = this.options.manager.get(req.serverId)?.isRunning ?? false;
     if (wasRunning) {
@@ -398,9 +404,13 @@ export class AgentMigration {
     req: ParsedRequestPayload<'migration.finalize'>,
   ): Promise<{ path: string; renamed: boolean; purgeAfter?: number }> {
     const source = path.resolve(req.path);
-    // Phase 12 : seul le dossier enregistré pour ce serveur peut être renommé/purgé.
+    // Phase 12 : seul le dossier enregistré pour ce serveur — ou exporté pour cette migration
+    // (le panel a déjà retiré le serveur de cette machine quand il finalise) — peut être renommé/purgé.
     const known = this.options.store.serverConfigs().find((c) => c.serverId === req.serverId);
-    if (known === undefined || path.resolve(known.path) !== source) {
+    const exportedFor = this.exported.get(req.migrationId);
+    const allowed =
+      (known !== undefined && path.resolve(known.path) === source) || exportedFor === source;
+    if (!allowed) {
       throw new ProtocolError('E_NOT_FOUND', 'unknown server or path mismatch for finalize', {
         details: { serverId: req.serverId, path: req.path },
       });
@@ -416,6 +426,7 @@ export class AgentMigration {
       await rm(path.join(source, MARKER), { force: true }).catch(() => undefined);
       return { path: source, renamed: false };
     }
+    this.exported.delete(req.migrationId);
     const renamed = `${source}.migrated-${stamp(this.now())}`;
     // Windows : un processus Java qui vient de s'arrêter peut encore retenir le dossier (EPERM/EBUSY)
     // pendant quelques instants — on insiste, puis on laisse le dossier en place (marqueur retiré).

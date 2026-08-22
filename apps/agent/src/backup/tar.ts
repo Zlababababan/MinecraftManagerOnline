@@ -7,6 +7,7 @@
  * - `tarEntries()` produit les blocs tar (générateur : `Readable.from()` + `pipeline()`) ;
  * - `extractTar()` consomme un flux tar et écrit dans un dossier, chemins jailés (`..` refusé).
  */
+import { ProtocolError } from '@mmo/protocol';
 import { createReadStream } from 'node:fs';
 import { lstat, mkdir, open, readdir, symlink, utimes } from 'node:fs/promises';
 import path from 'node:path';
@@ -302,6 +303,27 @@ export interface ExtractOptions {
   preserveMode?: boolean;
   /** Phase 9 : crée les liens symboliques dont la cible reste dans `dest` (JRE macOS) ; sinon ignorés. */
   symlinks?: boolean;
+  /** Phase 12 (doc 03 §6) : plafond d'octets écrits (défaut 64 Gio) — `E_TOO_LARGE` au-delà. */
+  maxBytes?: number;
+  /** Phase 12 : plafond d'entrées (défaut 2 000 000). */
+  maxEntries?: number;
+}
+
+export const DEFAULT_EXTRACT_MAX_BYTES = 64 * 1024 ** 3;
+export const DEFAULT_EXTRACT_MAX_ENTRIES = 2_000_000;
+
+/** Garde commune tar/zip : lève `E_TOO_LARGE` quand une extraction dépasse ses plafonds. */
+export function assertExtractBudget(
+  bytes: number,
+  entries: number,
+  maxBytes: number,
+  maxEntries: number,
+): void {
+  if (bytes > maxBytes || entries > maxEntries) {
+    throw new ProtocolError('E_TOO_LARGE', 'archive exceeds the allowed extraction size', {
+      details: { bytes, entries, maxBytes, maxEntries },
+    });
+  }
 }
 
 export async function extractTar(
@@ -310,6 +332,9 @@ export async function extractTar(
   options: ExtractOptions = {},
 ): Promise<ExtractResult> {
   const strip = options.stripComponents ?? 0;
+  const maxBytes = options.maxBytes ?? DEFAULT_EXTRACT_MAX_BYTES;
+  const maxEntries = options.maxEntries ?? DEFAULT_EXTRACT_MAX_ENTRIES;
+  let entries = 0;
   const preserveMode = options.preserveMode === true && process.platform !== 'win32';
   const entryRel = (name: string): string | undefined => {
     const rel = safeRelative(name);
@@ -353,6 +378,8 @@ export async function extractTar(
   const startEntry = async (h: ParsedHeader): Promise<void> => {
     const name = paxOverrides?.path ?? h.name;
     const size = paxOverrides?.size === undefined ? h.size : Number(paxOverrides.size);
+    entries++;
+    assertExtractBudget(bytes + size, entries, maxBytes, maxEntries);
     paxLink = paxOverrides?.linkpath;
     paxOverrides = undefined;
     const rel = entryRel(name);

@@ -108,6 +108,7 @@ export const fr = {
     E_PRECHECK_FAILED: 'Les vérifications préalables sur la machine cible ont échoué.',
     E_SIGNATURE_INVALID: 'La signature du bundle est invalide — mise à jour refusée.',
     E_UNREACHABLE: 'Aucune adresse directe joignable ; passage par le panel.',
+    E_TOO_LARGE: 'Le fichier ou le transfert dépasse la taille autorisée.',
     E_INTERNAL: 'Erreur interne.',
     // Codes propres au panel (`@mmo/protocol/client`, phase 4)
     E_FORBIDDEN: 'Vous n’avez pas le droit d’effectuer cette action.',

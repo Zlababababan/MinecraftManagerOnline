@@ -28,6 +28,8 @@ export const ERROR_CODES = [
   'E_SIGNATURE_INVALID',
   /** Phase 9 : aucune source directe joignable (le panel bascule en relais). */
   'E_UNREACHABLE',
+  /** Phase 12 : taille refusée (fs.fetch, upload, extraction, frame) — bornes doc 03 §6. */
+  'E_TOO_LARGE',
   'E_INTERNAL',
 ] as const;
 
@@ -64,6 +66,7 @@ const DEFAULT_RETRYABLE: Readonly<Record<ErrorCode, boolean>> = {
   E_PRECHECK_FAILED: false,
   E_SIGNATURE_INVALID: false,
   E_UNREACHABLE: true,
+  E_TOO_LARGE: false,
   E_INTERNAL: false,
 };
 

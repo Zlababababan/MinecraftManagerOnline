@@ -83,6 +83,24 @@ describe('tar maison', () => {
     expect(seen).toEqual(['keep.txt']);
   });
 
+  it('phase 12 : plafonds d’octets et d’entrées à l’extraction (E_TOO_LARGE)', async () => {
+    const src = path.join(dir, 'src');
+    await mkdir(src, { recursive: true });
+    await writeFile(path.join(src, 'a.bin'), randomBytes(30_000));
+    await writeFile(path.join(src, 'b.bin'), randomBytes(30_000));
+    const tree = await walkTree(src, () => false);
+    const tar = await collect(tarEntries(tree.entries));
+    await expect(
+      extractTar(Readable.from([tar]), path.join(dir, 'd1'), { maxBytes: 50_000 }),
+    ).rejects.toMatchObject({ code: 'E_TOO_LARGE' });
+    await expect(
+      extractTar(Readable.from([tar]), path.join(dir, 'd2'), { maxEntries: 1 }),
+    ).rejects.toMatchObject({ code: 'E_TOO_LARGE' });
+    await expect(
+      extractTar(Readable.from([tar]), path.join(dir, 'd3'), { maxBytes: 60_000, maxEntries: 2 }),
+    ).resolves.toMatchObject({ files: 2, bytes: 60_000 });
+  });
+
   it('refuse les chemins hors cible et signale une archive tronquée', async () => {
     expect(safeRelative('../x')).toBeUndefined();
     expect(safeRelative('/etc/passwd')).toBeUndefined();

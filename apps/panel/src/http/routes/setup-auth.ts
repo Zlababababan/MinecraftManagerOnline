@@ -1,5 +1,5 @@
 /** Wizard first-run (doc 03 §8) et sessions (login/logout/me). */
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { generateKeyPairSync } from 'node:crypto';
 import { z } from 'zod';
@@ -42,6 +42,9 @@ export function generateVapidKeys(): { publicKey: string; privateKey: string } {
 export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext): void {
   const r = app.withTypeProvider<ZodTypeProvider>();
   const loginLimiter = new RateLimiter({ max: 10, windowMs: 60_000, now: ctx.now });
+  // Phase 12 (doc 03 §6) : un seul POST /api/setup à la fois et 5 tentatives/min par adresse.
+  const setupLimiter = new RateLimiter({ max: 5, windowMs: 60_000, now: ctx.now });
+  let setupInFlight = false;
 
   r.get(
     '/api/setup/status',
@@ -51,49 +54,82 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
 
   r.post(
     '/api/setup',
-    { config: { public: true }, schema: { body: setupRequestSchema } },
+    {
+      config: { public: true },
+      schema: { body: setupRequestSchema },
+      // Avant la validation du corps : un corps invalide compte aussi comme une tentative.
+      preValidation: (request, _reply, done) => {
+        if (ctx.users.count() > 0) {
+          done(new AppError('E_SETUP_DONE', 'setup already completed'));
+          return;
+        }
+        if (!setupLimiter.hit(request.ip)) {
+          done(new AppError('E_RATE_LIMITED', 'too many setup attempts', { retryable: true }));
+          return;
+        }
+        done();
+      },
+    },
     async (request, reply) => {
       if (ctx.users.count() > 0) {
         throw new AppError('E_SETUP_DONE', 'setup already completed');
       }
-      const body = request.body;
-      const admin = await ctx.users.create({
-        username: body.username,
-        password: body.password,
-        role: 'admin',
-        locale: body.locale,
-      });
-      const vapid = generateVapidKeys();
-      ctx.settings.set(SETTING_KEYS.vapidPublicKey, vapid.publicKey);
-      ctx.settings.set(SETTING_KEYS.vapidPrivateKey, vapid.privateKey);
-      if (body.publicUrl !== undefined) {
-        const origin = normalizeOrigin(body.publicUrl);
-        if (origin === undefined) {
-          throw new AppError('E_VALIDATION', 'publicUrl must be an http(s) origin');
-        }
-        ctx.settings.set(SETTING_KEYS.publicUrl, origin);
+      if (setupInFlight)
+        throw new AppError('E_BUSY', 'setup already in progress', { retryable: true });
+      setupInFlight = true;
+      try {
+        return await completeSetup(
+          request.body,
+          { ip: request.ip, userAgent: request.headers['user-agent'] },
+          reply,
+        );
+      } finally {
+        setupInFlight = false;
       }
-      if (body.accessMode !== undefined) ctx.settings.set(SETTING_KEYS.accessMode, body.accessMode);
-      if (body.backupDestination !== undefined) {
-        ctx.settings.set(SETTING_KEYS.backupDestination, body.backupDestination);
-      }
-      ctx.settings.set(SETTING_KEYS.setupCompletedAt, String(ctx.now()));
-      ctx.audit.record({
-        userId: admin.id,
-        username: admin.username,
-        action: 'setup.completed',
-        targetType: 'user',
-        targetId: admin.id,
-        ip: request.ip,
-      });
-      const session = ctx.sessions.create(admin.id, {
-        ip: request.ip,
-        userAgent: request.headers['user-agent'],
-      });
-      setSessionCookie(ctx, reply, session.token, session.expiresAt);
-      return reply.code(201).send({ user: toUserDto(admin) });
     },
   );
+
+  async function completeSetup(
+    body: z.infer<typeof setupRequestSchema>,
+    client: { ip: string; userAgent: string | undefined },
+    reply: FastifyReply,
+  ): Promise<unknown> {
+    const admin = await ctx.users.create({
+      username: body.username,
+      password: body.password,
+      role: 'admin',
+      locale: body.locale,
+    });
+    const vapid = generateVapidKeys();
+    ctx.settings.set(SETTING_KEYS.vapidPublicKey, vapid.publicKey);
+    ctx.settings.set(SETTING_KEYS.vapidPrivateKey, vapid.privateKey);
+    if (body.publicUrl !== undefined) {
+      const origin = normalizeOrigin(body.publicUrl);
+      if (origin === undefined) {
+        throw new AppError('E_VALIDATION', 'publicUrl must be an http(s) origin');
+      }
+      ctx.settings.set(SETTING_KEYS.publicUrl, origin);
+    }
+    if (body.accessMode !== undefined) ctx.settings.set(SETTING_KEYS.accessMode, body.accessMode);
+    if (body.backupDestination !== undefined) {
+      ctx.settings.set(SETTING_KEYS.backupDestination, body.backupDestination);
+    }
+    ctx.settings.set(SETTING_KEYS.setupCompletedAt, String(ctx.now()));
+    ctx.audit.record({
+      userId: admin.id,
+      username: admin.username,
+      action: 'setup.completed',
+      targetType: 'user',
+      targetId: admin.id,
+      ip: client.ip,
+    });
+    const session = ctx.sessions.create(admin.id, {
+      ip: client.ip,
+      userAgent: client.userAgent,
+    });
+    setSessionCookie(ctx, reply, session.token, session.expiresAt);
+    return reply.code(201).send({ user: toUserDto(admin) });
+  }
 
   r.post(
     '/api/auth/login',

@@ -304,6 +304,17 @@ describe('phase 9 : migration agent → agent', () => {
     await targetPeer.request('server.stop', { serverId: 'srv_1' });
 
     // Finalisation côté source : renommage, marqueur retiré, purge planifiée, serveur oublié.
+    // Phase 12 : comme le vrai panel, la source a déjà reçu une configuration sans ce serveur ;
+    // le chemin reste renommable parce qu'il a été exporté pour cette migration (et pour elle seule).
+    await sourcePeer.request('agent.configure', { servers: [] });
+    await expect(
+      sourcePeer.request('migration.finalize', {
+        serverId: 'srv_1',
+        migrationId: 'mig_other',
+        path: sourceDir,
+        action: 'rename',
+      }),
+    ).rejects.toMatchObject({ code: 'E_NOT_FOUND' });
     const fin = await sourcePeer.request('migration.finalize', {
       serverId: 'srv_1',
       migrationId: 'mig_1',

@@ -7,7 +7,7 @@
  */
 import { createHash, randomBytes } from 'node:crypto';
 import http from 'node:http';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -151,7 +151,12 @@ describe('phase 8 : tasks, backups, transferts de bout en bout', () => {
     await cleanupServers();
   });
 
-  async function bootAgent(options: { fetchImpl?: typeof fetch } = {}): Promise<PanelPeer> {
+  async function bootAgent(
+    options: {
+      fetchImpl?: typeof fetch;
+      transferLimits?: { maxFetchBytes?: number; maxUploadBytes?: number };
+    } = {},
+  ): Promise<PanelPeer> {
     const rconFrom = await freePort();
     agent = new Agent({
       stateDir,
@@ -165,6 +170,7 @@ describe('phase 8 : tasks, backups, transferts de bout en bout', () => {
       backupSchedulerTickMs: 0,
       saveSettleMs: 200,
       ...(options.fetchImpl === undefined ? {} : { fetchImpl: options.fetchImpl }),
+      ...(options.transferLimits === undefined ? {} : { transferLimits: options.transferLimits }),
       manager: {
         commandBuilder: (ctx) => ({
           file: process.execPath,
@@ -640,6 +646,125 @@ describe('phase 8 : tasks, backups, transferts de bout en bout', () => {
           url: `http://127.0.0.1:${String(port)}/spark.jar`,
         }),
       ).rejects.toMatchObject({ code: 'E_INVALID_PAYLOAD' });
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => {
+        server.close(() => {
+          resolve();
+        });
+      });
+    }
+  });
+
+  it('phase 12 : fs.fetch et upload bornés (E_TOO_LARGE), schéma d’URL restreint à http(s)', async () => {
+    const payload = randomBytes(50_000);
+    const server = http.createServer((req, res) => {
+      if (req.url === '/nolength') {
+        // Pas de content-length : la borne doit jouer sur le flux réel.
+        res.writeHead(200);
+        res.end(payload);
+        return;
+      }
+      res.writeHead(200, { 'content-length': String(payload.byteLength) });
+      res.end(payload);
+    });
+    await new Promise<void>((resolve) => {
+      server.listen(0, '127.0.0.1', resolve);
+    });
+    const port = (server.address() as { port: number }).port;
+    try {
+      const peer = await bootAgent({
+        transferLimits: { maxFetchBytes: 10_000, maxUploadBytes: 20_000 },
+      });
+      await configure(peer);
+      // content-length > plafond : refusé avant d'écrire quoi que ce soit.
+      const byHeader = ulid();
+      await peer.request('fs.fetch', {
+        taskId: byHeader,
+        serverId: 'srv_1',
+        path: 'mods/big.jar',
+        url: `http://127.0.0.1:${String(port)}/big.jar`,
+      });
+      await waitFor(() => cap.failed.some((c) => c.taskId === byHeader), 10_000);
+      expect(cap.failed.find((c) => c.taskId === byHeader)?.error.code).toBe('E_TOO_LARGE');
+      // Sans content-length : coupé pendant le flux, .part nettoyé.
+      const byStream = ulid();
+      await peer.request('fs.fetch', {
+        taskId: byStream,
+        serverId: 'srv_1',
+        path: 'mods/big2.jar',
+        url: `http://127.0.0.1:${String(port)}/nolength`,
+      });
+      await waitFor(() => cap.failed.some((c) => c.taskId === byStream), 10_000);
+      expect(cap.failed.find((c) => c.taskId === byStream)?.error.code).toBe('E_TOO_LARGE');
+      await expect(stat(path.join(serverDir, 'mods', 'big2.jar'))).rejects.toThrow();
+      expect(
+        (await readdir(path.join(serverDir, 'mods'))).filter((f) => f.endsWith('.part')),
+      ).toEqual([]);
+      // Taille annoncée > plafond et schéma non http(s) : tasks échouées sans rien télécharger.
+      const declared = ulid();
+      await peer.request('fs.fetch', {
+        taskId: declared,
+        serverId: 'srv_1',
+        path: 'mods/declared.jar',
+        url: `http://127.0.0.1:${String(port)}/x.jar`,
+        size: 10_001,
+      });
+      const fileUrl = ulid();
+      await peer.request('fs.fetch', {
+        taskId: fileUrl,
+        serverId: 'srv_1',
+        path: 'mods/file.jar',
+        url: 'file:///etc/passwd',
+      });
+      await waitFor(
+        () => [declared, fileUrl].every((id) => cap.failed.some((c) => c.taskId === id)),
+        10_000,
+      );
+      expect(cap.failed.find((c) => c.taskId === declared)?.error.code).toBe('E_TOO_LARGE');
+      expect(cap.failed.find((c) => c.taskId === fileUrl)?.error.code).toBe('E_INVALID_PAYLOAD');
+      // Upload : taille déclarée > plafond.
+      await expect(
+        peer.request('fs.upload.start', {
+          transferId: transferIdFromBytes(randomBytes(16)),
+          serverId: 'srv_1',
+          path: 'mods/up.jar',
+          size: 20_001,
+        }),
+      ).rejects.toMatchObject({ code: 'E_TOO_LARGE' });
+      // Upload : flux plus long que la taille déclarée → refusé à la finalisation.
+      const data = randomBytes(3000);
+      const transferId = transferIdFromBytes(randomBytes(16));
+      await peer.request('fs.upload.start', {
+        transferId,
+        serverId: 'srv_1',
+        path: 'mods/liar.jar',
+        size: 1000,
+        chunkSize: 1024,
+        compression: 'none',
+      });
+      const sender = new TransferSender({
+        transferId,
+        chunkSize: 1024,
+        windowChunks: 8,
+        codec: chunkCodec('none'),
+        hash: sha256Hasher,
+        sendFrame: (frame) => {
+          peer.sendBinary(frame);
+        },
+      });
+      cap.sender = sender;
+      const run = sender.run(
+        (async function* () {
+          await sleep(1);
+          yield data;
+        })(),
+      );
+      await Promise.race([run, sleep(500)]).catch(() => undefined);
+      await expect(
+        peer.request('fs.transfer.done', { transferId, size: 3000, sha256: sender.sha256 }),
+      ).rejects.toMatchObject({ code: 'E_TOO_LARGE' });
+      await expect(stat(path.join(serverDir, 'mods', 'liar.jar'))).rejects.toThrow();
     } finally {
       server.closeAllConnections();
       await new Promise<void>((resolve) => {

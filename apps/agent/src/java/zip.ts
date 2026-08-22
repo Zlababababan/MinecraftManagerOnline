@@ -3,13 +3,20 @@
  * `store`/`deflate` décompressées en flux (`node:zlib`), chemins jailés, `stripComponents` pour
  * ignorer le dossier racine (`jdk-17.0.12+7-jre/`). ZIP64 non supporté (les JRE font < 4 Gio).
  */
+import { ProtocolError } from '@mmo/protocol';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdir, open, type FileHandle } from 'node:fs/promises';
 import path from 'node:path';
+import { Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { createInflateRaw } from 'node:zlib';
 
-import { safeRelative } from '../backup/tar.js';
+import {
+  DEFAULT_EXTRACT_MAX_BYTES,
+  DEFAULT_EXTRACT_MAX_ENTRIES,
+  assertExtractBudget,
+  safeRelative,
+} from '../backup/tar.js';
 
 const EOCD_SIG = 0x06054b50;
 const CEN_SIG = 0x02014b50;
@@ -100,9 +107,15 @@ export async function extractZip(
     stripComponents?: number;
     onProgress?: (p: { bytes: number; files: number; current: string }) => void;
     shouldAbort?: () => boolean;
+    /** Phase 12 (doc 03 §6) : plafond d'octets réellement inflatés (défaut 64 Gio). */
+    maxBytes?: number;
+    maxEntries?: number;
   } = {},
 ): Promise<ZipExtractResult> {
   const strip = options.stripComponents ?? 0;
+  const maxBytes = options.maxBytes ?? DEFAULT_EXTRACT_MAX_BYTES;
+  const maxEntries = options.maxEntries ?? DEFAULT_EXTRACT_MAX_ENTRIES;
+  let seen = 0;
   const skipped: string[] = [];
   let files = 0;
   let bytes = 0;
@@ -121,6 +134,8 @@ export async function extractZip(
         skipped.push(e.name);
         continue;
       }
+      seen++;
+      assertExtractBudget(bytes + e.uncompressedSize, seen, maxBytes, maxEntries);
       const abs = path.join(dest, ...rel.split('/'));
       if (e.isDir) {
         await mkdir(abs, { recursive: true });
@@ -152,7 +167,24 @@ export async function extractZip(
           });
         });
       } else if (e.method === 8) {
-        await pipeline(input, createInflateRaw(), output);
+        // Un zip menteur (taille déclarée < réelle) est stoppé sur le flux inflaté, pas sur l'en-tête.
+        let inflated = 0;
+        const budget = maxBytes - bytes;
+        const guard = new Transform({
+          transform(chunk: Buffer, _enc, cb) {
+            inflated += chunk.byteLength;
+            if (inflated > budget) {
+              cb(
+                new ProtocolError('E_TOO_LARGE', 'archive exceeds the allowed extraction size', {
+                  details: { bytes: bytes + inflated, maxBytes, entry: e.name },
+                }),
+              );
+              return;
+            }
+            cb(null, chunk);
+          },
+        });
+        await pipeline(input, createInflateRaw(), guard, output);
       } else {
         await pipeline(input, output);
       }

@@ -11,7 +11,7 @@
  *
  * Les offsets sont toujours ceux du fichier non compressé.
  */
-import { ProtocolError } from '../errors.js';
+import { ProtocolError, isProtocolError } from '../errors.js';
 import { encodeFrame, type TransferFrame } from './frame.js';
 
 export interface ChunkCodec {
@@ -347,7 +347,12 @@ export class TransferReceiver {
       try {
         await this.options.write(data, at);
       } catch (error) {
-        this.fail(new ProtocolError('E_IO', 'write failed', { cause: error }));
+        // Une erreur typée du consommateur (ex. E_TOO_LARGE, phase 12) traverse telle quelle.
+        this.fail(
+          isProtocolError(error)
+            ? error
+            : new ProtocolError('E_IO', 'write failed', { cause: error }),
+        );
         return;
       }
       this.hasher.update(data);
