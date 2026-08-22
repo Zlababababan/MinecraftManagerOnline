@@ -861,6 +861,17 @@ export const webFr = {
       publicKey: 'Clé publique VAPID',
     },
   },
+  panelBackups: {
+    title: 'Sauvegardes du panel',
+    hint: 'Copie cohérente de la base du panel (VACUUM INTO), une fois par jour et à la demande ; 7 copies conservées. Les métriques ne sont pas copiées.',
+    now: 'Sauvegarder maintenant',
+    created: 'Sauvegarde créée : {{file}}',
+    directory: 'Dossier',
+    none: 'Aucune sauvegarde pour le moment.',
+    file: 'Fichier',
+    size: 'Taille',
+    restoreHint: 'Restauration (panel arrêté, depuis le dossier du panel) :',
+  },
   distribution: {
     title: 'Distribution de l’agent',
     hint: 'Archives d’installation servies par ce panel (runtime Node épinglé + agent + launcher) et scripts install.ps1 / install.sh. Publiées avec tools/release/publish.mjs.',

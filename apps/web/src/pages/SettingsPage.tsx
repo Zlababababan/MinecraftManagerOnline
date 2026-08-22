@@ -1,7 +1,7 @@
 /**
  * Phase 10 — page Réglages (admin) : général (`app_settings` via `PATCH /api/settings`), couche
  * d'accès (`AccessCard`), distribution des archives d'installation (`DistributionCard`, phase 11)
- * et état du push côté panel (clés VAPID).
+ * état du push côté panel (clés VAPID) et sauvegardes du panel lui-même (`PanelBackupsCard`, phase 12).
  */
 import {
   Alert,
@@ -23,6 +23,7 @@ import { notifications } from '@mantine/notifications';
 import { usePushStatus, useSettings, useUpdateSettings } from '../api/phase10.js';
 import { AccessCard } from '../components/admin/AccessCard.js';
 import { DistributionCard } from '../components/admin/DistributionCard.js';
+import { PanelBackupsCard } from '../components/admin/PanelBackupsCard.js';
 import { useT } from '../i18n/hooks.js';
 import { describeError } from '../lib/errors.js';
 
@@ -154,6 +155,7 @@ export function SettingsPage() {
       {settings.data !== undefined && <GeneralCard settings={settings.data.settings} />}
       <AccessCard />
       <DistributionCard />
+      <PanelBackupsCard />
       <PushAdminCard />
     </Stack>
   );

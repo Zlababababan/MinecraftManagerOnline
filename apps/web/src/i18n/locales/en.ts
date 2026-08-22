@@ -850,6 +850,17 @@ export const webEn = {
       publicKey: 'VAPID public key',
     },
   },
+  panelBackups: {
+    title: 'Panel backups',
+    hint: 'Consistent copy of the panel database (VACUUM INTO), once a day and on demand; 7 copies kept. Metrics are not copied.',
+    now: 'Back up now',
+    created: 'Backup created: {{file}}',
+    directory: 'Folder',
+    none: 'No backup yet.',
+    file: 'File',
+    size: 'Size',
+    restoreHint: 'Restore (panel stopped, from the panel folder):',
+  },
   distribution: {
     title: 'Agent distribution',
     hint: 'Install archives served by this panel (pinned Node runtime + agent + launcher) and the install.ps1 / install.sh scripts. Published with tools/release/publish.mjs.',

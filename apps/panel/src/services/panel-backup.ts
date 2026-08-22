@@ -3,11 +3,16 @@
  * cohérente sans arrêter le service ; `metrics.db` est reconstituable et volumineux, donc exclu)
  * vers `<dataDir>/backups/panel/mmo-<horodatage>.db`, rotation des N dernières. Déclenchée à la
  * demande (API admin) et automatiquement une fois par jour par la maintenance horaire.
+ *
+ * Phase 12 — restauration (`restorePanelBackup`, CLI `mmo-panel restore <fichier>`, panel arrêté) :
+ * la copie est vérifiée (`PRAGMA integrity_check`, table `users`), la base courante et ses `-wal`/`-shm`
+ * sont mis de côté (`mmo.db.before-restore-<horodatage>`), puis la copie prend la place de `mmo.db`.
+ * `metrics.db` n'est pas touché (les agents rejouent leur tampon, l'historique plus ancien reste).
  */
-import { mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from 'node:fs';
 import path from 'node:path';
 
-import type Database from 'better-sqlite3';
+import Database from 'better-sqlite3';
 import type { PanelBackupDto } from '@mmo/protocol/client';
 
 export interface PanelBackupServiceDeps {
@@ -40,7 +45,11 @@ export class PanelBackupService {
       if (!name.startsWith(PREFIX) || !name.endsWith(SUFFIX)) continue;
       try {
         const st = statSync(path.join(this.directory, name));
-        out.push({ file: name, sizeBytes: st.size, createdAt: Math.round(st.mtimeMs) });
+        out.push({
+          file: name,
+          sizeBytes: st.size,
+          createdAt: stampOf(name) ?? Math.round(st.mtimeMs),
+        });
       } catch {
         // supprimé entre-temps
       }
@@ -62,7 +71,8 @@ export class PanelBackupService {
     this.deps.sqlite.exec(`VACUUM INTO '${file.replace(/'/g, "''")}'`);
     this.rotate();
     const st = statSync(file);
-    return { file: path.basename(file), sizeBytes: st.size, createdAt: Math.round(st.mtimeMs) };
+    const name = path.basename(file);
+    return { file: name, sizeBytes: st.size, createdAt: stampOf(name) ?? Math.round(st.mtimeMs) };
   }
 
   /** Sauvegarde si la dernière date de plus de 24 h (appelée par la maintenance horaire). */
@@ -78,6 +88,66 @@ export class PanelBackupService {
       rmSync(path.join(this.directory, old.file), { force: true });
     }
   }
+}
+
+export interface RestoreResult {
+  /** Base restaurée (chemin complet). */
+  dbFile: string;
+  /** Ancienne base mise de côté (absente si le panel n'avait encore aucune base). */
+  previous: string | undefined;
+}
+
+/**
+ * Restaure `backupFile` (chemin complet ou nom dans le dossier des sauvegardes) comme `mmo.db` de
+ * `dataDir`. À exécuter **panel arrêté** : refuse si un `-wal` non vide existe (panel en cours ou
+ * arrêt brutal — démarrer puis arrêter proprement le panel avant).
+ */
+export function restorePanelBackup(
+  dataDir: string,
+  backupFile: string,
+  now: () => number = Date.now,
+): RestoreResult {
+  const source = path.isAbsolute(backupFile)
+    ? backupFile
+    : exists(path.resolve(backupFile))
+      ? path.resolve(backupFile)
+      : path.join(dataDir, 'backups', 'panel', backupFile);
+  if (!exists(source)) throw new Error(`backup not found: ${source}`);
+  const dbFile = path.join(dataDir, 'mmo.db');
+  const wal = `${dbFile}-wal`;
+  if (exists(wal) && statSync(wal).size > 0) {
+    throw new Error('mmo.db-wal is not empty: stop the panel cleanly before restoring');
+  }
+  // Vérification de la copie avant de toucher à quoi que ce soit.
+  const check = new Database(source, { readonly: true, fileMustExist: true });
+  try {
+    const integrity = check.pragma('integrity_check', { simple: true }) as string;
+    if (integrity !== 'ok') throw new Error(`backup integrity check failed: ${integrity}`);
+    const hasUsers = check
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'users'")
+      .get();
+    if (hasUsers === undefined) throw new Error('backup is not a panel database (no users table)');
+  } finally {
+    check.close();
+  }
+  let previous: string | undefined;
+  if (exists(dbFile)) {
+    const stamp = new Date(now()).toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    previous = `${dbFile}.before-restore-${stamp}`;
+    renameSync(dbFile, previous);
+  }
+  rmSync(wal, { force: true });
+  rmSync(`${dbFile}-shm`, { force: true });
+  copyFileSync(source, dbFile);
+  return { dbFile, previous };
+}
+
+/** Horodatage porté par le nom (`mmo-2026-08-23T00-12-34[-n].db`) — fiable même si le fichier a été copié. */
+function stampOf(name: string): number | undefined {
+  const m = /^mmo-(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})/.exec(name);
+  if (!m) return undefined;
+  const ts = Date.parse(`${m[1] ?? ''}T${m[2] ?? ''}:${m[3] ?? ''}:${m[4] ?? ''}Z`);
+  return Number.isNaN(ts) ? undefined : ts;
 }
 
 function exists(file: string): boolean {

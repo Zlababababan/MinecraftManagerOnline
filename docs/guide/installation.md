@@ -77,6 +77,22 @@ sudo systemctl daemon-reload && sudo systemctl enable --now mmo-panel
 
 Arrêtez le service, extrayez la nouvelle archive **par-dessus** (le dossier `data/` n'est jamais dans l'archive), redémarrez. Les migrations de base se jouent au démarrage. La nouvelle archive embarque les agents de même version : le panel publie automatiquement la release d'agent et, si « Mettre à jour les agents automatiquement » est coché (Réglages → Général), chaque agent est mis à jour à sa prochaine connexion, avec rollback automatique en cas d'échec.
 
+### 1.6 Sauvegarder et restaurer le panel
+
+Le panel se sauvegarde lui-même une fois par jour (copie cohérente `VACUUM INTO` de sa base) dans `data/backups/panel/mmo-<date>.db`, 7 copies conservées ; Réglages → Sauvegardes du panel permet d'en créer une à la demande. Les métriques (`metrics.db`) ne sont pas copiées : elles sont reconstituables et volumineuses. Sauvegardez aussi le dossier `data/` complet si vous voulez garder certificats et archives d'agents.
+
+Pour **restaurer** : arrêtez le panel (service ou Ctrl+C), puis :
+
+```powershell
+C:\mmo\panel\mmo-panel.cmd restore mmo-2026-08-23T01-00-00.db
+```
+
+```bash
+/opt/mmo/mmo-panel/mmo-panel.sh restore mmo-2026-08-23T01-00-00.db
+```
+
+Le nom seul suffit pour une copie du dossier `data/backups/panel/` ; un chemin complet est accepté. La copie est vérifiée (`integrity_check`), la base courante est conservée en `mmo.db.before-restore-<date>`, puis le panel peut être redémarré : les agents se reconnectent avec leur secret d'origine et les serveurs qu'ils portent sont ré-adoptés avec les mêmes identifiants (marqueur `.mmo-server.json`). Ce qui a été créé après la sauvegarde (utilisateurs, machines appairées, réglages) est perdu : une machine appairée après la sauvegarde devra être ré-appairée. La restauration refuse de s'exécuter si `mmo.db-wal` n'est pas vide (panel encore en cours ou arrêt brutal — démarrez-le puis arrêtez-le proprement avant de recommencer).
+
 ## 2. Les agents
 
 Un agent par machine hébergeant des serveurs. Il se connecte **en sortie** vers le panel (WebSocket) : aucun port à ouvrir sur les machines agents.
