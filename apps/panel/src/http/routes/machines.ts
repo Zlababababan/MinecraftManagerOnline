@@ -17,6 +17,7 @@ import type { AppContext } from '../../context.js';
 import type { MachineRow } from '../../db/schema.js';
 import { SETTING_KEYS } from '../../services/settings.js';
 import { requireUser } from '../auth.js';
+import { machineUpdateFields } from './phase9.js';
 import { auditMeta } from './setup-auth.js';
 
 const idParams = z.object({ id: z.string().min(1) });
@@ -40,6 +41,7 @@ export function machineDto(ctx: AppContext, row: MachineRow): MachineDto {
     cpuCores: row.cpuCores,
     ramTotalMb: row.ramTotalMb,
     createdAt: row.createdAt,
+    ...machineUpdateFields(ctx, row),
     ...(hb === undefined
       ? {}
       : {

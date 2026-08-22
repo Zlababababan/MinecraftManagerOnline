@@ -51,10 +51,40 @@ export interface TasksQuery {
 
 const ACTIVE: TaskDto['status'][] = ['pending', 'running', 'stalled'];
 
+const FINISHED: TaskDto['status'][] = ['done', 'failed', 'cancelled'];
+
 export class TasksService {
   private readonly live = new Map<string, LiveProgress>();
+  private readonly listeners = new Set<(row: TaskRow) => void>();
 
   constructor(private readonly deps: TasksServiceDeps) {}
+
+  /** Phase 9 : observe chaque changement d'une task (progression, issue) — migrations, Java. */
+  subscribe(listener: (row: TaskRow) => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  /** Résout à l'issue de la task (ligne finale) ; rejette `E_TIMEOUT` après `timeoutMs`. */
+  waitForFinish(taskId: string, timeoutMs = 24 * 3_600_000): Promise<TaskRow> {
+    const current = this.get(taskId);
+    if (current && FINISHED.includes(current.status)) return Promise.resolve(current);
+    return new Promise<TaskRow>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        off();
+        reject(new Error(`task ${taskId} did not finish within ${String(timeoutMs)} ms`));
+      }, timeoutMs);
+      timer.unref();
+      const off = this.subscribe((row) => {
+        if (row.id !== taskId || !FINISHED.includes(row.status)) return;
+        clearTimeout(timer);
+        off();
+        resolve(row);
+      });
+    });
+  }
 
   // --- Lecture --------------------------------------------------------------------------------
 
@@ -319,6 +349,8 @@ export class TasksService {
 
   private emit(id: string): void {
     const row = this.get(id);
-    if (row) this.deps.broadcast(this.toDto(row));
+    if (!row) return;
+    this.deps.broadcast(this.toDto(row));
+    for (const listener of this.listeners) listener(row);
   }
 }

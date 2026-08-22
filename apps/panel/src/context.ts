@@ -18,6 +18,10 @@ import { AuditService } from './services/audit.js';
 import { BackupsService } from './services/backups.js';
 import { EventBus } from './services/events.js';
 import { JavaResolver } from './services/java.js';
+import { JavaRuntimesService } from './services/java-runtimes.js';
+import { MigrationsService } from './services/migrations.js';
+import { RelayTokens } from './services/relay.js';
+import { ReleasesService } from './services/releases.js';
 import { MachinesService } from './services/machines.js';
 import { MetricsService } from './services/metrics.js';
 import { PanelBackupService } from './services/panel-backup.js';
@@ -57,6 +61,11 @@ export interface AppContext {
   scheduler: SchedulerService;
   transfers: TransferService;
   panelBackup: PanelBackupService;
+  /** Phase 9 : jetons de relais (bundles, JRE, archives de migration). */
+  relayTokens: RelayTokens;
+  releases: ReleasesService;
+  javaRuntimes: JavaRuntimesService;
+  migrations: MigrationsService;
   /** `fetch` injectable (tests) pour les appels sortants du panel (manifest Mojang, API spark). */
   fetchImpl: typeof fetch | undefined;
   close(): void;
@@ -74,6 +83,8 @@ export interface ContextOptions {
   schedulerTickMs?: number;
   /** Attente de reconnexion d'un agent pendant un transfert (tests : court). */
   transferReconnectWaitMs?: number;
+  /** Phase 9 : TTL des listeners/jetons de migration (tests : court). */
+  migrationTtlMs?: number;
 }
 
 export function createContext(options: ContextOptions): AppContext {
@@ -161,6 +172,51 @@ export function createContext(options: ContextOptions): AppContext {
   });
   const panelBackup = new PanelBackupService({ sqlite: mmo.sqlite, dataDir: config.dataDir, now });
 
+  // Phase 9 : relais, releases d'agent, Java géré, migrations.
+  const relayTokens = new RelayTokens(now);
+  const releases = new ReleasesService({
+    db,
+    now,
+    dataDir: config.dataDir,
+    registry,
+    relay: relayTokens,
+    machines,
+    settings,
+    events,
+    audit,
+  });
+  const javaRuntimes = new JavaRuntimesService({
+    db,
+    now,
+    dataDir: config.dataDir,
+    registry,
+    relay: relayTokens,
+    tasks,
+    fetchImpl: options.fetch,
+    logger,
+  });
+  const migrations = new MigrationsService({
+    db,
+    now,
+    registry,
+    servers,
+    machines,
+    tasks,
+    backups,
+    java: javaRuntimes,
+    relay: relayTokens,
+    events,
+    audit,
+    logger,
+    broadcast: (migration) => {
+      hub.broadcast({ type: 'migration.update', migration });
+    },
+    pushConfig: async (machineId) => {
+      await registry.get(machineId)?.pushConfig();
+    },
+    ...(options.migrationTtlMs === undefined ? {} : { ttlMs: options.migrationTtlMs }),
+  });
+
   // Au démarrage : aucun agent n'est connecté, tout `online` est un reliquat d'une exécution précédente.
   machines.markAllOffline();
   // Les tasks encore « en cours » seront réconciliées (`task.list`) à la reconnexion de chaque agent.
@@ -192,8 +248,13 @@ export function createContext(options: ContextOptions): AppContext {
     scheduler,
     transfers,
     panelBackup,
+    relayTokens,
+    releases,
+    javaRuntimes,
+    migrations,
     fetchImpl: options.fetch,
     close: () => {
+      migrations.dispose();
       scheduler.stop();
       registry.closeAll();
       hub.closeAll();

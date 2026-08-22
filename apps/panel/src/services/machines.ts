@@ -75,6 +75,7 @@ export class MachinesService {
       cpuCores: null,
       ramTotalMb: null,
       createdAt: this.now(),
+      runtimeVersion: null,
     };
     this.db.insert(machines).values(row).run();
     return row;
@@ -233,13 +234,19 @@ export class MachinesService {
 
   markOnline(
     machineId: string,
-    info: { machine?: MachineInfo | undefined; agentVersion: string; protocolVersion: number },
+    info: {
+      machine?: MachineInfo | undefined;
+      agentVersion: string;
+      protocolVersion: number;
+      runtimeVersion?: string | undefined;
+    },
   ): void {
     this.db
       .update(machines)
       .set({
         ...(info.machine === undefined ? {} : machineColumns(info.machine)),
         agentVersion: info.agentVersion,
+        ...(info.runtimeVersion === undefined ? {} : { runtimeVersion: info.runtimeVersion }),
         protocolVersion: info.protocolVersion,
         status: 'online',
         lastSeenAt: this.now(),

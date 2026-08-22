@@ -5,6 +5,8 @@
  * Toute requête/événement avant authentification est rejeté (`E_AUTH`) / ignoré.
  * Phase 8 : tasks (`task.progress/completed/failed` → table `tasks`, backups), `backup.rotated`,
  * réconciliation `task.list` + `backup.list` après `sync.state`, transferts binaires routés.
+ * Phase 9 : `runtimeVersion`, inventaire Java (`sync.state.javaRuntimes`), mise à jour automatique à
+ * la connexion, `agent.updateResult`, manifeste des exports de migration.
  */
 import type { FastifyBaseLogger } from 'fastify';
 
@@ -26,6 +28,8 @@ import type { ClientHub } from '../clients/hub.js';
 import type { PanelConfig } from '../config.js';
 import type { AuditService } from '../services/audit.js';
 import type { BackupsService } from '../services/backups.js';
+import type { JavaRuntimesService } from '../services/java-runtimes.js';
+import type { ReleasesService } from '../services/releases.js';
 import type { EventBus } from '../services/events.js';
 import type { MachinesService } from '../services/machines.js';
 import type { MetricsService } from '../services/metrics.js';
@@ -55,6 +59,9 @@ export interface AgentSessionDeps {
   tasks: TasksService;
   backups: BackupsService;
   transfers: TransferService;
+  /** Phase 9. */
+  releases: ReleasesService;
+  javaRuntimes: JavaRuntimesService;
 }
 
 export interface AgentHeartbeat extends ParsedEventPayload<'agent.heartbeat'> {
@@ -83,6 +90,7 @@ export class AgentSession {
   private configChain: Promise<void> = Promise.resolve();
   private configQueued: Promise<void> | undefined;
   private readonly log: FastifyBaseLogger;
+  private agentVersion: string | undefined;
 
   constructor(
     private readonly transport: AgentTransport,
@@ -261,6 +269,11 @@ export class AgentSession {
         if (row) this.onTaskFinished(machineId, row);
       });
     });
+    peer.on('agent.updateResult', (p, ctx) => {
+      this.critical(ctx, () => {
+        this.deps.releases.applyUpdateResult(this.requireAuth(), p);
+      });
+    });
     peer.on('backup.rotated', (p, ctx) => {
       this.critical(ctx, () => {
         const machineId = this.requireAuth();
@@ -295,7 +308,7 @@ export class AgentSession {
     const dto = this.deps.tasks.toDto(row);
     const result = dto.result ?? {};
     if (row.status === 'done') {
-      if (row.kind === 'backup.create') {
+      if (row.kind === 'backup.create' || row.kind === 'migration.export') {
         const manifest = backupManifestSchema.safeParse(result);
         if (manifest.success && this.deps.servers.get(manifest.data.serverId)) {
           this.deps.backups.applyManifest(manifest.data, machineId, {
@@ -318,6 +331,11 @@ export class AgentSession {
       }
     } else if (row.refId !== null && row.kind === 'backup.create') {
       this.deps.backups.fail(row.refId, dto.error?.message ?? row.status);
+    } else if (row.kind === 'migration.export') {
+      const request = parseRequest(row);
+      if (typeof request.backupId === 'string') {
+        this.deps.backups.fail(request.backupId, dto.error?.message ?? row.status);
+      }
     }
     const serverRow = row.serverId === null ? undefined : this.deps.servers.get(row.serverId);
     this.deps.events.publish({
@@ -461,7 +479,9 @@ export class AgentSession {
       machine: p.machine,
       agentVersion: p.agentVersion,
       protocolVersion: negotiated.version,
+      runtimeVersion: p.runtimeVersion,
     });
+    this.agentVersion = p.agentVersion;
     this.lastHeartbeatAt = this.deps.now();
     this.startWatchdog();
     this.deps.events.publish({
@@ -487,6 +507,7 @@ export class AgentSession {
   private onSyncState(p: ParsedRequestPayload<'sync.state'>) {
     const machineId = this.requireAuth();
     this.deps.relay.onSeqs(p.seqs);
+    this.deps.javaRuntimes.sync(machineId, p.javaRuntimes);
     const { toStart, unknown } = this.deps.servers.applySyncState(machineId, p);
     if (unknown.length > 0) {
       this.log.warn({ machineId, unknown }, 'sync.state: servers unknown to the panel');
@@ -499,6 +520,14 @@ export class AgentSession {
     setTimeout(() => {
       void this.pushConfig().then(async () => {
         await this.reconcilePhase8(machineId);
+        // Phase 9 : mise à jour automatique (l'agent redémarre avec le code 75 si acceptée).
+        if (this.agentVersion !== undefined) {
+          try {
+            if (await this.deps.releases.maybeAutoUpdate(machineId, this.agentVersion)) return;
+          } catch (error) {
+            this.log.warn({ machineId, message: errorMessage(error) }, 'auto-update failed');
+          }
+        }
         for (const row of toStart) {
           try {
             await this.peer.request('server.start', { serverId: row.id });
@@ -672,6 +701,17 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function parseRequest(row: TaskRow): Record<string, unknown> {
+  try {
+    const payload = JSON.parse(row.payload ?? '{}') as { request?: unknown };
+    return typeof payload.request === 'object' && payload.request !== null
+      ? (payload.request as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
 /** Résumé lisible d'un résultat de task pour le journal d'événements. */
 function summarizeResult(kind: string, result: Record<string, unknown>): Record<string, unknown> {
   if (kind === 'backup.create') {
@@ -692,5 +732,23 @@ function summarizeResult(kind: string, result: Record<string, unknown>): Record<
     };
   }
   if (kind === 'fs.fetch') return { path: result.path ?? null, size: result.size ?? null };
+  if (kind === 'migration.export') {
+    return { backupId: result.backupId ?? null, sizeBytes: result.sizeBytes ?? null };
+  }
+  if (kind === 'migration.import') {
+    return {
+      path: result.path ?? null,
+      files: result.files ?? null,
+      source: result.source ?? null,
+    };
+  }
+  if (kind === 'java.install') {
+    const runtime = result.runtime as { majorVersion?: number; path?: string } | undefined;
+    return {
+      majorVersion: runtime?.majorVersion ?? null,
+      path: runtime?.path ?? null,
+      vendor: result.vendor ?? null,
+    };
+  }
   return {};
 }

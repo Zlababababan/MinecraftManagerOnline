@@ -12,6 +12,8 @@ export const SETTING_KEYS = {
   auditRetentionDays: 'retention.auditDays',
   restoreOnBoot: 'agents.restoreOnBoot',
   metricsIntervalSec: 'metrics.intervalSec',
+  /** Phase 9 : mise à jour automatique des agents à la connexion. */
+  autoUpdate: 'agents.autoUpdate',
   vapidPublicKey: 'push.vapidPublicKey',
   vapidPrivateKey: 'push.vapidPrivateKey',
   setupCompletedAt: 'setup.completedAt',

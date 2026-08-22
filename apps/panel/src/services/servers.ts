@@ -477,6 +477,61 @@ export class ServersService {
     this.db.delete(servers).where(eq(servers.id, id)).run();
   }
 
+  // --- Phase 9 : migration ---------------------------------------------------------------------
+
+  setProvisioning(id: string, provisioning: ServerRow['provisioning']): void {
+    this.db
+      .update(servers)
+      .set({ provisioning, updatedAt: this.now() })
+      .where(eq(servers.id, id))
+      .run();
+  }
+
+  /**
+   * Bascule de propriété après import réussi : le serveur appartient à la machine cible, au nouveau
+   * chemin (même `id`, marqueur réécrit par l'agent cible). Les sessions joueurs ouvertes sont closes.
+   */
+  moveToMachine(
+    id: string,
+    target: {
+      machineId: string;
+      path: string;
+      directoryId: string | null;
+      desiredState: 'running' | 'stopped';
+      running: boolean;
+    },
+  ): ServerRow {
+    const t = this.now();
+    this.closePlayerSessions(id, t);
+    // Une ligne périmée (dossier disparu, `detected = 0`) au même chemin sur la cible céderait la place.
+    const stale = this.findByPath(target.machineId, target.path);
+    if (stale && stale.id !== id) {
+      if (stale.detected === 1 || RUNNING_STATES.has(stale.runState)) {
+        throw conflict('another server is registered at the target path', { serverId: stale.id });
+      }
+      this.db.delete(servers).where(eq(servers.id, stale.id)).run();
+    }
+    this.db
+      .update(servers)
+      .set({
+        machineId: target.machineId,
+        path: target.path,
+        directoryId: target.directoryId,
+        provisioning: 'ready',
+        desiredState: target.desiredState,
+        runState: target.running ? 'starting' : 'stopped',
+        attachMode: 'attached',
+        pid: null,
+        startedAt: null,
+        stoppedAt: t,
+        detected: 1,
+        updatedAt: t,
+      })
+      .where(eq(servers.id, id))
+      .run();
+    return this.require(id);
+  }
+
   // --- Configuration poussée à l'agent -----------------------------------------------------------
 
   /** `agent.configure` complet pour une machine (liste complète : un serveur absent est oublié par l'agent). */

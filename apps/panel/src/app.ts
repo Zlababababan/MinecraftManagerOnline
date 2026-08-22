@@ -14,6 +14,7 @@ import { registerErrorHandler } from './http/errors.js';
 import { registerFileRoutes } from './http/routes/files.js';
 import { registerMachineRoutes } from './http/routes/machines.js';
 import { registerMiscRoutes } from './http/routes/misc.js';
+import { registerPhase9Routes } from './http/routes/phase9.js';
 import { registerServerRoutes } from './http/routes/servers.js';
 import { registerSetupAndAuthRoutes } from './http/routes/setup-auth.js';
 import { registerTaskRoutes } from './http/routes/tasks.js';
@@ -53,6 +54,11 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
     ...(options.dbFile === undefined ? {} : { dbFile: options.dbFile }),
     ...(options.metricsFile === undefined ? {} : { metricsFile: options.metricsFile }),
     ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
+    ...(options.schedulerTickMs === undefined ? {} : { schedulerTickMs: options.schedulerTickMs }),
+    ...(options.transferReconnectWaitMs === undefined
+      ? {}
+      : { transferReconnectWaitMs: options.transferReconnectWaitMs }),
+    ...(options.migrationTtlMs === undefined ? {} : { migrationTtlMs: options.migrationTtlMs }),
   });
 
   await app.register(cookie);
@@ -69,6 +75,7 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   registerServerRoutes(app, ctx);
   registerFileRoutes(app, ctx);
   registerTaskRoutes(app, ctx);
+  registerPhase9Routes(app, ctx);
   registerWsRoutes(app, ctx);
 
   // Purges planifiées (doc 04 §8.6) : sessions, codes d'appairage, événements, audit, dédup.

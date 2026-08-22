@@ -2,7 +2,9 @@
  * Schéma `mmo.db` (doc 04 §1–§6). Conventions : timestamps epoch ms (`*_at`, `ts`), IDs métier
  * ULID, booléens 0/1, JSON en TEXT. Amendements phase 4 (actés doc 04) : `machines.agent_token_prev_*`
  * (rotation avec grâce 24 h), `servers.detection_json` (dernière détection), `processed_events`
- * (dédup des événements critiques rejoués par les agents).
+ * (dédup des événements critiques rejoués par les agents). Phase 8 : `backups.manifest_json/task_id`.
+ * Phase 9 : `machines.runtime_version`, `server_migrations.{source_path,to_path,mode,export_task_id,
+ * import_task_id,restart_after}` (migration `0002_phase9`).
  */
 import { sql } from 'drizzle-orm';
 import {
@@ -112,6 +114,8 @@ export const machines = sqliteTable(
     cpuCores: integer('cpu_cores'),
     ramTotalMb: integer('ram_total_mb'),
     createdAt: integer('created_at').notNull(),
+    /** Phase 9 : runtime Node annoncé par l'agent (`auth.hello.runtimeVersion`). */
+    runtimeVersion: text('runtime_version'),
   },
   (t) => [
     check('machines_os', sql`${t.os} IN ('windows','linux','macos')`),
@@ -463,6 +467,13 @@ export const serverMigrations = sqliteTable(
     finishedAt: integer('finished_at'),
     error: text('error'),
     createdBy: text('created_by').references(() => users.id),
+    /** Phase 9 (amendement doc 04 §5) : chemins, mode de transfert, tasks, relance. */
+    sourcePath: text('source_path'),
+    toPath: text('to_path'),
+    mode: text('mode'),
+    exportTaskId: text('export_task_id'),
+    importTaskId: text('import_task_id'),
+    restartAfter: integer('restart_after').notNull().default(1),
   },
   (t) => [index('idx_migr_server').on(t.serverId, t.startedAt)],
 );
@@ -538,3 +549,6 @@ export type TaskRow = typeof tasks.$inferSelect;
 export type BackupRow = typeof backups.$inferSelect;
 export type BackupPolicyRow = typeof backupPolicies.$inferSelect;
 export type ScheduledTaskRow = typeof scheduledTasks.$inferSelect;
+export type ServerMigrationRow = typeof serverMigrations.$inferSelect;
+export type JavaRuntimeRow = typeof javaRuntimes.$inferSelect;
+export type AgentReleaseRow = typeof agentReleases.$inferSelect;
