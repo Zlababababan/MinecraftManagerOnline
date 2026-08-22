@@ -81,6 +81,8 @@ Les trois vérifications listées en doc 03 §10, **avant toute ligne de code de
 
 **Terminé quand** : e2e Playwright (desktop + mobile, fr + en) : login → dashboard → start d'un serveur → commande console → réponse visible → stop. Lighthouse PWA installable.
 
+> **Implémentation (phase 5, 2026-08-22)** : `apps/web` — AppShell (sidebar ≥ sm, navigation basse < sm), thème sombre/clair/système, fr/en, PWA ; wizard, login, dashboard (machines + cartes serveurs groupées, start/stop/restart/kill), page serveur (aperçu, console xterm, joueurs, événements, réglages), pages machines (ajout + code affiché une fois + one-liners, répertoires, scan, ajout de dossier, conflits), compte. Le panel sert le build (doc 03 §1). Critère atteint : suite Playwright `setup` + 4 projets (desktop/mobile × fr/en) contre panel + agent réels + fake Java server. **Dérogation** : Lighthouse ≥ 12 n'a plus de catégorie PWA — l'installabilité est vérifiée par `pwa.spec.ts` (manifest, icônes 192/512, service worker actif, coquille hors ligne). Non fait (volontaire) : Spotlight, graphiques, éditeurs de configuration (phase 6), push (phase 7+), page utilisateurs/réglages admin (l'API existe).
+
 ## Phase 6 — Configuration et joueurs `M`
 
 - `config.get/set` agent (properties avec préservation des clés inconnues, JSON whitelist/ops/bans, routage commandes-ou-fichiers selon l'état du serveur).
