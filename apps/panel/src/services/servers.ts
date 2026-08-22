@@ -13,7 +13,7 @@ import {
   type ServerConfig,
 } from '@mmo/protocol';
 import type { ServerConflictDto, ServerDto } from '@mmo/protocol/client';
-import { and, asc, eq, isNull, ne } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, ne } from 'drizzle-orm';
 
 import type { MmoDatabase } from '../db/client.js';
 import {
@@ -695,6 +695,24 @@ export class ServersService {
         name: s.playerName,
         uuid: s.playerUuid.startsWith('offline:') ? null : s.playerUuid,
         joinedAt: s.joinedAt,
+      }));
+  }
+
+  /** Historique des connexions, du plus récent au plus ancien. */
+  playerHistory(serverId: string, limit: number) {
+    return this.db
+      .select()
+      .from(playerSessions)
+      .where(eq(playerSessions.serverId, serverId))
+      .orderBy(desc(playerSessions.joinedAt), desc(playerSessions.id))
+      .limit(limit)
+      .all()
+      .map((s) => ({
+        id: s.id,
+        playerUuid: s.playerUuid.startsWith('offline:') ? null : s.playerUuid,
+        playerName: s.playerName,
+        joinedAt: s.joinedAt,
+        leftAt: s.leftAt,
       }));
   }
 

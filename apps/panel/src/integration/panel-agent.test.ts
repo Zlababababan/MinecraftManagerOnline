@@ -114,7 +114,7 @@ describe('intégration panel ↔ agent réels', () => {
     expect(agent.store.get().agentId).toBe(machine.id);
     expect(panel.ctx.machines.require(machine.id)).toMatchObject({
       status: 'online',
-      agentVersion: '0.3.0',
+      agentVersion: '0.6.0',
     });
     await waitFor(
       () => panel.ctx.events.list({ machineId: machine.id, type: 'agent.online' }).length === 1,

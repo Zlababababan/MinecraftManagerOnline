@@ -11,6 +11,7 @@ import { defaultConfig, type PanelConfig } from './config.js';
 import { createContext, type AppContext, type ContextOptions } from './context.js';
 import { registerAuth } from './http/auth.js';
 import { registerErrorHandler } from './http/errors.js';
+import { registerFileRoutes } from './http/routes/files.js';
 import { registerMachineRoutes } from './http/routes/machines.js';
 import { registerMiscRoutes } from './http/routes/misc.js';
 import { registerServerRoutes } from './http/routes/servers.js';
@@ -65,6 +66,7 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   registerUserRoutes(app, ctx);
   registerMachineRoutes(app, ctx);
   registerServerRoutes(app, ctx);
+  registerFileRoutes(app, ctx);
   registerWsRoutes(app, ctx);
 
   // Purges planifiées (doc 04 §8.6) : sessions, codes d'appairage, événements, audit, dédup.

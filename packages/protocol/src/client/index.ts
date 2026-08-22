@@ -17,8 +17,25 @@ import {
   runStateSchema,
 } from '../common.js';
 import { ERROR_CODES } from '../errors.js';
-import { consoleLineSchema } from '../messages/console.js';
-import { detectedServerSchema } from '../messages/server.js';
+import { consoleLineSchema, logsSearchSchema } from '../messages/console.js';
+import {
+  configFileSchema,
+  configSetResponseSchema,
+  fsEntrySchema,
+  fsMoveSchema,
+  fsPathSchema,
+  fsReadResponseSchema,
+  fsWriteSchema,
+  relativePathSchema,
+} from '../messages/fs.js';
+import {
+  detectedServerSchema,
+  playerActionResponseSchema,
+  playerActionSchema,
+  playerResolveResponseSchema,
+  playerResolveSchema,
+  resolvedPlayerSchema,
+} from '../messages/server.js';
 
 // --- Erreurs HTTP --------------------------------------------------------------------------------
 
@@ -260,6 +277,52 @@ export const playerOnlineDtoSchema = z.object({
   uuid: z.string().nullable(),
   joinedAt: epochMsSchema.nullable(),
 });
+
+// --- Joueurs, configuration, fichiers, logs (phase 6) ------------------------------------------------
+
+/** Historique `player_sessions` (doc 04 §4) ; `leftAt` null = en ligne. */
+export const playerSessionDtoSchema = z.object({
+  id: z.int(),
+  playerUuid: z.string().nullable(),
+  playerName: z.string(),
+  joinedAt: epochMsSchema,
+  leftAt: epochMsSchema.nullable(),
+});
+export type PlayerSessionDto = z.infer<typeof playerSessionDtoSchema>;
+
+export const playerActionRequestSchema = playerActionSchema.omit({ serverId: true });
+export type PlayerActionRequest = z.infer<typeof playerActionRequestSchema>;
+export const playerActionResultSchema = playerActionResponseSchema;
+export const playerResolveRequestSchema = playerResolveSchema.omit({ serverId: true });
+export const playerResolveResultSchema = playerResolveResponseSchema;
+export type ResolvedPlayerDto = z.infer<typeof resolvedPlayerSchema>;
+
+export const configFileParamsSchema = z.object({ id: z.string().min(1), file: configFileSchema });
+/** `config.get` relayé : `data` typé côté front par fichier (`CONFIG_DATA_SCHEMAS`). */
+export const configGetResultSchema = z.object({
+  file: configFileSchema,
+  data: z.unknown(),
+  sha256: z.string().length(64).optional(),
+  source: z.enum(['file', 'live']),
+});
+export const configSetRequestSchema = z.object({
+  data: z.unknown(),
+  expectedSha256: z.string().length(64).optional(),
+});
+export const configSetResultSchema = configSetResponseSchema;
+export type ConfigSetResult = z.infer<typeof configSetResultSchema>;
+
+export const fsPathQuerySchema = z.object({ path: relativePathSchema.default('') });
+export const fsPathBodySchema = fsPathSchema.omit({ serverId: true });
+export const fsMoveBodySchema = fsMoveSchema.omit({ serverId: true });
+export const fsWriteBodySchema = fsWriteSchema.omit({ serverId: true });
+export const fsListResultSchema = z.object({ path: z.string(), entries: z.array(fsEntrySchema) });
+export type FsEntryDto = z.infer<typeof fsEntrySchema>;
+export const fsReadResultSchema = fsReadResponseSchema;
+export type FsReadResult = z.infer<typeof fsReadResultSchema>;
+
+export const logsSearchRequestSchema = logsSearchSchema.omit({ serverId: true });
+export type LogsSearchRequest = z.infer<typeof logsSearchRequestSchema>;
 
 // --- Événements et audit ---------------------------------------------------------------------------
 

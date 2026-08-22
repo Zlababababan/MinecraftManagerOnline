@@ -7,6 +7,8 @@ import { z } from 'zod';
 import {
   commandRequestSchema,
   createServerSchema,
+  playerActionRequestSchema,
+  playerResolveRequestSchema,
   resolveConflictSchema,
   stopServerSchema,
   updateServerSchema,
@@ -417,4 +419,62 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
     const players = ctx.servers.onlinePlayers(row.id);
     return { online: players.length, max: null, players };
   });
+
+  // --- Joueurs (phase 6) ------------------------------------------------------------------------
+
+  /** Historique des connexions (`player_sessions`, doc 04 §4), du plus récent au plus ancien. */
+  r.get(
+    '/api/servers/:id/players/history',
+    {
+      schema: {
+        params: idParams,
+        querystring: z.object({ limit: z.coerce.number().int().positive().max(500).optional() }),
+      },
+    },
+    (request) => {
+      const row = ctx.servers.require(request.params.id);
+      return { sessions: ctx.servers.playerHistory(row.id, request.query.limit ?? 100) };
+    },
+  );
+
+  /** Résolution nom → UUID par l'agent (usercache, Mojang ou hors ligne selon `online-mode`). */
+  r.post(
+    '/api/servers/:id/players/resolve',
+    { schema: { params: idParams, body: playerResolveRequestSchema } },
+    async (request) => {
+      const row = ctx.servers.require(request.params.id);
+      return ctx.registry
+        .require(row.machineId)
+        .peer.request('player.resolve', { serverId: row.id, names: request.body.names });
+    },
+  );
+
+  /** kick/ban/pardon/op/deop/whitelist — routé par l'agent (commandes si en marche, fichiers sinon). */
+  r.post(
+    '/api/servers/:id/players/action',
+    { config: { role: 'operator' }, schema: { params: idParams, body: playerActionRequestSchema } },
+    async (request) => {
+      const user = requireUser(request);
+      const row = ctx.servers.require(request.params.id);
+      const res = await ctx.registry
+        .require(row.machineId)
+        .peer.request('player.action', { serverId: row.id, ...request.body }, { userId: user.id });
+      ctx.audit.record({
+        ...auditMeta(request),
+        action: `player.${request.body.action}`,
+        targetType: 'server',
+        targetId: row.id,
+        targetLabel: row.name,
+        details: { ...request.body, applied: res.applied, warnings: res.warnings },
+      });
+      ctx.events.publish({
+        type: 'player.action',
+        machineId: row.machineId,
+        serverId: row.id,
+        userId: user.id,
+        payload: { action: request.body.action, target: request.body.target, applied: res.applied },
+      });
+      return res;
+    },
+  );
 }
