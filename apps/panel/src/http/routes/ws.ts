@@ -23,6 +23,9 @@ export function registerWsRoutes(app: FastifyInstance, ctx: AppContext): void {
       registry: ctx.registry,
       relay: ctx.relay,
       hub: ctx.hub,
+      tasks: ctx.tasks,
+      backups: ctx.backups,
+      transfers: ctx.transfers,
     });
   });
 

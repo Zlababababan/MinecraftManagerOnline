@@ -367,6 +367,9 @@ export const backups = sqliteTable(
     finishedAt: integer('finished_at'),
     error: text('error'),
     createdBy: text('created_by').references(() => users.id),
+    /** Phase 8 (amendement doc 04 §5) : manifeste agent (codec, hot, files, bytesRaw, comment) et task associée. */
+    manifestJson: text('manifest_json'),
+    taskId: text('task_id'),
   },
   (t) => [
     index('idx_backups_server').on(t.serverId, t.startedAt),
@@ -531,3 +534,7 @@ export type ServerRow = typeof servers.$inferSelect;
 export type WatchedDirectoryRow = typeof watchedDirectories.$inferSelect;
 export type EventRow = typeof events.$inferSelect;
 export type AuditRow = typeof auditLog.$inferSelect;
+export type TaskRow = typeof tasks.$inferSelect;
+export type BackupRow = typeof backups.$inferSelect;
+export type BackupPolicyRow = typeof backupPolicies.$inferSelect;
+export type ScheduledTaskRow = typeof scheduledTasks.$inferSelect;

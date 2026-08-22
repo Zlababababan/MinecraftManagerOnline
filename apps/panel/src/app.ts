@@ -16,6 +16,7 @@ import { registerMachineRoutes } from './http/routes/machines.js';
 import { registerMiscRoutes } from './http/routes/misc.js';
 import { registerServerRoutes } from './http/routes/servers.js';
 import { registerSetupAndAuthRoutes } from './http/routes/setup-auth.js';
+import { registerTaskRoutes } from './http/routes/tasks.js';
 import { registerStatic } from './http/static.js';
 import { registerUserRoutes } from './http/routes/users.js';
 import { registerWsRoutes } from './http/routes/ws.js';
@@ -67,6 +68,7 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   registerMachineRoutes(app, ctx);
   registerServerRoutes(app, ctx);
   registerFileRoutes(app, ctx);
+  registerTaskRoutes(app, ctx);
   registerWsRoutes(app, ctx);
 
   // Purges planifiées (doc 04 §8.6) : sessions, codes d'appairage, événements, audit, dédup.
@@ -78,6 +80,8 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
     }
   }, MAINTENANCE_INTERVAL_MS);
   maintenance.unref();
+
+  ctx.scheduler.start();
 
   app.addHook('onClose', () => {
     clearInterval(maintenance);
@@ -99,7 +103,14 @@ export function runMaintenance(ctx: AppContext): void {
   ctx.processed.purgeOlderThan(t - day);
   ctx.events.purgeOlderThan(t - ctx.settings.getInt('retention.eventsDays', 90) * day);
   ctx.audit.purgeOlderThan(t - ctx.settings.getInt('retention.auditDays', 365) * day);
+  ctx.tasks.purgeOlderThan(t - 30 * day);
   ctx.sqlite.pragma('wal_checkpoint(PASSIVE)');
+  // Sauvegarde quotidienne du panel lui-même (`VACUUM INTO`, doc 07 phase 8).
+  try {
+    ctx.panelBackup.backupIfStale();
+  } catch (error) {
+    ctx.logger.warn({ err: error }, 'panel self-backup failed');
+  }
   // Métriques (doc 04 §7) : downsampling brut → 1 min → 1 h, purge, checkpoint du second fichier.
   ctx.metricsService.maintain(t);
   ctx.metricsSqlite.pragma('wal_checkpoint(PASSIVE)');

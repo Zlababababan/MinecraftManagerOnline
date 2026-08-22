@@ -3,12 +3,15 @@
  * N/N-1, compression) → `sync.state` (réconciliation, config poussée, relance `desired_state`) →
  * heartbeat (offline à 40 s) ; événements critiques dédupliqués et acquittés par lots (`event.ack`).
  * Toute requête/événement avant authentification est rejeté (`E_AUTH`) / ignoré.
+ * Phase 8 : tasks (`task.progress/completed/failed` → table `tasks`, backups), `backup.rotated`,
+ * réconciliation `task.list` + `backup.list` après `sync.state`, transferts binaires routés.
  */
 import type { FastifyBaseLogger } from 'fastify';
 
 import {
   PANEL_VERSION_RANGE,
   ProtocolError,
+  backupManifestSchema,
   createRpcPeer,
   negotiateProtocolVersion,
   type Compression,
@@ -22,11 +25,15 @@ import {
 import type { ClientHub } from '../clients/hub.js';
 import type { PanelConfig } from '../config.js';
 import type { AuditService } from '../services/audit.js';
+import type { BackupsService } from '../services/backups.js';
 import type { EventBus } from '../services/events.js';
 import type { MachinesService } from '../services/machines.js';
 import type { MetricsService } from '../services/metrics.js';
 import type { ProcessedEventsService } from '../services/processed-events.js';
 import type { ServersService } from '../services/servers.js';
+import type { TasksService } from '../services/tasks.js';
+import type { TransferService } from '../services/transfers.js';
+import type { TaskRow } from '../db/schema.js';
 import type { ConsoleRelay } from './console.js';
 import type { AgentRegistry } from './registry.js';
 
@@ -45,6 +52,9 @@ export interface AgentSessionDeps {
   registry: AgentRegistry;
   relay: ConsoleRelay;
   hub: ClientHub;
+  tasks: TasksService;
+  backups: BackupsService;
+  transfers: TransferService;
 }
 
 export interface AgentHeartbeat extends ParsedEventPayload<'agent.heartbeat'> {
@@ -227,6 +237,140 @@ export class AgentSession {
         servers: p.servers.filter((s) => known.has(s.serverId)),
       });
     });
+    // Phase 8 — tasks et backups
+    peer.on('task.progress', (p) => {
+      this.requireAuth();
+      this.deps.tasks.progress(p.taskId, { phase: p.phase, pct: p.pct, detail: p.detail });
+    });
+    peer.on('task.completed', (p, ctx) => {
+      this.critical(ctx, () => {
+        const machineId = this.requireAuth();
+        this.ensureTaskRow(machineId, p.taskId, p.kind, p.serverId);
+        const row = this.deps.tasks.complete(p.taskId, p.result, p.finishedAt);
+        if (row) this.onTaskFinished(machineId, row);
+      });
+    });
+    peer.on('task.failed', (p, ctx) => {
+      this.critical(ctx, () => {
+        const machineId = this.requireAuth();
+        this.ensureTaskRow(machineId, p.taskId, p.kind, p.serverId);
+        const row = this.deps.tasks.fail(p.taskId, p.error, {
+          cancelled: p.cancelled,
+          finishedAt: p.finishedAt,
+        });
+        if (row) this.onTaskFinished(machineId, row);
+      });
+    });
+    peer.on('backup.rotated', (p, ctx) => {
+      this.critical(ctx, () => {
+        const machineId = this.requireAuth();
+        const deleted = this.deps.backups.markDeleted(p.deleted.map((d) => d.backupId));
+        this.deps.events.publish({
+          type: 'backup.rotated',
+          machineId,
+          serverId: p.serverId,
+          payload: { policyId: p.policyId ?? null, deleted: p.deleted, known: deleted.length },
+          ts: p.ts,
+        });
+      });
+    });
+  }
+
+  // --- Tasks (phase 8) ----------------------------------------------------------------------------
+
+  /** Task lancée par l'agent seul (planning) : ligne créée à la volée si le panel ne la connaît pas. */
+  private ensureTaskRow(
+    machineId: string,
+    taskId: string,
+    kind: string,
+    serverId: string | undefined,
+  ): void {
+    if (this.deps.tasks.get(taskId)) return;
+    const known = serverId !== undefined && this.deps.servers.get(serverId) !== undefined;
+    this.deps.tasks.create({ id: taskId, kind, machineId, serverId: known ? serverId : undefined });
+  }
+
+  /** Issue d'une task : répercussion sur les backups, événement, acquittement à l'agent. */
+  private onTaskFinished(machineId: string, row: TaskRow): void {
+    const dto = this.deps.tasks.toDto(row);
+    const result = dto.result ?? {};
+    if (row.status === 'done') {
+      if (row.kind === 'backup.create') {
+        const manifest = backupManifestSchema.safeParse(result);
+        if (manifest.success && this.deps.servers.get(manifest.data.serverId)) {
+          this.deps.backups.applyManifest(manifest.data, machineId, {
+            taskId: row.id,
+            ...(row.createdBy === null ? {} : { createdBy: row.createdBy }),
+          });
+        }
+      } else if (row.kind === 'backup.restore') {
+        const safety = backupManifestSchema.safeParse(result.safetyBackup);
+        if (safety.success && this.deps.servers.get(safety.data.serverId)) {
+          this.deps.backups.applyManifest(safety.data, machineId, {
+            taskId: row.id,
+            ...(row.createdBy === null ? {} : { createdBy: row.createdBy }),
+          });
+        }
+        if (row.refId !== null) {
+          const target = this.deps.backups.get(row.refId);
+          if (target?.status === 'running') this.deps.backups.fail(row.refId, 'restore target');
+        }
+      }
+    } else if (row.refId !== null && row.kind === 'backup.create') {
+      this.deps.backups.fail(row.refId, dto.error?.message ?? row.status);
+    }
+    const serverRow = row.serverId === null ? undefined : this.deps.servers.get(row.serverId);
+    this.deps.events.publish({
+      type: row.status === 'done' ? 'task.completed' : 'task.failed',
+      severity: row.status === 'done' ? 'info' : row.status === 'cancelled' ? 'warning' : 'error',
+      machineId,
+      serverId: serverRow?.id,
+      userId: row.createdBy ?? undefined,
+      payload: {
+        taskId: row.id,
+        kind: row.kind,
+        status: row.status,
+        error: dto.error,
+        summary: summarizeResult(row.kind, result),
+      },
+      ts: row.finishedAt ?? this.deps.now(),
+    });
+    // Le panel a tout enregistré : l'agent peut oublier la task.
+    this.peer.request('task.ackResult', { taskId: row.id }).catch(() => undefined);
+  }
+
+  /** Réconciliation après `sync.state` : journal des tasks de l'agent, archives présentes. */
+  private async reconcilePhase8(machineId: string): Promise<void> {
+    try {
+      const { tasks } = await this.peer.request('task.list', {});
+      const { discovered, finished } = this.deps.tasks.reconcile(machineId, tasks, (serverId) =>
+        serverId !== undefined && this.deps.servers.get(serverId) ? serverId : undefined,
+      );
+      for (const row of [...discovered, ...finished]) {
+        if (row.status === 'pending' || row.status === 'running' || row.status === 'stalled') {
+          continue;
+        }
+        this.onTaskFinished(machineId, row);
+      }
+    } catch (error) {
+      // Agent sans jalon B (E_UNSUPPORTED_TYPE) : rien à réconcilier.
+      this.log.debug({ machineId, message: errorMessage(error) }, 'task.list unavailable');
+      return;
+    }
+    for (const server of this.deps.servers.listByMachine(machineId)) {
+      try {
+        const { backups } = await this.peer.request('backup.list', {
+          serverId: server.id,
+          destinations: this.deps.backups.knownDestinations(server.id),
+        });
+        this.deps.backups.reconcile(server.id, machineId, backups);
+      } catch (error) {
+        this.log.debug(
+          { machineId, serverId: server.id, message: errorMessage(error) },
+          'backup.list failed',
+        );
+      }
+    }
   }
 
   /** Événement critique : dédup (`processed_events`) puis acquittement batché, même si déjà vu. */
@@ -312,6 +456,7 @@ export class AgentSession {
     this.peer.version = negotiated.version;
     this.machineId = machine.id;
     this.deps.registry.attach(this, machine.id);
+    this.deps.transfers.bind(this, machine.id);
     this.deps.machines.markOnline(machine.id, {
       machine: p.machine,
       agentVersion: p.agentVersion,
@@ -349,9 +494,11 @@ export class AgentSession {
     for (const row of this.deps.servers.listByMachine(machineId)) {
       this.deps.hub.broadcast({ type: 'server.state', server: this.deps.servers.toDto(row, true) });
     }
-    // Après la réponse : configuration complète, puis relance des serveurs souhaités « running ».
+    // Après la réponse : configuration complète, réconciliation des tasks/backups (phase 8), puis
+    // relance des serveurs souhaités « running ».
     setTimeout(() => {
       void this.pushConfig().then(async () => {
+        await this.reconcilePhase8(machineId);
         for (const row of toStart) {
           try {
             await this.peer.request('server.start', { serverId: row.id });
@@ -478,8 +625,10 @@ export class AgentSession {
     if (this.configTimer !== undefined) clearTimeout(this.configTimer);
     const machineId = this.machineId;
     if (machineId === undefined) return;
+    this.deps.transfers.onSessionClosed(this.peer);
     if (this.deps.registry.detach(this, machineId)) {
       this.deps.machines.markOffline(machineId);
+      this.deps.tasks.markStalled(machineId);
       this.deps.metrics.forgetMachine(
         machineId,
         this.deps.servers.listByMachine(machineId).map((r) => r.id),
@@ -521,4 +670,27 @@ function unsupportedVersion(reason: string): ProtocolError {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/** Résumé lisible d'un résultat de task pour le journal d'événements. */
+function summarizeResult(kind: string, result: Record<string, unknown>): Record<string, unknown> {
+  if (kind === 'backup.create') {
+    return {
+      backupId: result.backupId ?? null,
+      sizeBytes: result.sizeBytes ?? null,
+      files: result.files ?? null,
+      hot: result.hot ?? null,
+      durationMs: result.durationMs ?? null,
+    };
+  }
+  if (kind === 'backup.restore') {
+    const safety = result.safetyBackup as { backupId?: string } | undefined;
+    return {
+      backupId: result.backupId ?? null,
+      safetyBackupId: safety?.backupId ?? null,
+      restarted: result.restarted ?? null,
+    };
+  }
+  if (kind === 'fs.fetch') return { path: result.path ?? null, size: result.size ?? null };
+  return {};
 }

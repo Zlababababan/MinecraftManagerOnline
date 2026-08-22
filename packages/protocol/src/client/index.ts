@@ -30,6 +30,7 @@ import {
   relativePathSchema,
 } from '../messages/fs.js';
 import { metricsSampleSchema } from '../messages/monitoring.js';
+import { backupCodecSchema, backupKindSchema } from '../messages/tasks.js';
 import {
   detectedServerSchema,
   playerActionResponseSchema,
@@ -392,6 +393,168 @@ export type MachineMetricsResult = z.infer<typeof machineMetricsResultSchema>;
 export const metricsSampleDtoSchema = metricsSampleSchema;
 export type MetricsSampleDto = z.infer<typeof metricsSampleDtoSchema>;
 
+// --- Tasks, backups, planificateur (phase 8) ---------------------------------------------------------
+
+export const taskDtoStatusSchema = z.enum([
+  'pending',
+  'running',
+  'stalled',
+  'done',
+  'failed',
+  'cancelled',
+]);
+export type TaskDtoStatus = z.infer<typeof taskDtoStatusSchema>;
+
+export const taskDtoSchema = z.object({
+  id: z.string(),
+  kind: z.string(),
+  machineId: z.string().nullable(),
+  serverId: z.string().nullable(),
+  status: taskDtoStatusSchema,
+  /** 0–100. */
+  progress: z.number().nullable(),
+  phase: z.string().nullable(),
+  detail: z.string().nullable(),
+  /** ex. `backups.id`. */
+  refId: z.string().nullable(),
+  result: z.record(z.string(), z.unknown()).nullable(),
+  error: apiErrorSchema.nullable(),
+  createdBy: z.string().nullable(),
+  createdAt: epochMsSchema,
+  finishedAt: epochMsSchema.nullable(),
+});
+export type TaskDto = z.infer<typeof taskDtoSchema>;
+
+export const tasksQuerySchema = z.object({
+  status: taskDtoStatusSchema.optional(),
+  /** `active` = pending + running + stalled. */
+  active: z.coerce.boolean().optional(),
+  serverId: z.string().optional(),
+  machineId: z.string().optional(),
+  limit: z.coerce.number().int().positive().max(500).optional(),
+});
+
+export const backupStatusSchema = z.enum(['running', 'success', 'failed', 'deleted']);
+export const backupDtoSchema = z.object({
+  id: z.string(),
+  serverId: z.string(),
+  policyId: z.string().nullable(),
+  kind: backupKindSchema,
+  status: backupStatusSchema,
+  machineId: z.string(),
+  archivePath: z.string().nullable(),
+  sizeBytes: z.int().nullable(),
+  sha256: z.string().nullable(),
+  startedAt: epochMsSchema,
+  finishedAt: epochMsSchema.nullable(),
+  error: z.string().nullable(),
+  createdBy: z.string().nullable(),
+  /** Détails du manifeste (si connu). */
+  codec: backupCodecSchema.nullable(),
+  hot: z.boolean().nullable(),
+  files: z.int().nullable(),
+  bytesRaw: z.int().nullable(),
+  comment: z.string().nullable(),
+  /** Task associée (création ou restauration en cours). */
+  taskId: z.string().nullable(),
+});
+export type BackupDto = z.infer<typeof backupDtoSchema>;
+
+export const createBackupSchema = z.object({ comment: z.string().max(500).optional() });
+export const restoreBackupSchema = z.object({
+  safetyBackup: z.boolean().default(true),
+  restartAfter: z.boolean().default(false),
+});
+
+export const backupPolicyDtoSchema = z.object({
+  id: z.string(),
+  serverId: z.string(),
+  cron: z.string(),
+  destination: z.string().nullable(),
+  keepLast: z.int().nullable(),
+  keepDays: z.int().nullable(),
+  onlyIfRunning: z.boolean(),
+  enabled: z.boolean(),
+  createdAt: epochMsSchema,
+  /** Calculé par le panel (heure locale du panel — l'agent évalue en heure locale de sa machine). */
+  nextRunAt: epochMsSchema.nullable(),
+});
+export type BackupPolicyDto = z.infer<typeof backupPolicyDtoSchema>;
+
+export const backupPolicyInputSchema = z.object({
+  cron: z.string().min(9).max(100),
+  destination: z.string().max(1024).nullable().optional(),
+  keepLast: z.int().positive().max(1000).nullable().optional(),
+  keepDays: z.int().positive().max(3650).nullable().optional(),
+  onlyIfRunning: z.boolean().optional(),
+  enabled: z.boolean().optional(),
+});
+export type BackupPolicyInput = z.infer<typeof backupPolicyInputSchema>;
+
+export const scheduledActionSchema = z.enum(['start', 'stop', 'restart', 'command', 'announce']);
+export type ScheduledAction = z.infer<typeof scheduledActionSchema>;
+
+/** Charge utile d'une action programmée (exécutée par le panel). */
+export const schedulePayloadSchema = z.object({
+  /** `command` : commande console ; `announce` : ignoré. */
+  command: z.string().max(4096).optional(),
+  /** Message d'annonce (`{minutes}` remplacé) pour `stop`/`restart` (avertissements) et `announce`. */
+  message: z.string().max(500).optional(),
+  /** Minutes avant l'action où un avertissement `say` est envoyé (`stop`/`restart`). */
+  warnMinutes: z.array(z.int().positive().max(1440)).max(10).optional(),
+  /** Délai d'arrêt gracieux (`stop`/`restart`). */
+  timeoutSec: z.int().positive().max(3600).optional(),
+});
+export type SchedulePayload = z.infer<typeof schedulePayloadSchema>;
+
+export const scheduledTaskDtoSchema = z.object({
+  id: z.string(),
+  serverId: z.string().nullable(),
+  action: scheduledActionSchema,
+  cron: z.string(),
+  payload: schedulePayloadSchema.nullable(),
+  enabled: z.boolean(),
+  lastRunAt: epochMsSchema.nullable(),
+  lastStatus: z.string().nullable(),
+  nextRunAt: epochMsSchema.nullable(),
+  createdBy: z.string().nullable(),
+  createdAt: epochMsSchema,
+});
+export type ScheduledTaskDto = z.infer<typeof scheduledTaskDtoSchema>;
+
+export const scheduledTaskInputSchema = z.object({
+  action: scheduledActionSchema,
+  cron: z.string().min(9).max(100),
+  payload: schedulePayloadSchema.nullable().optional(),
+  enabled: z.boolean().optional(),
+});
+export type ScheduledTaskInput = z.infer<typeof scheduledTaskInputSchema>;
+
+/** Sauvegarde du panel lui-même (`VACUUM INTO`). */
+export const panelBackupDtoSchema = z.object({
+  file: z.string(),
+  sizeBytes: z.int().nonnegative(),
+  createdAt: epochMsSchema,
+});
+export type PanelBackupDto = z.infer<typeof panelBackupDtoSchema>;
+
+/** spark (TPS) : état et installation en un clic (jamais requis). */
+export const sparkStatusSchema = z.object({
+  /** Le loader accepte un mod spark (forge/neoforge/fabric). */
+  supported: z.boolean(),
+  installed: z.boolean(),
+  file: z.string().nullable(),
+  /** Plateforme spark correspondante (`forge`, `neoforge`, `fabric`). */
+  platform: z.string().nullable(),
+});
+export type SparkStatus = z.infer<typeof sparkStatusSchema>;
+
+export const uploadQuerySchema = z.object({
+  path: relativePathSchema,
+  size: z.coerce.number().int().nonnegative(),
+  overwrite: z.coerce.boolean().optional(),
+});
+
 // --- Événements et audit ---------------------------------------------------------------------------
 
 export const severitySchema = z.enum(['debug', 'info', 'warning', 'error', 'critical']);
@@ -482,6 +645,9 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     machineId: z.string(),
     sample: metricsSampleDtoSchema,
   }),
+  /** Phase 8 : progression et issue des tasks, sauvegardes mises à jour. */
+  z.object({ type: z.literal('task.update'), task: taskDtoSchema }),
+  z.object({ type: z.literal('backup.update'), backup: backupDtoSchema }),
   z.object({ type: z.literal('error'), error: apiErrorSchema, channel: z.string().optional() }),
 ]);
 export type ServerMessage = z.infer<typeof serverMessageSchema>;

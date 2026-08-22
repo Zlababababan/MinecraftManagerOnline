@@ -15,14 +15,19 @@ import {
   type MmoDatabase,
 } from './db/client.js';
 import { AuditService } from './services/audit.js';
+import { BackupsService } from './services/backups.js';
 import { EventBus } from './services/events.js';
 import { JavaResolver } from './services/java.js';
 import { MachinesService } from './services/machines.js';
 import { MetricsService } from './services/metrics.js';
+import { PanelBackupService } from './services/panel-backup.js';
 import { ProcessedEventsService } from './services/processed-events.js';
+import { SchedulerService } from './services/scheduler.js';
 import { ServersService } from './services/servers.js';
 import { SessionsService } from './services/sessions.js';
 import { SettingsService } from './services/settings.js';
+import { TasksService } from './services/tasks.js';
+import { TransferService } from './services/transfers.js';
 import { UsersService } from './services/users.js';
 
 export interface AppContext {
@@ -46,6 +51,14 @@ export interface AppContext {
   registry: AgentRegistry;
   relay: ConsoleRelay;
   hub: ClientHub;
+  /** Phase 8. */
+  tasks: TasksService;
+  backups: BackupsService;
+  scheduler: SchedulerService;
+  transfers: TransferService;
+  panelBackup: PanelBackupService;
+  /** `fetch` injectable (tests) pour les appels sortants du panel (manifest Mojang, API spark). */
+  fetchImpl: typeof fetch | undefined;
   close(): void;
 }
 
@@ -57,6 +70,10 @@ export interface ContextOptions {
   dbFile?: string;
   metricsFile?: string;
   fetch?: typeof fetch;
+  /** Période du planificateur (0 = manuel, tests). */
+  schedulerTickMs?: number;
+  /** Attente de reconnexion d'un agent pendant un transfert (tests : court). */
+  transferReconnectWaitMs?: number;
 }
 
 export function createContext(options: ContextOptions): AppContext {
@@ -79,7 +96,14 @@ export function createContext(options: ContextOptions): AppContext {
     ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
     now,
   });
-  const servers = new ServersService({ db, now, events, java, settings });
+  const servers = new ServersService({
+    db,
+    now,
+    events,
+    java,
+    settings,
+    backupSchedules: (serverIds) => backups.schedulesFor(serverIds),
+  });
   const processed = new ProcessedEventsService(db, now);
   const registry = new AgentRegistry();
   const relay = new ConsoleRelay({ logger, registry, servers });
@@ -103,8 +127,44 @@ export function createContext(options: ContextOptions): AppContext {
     },
   });
 
+  const tasks = new TasksService({
+    db,
+    now,
+    broadcast: (task) => {
+      hub.broadcast({ type: 'task.update', task });
+    },
+  });
+  const backups = new BackupsService({
+    db,
+    now,
+    settings,
+    broadcast: (backup) => {
+      hub.broadcast({ type: 'backup.update', backup });
+    },
+  });
+  const scheduler = new SchedulerService({
+    db,
+    now,
+    registry,
+    servers,
+    events,
+    audit,
+    logger,
+    ...(options.schedulerTickMs === undefined ? {} : { tickMs: options.schedulerTickMs }),
+  });
+  const transfers = new TransferService({
+    registry,
+    logger,
+    ...(options.transferReconnectWaitMs === undefined
+      ? {}
+      : { reconnectWaitMs: options.transferReconnectWaitMs }),
+  });
+  const panelBackup = new PanelBackupService({ sqlite: mmo.sqlite, dataDir: config.dataDir, now });
+
   // Au démarrage : aucun agent n'est connecté, tout `online` est un reliquat d'une exécution précédente.
   machines.markAllOffline();
+  // Les tasks encore « en cours » seront réconciliées (`task.list`) à la reconnexion de chaque agent.
+  for (const m of machines.list()) tasks.markStalled(m.id);
 
   return {
     config,
@@ -127,7 +187,14 @@ export function createContext(options: ContextOptions): AppContext {
     registry,
     relay,
     hub,
+    tasks,
+    backups,
+    scheduler,
+    transfers,
+    panelBackup,
+    fetchImpl: options.fetch,
     close: () => {
+      scheduler.stop();
       registry.closeAll();
       hub.closeAll();
       metricsService.close();

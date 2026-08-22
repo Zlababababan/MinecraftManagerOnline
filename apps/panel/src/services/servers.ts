@@ -59,6 +59,8 @@ export interface ServersServiceDeps {
   events: EventBus;
   java: JavaResolver;
   settings: SettingsService;
+  /** Phase 8 : plannings de backups poussés à l'agent (`backup_policies`). */
+  backupSchedules?: (serverIds: string[]) => RequestPayload<'agent.configure'>['backupSchedules'];
 }
 
 const RUNNING_STATES: ReadonlySet<ServerRow['runState']> = new Set([
@@ -500,6 +502,9 @@ export class ServersService {
       desiredStates,
       restoreOnBoot: this.deps.settings.getBool(SETTING_KEYS.restoreOnBoot),
       metricsIntervalSec: this.deps.settings.getInt(SETTING_KEYS.metricsIntervalSec, 15),
+      // Phase 8 : destination globale (chaîne vide = défaut agent) et plannings de backups autonomes.
+      backupDestination: this.deps.settings.get(SETTING_KEYS.backupDestination) ?? '',
+      backupSchedules: this.deps.backupSchedules?.(rows.map((r) => r.id)) ?? [],
     };
   }
 
