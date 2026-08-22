@@ -43,7 +43,11 @@ await mkdir(stateDir, { recursive: true });
 await mkdir(path.join(serverDir, 'logs'), { recursive: true });
 const gamePort = await freePort();
 await writeFile(path.join(serverDir, 'eula.txt'), 'eula=true\n');
-await writeFile(path.join(serverDir, 'server.properties'), `server-port=${String(gamePort)}\n`);
+// `online-mode=false` : résolution UUID hors ligne (aucun appel Mojang pendant les e2e).
+await writeFile(
+  path.join(serverDir, 'server.properties'),
+  `server-port=${String(gamePort)}\nonline-mode=false\nmotd=E2E\n`,
+);
 await writeFile(path.join(serverDir, 'server.jar'), '');
 await writeFile(
   path.join(serverDir, 'logs', 'latest.log'),

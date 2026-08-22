@@ -2,6 +2,7 @@
  * E2E Playwright (doc 07 phase 5) : desktop + mobile, fr + en, contre le panel réel + agent réel +
  * fake Java server (`e2e/fixtures/stack.ts`). Le projet `setup` exécute le wizard et l'appairage une
  * fois ; les quatre projets de flux en dépendent et s'exécutent en série (un seul serveur Minecraft).
+ * Phase 6 : `whitelist.spec.ts` = « gérer une whitelist depuis un téléphone sans jamais voir un fichier ».
  */
 import { defineConfig, devices } from '@playwright/test';
 
@@ -38,25 +39,25 @@ export default defineConfig({
     },
     {
       name: 'desktop-fr',
-      testMatch: /flow\.spec\.ts|pwa\.spec\.ts/,
+      testMatch: /flow\.spec\.ts|whitelist\.spec\.ts|pwa\.spec\.ts/,
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'], locale: 'fr-FR' },
     },
     {
       name: 'desktop-en',
-      testMatch: /flow\.spec\.ts/,
+      testMatch: /flow\.spec\.ts|whitelist\.spec\.ts/,
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'], locale: 'en-US' },
     },
     {
       name: 'mobile-fr',
-      testMatch: /flow\.spec\.ts/,
+      testMatch: /flow\.spec\.ts|whitelist\.spec\.ts/,
       dependencies: ['setup'],
       use: { ...devices['Pixel 7'], locale: 'fr-FR' },
     },
     {
       name: 'mobile-en',
-      testMatch: /flow\.spec\.ts/,
+      testMatch: /flow\.spec\.ts|whitelist\.spec\.ts/,
       dependencies: ['setup'],
       use: { ...devices['Pixel 7'], locale: 'en-US' },
     },

@@ -34,7 +34,7 @@ import {
   playerActionSchema,
   playerResolveResponseSchema,
   playerResolveSchema,
-  resolvedPlayerSchema,
+  type resolvedPlayerSchema,
 } from '../messages/server.js';
 
 // --- Erreurs HTTP --------------------------------------------------------------------------------
