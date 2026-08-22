@@ -55,3 +55,36 @@ jobs:
 
       - name: Tests
         run: pnpm test
+
+      # Phase 11 : archive d'installation de la plateforme courante (runtime Node épinglé par sha256),
+      # extraction + `launcher.cjs --version` avec le runtime embarqué.
+      - name: Archive agent (plateforme courante) + smoke
+        shell: bash
+        run: |
+          platform=$(node -e "console.log(require('os').platform()==='win32'?'win-x64':require('os').platform()+'-'+process.arch)")
+          node tools/release/build.mjs --skip-build --platforms "$platform"
+          node tools/release/smoke.mjs --host
+
+  release-archives:
+    name: archives (4 plateformes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @mmo/agent... build
+      - name: Build des 4 archives (clé de développement) + smoke
+        run: |
+          node tools/release/build.mjs --skip-build
+          node tools/release/smoke.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mmo-agent-archives
+          path: release/
+          retention-days: 7

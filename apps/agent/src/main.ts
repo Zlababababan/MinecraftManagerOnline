@@ -3,6 +3,7 @@
  *   mmo-agent [run] [--panel <ws(s)://…/ws/agent>] [--pair-code <MMOP-…>] [--state-dir <dir>] [--log-level <LEVEL>]
  *   mmo-agent dev <dossier-serveur> [--xmx <Mo>] [--java <exe>] [--state-dir <dir>]   (console locale sans panel)
  *   mmo-agent scan <dossier>                                                          (détection, JSON)
+ *   mmo-agent pair --panel <ws(s)://…/ws/agent> --pair-code <MMOP-…> [--state-dir <dir>]   (appairage seul, phase 11)
  *   mmo-agent --version
  */
 import { PROTOCOL_VERSION, type LogLevel, type ServerConfig } from '@mmo/protocol';
@@ -73,6 +74,8 @@ export async function main(argv: readonly string[]): Promise<number> {
       return runDev(cli, logger, stateDir);
     case 'scan':
       return runScan(cli);
+    case 'pair':
+      return runPair(cli, logger, stateDir);
     default:
       process.stderr.write(`unknown command: ${cli.command}\n`);
       return 2;
@@ -102,6 +105,29 @@ async function runDaemon(cli: Cli, logger: Logger, stateDir: string): Promise<nu
       shutdown('SIGTERM');
     });
   });
+}
+
+/** Appairage seul (installeurs) : code de sortie 0 si appairé (ou déjà appairé), 1 sinon. */
+async function runPair(cli: Cli, logger: Logger, stateDir: string): Promise<number> {
+  const panelUrl = flag(cli, 'panel');
+  const pairCode = flag(cli, 'pair-code');
+  if (panelUrl === undefined) {
+    process.stderr.write('usage: mmo-agent pair --panel <ws(s)://…/ws/agent> --pair-code <code>\n');
+    return 2;
+  }
+  const agent = new Agent({ stateDir, panelUrl, pairCode, logger });
+  try {
+    const r = await agent.pair();
+    process.stdout.write(
+      r.alreadyPaired
+        ? `already paired (agent ${r.agentId}) — state: ${stateDir}\n`
+        : `paired with ${panelUrl} (agent ${r.agentId}) — state: ${stateDir}\n`,
+    );
+    return 0;
+  } catch (error) {
+    process.stderr.write(`pairing failed: ${errorMessage(error)}\n`);
+    return 1;
+  }
 }
 
 /** Console locale : lance le serveur du dossier, relaie stdin/stdout, `stop` propre sur Ctrl+C. */

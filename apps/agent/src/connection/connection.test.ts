@@ -154,6 +154,24 @@ describe('session panel↔agent (doc 05 §3–5, §10)', () => {
     expect(c.lastConnectionError).toContain('bad code');
   });
 
+  it('phase 11 — pairOnly() : appairage seul (installeurs), idempotent, erreur sur code invalide', async () => {
+    panel = await createFakePanel(panelBehaviour(log));
+    const store = new StateStore(stateDir, { restrictPermissions: false });
+    await store.load();
+    await expect(makeConnection(store, { pairCode: 'MMOP-BAD' }).pairOnly()).rejects.toThrow(
+      'bad code',
+    );
+    expect(store.get().agentId).toBeUndefined();
+    const r = await makeConnection(store, { pairCode: 'MMOP-OK' }).pairOnly();
+    expect(r).toEqual({ agentId: 'agt_1', alreadyPaired: false });
+    expect(store.get().agentSecret).toBe(SECRET);
+    expect(log.hellos).toHaveLength(0);
+    // Déjà appairé : aucune connexion, aucune nouvelle demande.
+    const again = await makeConnection(store, { pairCode: 'MMOP-OTHER' }).pairOnly();
+    expect(again).toEqual({ agentId: 'agt_1', alreadyPaired: true });
+    expect(log.pairs).toHaveLength(2);
+  });
+
   it('reconnexion après coupure, avec rejeu des événements critiques jusqu’à event.ack', async () => {
     panel = await createFakePanel(panelBehaviour(log));
     const store = new StateStore(stateDir, { restrictPermissions: false });

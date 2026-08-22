@@ -18,3 +18,6 @@ playwright-report/
 dev-dist/
 # données locales du panel
 apps/panel/data/
+
+# phase 11 : artefacts de release
+/release/

@@ -7,5 +7,7 @@
   panel lors de la publication (`PUT /api/admin/agent-releases?version=…&signature=…`, corps = bundle).
 
 `dev.private.pem` / `dev.public.txt` : paire **de développement** (la clé publique correspondante est
-embarquée dans l'agent pour pouvoir tester les mises à jour de bout en bout). À remplacer par une clé
-de release conservée hors dépôt avant toute distribution publique (phase 11).
+embarquée dans l'agent pour pouvoir tester les mises à jour de bout en bout et construire des releases
+locales). **Phase 11** : la release publique se signe avec une clé générée ici mais conservée hors dépôt
+(`MMO_SIGNING_KEY`, secret CI `MMO_SIGNING_KEY_PEM`) — `tools/release/build.mjs --release` refuse la clé
+de développement et vérifie que la clé publique est bien dans `keys.ts`. Procédure : `tools/release/README.md`.

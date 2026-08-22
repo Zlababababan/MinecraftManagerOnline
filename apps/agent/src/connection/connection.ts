@@ -169,6 +169,38 @@ export class AgentConnection {
     await this.loop;
   }
 
+  /**
+   * Phase 11 : appairage seul (installeurs) — une connexion, `pair.request`, état écrit, fermeture.
+   * Lève si le code est refusé ou le panel injoignable ; `alreadyPaired` si un secret existe déjà.
+   */
+  async pairOnly(): Promise<{ agentId: string; alreadyPaired: boolean }> {
+    const state = this.options.store.get();
+    if (state.agentId !== undefined && state.agentSecret !== undefined) {
+      return { agentId: state.agentId, alreadyPaired: true };
+    }
+    const ws = await openWebSocket(
+      this.options.panelUrl,
+      this.options.webSocketFactory,
+      this.options.connectTimeoutMs,
+    );
+    const transport = createWsTransport(ws);
+    const peer = createRpcPeer({
+      role: 'agent',
+      transport,
+      logger: this.options.logger,
+      now: () => this.now(),
+    });
+    this.options.registerHandlers(peer);
+    try {
+      await this.pair(peer);
+    } finally {
+      transport.close(1000, 'paired');
+    }
+    const agentId = this.options.store.get().agentId;
+    if (agentId === undefined) throw new Error('pairing did not persist an agent id');
+    return { agentId, alreadyPaired: false };
+  }
+
   /** Force une reconnexion immédiate (ex. après rotation de secret). */
   reconnect(reason: string): void {
     this.transport?.close(1000, reason);

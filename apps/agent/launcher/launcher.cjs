@@ -16,6 +16,8 @@
  * crashs ; sinon **rollback N-1** (current.json ← previous) + `update-result.json`. Code de sortie 75 =
  * redémarrage immédiat (mise à jour demandée). Autres sorties : relance avec backoff (1 s → 60 s).
  * Les signaux SIGINT/SIGTERM sont transmis à l'agent (les serveurs Java, détachés, survivent).
+ * Phase 11 : `--version` (ou `pair`/`scan`) = exécution unique, sans relance ni rollback (installeurs,
+ * smoke test des archives) ; le code de sortie de l'agent est rendu tel quel.
  */
 'use strict';
 const { spawn } = require('node:child_process');
@@ -27,6 +29,8 @@ const HEALTH_MS = Number(process.env.MMO_LAUNCHER_HEALTH_MS || 30_000);
 const MAX_TRIAL_CRASHES = 2;
 const UPDATE_EXIT = 75;
 const LOG = path.join(HOME, 'launcher.log');
+const ONE_SHOT =
+  process.argv.includes('--version') || ['pair', 'scan'].includes(process.argv[2] || '');
 
 function log(message) {
   const line = `${new Date().toISOString()} ${message}\n`;
@@ -168,9 +172,17 @@ function runOnce() {
     if (runtimeVersion) log(`runtime ${runtimeVersion} missing, using embedded node`);
     node = process.execPath;
   }
+  const args = [bundleOf(current), ...process.argv.slice(2)];
+  if (ONE_SHOT) {
+    const r = spawn(node, args, {
+      stdio: 'inherit',
+      env: { ...process.env, MMO_AGENT_HOME: HOME, MMO_AGENT_VERSION: current },
+    });
+    r.on('exit', (code) => process.exit(code === null ? 1 : code));
+    return;
+  }
   const trial = readJson('trial.json');
   log(`starting agent ${current} with ${node}${trial ? ' [trial]' : ''}`);
-  const args = [bundleOf(current), ...process.argv.slice(2)];
   child = spawn(node, args, {
     stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
     env: { ...process.env, MMO_AGENT_HOME: HOME, MMO_AGENT_VERSION: current },

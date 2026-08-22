@@ -10,7 +10,7 @@ import {
   type RequestPayload,
 } from '@mmo/protocol';
 
-import { Agent } from './agent.js';
+import { AGENT_VERSION, Agent } from './agent.js';
 import { Logger } from './log.js';
 import {
   FAKE_SERVER,
@@ -180,7 +180,7 @@ describe('agent de bout en bout (faux panel + fake Java server)', () => {
     });
     const info = await peer.request('agent.info', {});
     expect(info.watchedDirectories).toEqual([serversRoot]);
-    expect(info.agentVersion).toBe('0.10.0');
+    expect(info.agentVersion).toBe(AGENT_VERSION);
 
     // Phase 6, serveur arrêté : fichiers, configuration et joueurs via la session
     const listing = await peer.request('fs.list', { serverId: 'srv_vanilla', path: '' });

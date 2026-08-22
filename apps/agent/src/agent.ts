@@ -48,7 +48,7 @@ import { TaskJournal } from './tasks/journal.js';
 import { TaskRunner } from './tasks/runner.js';
 import { AgentTransfers } from './transfer/transfers.js';
 
-export const AGENT_VERSION = '0.10.0';
+export const AGENT_VERSION = '0.11.0';
 export const AGENT_CAPABILITIES = [
   'rcon',
   'tasks',
@@ -291,6 +291,28 @@ export class Agent {
 
   get isConnected(): boolean {
     return this.connection?.isConnected ?? false;
+  }
+
+  /** Phase 11 : appairage seul (commande `pair` des installeurs), sans démarrer l'agent. */
+  async pair(): Promise<{ agentId: string; alreadyPaired: boolean }> {
+    await this.store.load();
+    const panelUrl = this.options.panelUrl ?? this.store.get().panelUrl;
+    if (panelUrl === undefined) throw new Error('panel url required');
+    const connection = new AgentConnection({
+      panelUrl,
+      store: this.store,
+      logger: this.logger.child('ws'),
+      agentVersion: this.version,
+      pairCode: this.options.pairCode,
+      capabilities: AGENT_CAPABILITIES,
+      registerHandlers: () => undefined,
+      buildSyncState: () => this.buildSyncState(),
+      buildHeartbeat: () => this.buildHeartbeat(),
+      ...(this.options.webSocketFactory === undefined
+        ? {}
+        : { webSocketFactory: this.options.webSocketFactory }),
+    });
+    return connection.pairOnly();
   }
 
   async start(): Promise<void> {

@@ -144,4 +144,25 @@ describe('launcher : bascule, health-check, rollback', () => {
     expect(await starts()).toEqual(['1.0.0', '1.1.0']);
     expect(await json('trial.json')).toBeUndefined();
   });
+
+  it('phase 11 — `--version` : exécution unique, code de sortie rendu tel quel, pas de relance', async () => {
+    await setup(
+      {
+        '1.0.0':
+          "process.stdout.write('agent ' + process.env.MMO_AGENT_VERSION + ' ' + process.argv.slice(2).join(' ')); process.exit(3);",
+      },
+      '1.0.0',
+    );
+    const out: Buffer[] = [];
+    child = spawn(process.execPath, [LAUNCHER, '--version'], {
+      env: { ...process.env, MMO_AGENT_HOME: home },
+      stdio: ['ignore', 'pipe', 'ignore'],
+      windowsHide: true,
+    });
+    child.stdout?.on('data', (d: Buffer) => out.push(d));
+    const code = await new Promise<number | null>((r) => child?.once('exit', r));
+    expect(code).toBe(3);
+    expect(Buffer.concat(out).toString()).toContain('agent 1.0.0 --version');
+    expect(await json('trial.json')).toBeUndefined();
+  });
 });

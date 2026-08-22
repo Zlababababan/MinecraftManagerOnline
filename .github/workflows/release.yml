@@ -1,0 +1,42 @@
+# Phase 11 — release signée sur tag `v*` (doc 03 §3) : archives des 4 plateformes + bundle + manifeste,
+# signés avec la clé Ed25519 du mainteneur (secret `MMO_SIGNING_KEY_PEM` = contenu PEM de la clé privée ;
+# la clé publique correspondante doit être dans apps/agent/src/update/keys.ts, sinon le build refuse).
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Build signé
+        env:
+          PEM: ${{ secrets.MMO_SIGNING_KEY_PEM }}
+        run: |
+          test -n "$PEM" || { echo "secret MMO_SIGNING_KEY_PEM absent"; exit 1; }
+          printf '%s' "$PEM" > "$RUNNER_TEMP/release.pem"
+          SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) node tools/release/build.mjs --skip-build --release --key "$RUNNER_TEMP/release.pem"
+          rm -f "$RUNNER_TEMP/release.pem"
+          node tools/release/smoke.mjs
+      - name: Publication GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*/mmo-agent-*.zip
+            release/*/mmo-agent-*.tar.gz
+            release/*/agent-*.js
+            release/*/manifest.json

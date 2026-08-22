@@ -17,7 +17,10 @@
     "typecheck": "turbo run typecheck",
     "check": "turbo run build typecheck lint test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "release:build": "node tools/release/build.mjs",
+    "release:smoke": "node tools/release/smoke.mjs",
+    "release:publish": "node tools/release/publish.mjs"
   },
   "devDependencies": {
     "@mmo/config": "workspace:*",

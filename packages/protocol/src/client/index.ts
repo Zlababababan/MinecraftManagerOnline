@@ -1065,3 +1065,55 @@ export function consoleChannel(serverId: string): string {
 export function parseConsoleChannel(channel: string): string | undefined {
   return channel.startsWith('console:') ? channel.slice('console:'.length) : undefined;
 }
+
+// --- Phase 11 : distribution des archives d'installation (doc 03 §3) --------------------------
+
+export const DIST_PLATFORMS = ['win-x64', 'linux-x64', 'linux-arm64', 'darwin-arm64'] as const;
+export const distPlatformSchema = z.enum(DIST_PLATFORMS);
+export type DistPlatform = z.infer<typeof distPlatformSchema>;
+
+const distFileSchema = z.object({
+  file: z.string().min(1),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  size: z.int().nonnegative(),
+});
+
+/** `manifest.json` produit par `tools/release/build.mjs` (entrée de `PUT /api/admin/dist/manifest`). */
+export const distManifestSchema = z.object({
+  version: z.string().min(1).max(64),
+  protocolVersion: z.int().positive(),
+  runtimeVersion: z.string().min(1).max(32),
+  builtAt: epochMsSchema.optional(),
+  /** `dev` (clé de développement) ou clé publique SPKI base64 du mainteneur. */
+  signingKey: z.string().optional(),
+  bundle: distFileSchema.extend({ signature: z.string().min(1) }),
+  platforms: z.record(z.string(), distFileSchema),
+});
+export type DistManifest = z.infer<typeof distManifestSchema>;
+
+export const distArtifactDtoSchema = distFileSchema.extend({ url: z.string() });
+export type DistArtifactDto = z.infer<typeof distArtifactDtoSchema>;
+
+/** `GET /api/dist` : état de la distribution servie par ce panel. */
+export const distStatusDtoSchema = z.object({
+  available: z.boolean(),
+  version: z.string().nullable(),
+  protocolVersion: z.int().nullable(),
+  runtimeVersion: z.string().nullable(),
+  builtAt: epochMsSchema.nullable(),
+  signingKey: z.string().nullable(),
+  /** Le bundle du manifeste est-il publié comme release d'agent (`agent.update`) ? */
+  releasePublished: z.boolean(),
+  platforms: z.record(z.string(), distArtifactDtoSchema),
+  /** One-liners génériques (sans code d'appairage) — présents si `panel.publicUrl` est réglée. */
+  install: z.object({ windows: z.string(), unix: z.string() }).nullable(),
+});
+export type DistStatusDto = z.infer<typeof distStatusDtoSchema>;
+
+/** `GET /api/dist/:platform` : lu par `install.sh` / `install.ps1` (JSON plat). */
+export const distPlatformDtoSchema = distArtifactDtoSchema.extend({
+  platform: z.string(),
+  version: z.string(),
+  runtimeVersion: z.string(),
+});
+export type DistPlatformDto = z.infer<typeof distPlatformDtoSchema>;
