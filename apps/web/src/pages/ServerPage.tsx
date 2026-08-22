@@ -1,4 +1,7 @@
-/** Page serveur : en-tête (état temps réel, actions), onglets aperçu / console / joueurs / événements / réglages. */
+/**
+ * Page serveur : en-tête (état temps réel, actions), onglets aperçu / console / joueurs /
+ * configuration / fichiers / journaux / événements / réglages (phase 6).
+ */
 import {
   Alert,
   Button,
@@ -6,10 +9,10 @@ import {
   Group,
   Loader,
   NumberInput,
+  ScrollArea,
   SimpleGrid,
   Stack,
   Switch,
-  Table,
   Tabs,
   Text,
   TextInput,
@@ -29,7 +32,6 @@ import type { ServerDto } from '@mmo/protocol/client';
 import { translateEvidence } from '@mmo/shared';
 
 import {
-  useAcceptEula,
   useDeleteServer,
   useEvents,
   useMachines,
@@ -42,17 +44,41 @@ import {
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { EventsList } from '../components/EventsList.js';
 import { RunStateBadge } from '../components/badges.js';
+import { EulaCard } from '../components/config/EulaCard.js';
 import { ServerActions } from '../components/ServerActions.js';
 import { serverSubtitle } from '../components/ServerCard.js';
 import { describeError } from '../lib/errors.js';
 import { formatDateTime, formatMb, hasRole } from '../lib/format.js';
 
-// xterm (lourd) n'est chargé qu'à l'ouverture de l'onglet Console.
+// Panneaux lourds chargés à l'ouverture de l'onglet (xterm, éditeurs).
 const ConsolePanel = lazy(() =>
   import('../components/console/ConsolePanel.js').then((m) => ({ default: m.ConsolePanel })),
 );
+const PlayersPanel = lazy(() =>
+  import('../components/players/PlayersPanel.js').then((m) => ({ default: m.PlayersPanel })),
+);
+const PropertiesEditor = lazy(() =>
+  import('../components/config/PropertiesEditor.js').then((m) => ({
+    default: m.PropertiesEditor,
+  })),
+);
+const FileExplorer = lazy(() =>
+  import('../components/files/FileExplorer.js').then((m) => ({ default: m.FileExplorer })),
+);
+const LogsPanel = lazy(() =>
+  import('../components/logs/LogsPanel.js').then((m) => ({ default: m.LogsPanel })),
+);
 
-export const SERVER_TABS = ['overview', 'console', 'players', 'events', 'settings'] as const;
+export const SERVER_TABS = [
+  'overview',
+  'console',
+  'players',
+  'config',
+  'files',
+  'logs',
+  'events',
+  'settings',
+] as const;
 export type ServerTab = (typeof SERVER_TABS)[number];
 
 function Field({ label, value }: { label: string; value: ReactNode }) {
@@ -72,35 +98,12 @@ function Overview({ server }: { server: ServerDto }) {
   const { t, i18n } = useT();
   const machines = useMachines();
   const me = useMe();
-  const eula = useAcceptEula(server.id);
   const machineName = machines.data?.machines.find((m) => m.id === server.machineId)?.name;
   const canOperate = me.data !== undefined && hasRole(me.data.user.role, 'operator');
   const detection = server.detection;
   return (
     <Stack gap="md">
-      {!server.eulaAccepted && (
-        <Alert color="yellow" variant="light" data-testid="eula-alert">
-          <Group justify="space-between">
-            <Text size="sm">{t('web:server.eulaHint')}</Text>
-            {canOperate && (
-              <Button
-                size="xs"
-                onClick={() => {
-                  eula.mutate(undefined, {
-                    onError: (error) => {
-                      notifications.show({ color: 'red', message: describeError(i18n, error) });
-                    },
-                  });
-                }}
-                loading={eula.isPending}
-                disabled={!server.reachable}
-              >
-                {t('web:server.acceptEula')}
-              </Button>
-            )}
-          </Group>
-        </Alert>
-      )}
+      <EulaCard server={server} canOperate={canOperate} />
       <SimpleGrid cols={{ base: 1, xs: 2, md: 3 }} spacing="md">
         <Field
           label={t('web:server.fields.machine')}
@@ -185,54 +188,6 @@ function Overview({ server }: { server: ServerDto }) {
             ))}
           </Stack>
         </Card>
-      )}
-    </Stack>
-  );
-}
-
-function Players({ server }: { server: ServerDto }) {
-  const { t, i18n } = useT();
-  const players = usePlayers(server.id, server.runState === 'running');
-  if (server.runState !== 'running') {
-    return (
-      <Text size="sm" c="dimmed">
-        {t('web:server.players.none')}
-      </Text>
-    );
-  }
-  if (players.isPending) return <Loader size="sm" />;
-  if (players.error) return <ErrorAlert error={players.error} />;
-  const list = players.data.players;
-  return (
-    <Stack gap="sm" data-testid="players">
-      <Text size="sm">{t('web:server.players.online', { online: players.data.online })}</Text>
-      {list.length === 0 ? (
-        <Text size="sm" c="dimmed">
-          {t('web:server.players.none')}
-        </Text>
-      ) : (
-        <Table striped withTableBorder>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>{t('web:server.players.name')}</Table.Th>
-              <Table.Th>UUID</Table.Th>
-              <Table.Th>{t('web:server.fields.startedAt')}</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {list.map((p) => (
-              <Table.Tr key={p.name}>
-                <Table.Td>{p.name}</Table.Td>
-                <Table.Td>
-                  <Text size="xs" ff="monospace">
-                    {p.uuid ?? '—'}
-                  </Text>
-                </Table.Td>
-                <Table.Td>{formatDateTime(p.joinedAt, i18n.language)}</Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
       )}
     </Stack>
   );
@@ -377,13 +332,15 @@ export function ServerPage({ serverId, tab }: { serverId: string; tab: ServerTab
         }}
         keepMounted={false}
       >
-        <Tabs.List>
-          {SERVER_TABS.map((name) => (
-            <Tabs.Tab key={name} value={name} data-testid={`tab-${name}`}>
-              {t(`web:server.tabs.${name}`)}
-            </Tabs.Tab>
-          ))}
-        </Tabs.List>
+        <ScrollArea type="never" scrollbars="x">
+          <Tabs.List style={{ flexWrap: 'nowrap', minWidth: 'max-content' }}>
+            {SERVER_TABS.map((name) => (
+              <Tabs.Tab key={name} value={name} data-testid={`tab-${name}`}>
+                {t(`web:server.tabs.${name}`)}
+              </Tabs.Tab>
+            ))}
+          </Tabs.List>
+        </ScrollArea>
         <Tabs.Panel value="overview" pt="md">
           <Overview server={s} />
         </Tabs.Panel>
@@ -398,7 +355,24 @@ export function ServerPage({ serverId, tab }: { serverId: string; tab: ServerTab
           </Suspense>
         </Tabs.Panel>
         <Tabs.Panel value="players" pt="md">
-          <Players server={s} />
+          <Suspense fallback={<Loader size="sm" />}>
+            <PlayersPanel server={s} />
+          </Suspense>
+        </Tabs.Panel>
+        <Tabs.Panel value="config" pt="md">
+          <Suspense fallback={<Loader size="sm" />}>
+            <PropertiesEditor server={s} />
+          </Suspense>
+        </Tabs.Panel>
+        <Tabs.Panel value="files" pt="md">
+          <Suspense fallback={<Loader size="sm" />}>
+            <FileExplorer server={s} />
+          </Suspense>
+        </Tabs.Panel>
+        <Tabs.Panel value="logs" pt="md">
+          <Suspense fallback={<Loader size="sm" />}>
+            <LogsPanel server={s} />
+          </Suspense>
         </Tabs.Panel>
         <Tabs.Panel value="events" pt="md">
           {events.isPending ? (

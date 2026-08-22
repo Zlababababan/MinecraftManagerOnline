@@ -51,3 +51,14 @@ export function ago(ts: number | null | undefined, now: number): string | undefi
   if (ts === null || ts === undefined) return undefined;
   return formatDuration(now - ts);
 }
+
+/** Taille en octets lisible (`12 B`, `3.4 KB`, `1.2 MB`). */
+export function formatBytes(bytes: number | null | undefined): string {
+  if (bytes === null || bytes === undefined) return '—';
+  if (bytes < 1024) return `${String(bytes)} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(kb >= 100 ? 0 : 1)} KB`;
+  const mb = kb / 1024;
+  if (mb < 1024) return `${mb.toFixed(mb >= 100 ? 0 : 1)} MB`;
+  return `${(mb / 1024).toFixed(2)} GB`;
+}

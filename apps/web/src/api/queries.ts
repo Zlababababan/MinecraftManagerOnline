@@ -5,14 +5,22 @@ import {
   useQuery,
   useQueryClient,
   type QueryClient,
+  type UseQueryResult,
 } from '@tanstack/react-query';
 import type { z } from 'zod';
 
-import type { ConsoleLine } from '@mmo/protocol';
+import type { ConfigData, ConfigFile, ConfigSetData, ConsoleLine } from '@mmo/protocol';
 import type {
+  ConfigSetResult,
   EventDto,
+  FsEntryDto,
+  FsReadResult,
+  LogsSearchRequest,
   MachineDto,
   PairingCodeDto,
+  PlayerActionRequest,
+  PlayerSessionDto,
+  ResolvedPlayerDto,
   ServerConflictDto,
   ServerDto,
   UserDto,
@@ -20,6 +28,7 @@ import type {
   commandHistoryItemSchema,
   createMachineSchema,
   createServerSchema,
+  fsMoveBodySchema,
   loginRequestSchema,
   playerOnlineDtoSchema,
   resolveConflictSchema,
@@ -48,7 +57,22 @@ export const keys = {
   players: (id: string) => ['servers', id, 'players'] as const,
   commandHistory: (id: string) => ['servers', id, 'command-history'] as const,
   events: (filter: EventsFilter) => ['events', filter] as const,
+  // Phase 6
+  config: (id: string, file: ConfigFile) => ['servers', id, 'config', file] as const,
+  configAll: (id: string) => ['servers', id, 'config'] as const,
+  playerHistory: (id: string) => ['servers', id, 'player-history'] as const,
+  files: (id: string, path: string) => ['servers', id, 'files', path] as const,
+  filesAll: (id: string) => ['servers', id, 'files'] as const,
+  fileRead: (id: string, path: string) => ['servers', id, 'file', path] as const,
+  logFiles: (id: string) => ['servers', id, 'logs'] as const,
 };
+
+export interface ConfigGetResult<F extends ConfigFile> {
+  file: F;
+  data: ConfigData<F>;
+  sha256?: string;
+  source: 'file' | 'live';
+}
 
 export type PlayerDto = z.infer<typeof playerOnlineDtoSchema>;
 export type CommandHistoryItem = z.infer<typeof commandHistoryItemSchema>;
@@ -134,6 +158,59 @@ export const commandHistoryQuery = (id: string) =>
     staleTime: 60_000,
   });
 
+export const configQuery = <F extends ConfigFile>(id: string, file: F) =>
+  queryOptions({
+    queryKey: keys.config(id, file),
+    queryFn: ({ signal }) =>
+      api.get<ConfigGetResult<F>>(`/api/servers/${id}/config/${file}`, signal),
+    staleTime: 10_000,
+  });
+
+export const playerHistoryQuery = (id: string, limit = 100) =>
+  queryOptions({
+    queryKey: keys.playerHistory(id),
+    queryFn: ({ signal }) =>
+      api.get<{ sessions: PlayerSessionDto[] }>(
+        `/api/servers/${id}/players/history?limit=${String(limit)}`,
+        signal,
+      ),
+    staleTime: 10_000,
+  });
+
+export const filesQuery = (id: string, path: string) =>
+  queryOptions({
+    queryKey: keys.files(id, path),
+    queryFn: ({ signal }) =>
+      api.get<{ path: string; entries: FsEntryDto[] }>(
+        `/api/servers/${id}/files?path=${encodeURIComponent(path)}`,
+        signal,
+      ),
+    staleTime: 10_000,
+  });
+
+export const fileReadQuery = (id: string, path: string) =>
+  queryOptions({
+    queryKey: keys.fileRead(id, path),
+    queryFn: ({ signal }) =>
+      api.get<FsReadResult>(
+        `/api/servers/${id}/files/read?path=${encodeURIComponent(path)}`,
+        signal,
+      ),
+    staleTime: 0,
+    gcTime: 0,
+  });
+
+export const logFilesQuery = (id: string) =>
+  queryOptions({
+    queryKey: keys.logFiles(id),
+    queryFn: ({ signal }) =>
+      api.get<{ files: { name: string; sizeBytes: number; modifiedAt: number }[] }>(
+        `/api/servers/${id}/logs`,
+        signal,
+      ),
+    staleTime: 30_000,
+  });
+
 // --- Hooks -------------------------------------------------------------------------------------
 
 export const useMe = () => useQuery(meQuery);
@@ -145,6 +222,16 @@ export const useConflicts = () => useQuery(conflictsQuery);
 export const useEvents = (filter: EventsFilter) => useQuery(eventsQuery(filter));
 export const usePlayers = (id: string, enabled = true) =>
   useQuery({ ...playersQuery(id), enabled, refetchInterval: enabled ? 15_000 : false });
+export const useConfigFile = <F extends ConfigFile>(
+  id: string,
+  file: F,
+  enabled = true,
+): UseQueryResult<ConfigGetResult<F>> => useQuery({ ...configQuery(id, file), enabled });
+export const usePlayerHistory = (id: string) => useQuery(playerHistoryQuery(id));
+export const useFiles = (id: string, path: string) => useQuery(filesQuery(id, path));
+export const useFileRead = (id: string, path: string | undefined) =>
+  useQuery({ ...fileReadQuery(id, path ?? ''), enabled: path !== undefined });
+export const useLogFiles = (id: string) => useQuery(logFilesQuery(id));
 
 // --- Mutations ---------------------------------------------------------------------------------
 
@@ -362,4 +449,95 @@ export function consoleSnapshot(serverId: string, sinceSeq?: number) {
   return api.get<{ lines: ConsoleLine[]; truncated: boolean; latestSeq: number }>(
     `/api/servers/${serverId}/console${qs}`,
   );
+}
+
+// --- Phase 6 : configuration, joueurs, fichiers, journaux -----------------------------------------
+
+type FsMove = z.infer<typeof fsMoveBodySchema>;
+
+export function useSetConfig<F extends ConfigFile>(serverId: string, file: F) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { data: ConfigSetData<F>; expectedSha256?: string | undefined }) =>
+      api.put<ConfigSetResult>(`/api/servers/${serverId}/config/${file}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.config(serverId, file) }),
+  });
+}
+
+export function useResolvePlayers(serverId: string) {
+  return useMutation({
+    mutationFn: (names: string[]) =>
+      api.post<{ players: ResolvedPlayerDto[]; onlineMode: boolean }>(
+        `/api/servers/${serverId}/players/resolve`,
+        { names },
+      ),
+  });
+}
+
+export interface PlayerActionResult {
+  applied: 'file' | 'commands';
+  response?: string;
+  warnings?: string[];
+}
+
+export function usePlayerAction(serverId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: PlayerActionRequest) =>
+      api.post<PlayerActionResult>(`/api/servers/${serverId}/players/action`, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: keys.configAll(serverId) });
+      void qc.invalidateQueries({ queryKey: keys.players(serverId) });
+    },
+  });
+}
+
+export function useFileMutations(serverId: string) {
+  const qc = useQueryClient();
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: keys.filesAll(serverId) });
+  };
+  const mkdir = useMutation({
+    mutationFn: (path: string) => api.post(`/api/servers/${serverId}/files/mkdir`, { path }),
+    onSuccess: refresh,
+  });
+  const rename = useMutation({
+    mutationFn: (body: FsMove) => api.post(`/api/servers/${serverId}/files/rename`, body),
+    onSuccess: refresh,
+  });
+  const copy = useMutation({
+    mutationFn: (body: FsMove) => api.post(`/api/servers/${serverId}/files/copy`, body),
+    onSuccess: refresh,
+  });
+  const remove = useMutation({
+    mutationFn: (path: string) =>
+      api.post<{ trashedAs: string }>(`/api/servers/${serverId}/files/delete`, { path }),
+    onSuccess: refresh,
+  });
+  const write = useMutation({
+    mutationFn: (body: { path: string; content: string; expectedSha256?: string | undefined }) =>
+      api.put<{ sha256: string }>(`/api/servers/${serverId}/files/write`, body),
+    onSuccess: (_data, body) => {
+      refresh();
+      void qc.invalidateQueries({ queryKey: keys.fileRead(serverId, body.path) });
+      void qc.invalidateQueries({ queryKey: keys.configAll(serverId) });
+    },
+  });
+  return { mkdir, rename, copy, remove, write };
+}
+
+export interface LogMatch {
+  file: string;
+  line: number;
+  text: string;
+}
+
+export function useLogSearch(serverId: string) {
+  return useMutation({
+    mutationFn: (body: LogsSearchRequest) =>
+      api.post<{ matches: LogMatch[]; truncated: boolean }>(
+        `/api/servers/${serverId}/logs/search`,
+        body,
+      ),
+  });
 }

@@ -60,6 +60,19 @@ const INVALIDATING_EVENTS: Record<string, readonly (readonly string[])[]> = {
   'player.left': [],
 };
 
+/** Événements liés à un serveur qui invalident des données de ce serveur (phase 6). */
+const SERVER_SCOPED_INVALIDATIONS: Record<
+  string,
+  readonly ((serverId: string) => readonly string[])[]
+> = {
+  'player.joined': [keys.players, keys.playerHistory],
+  'player.left': [keys.players, keys.playerHistory],
+  'player.action': [keys.players, keys.configAll],
+  'server.configChanged': [keys.configAll, keys.filesAll],
+  'server.fileChanged': [keys.filesAll, keys.configAll],
+  'server.stateChanged': [keys.playerHistory],
+};
+
 export function applyServerMessage(queryClient: QueryClient, message: ServerMessage): void {
   const store = useRealtimeStore.getState();
   switch (message.type) {
@@ -114,8 +127,8 @@ export function applyServerMessage(queryClient: QueryClient, message: ServerMess
       }
       if (event.serverId !== null) {
         void queryClient.invalidateQueries({ queryKey: ['events'] });
-        if (event.type === 'player.joined' || event.type === 'player.left') {
-          void queryClient.invalidateQueries({ queryKey: keys.players(event.serverId) });
+        for (const key of SERVER_SCOPED_INVALIDATIONS[event.type] ?? []) {
+          void queryClient.invalidateQueries({ queryKey: key(event.serverId) });
         }
       } else {
         void queryClient.invalidateQueries({ queryKey: ['events'] });

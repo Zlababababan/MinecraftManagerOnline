@@ -83,5 +83,6 @@ export const api = {
     request<T>('GET', url, signal === undefined ? {} : { signal }),
   post: <T>(url: string, body?: unknown) => request<T>('POST', url, { body }),
   patch: <T>(url: string, body: unknown) => request<T>('PATCH', url, { body }),
+  put: <T>(url: string, body: unknown) => request<T>('PUT', url, { body }),
   delete: <T = void>(url: string) => request<T>('DELETE', url),
 };
