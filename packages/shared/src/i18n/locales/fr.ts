@@ -36,6 +36,55 @@ export const fr = {
     yes: 'Oui',
     no: 'Non',
     unknown: 'Inconnu',
+    notify: {
+      serverCrashed: { title: '{{server}} a planté', body: 'Le serveur a planté sur {{machine}}.' },
+      serverStartFailed: {
+        title: 'Échec du démarrage de {{server}}',
+        body: 'Démarrage échoué sur {{machine}} : {{reason}}',
+      },
+      watchdogAlert: {
+        title: 'Watchdog : {{server}}',
+        body: '{{kind}} → {{action}} ({{machine}})',
+      },
+      agentOffline: {
+        title: '{{machine}} est hors ligne',
+        body: "L'agent a perdu sa connexion au panel.",
+      },
+      taskFailed: { title: 'Tâche échouée : {{kind}}', body: '{{server}} · {{reason}}' },
+      backupFailed: { title: 'Sauvegarde échouée : {{server}}', body: '{{reason}}' },
+      migrationDone: {
+        title: 'Migration terminée : {{server}}',
+        body: 'Désormais hébergé sur {{machine}}.',
+      },
+      migrationFailed: { title: 'Migration échouée : {{server}}', body: '{{reason}}' },
+      agentUpdateApplied: {
+        title: 'Agent mis à jour : {{machine}}',
+        body: 'La version {{version}} est en service.',
+      },
+      agentUpdateRolledBack: {
+        title: "Mise à jour d'agent annulée : {{machine}}",
+        body: 'Retour à {{version}} : {{reason}}',
+      },
+      scheduleFailed: { title: 'Tâche planifiée échouée', body: '{{server}} · {{action}}' },
+      portConflict: {
+        title: 'Conflit de port sur {{machine}}',
+        body: 'Le port {{port}} est déjà utilisé.',
+      },
+      serverRunning: { title: '{{server}} est en marche', body: 'Démarré sur {{machine}}.' },
+      serverStopped: { title: '{{server}} est arrêté', body: 'Arrêté sur {{machine}}.' },
+      playerJoined: {
+        title: '{{player}} a rejoint {{server}}',
+        body: '{{online}} joueur(s) en ligne.',
+      },
+      playerLeft: {
+        title: '{{player}} a quitté {{server}}',
+        body: '{{online}} joueur(s) en ligne.',
+      },
+      test: {
+        title: 'Notification de test',
+        body: 'Les notifications push fonctionnent sur cet appareil.',
+      },
+    },
   },
   errors: {
     E_AUTH: 'Échec de l’authentification.',
@@ -68,6 +117,12 @@ export const fr = {
     E_AGENT_OFFLINE: 'L’agent de cette machine n’est pas connecté.',
     E_VALIDATION: 'Saisie invalide.',
     E_NO_RELEASE: 'Aucune release d’agent publiée sur ce panel.',
+    E_PUSH_DISABLED:
+      'Les notifications push ne sont pas configurées sur ce panel (clés VAPID absentes).',
+    E_ACCESS_NOT_CONFIGURED:
+      "La couche d'accès n'est pas configurée (domaine, fournisseur DNS ou URL publique manquants).",
+    E_ACME_FAILED: 'Demande de certificat échouée : {{reason}}',
+    E_DNS_FAILED: 'Mise à jour DNS échouée : {{reason}}',
   },
   detection: {
     source: {

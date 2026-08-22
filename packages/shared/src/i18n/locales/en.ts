@@ -37,6 +37,41 @@ export const en = {
     yes: 'Yes',
     no: 'No',
     unknown: 'Unknown',
+    /** Phase 10 : textes des notifications push (localisés par le panel selon le destinataire). */
+    notify: {
+      serverCrashed: { title: '{{server}} crashed', body: 'The server crashed on {{machine}}.' },
+      serverStartFailed: {
+        title: '{{server}} failed to start',
+        body: 'Start failed on {{machine}}: {{reason}}',
+      },
+      watchdogAlert: { title: 'Watchdog: {{server}}', body: '{{kind}} → {{action}} ({{machine}})' },
+      agentOffline: {
+        title: '{{machine}} is offline',
+        body: 'The agent lost its connection to the panel.',
+      },
+      taskFailed: { title: 'Task failed: {{kind}}', body: '{{server}} · {{reason}}' },
+      backupFailed: { title: 'Backup failed: {{server}}', body: '{{reason}}' },
+      migrationDone: { title: 'Migration done: {{server}}', body: 'Now hosted on {{machine}}.' },
+      migrationFailed: { title: 'Migration failed: {{server}}', body: '{{reason}}' },
+      agentUpdateApplied: {
+        title: 'Agent updated: {{machine}}',
+        body: 'Version {{version}} is running.',
+      },
+      agentUpdateRolledBack: {
+        title: 'Agent update rolled back: {{machine}}',
+        body: 'Back to {{version}}: {{reason}}',
+      },
+      scheduleFailed: { title: 'Scheduled task failed', body: '{{server}} · {{action}}' },
+      portConflict: {
+        title: 'Port conflict on {{machine}}',
+        body: 'Port {{port}} is already in use.',
+      },
+      serverRunning: { title: '{{server}} is running', body: 'Started on {{machine}}.' },
+      serverStopped: { title: '{{server}} stopped', body: 'Stopped on {{machine}}.' },
+      playerJoined: { title: '{{player}} joined {{server}}', body: '{{online}} player(s) online.' },
+      playerLeft: { title: '{{player}} left {{server}}', body: '{{online}} player(s) online.' },
+      test: { title: 'Test notification', body: 'Push notifications work on this device.' },
+    },
   },
   errors: {
     E_AUTH: 'Authentication failed.',
@@ -68,6 +103,11 @@ export const en = {
     E_AGENT_OFFLINE: 'The agent of this machine is not connected.',
     E_VALIDATION: 'Invalid input.',
     E_NO_RELEASE: 'No agent release published on this panel.',
+    E_PUSH_DISABLED: 'Push notifications are not configured on this panel (VAPID keys missing).',
+    E_ACCESS_NOT_CONFIGURED:
+      'The access layer is not configured (domain, DNS provider or public URL missing).',
+    E_ACME_FAILED: 'Certificate request failed: {{reason}}',
+    E_DNS_FAILED: 'DNS update failed: {{reason}}',
   },
   detection: {
     source: {

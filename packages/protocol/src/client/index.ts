@@ -54,6 +54,11 @@ export const PANEL_ERROR_CODES = [
   'E_VALIDATION',
   /** Phase 9 : aucune release d'agent publiée / bundle introuvable. */
   'E_NO_RELEASE',
+  /** Phase 10 : push non configuré (VAPID absent) ; accès non configuré (domaine/fournisseur) ; ACME/DNS en échec. */
+  'E_PUSH_DISABLED',
+  'E_ACCESS_NOT_CONFIGURED',
+  'E_ACME_FAILED',
+  'E_DNS_FAILED',
 ] as const;
 export const API_ERROR_CODES = [...ERROR_CODES, ...PANEL_ERROR_CODES] as const;
 export const apiErrorCodeSchema = z.enum(API_ERROR_CODES);
@@ -161,6 +166,10 @@ export const machineDtoSchema = z.object({
   runtimeVersion: z.string().nullable().optional(),
   latestRelease: z.string().nullable().optional(),
   updateAvailable: z.boolean().optional(),
+  /** Phase 10 : adresses remontées par l'agent et surcharges manuelles (adresse à donner aux amis). */
+  addresses: z.object({ tailnet: z.array(z.string()), global: z.array(z.string()) }).optional(),
+  tailnetHost: z.string().nullable().optional(),
+  publicHost: z.string().nullable().optional(),
   heartbeat: machineHeartbeatDtoSchema.optional(),
   watchedDirectories: z.array(
     z.object({
@@ -177,6 +186,9 @@ export const createMachineSchema = z.object({ name: z.string().min(1).max(64) })
 export const updateMachineSchema = z.object({
   name: z.string().min(1).max(64).optional(),
   disabled: z.boolean().optional(),
+  /** Phase 10 : nom MagicDNS / IP tailnet et hôte public (domaine ou IPv6) — null = détection. */
+  tailnetHost: z.string().max(253).nullable().optional(),
+  publicHost: z.string().max(253).nullable().optional(),
 });
 export const pairingCodeDtoSchema = z.object({
   machineId: z.string(),
@@ -723,8 +735,280 @@ export const EDITABLE_SETTINGS = [
   'metrics.intervalSec',
   /** Phase 9 : mise à jour automatique des agents à la connexion ('1'/'0'). */
   'agents.autoUpdate',
+  /** Phase 10 : couche d'accès (doc 03 §5). Les secrets (`access.dns.token`) ne ressortent jamais. */
+  'access.domain',
+  'access.httpsPort',
+  'access.dns.provider',
+  'access.dns.token',
+  'access.dns.zone',
+  'access.dns.updateUrl',
+  'access.acme.email',
+  'access.acme.directory',
+  'access.dyndns.enabled',
+  'access.publicHost',
 ] as const;
 export const settingsPatchSchema = z.partialRecord(z.enum(EDITABLE_SETTINGS), z.string());
+
+// --- Phase 10 : notifications (push + centre in-app) -------------------------------------------------
+
+/**
+ * Types de notification (préférences `notification_prefs.event_type`) : une catégorie regroupe un ou
+ * plusieurs événements du bus. `defaultOn` = activé tant que l'utilisateur n'a rien choisi.
+ */
+export const NOTIFICATION_TYPES = [
+  'server.crashed',
+  'server.startFailed',
+  'watchdog.alert',
+  'agent.offline',
+  'task.failed',
+  'backup.failed',
+  'migration',
+  'agent.update',
+  'schedule.failed',
+  'port.conflict',
+  'server.state',
+  'player.activity',
+] as const;
+export const notificationTypeSchema = z.enum(NOTIFICATION_TYPES);
+export type NotificationType = z.infer<typeof notificationTypeSchema>;
+export const NOTIFICATION_DEFAULTS: Readonly<Record<NotificationType, boolean>> = {
+  'server.crashed': true,
+  'server.startFailed': true,
+  'watchdog.alert': true,
+  'agent.offline': true,
+  'task.failed': true,
+  'backup.failed': true,
+  migration: true,
+  'agent.update': true,
+  'schedule.failed': true,
+  'port.conflict': true,
+  'server.state': false,
+  'player.activity': false,
+};
+
+/** Catégorie de notification d'un événement du bus (`undefined` = jamais notifié). */
+export function notificationTypeOf(event: {
+  type: string;
+  severity: string;
+  payload?: unknown;
+}): NotificationType | undefined {
+  const payload = (event.payload ?? {}) as Record<string, unknown>;
+  switch (event.type) {
+    case 'server.stateChanged':
+      return payload.state === 'crashed' || payload.runState === 'crashed'
+        ? 'server.crashed'
+        : payload.state === 'running' || payload.state === 'stopped'
+          ? 'server.state'
+          : undefined;
+    case 'server.startFailed':
+      return 'server.startFailed';
+    case 'watchdog.alert':
+      return 'watchdog.alert';
+    case 'agent.offline':
+      return 'agent.offline';
+    case 'task.failed':
+      return typeof payload.kind === 'string' && payload.kind.startsWith('backup.')
+        ? 'backup.failed'
+        : 'task.failed';
+    case 'migration.done':
+    case 'migration.failed':
+      return 'migration';
+    case 'agent.updateApplied':
+    case 'agent.updateRolledBack':
+      return 'agent.update';
+    case 'schedule.run':
+      return event.severity === 'info' ? undefined : 'schedule.failed';
+    case 'port.conflict':
+      return 'port.conflict';
+    case 'player.joined':
+    case 'player.left':
+      return 'player.activity';
+    default:
+      return undefined;
+  }
+}
+
+export const notificationPrefsDtoSchema = z.record(notificationTypeSchema, z.boolean());
+export type NotificationPrefsDto = z.infer<typeof notificationPrefsDtoSchema>;
+export const notificationPrefsPutSchema = z.partialRecord(notificationTypeSchema, z.boolean());
+
+export const notificationsQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(200).optional(),
+});
+export const notificationsResultSchema = z.object({
+  notifications: z.array(eventDtoSchema),
+  unread: z.int().nonnegative(),
+  seenId: z.int().nonnegative(),
+});
+export type NotificationsResult = z.infer<typeof notificationsResultSchema>;
+export const notificationsSeenSchema = z.object({ id: z.int().nonnegative() });
+
+export const pushSubscribeSchema = z.object({
+  endpoint: z.url().max(2048),
+  keys: z.object({ p256dh: z.string().min(1).max(256), auth: z.string().min(1).max(64) }),
+  userAgent: z.string().max(512).optional(),
+});
+export type PushSubscribeInput = z.infer<typeof pushSubscribeSchema>;
+export const pushUnsubscribeSchema = z.object({ endpoint: z.url().max(2048) });
+export const pushSubscriptionDtoSchema = z.object({
+  id: z.int(),
+  /** Endpoint tronqué (hôte + début du chemin) : jamais l'URL complète côté UI. */
+  endpoint: z.string(),
+  userAgent: z.string().nullable(),
+  createdAt: epochMsSchema,
+  lastSeenAt: epochMsSchema.nullable(),
+  lastSuccessAt: epochMsSchema.nullable(),
+  failCount: z.int(),
+});
+export type PushSubscriptionDto = z.infer<typeof pushSubscriptionDtoSchema>;
+export const pushStatusDtoSchema = z.object({
+  /** Clé publique VAPID (base64url, point non compressé) — `null` tant que le setup n'a pas tourné. */
+  vapidPublicKey: z.string().nullable(),
+  subscriptions: z.array(pushSubscriptionDtoSchema),
+});
+export type PushStatusDto = z.infer<typeof pushStatusDtoSchema>;
+
+/** Contenu chiffré d'un push (JSON) — interprété par le service worker. */
+export const pushPayloadSchema = z.object({
+  title: z.string(),
+  body: z.string(),
+  url: z.string(),
+  tag: z.string().optional(),
+  eventId: z.int().optional(),
+  ts: epochMsSchema,
+  locale: localeSchema.optional(),
+});
+export type PushPayload = z.infer<typeof pushPayloadSchema>;
+
+// --- Phase 10 : couche d'accès ----------------------------------------------------------------------
+
+export const accessModeSchema = z.enum(['tailscale', 'direct', 'manual']);
+export type AccessMode = z.infer<typeof accessModeSchema>;
+/** Fournisseurs DNS du mode direct (DNS-01 + DynDNS) : `generic` = URL de mise à jour seule (pas de DNS-01). */
+export const dnsProviderSchema = z.enum(['manual', 'duckdns', 'cloudflare', 'generic']);
+export type DnsProvider = z.infer<typeof dnsProviderSchema>;
+
+export const certificateDtoSchema = z.object({
+  subject: z.string(),
+  issuer: z.string(),
+  validFrom: epochMsSchema,
+  validTo: epochMsSchema,
+  /** Noms couverts (SAN). */
+  names: z.array(z.string()),
+  daysLeft: z.number(),
+});
+export type CertificateDto = z.infer<typeof certificateDtoSchema>;
+
+export const accessStatusDtoSchema = z.object({
+  mode: accessModeSchema,
+  publicUrl: z.string().nullable(),
+  /** Adresse d'écoute réelle du panel (HTTP) et port HTTPS du mode direct. */
+  listen: z.object({ host: z.string(), port: z.int() }),
+  https: z.object({ listening: z.boolean(), port: z.int().nullable() }),
+  /** Mode tailscale : commande `tailscale serve` à exécuter une fois. */
+  tailscaleServeCommand: z.string().nullable(),
+  /** Mode direct. */
+  direct: z
+    .object({
+      domain: z.string().nullable(),
+      dnsProvider: dnsProviderSchema,
+      dnsTokenSet: z.boolean(),
+      acmeEmail: z.string().nullable(),
+      acmeDirectory: z.string(),
+      certificate: certificateDtoSchema.nullable(),
+      certificateError: z.string().nullable(),
+      dyndns: z.object({
+        enabled: z.boolean(),
+        currentAddress: z.string().nullable(),
+        publishedAddress: z.string().nullable(),
+        lastUpdateAt: epochMsSchema.nullable(),
+        lastError: z.string().nullable(),
+      }),
+      /** Jeton TXT en attente pour un DNS-01 manuel (`_acme-challenge.<domaine>`). */
+      pendingChallenge: z.object({ name: z.string(), value: z.string() }).nullable(),
+    })
+    .nullable(),
+  /** Le dernier test de joignabilité (admin), s'il y en a eu un. */
+  lastTest: z.object({ at: epochMsSchema, ok: z.boolean(), via: z.string().nullable() }).nullable(),
+  /** Cette requête est arrivée derrière un reverse-proxy (X-Forwarded-*) / tailscale serve. */
+  requestVia: z.enum(['tailscale', 'proxy', 'direct']),
+});
+export type AccessStatusDto = z.infer<typeof accessStatusDtoSchema>;
+
+export const accessTestRequestSchema = z.object({
+  /** URL à tester (défaut : `panel.publicUrl`). */
+  url: z.url().optional(),
+});
+export const accessTestResultSchema = z.object({
+  url: z.string(),
+  http: z.object({
+    ok: z.boolean(),
+    status: z.int().nullable(),
+    ms: z.int(),
+    error: z.string().nullable(),
+  }),
+  ws: z.object({ ok: z.boolean(), ms: z.int(), error: z.string().nullable() }),
+  /** Frame binaire (64 KiB aléatoires) renvoyée intacte par `/ws/probe`. */
+  binary: z.object({ ok: z.boolean(), bytes: z.int(), error: z.string().nullable() }),
+  tls: z.object({ ok: z.boolean(), issuer: z.string().nullable(), error: z.string().nullable() }),
+  via: z.string().nullable(),
+  ok: z.boolean(),
+});
+export type AccessTestResult = z.infer<typeof accessTestResultSchema>;
+
+export const firewallRulesDtoSchema = z.object({
+  /** Règles à poser sur l'hôte du panel (mode direct) et, par serveur exposé en direct, sur sa machine. */
+  panel: z.object({ os: z.string(), port: z.int(), commands: z.array(z.string()) }).nullable(),
+  servers: z.array(
+    z.object({
+      serverId: z.string(),
+      name: z.string(),
+      machineId: z.string(),
+      machineName: z.string(),
+      os: z.string().nullable(),
+      port: z.int().nullable(),
+      commands: z.array(z.string()),
+    }),
+  ),
+  /** Rappel : ouvrir aussi les « pinholes » IPv6 de la box pour ces ports. */
+  boxNote: z.boolean(),
+});
+export type FirewallRulesDto = z.infer<typeof firewallRulesDtoSchema>;
+
+/** Adresse(s) à donner aux amis pour un serveur, selon son `exposeMode`. */
+export const serverAddressDtoSchema = z.object({
+  exposeMode: z.enum(['tailnet', 'direct']),
+  /** Adresse retenue (`host:port`, IPv6 entre crochets) — `null` si rien n'est connu. */
+  address: z.string().nullable(),
+  host: z.string().nullable(),
+  port: z.int().nullable(),
+  /** Origine de l'hôte : surcharge manuelle, domaine du panel, adresse détectée par l'agent. */
+  source: z.enum(['machine', 'domain', 'detected', 'none']),
+  alternatives: z.array(z.string()),
+});
+export type ServerAddressDto = z.infer<typeof serverAddressDtoSchema>;
+
+export const reachabilityRequestSchema = z.object({
+  /** Adresse à tester (défaut : celle calculée). */
+  address: z.string().min(1).max(300).optional(),
+});
+export const reachabilityResultSchema = z.object({
+  address: z.string(),
+  ok: z.boolean(),
+  ms: z.int(),
+  error: z.string().nullable(),
+  /** Réponse Server List Ping (si le serveur a répondu). */
+  status: z
+    .object({
+      version: z.string().nullable(),
+      protocol: z.int().nullable(),
+      online: z.int().nullable(),
+      max: z.int().nullable(),
+      motd: z.string().nullable(),
+    })
+    .nullable(),
+});
+export type ReachabilityResult = z.infer<typeof reachabilityResultSchema>;
 
 // --- WebSocket /ws/client ----------------------------------------------------------------------------
 

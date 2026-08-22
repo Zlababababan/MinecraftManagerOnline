@@ -97,6 +97,17 @@ export const machineInfoSchema = z.object({
   cpuModel: z.string().optional(),
   cpuCores: z.int().positive().optional(),
   ramTotalMb: z.int().positive().optional(),
+  /**
+   * Phase 10 : adresses utiles pour « l'adresse à donner aux amis » (doc 03 §5). `tailnet` =
+   * interfaces 100.64.0.0/10 et fd7a:115c:a1e0::/48 ; `global` = IPv6 unicast globale (2000::/3)
+   * et IPv4 publique. Jamais présumé : listes vides si rien n'est détecté.
+   */
+  addresses: z
+    .object({
+      tailnet: z.array(z.string()).default([]),
+      global: z.array(z.string()).default([]),
+    })
+    .optional(),
 });
 
 /** Objet vide tolérant : `{}` accepté, champs inconnus ignorés. */

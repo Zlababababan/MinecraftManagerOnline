@@ -67,7 +67,7 @@ describe('AgentUpdater', () => {
     const exits: number[] = [];
     const updater = new AgentUpdater({
       home,
-      currentVersion: '0.9.0',
+      currentVersion: '0.10.0',
       logger,
       publicKeys: [k.pub],
       panelOrigin: () => origin,
@@ -82,7 +82,7 @@ describe('AgentUpdater', () => {
       sha256: sha(bundle),
       signature: k.signOf(bundle),
     });
-    expect(res).toEqual({ accepted: true, currentVersion: '0.9.0', alreadyCurrent: false });
+    expect(res).toEqual({ accepted: true, currentVersion: '0.10.0', alreadyCurrent: false });
     expect(await readFile(path.join(home, 'versions', '0.9.1', 'agent.js'))).toEqual(bundle);
     expect(
       JSON.parse(await readFile(path.join(home, 'versions', '0.9.1', 'package.json'), 'utf8')),
@@ -91,7 +91,7 @@ describe('AgentUpdater', () => {
     });
     expect(JSON.parse(await readFile(path.join(home, 'next.json'), 'utf8'))).toEqual({
       version: '0.9.1',
-      previous: '0.9.0',
+      previous: '0.10.0',
     });
     await waitFor(() => exits.length === 1);
     expect(exits).toEqual([UPDATE_EXIT_CODE]);
@@ -99,7 +99,7 @@ describe('AgentUpdater', () => {
 
     // Même version que la courante : rien à faire.
     const same = await updater.update({
-      version: '0.9.0',
+      version: '0.10.0',
       url: '/x',
       sha256: 'a'.repeat(64),
       signature: 'AAAA',
@@ -114,7 +114,7 @@ describe('AgentUpdater', () => {
     files.set('/b', bundle);
     const updater = new AgentUpdater({
       home,
-      currentVersion: '0.9.0',
+      currentVersion: '0.10.0',
       logger,
       publicKeys: [k.pub],
       panelOrigin: () => origin,
@@ -144,7 +144,7 @@ describe('AgentUpdater', () => {
   it('sans launcher : refus ; update-result consommé une fois', async () => {
     const noHome = new AgentUpdater({
       home: undefined,
-      currentVersion: '0.9.0',
+      currentVersion: '0.10.0',
       logger,
       panelOrigin: () => origin,
       restart: () => undefined,
@@ -156,7 +156,7 @@ describe('AgentUpdater', () => {
 
     const updater = new AgentUpdater({
       home,
-      currentVersion: '0.9.0',
+      currentVersion: '0.10.0',
       logger,
       panelOrigin: () => origin,
       restart: () => undefined,
@@ -166,7 +166,7 @@ describe('AgentUpdater', () => {
       JSON.stringify({
         kind: 'agent',
         status: 'rolled_back',
-        version: '0.9.0',
+        version: '0.10.0',
         otherVersion: '0.9.1',
         reason: 'crash_loop',
         ts: 5,
@@ -176,7 +176,7 @@ describe('AgentUpdater', () => {
       ts: 5,
       kind: 'agent',
       status: 'rolled_back',
-      version: '0.9.0',
+      version: '0.10.0',
       otherVersion: '0.9.1',
       reason: 'crash_loop',
     });
@@ -193,7 +193,7 @@ describe('AgentUpdater', () => {
     files.set('/node.zip', zip);
     const updater = new AgentUpdater({
       home,
-      currentVersion: '0.9.0',
+      currentVersion: '0.10.0',
       logger,
       panelOrigin: () => origin,
       restart: () => undefined,

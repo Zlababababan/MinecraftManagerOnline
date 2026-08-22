@@ -77,7 +77,47 @@ export function machineInfo(): RequestPayload<'pair.request'>['machine'] {
     ...(cpus[0] === undefined ? {} : { cpuModel: cpus[0].model }),
     ...(cpus.length > 0 ? { cpuCores: cpus.length } : {}),
     ramTotalMb: Math.max(1, Math.round(os.totalmem() / 1048576)),
+    addresses: networkAddresses(),
   };
+}
+
+/**
+ * Phase 10 : adresses utiles aux joueurs (doc 03 §5), sans aucun appel à Tailscale — seulement la
+ * forme des adresses : tailnet = 100.64.0.0/10 (CGNAT réservé à Tailscale) et fd7a:115c:a1e0::/48 ;
+ * global = IPv6 unicast globale 2000::/3 (hors adresses temporaires impossibles à distinguer ici)
+ * et IPv4 non privée. Les adresses link-local et de boucle sont ignorées.
+ */
+export function networkAddresses(
+  interfaces: NodeJS.Dict<os.NetworkInterfaceInfo[]> = os.networkInterfaces(),
+): { tailnet: string[]; global: string[] } {
+  const tailnet: string[] = [];
+  const global: string[] = [];
+  for (const infos of Object.values(interfaces)) {
+    for (const info of infos ?? []) {
+      if (info.internal) continue;
+      if (info.family === 'IPv4') {
+        const [a, b] = info.address.split('.').map(Number);
+        if (a === 100 && b !== undefined && b >= 64 && b <= 127) tailnet.push(info.address);
+        else if (
+          a === 10 ||
+          (a === 192 && b === 168) ||
+          (a === 172 && b !== undefined && b >= 16 && b <= 31)
+        ) {
+          continue;
+        } else if (a === 169 && b === 254) continue;
+        else global.push(info.address);
+      } else {
+        const address = (info.address.split('%')[0] ?? info.address).toLowerCase();
+        if (address.startsWith('fd7a:115c:a1e0:')) tailnet.push(address);
+        else if (/^[23][0-9a-f]{3}:/.test(address)) global.push(address);
+      }
+    }
+  }
+  return { tailnet: unique(tailnet), global: unique(global) };
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values)];
 }
 
 /** Codecs disponibles dans ce runtime (spike n°3 : zstd ≥ Node 22.15, jamais présumé). */
