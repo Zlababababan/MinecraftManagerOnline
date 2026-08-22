@@ -4,12 +4,35 @@ body {
   overscroll-behavior-y: none;
 }
 
+/* Phase 12 (accessibilité) : le texte « dimmed » de Mantine (gray-6 / dark-2) reste sous 4,5:1 ;
+   gray-7 en clair et un gris plus clair en sombre passent WCAG AA sur les fonds de l’app. */
+:root,
+[data-mantine-color-scheme='light'] {
+  --mantine-color-dimmed: var(--mantine-color-gray-7);
+  --mantine-color-placeholder: var(--mantine-color-gray-7);
+}
+
+[data-mantine-color-scheme='dark'] {
+  --mantine-color-dimmed: #a6a7ab;
+  --mantine-color-placeholder: #a6a7ab;
+}
+
 .mmo-bottomnav-item {
   color: var(--mantine-color-dimmed);
 }
 
 [data-active] .mmo-bottomnav-item {
   color: var(--mantine-primary-color-filled);
+}
+
+/* Sombre : la nuance « filled » (teal-9) ne contraste pas assez sur le fond ; teal-4 passe AA. */
+[data-mantine-color-scheme='dark'] [data-active] .mmo-bottomnav-item {
+  color: var(--mantine-color-teal-4);
+}
+
+/* Texte d'avertissement lisible dans les deux thèmes (le jaune/orange de base est sous 3:1 en clair). */
+.mmo-warn-text {
+  color: light-dark(#b8400c, var(--mantine-color-yellow-4));
 }
 
 @supports (padding: env(safe-area-inset-bottom)) {

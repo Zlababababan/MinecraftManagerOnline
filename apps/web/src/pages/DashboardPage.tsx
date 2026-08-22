@@ -107,7 +107,7 @@ export function DashboardPage() {
             <Stack gap="md">
               <MachineHeader machine={machine} now={now} />
               {!machine.connected && machine.status !== 'pending' && mine.length > 0 && (
-                <Text size="sm" c="orange">
+                <Text size="sm" className="mmo-warn-text">
                   {t('web:dashboard.unreachable')}
                 </Text>
               )}

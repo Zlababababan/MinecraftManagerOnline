@@ -40,6 +40,7 @@
     "zustand": "5.0.15"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@mmo/config": "workspace:*",
     "@playwright/test": "1.62.1",
     "@testing-library/jest-dom": "7.0.1",

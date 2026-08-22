@@ -108,7 +108,7 @@ export function PlayerAccessCard({ server }: { server: ServerDto }) {
             </Group>
           ) : (
             address.data !== undefined && (
-              <Text size="sm" c="yellow" data-testid="player-address-none">
+              <Text size="sm" className="mmo-warn-text" data-testid="player-address-none">
                 {t('web:playerAccess.noAddress')}
               </Text>
             )

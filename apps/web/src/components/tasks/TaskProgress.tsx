@@ -123,6 +123,7 @@ export function TaskProgressRow({ task, compact = false }: { task: TaskDto; comp
       {active && (
         <Progress
           value={pct}
+          aria-label={`${String(Math.round(pct))} %`}
           size={compact ? 'xs' : 'sm'}
           animated={task.status === 'running'}
           color={task.status === 'stalled' ? 'orange' : 'blue'}
@@ -149,14 +150,15 @@ export function TasksIndicator() {
   const active = (tasks.data?.tasks ?? []).filter(isActiveTask);
   return (
     <Popover width={340} position="bottom-end" shadow="md" withinPortal>
-      <Popover.Target>
-        <Indicator
-          disabled={active.length === 0}
-          label={active.length}
-          size={16}
-          color="blue"
-          processing
-        >
+      {/* Cible = le bouton (les attributs aria-haspopup/expanded ne sont pas permis sur un div). */}
+      <Indicator
+        disabled={active.length === 0}
+        label={active.length}
+        size={16}
+        color="blue"
+        processing
+      >
+        <Popover.Target>
           <ActionIcon
             variant="subtle"
             aria-label={t('web:tasks.title')}
@@ -165,8 +167,8 @@ export function TasksIndicator() {
           >
             <IconActivity size={18} />
           </ActionIcon>
-        </Indicator>
-      </Popover.Target>
+        </Popover.Target>
+      </Indicator>
       <Popover.Dropdown>
         <Stack gap="sm">
           <Text size="sm" fw={600}>

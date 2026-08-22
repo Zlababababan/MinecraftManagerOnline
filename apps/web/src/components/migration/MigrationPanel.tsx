@@ -350,7 +350,12 @@ export function MigrationsCard({ server }: { server: ServerDto }) {
               </Text>
               <Badge variant="light">{statusLabel(active.status)}</Badge>
             </Group>
-            <Progress value={active.progressPct ?? 0} animated size="sm" />
+            <Progress
+              value={active.progressPct ?? 0}
+              aria-label={`${String(Math.round(active.progressPct ?? 0))} %`}
+              animated
+              size="sm"
+            />
             <Text size="xs" c="dimmed">
               {active.toPath}
               {active.mode === null

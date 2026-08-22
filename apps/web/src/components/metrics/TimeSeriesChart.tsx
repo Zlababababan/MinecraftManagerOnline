@@ -195,6 +195,7 @@ export function TimeSeriesChart({
         height={height}
         viewBox={`0 0 ${String(width)} ${String(height)}`}
         role="img"
+        aria-label={series.map((s) => s.label).join(', ')}
         onMouseMove={onMove}
         onMouseLeave={() => {
           setHover(undefined);

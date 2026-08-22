@@ -158,7 +158,7 @@ export function BackupsPanel({ server }: { server: ServerDto }) {
             })}
           </Text>
           {server.runState === 'running' && (
-            <Text size="sm" c="orange">
+            <Text size="sm" className="mmo-warn-text">
               {t('web:backups.restoreStops')}
             </Text>
           )}

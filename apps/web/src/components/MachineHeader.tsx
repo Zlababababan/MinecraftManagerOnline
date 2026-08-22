@@ -21,6 +21,7 @@ function Gauge({ label, value, text }: { label: string; value: number | undefine
       <Progress
         value={value ?? 0}
         size="xs"
+        aria-label={`${label} ${text}`}
         color={value === undefined ? 'gray' : value > 90 ? 'red' : value > 70 ? 'yellow' : 'teal'}
       />
     </Stack>
