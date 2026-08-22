@@ -10,12 +10,14 @@ import type {
   BackupDto,
   EventDto,
   MachineMetricsResult,
+  MigrationDto,
   ServerMetricsResult,
   ServerMessage,
   TaskDto,
 } from '@mmo/protocol/client';
 
 import { phase8Keys, type BackupsResult } from '../api/phase8.js';
+import { phase9Keys, type MigrationsResult } from '../api/phase9.js';
 import {
   METRICS_RANGE_MS,
   keys,
@@ -77,6 +79,12 @@ const INVALIDATING_EVENTS: Record<string, readonly (readonly string[])[]> = {
   'task.completed': [phase8Keys.tasks],
   'task.failed': [phase8Keys.tasks],
   'schedule.run': [phase8Keys.allSchedules],
+  // Phase 9 : une migration déplace un serveur ; une mise à jour change la version d'un agent.
+  'migration.done': [keys.servers, keys.machines],
+  'migration.failed': [keys.servers],
+  'agent.updatePushed': [keys.machines],
+  'agent.updateApplied': [keys.machines],
+  'agent.updateRolledBack': [keys.machines],
 };
 
 /** Événements liés à un serveur qui invalident des données de ce serveur (phase 6). */
@@ -95,6 +103,8 @@ const SERVER_SCOPED_INVALIDATIONS: Record<
   'task.failed': [phase8Keys.backups, phase8Keys.serverTasks],
   'backup.rotated': [phase8Keys.backups],
   'schedule.run': [phase8Keys.schedules],
+  'migration.done': [phase9Keys.migrations, phase8Keys.backups],
+  'migration.failed': [phase9Keys.migrations, phase8Keys.backups],
 };
 
 export function applyServerMessage(queryClient: QueryClient, message: ServerMessage): void {
@@ -167,6 +177,9 @@ export function applyServerMessage(queryClient: QueryClient, message: ServerMess
       return;
     case 'backup.update':
       applyBackupUpdate(queryClient, message.backup);
+      return;
+    case 'migration.update':
+      applyMigrationUpdate(queryClient, message.migration);
       return;
     case 'console.snapshot':
     case 'console.lines':
@@ -296,4 +309,24 @@ export function applyBackupUpdate(queryClient: QueryClient, backup: BackupDto): 
       return { ...old, backups: backups.filter((b) => b.status !== 'deleted') };
     },
   );
+}
+
+/** Migration mise à jour (statut/progression) : liste du serveur mise à jour en place. */
+export function applyMigrationUpdate(queryClient: QueryClient, migration: MigrationDto): void {
+  queryClient.setQueryData(
+    phase9Keys.migrations(migration.serverId),
+    (old: MigrationsResult | undefined) => {
+      if (old === undefined) return old;
+      const exists = old.migrations.some((m) => m.id === migration.id);
+      return {
+        migrations: exists
+          ? old.migrations.map((m) => (m.id === migration.id ? migration : m))
+          : [migration, ...old.migrations],
+      };
+    },
+  );
+  if (migration.status === 'done' || migration.status === 'failed') {
+    void queryClient.invalidateQueries({ queryKey: keys.server(migration.serverId) });
+    void queryClient.invalidateQueries({ queryKey: keys.servers });
+  }
 }

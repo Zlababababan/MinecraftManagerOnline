@@ -10,6 +10,7 @@ import type { PairingCodeDto } from '@mmo/protocol/client';
 
 import { useConflicts, useCreateMachine, useMachines, useMe, useServers } from '../api/queries.js';
 import { ConflictsPanel } from '../components/ConflictsPanel.js';
+import { ReleasesCard } from '../components/admin/ReleasesCard.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { MachineHeader } from '../components/MachineHeader.js';
 import { PairingCodeCard } from '../components/PairingCodeCard.js';
@@ -126,11 +127,18 @@ export function MachinesPage({ openAdd }: { openAdd: boolean }) {
               <Text size="xs" c="dimmed">
                 {t('web:machine.servers')} : {count ?? '…'} · {t('web:machine.directories')} :{' '}
                 {machine.watchedDirectories.length}
+                {machine.agentVersion === null
+                  ? ''
+                  : ` · ${t('web:machine.agent')} ${machine.agentVersion}`}
+                {machine.updateAvailable === true
+                  ? ` (${t('web:agentUpdate.available', { version: machine.latestRelease ?? '' })})`
+                  : ''}
               </Text>
             </Stack>
           </Card>
         );
       })}
+      {isAdmin && <ReleasesCard />}
       <AddMachineModal
         opened={openAdd && isAdmin}
         onClose={() => {

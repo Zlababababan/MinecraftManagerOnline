@@ -85,4 +85,20 @@ export const api = {
   patch: <T>(url: string, body: unknown) => request<T>('PATCH', url, { body }),
   put: <T>(url: string, body: unknown) => request<T>('PUT', url, { body }),
   delete: <T = void>(url: string) => request<T>('DELETE', url),
+  /** Corps binaire (`application/octet-stream`) — phase 9 : publication d'un bundle d'agent. */
+  putBinary: async <T>(url: string, body: Blob): Promise<T> => {
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/octet-stream' },
+        body,
+      });
+    } catch (error) {
+      throw new NetworkError(error);
+    }
+    if (!res.ok) throw await parseError(res);
+    return (await res.json()) as T;
+  },
 };

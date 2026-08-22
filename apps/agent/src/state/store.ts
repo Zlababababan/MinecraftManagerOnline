@@ -185,13 +185,27 @@ export class StateStore {
     try {
       await mkdir(this.dir, { recursive: true });
       await writeFile(tmp, snapshot, { mode: 0o600 });
-      await rename(tmp, this.file);
+      await renameWithRetry(tmp, this.file);
     } catch (error) {
       // Dossier d'état supprimé sous nos pieds (arrêt de l'agent, nettoyage de test) : rien à persister.
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
       throw error;
     }
     if (this.restrict) await restrictFilePermissions(this.file);
+  }
+}
+
+/** Windows : un antivirus/indexeur peut retenir brièvement le fichier cible (EPERM/EBUSY) — on insiste. */
+async function renameWithRetry(from: string, to: string): Promise<void> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await rename(from, to);
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if ((code !== 'EPERM' && code !== 'EBUSY') || attempt >= 5) throw error;
+      await new Promise((r) => setTimeout(r, 20 * (attempt + 1)));
+    }
   }
 }
 
