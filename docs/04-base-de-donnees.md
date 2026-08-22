@@ -60,6 +60,8 @@ CREATE TABLE notification_prefs (
 
 Extension future sans refonte : `user_server_permissions(user_id, server_id, role)` pour des droits par serveur.
 
+> **Implémentation (phase 10)** — amendements : `users` gagne `notifications_seen_id INTEGER NOT NULL DEFAULT 0` (curseur « vu » du centre de notifications = dernier `events.id` lu) ; `push_subscriptions` gagne `user_agent TEXT` (diagnostic) et `last_seen_at INTEGER` (dernière re-synchronisation par le front), `fail_count` est remis à 0 à chaque succès et l'abonnement est supprimé sur 404/410 ou au 8ᵉ échec consécutif ; un `endpoint` qui se ré-abonne sous un autre compte suit ce compte (upsert). `notification_prefs.event_type` contient une **catégorie** (`NOTIFICATION_TYPES` du protocole client : `server.crashed`, `server.startFailed`, `watchdog.alert`, `agent.offline`, `task.failed`, `backup.failed`, `migration`, `agent.update`, `schedule.failed`, `port.conflict`, `server.state`, `player.activity`), pas un type brut d'événement ; absence de ligne = défaut de la catégorie (toutes activées sauf `server.state` et `player.activity`). Migration `0003_phase10`.
+
 ## 2. Machines, appairage, agent, répertoires, Java
 
 ```sql
@@ -134,6 +136,8 @@ CREATE TABLE java_runtimes (
 );
 CREATE INDEX idx_java_machine ON java_runtimes(machine_id, major_version);
 ```
+
+> **Implémentation (phase 10)** — amendements : `machines` gagne `addresses TEXT` (JSON `{ tailnet: string[], global: string[] }` remonté par l'agent à l'appairage et à chaque `auth.hello`, doc 05 §3), `tailnet_host TEXT` et `public_host TEXT` (surcharges manuelles de « l'adresse à donner aux amis », `PATCH /api/machines/:id`). Migration `0003_phase10`.
 
 > **Implémentation (phase 9)** — amendements : `machines` gagne `runtime_version TEXT` (`auth.hello.runtimeVersion`) ; `java_runtimes` est alimentée par `sync.state.javaRuntimes` / `java.list` (`JavaRuntimesService.sync` : lignes identifiées par `(machine_id, path)`, disparues ⇒ supprimées) et par `java.install` ; `agent_releases` est alimentée par la publication admin (`bundle_path` = `<dataDir>/releases/agent-<version>.js`, sha256 et taille calculés par le panel, signature fournie). Migration `0002_phase9`.
 
@@ -458,5 +462,5 @@ CREATE TABLE metrics_server_1m (
 3. **WAL** : checkpoint `TRUNCATE` périodique en période calme ; paginer les grosses lectures (un long SELECT bloque le checkpoint et fait gonfler le `-wal`).
 4. **Sauvegarde du panel lui-même** : tâche périodique `VACUUM INTO` (jamais de copie de fichier à chaud, jamais de SQLite sur partage réseau). *Phase 8* : `PanelBackupService` — `VACUUM INTO '<dataDir>/backups/panel/mmo-<horodatage>.db'` une fois par jour depuis la maintenance horaire (`backupIfStale`), à la demande via `POST /api/admin/backups` (listage `GET`), 7 copies conservées ; `metrics.db` (reconstituable, volumineux) n'est pas copié.
 5. **Réconciliation** au reconnect d'un agent : comparer le snapshot `sync.state` (vérité terrain) à `run_state`/`desired_state`, corriger, émettre les événements manquants, clôturer les sessions joueurs orphelines.
-6. **Purges planifiées** : sessions expirées, pairing codes consommés, events > rétention, push_subscriptions mortes, command_history > N k lignes/serveur, tasks terminées anciennes.
+6. **Purges planifiées** : sessions expirées, pairing codes consommés, events > rétention, push_subscriptions mortes, command_history > N k lignes/serveur, tasks terminées anciennes. *Phase 10* : les abonnements push morts sont purgés **à la livraison** (404/410 ou 8 échecs), pas par la maintenance horaire. Clés `app_settings` de la couche d'accès : `access.mode`, `access.domain`, `access.httpsPort` (443), `access.publicHost`, `access.dns.provider` (`manual`), `access.dns.token` (**secret**), `access.dns.zone`, `access.dns.updateUrl`, `access.acme.email`, `access.acme.directory`, `access.dyndns.enabled` (`false`) ; l'état runtime (adresse publiée, dernier test, erreurs) vit dans `<dataDir>/tls/state.json`, pas en base.
 7. **Exclusions de scan** : `.mmo-trash/` (corbeille agent) et les destinations de backups situées sous un répertoire surveillé sont exclues du scan, des backups et des migrations (sinon : backup de corbeille, récursion backup-de-backup).

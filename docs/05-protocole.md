@@ -47,6 +47,8 @@ Admin (UI)                Panel                              Agent (nouvelle mac
 
 > **Implémentation (phase 4, panel)** : `POST /api/machines { name }` crée la machine `pending` et retourne le code (affiché une seule fois) + les one-liners d'installation (si `panel.publicUrl` est réglé) ; `POST /api/machines/:id/pairing-codes` régénère. `pair.request` compare le hash, vérifie TTL/usage unique/essais (doc 04 §2 : 5 échecs brûlent les codes actifs), négocie la version (`E_UNSUPPORTED_VERSION` sinon), enregistre `machine` (OS, arch, hostname, CPU, RAM) et répond `{ agentId = machines.id, secret }`. Rotation : `POST /api/machines/:id/rotate-secret` envoie `agent.rotateSecret` **avant** de remplacer le hash (l'ancien reste accepté jusqu'à `graceUntil`). Révocation : `DELETE /api/machines/:id` (session fermée code 4003, secret oublié, serveurs retirés) ou désactivation (`PATCH { disabled: true }`, `E_AUTH` à la prochaine `auth.hello`).
 
+> **Implémentation (phase 10, sans bump)** : `machineInfo` (porté par `pair.request.machine` et `auth.hello.machine`) gagne `addresses?: { tailnet: string[], global: string[] }` — classement purement syntaxique des interfaces par l'agent (`networkAddresses()` : tailnet = 100.64.0.0/10 et fd7a:115c:a1e0::/48, global = 2000::/3 et IPv4 non privée ; link-local, boucle et RFC 1918 ignorées), sans aucun appel à Tailscale. Le panel le stocke dans `machines.addresses` pour « l'adresse à donner aux amis » (doc 03 §5).
+
 ## 4. Authentification et session
 
 `auth.hello` (agent → panel) : `agentId`, `agentSecret`, `agentVersion`, `protoMin/protoMax`, `capabilities` (`rcon`, `zstd`, `direct-transfer`…), `compression` (codecs supportés par le runtime, spike n°3 — le panel choisit et renvoie `compression` dans `auth.ok`), `resume` (tasks en attente, dernier req acquitté), `machine` (hostname, OS, arch, CPU, RAM).
@@ -235,7 +237,7 @@ migration.export (task, source) → transfer.serve (source) → migration.import
 1. TLS : fourni par la couche d'accès (doc 03 §5) — requis de toute façon par la PWA.
 2. **Auth applicative obligatoire même dans le tailnet** (les appareils des amis y sont ; Tailscale authentifie des machines, pas des rôles).
 3. Pas de HMAC par message (canal chiffré + session authentifiée suffisent pour les menaces retenues).
-4. Écoute réseau minimale : panel jamais sur `0.0.0.0` ; listener de migration one-shot, IP privée, token unique. Port RCON bloqué hors machine locale.
+4. Écoute réseau minimale : panel jamais sur `0.0.0.0` ; listener de migration one-shot, IP privée, token unique. Port RCON bloqué hors machine locale. *Phase 10* : `/ws/probe` (public, écho borné à 15 s) sert uniquement au test de joignabilité de la couche d'accès ; le listener HTTPS du mode `direct` ne se lie qu'à une adresse explicite.
 5. Chemins jailés, suppression = corbeille, chaque `req` du panel porte l'`userId` initiateur (audit des deux côtés).
 6. Bundles signés Ed25519 (clé privée hors panel).
 
