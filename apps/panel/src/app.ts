@@ -16,6 +16,7 @@ import { registerMachineRoutes } from './http/routes/machines.js';
 import { registerMiscRoutes } from './http/routes/misc.js';
 import { registerPhase9Routes } from './http/routes/phase9.js';
 import { registerPhase10Routes } from './http/routes/phase10.js';
+import { registerPhase11Routes } from './http/routes/phase11.js';
 import { registerServerRoutes } from './http/routes/servers.js';
 import { registerSetupAndAuthRoutes } from './http/routes/setup-auth.js';
 import { registerTaskRoutes } from './http/routes/tasks.js';
@@ -79,12 +80,22 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   registerTaskRoutes(app, ctx);
   registerPhase9Routes(app, ctx);
   registerPhase10Routes(app, ctx);
+  registerPhase11Routes(app, ctx);
   registerWsRoutes(app, ctx);
 
   // Phase 10 : après `listen`, le listener HTTPS du mode direct délègue au serveur HTTP de Fastify.
   app.addHook('onListen', () => {
     ctx.access.start(app.server);
   });
+  // Phase 11 : manifeste de distribution présent (archive du panel) → release d'agent publiée.
+  await ctx.distribution.syncRelease().then(
+    (published) => {
+      if (published) logger.info('agent release published from distribution manifest');
+    },
+    (error: unknown) => {
+      logger.warn({ err: error }, 'distribution manifest: release sync failed');
+    },
+  );
 
   // Purges planifiées (doc 04 §8.6) : sessions, codes d'appairage, événements, audit, dédup.
   const maintenance = setInterval(() => {

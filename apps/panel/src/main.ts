@@ -3,6 +3,7 @@
  *   MMO_DATA_DIR (défaut ./data) · MMO_HOST (défaut 127.0.0.1, jamais 0.0.0.0) · MMO_PORT (3000)
  *   MMO_COOKIE_SECURE (0/1, sinon déduit de panel.publicUrl) · MMO_MOJANG_MANIFEST (0 = table statique)
  *   MMO_WEB_DIR (défaut apps/web/dist : front servi avec fallback SPA si le dossier existe)
+ *   MMO_DIST_DIR (défaut <data>/dist : archives d'installation de l'agent servies par le panel, phase 11)
  */
 import { buildApp } from './app.js';
 import { configFromEnv } from './config.js';

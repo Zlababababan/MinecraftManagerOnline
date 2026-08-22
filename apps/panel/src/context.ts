@@ -23,6 +23,7 @@ import { JavaResolver } from './services/java.js';
 import { JavaRuntimesService } from './services/java-runtimes.js';
 import { MigrationsService } from './services/migrations.js';
 import { RelayTokens } from './services/relay.js';
+import { DistributionService } from './services/distribution.js';
 import { ReleasesService } from './services/releases.js';
 import { MachinesService } from './services/machines.js';
 import { MetricsService } from './services/metrics.js';
@@ -71,6 +72,8 @@ export interface AppContext {
   /** Phase 10 : notifications (push + centre) et couche d'accès. */
   notifications: NotificationsService;
   access: AccessService;
+  /** Phase 11 : archives d'installation et scripts servis par le panel. */
+  distribution: DistributionService;
   /** `fetch` injectable (tests) pour les appels sortants du panel (manifest Mojang, API spark). */
   fetchImpl: typeof fetch | undefined;
   close(): void;
@@ -203,6 +206,11 @@ export function createContext(options: ContextOptions): AppContext {
     events,
     audit,
   });
+  const distribution = new DistributionService({
+    distDir: config.distDir ?? path.join(config.dataDir, 'dist'),
+    settings,
+    releases,
+  });
   const javaRuntimes = new JavaRuntimesService({
     db,
     now,
@@ -296,6 +304,7 @@ export function createContext(options: ContextOptions): AppContext {
     migrations,
     notifications,
     access,
+    distribution,
     fetchImpl: options.fetch,
     close: () => {
       access.stop();
