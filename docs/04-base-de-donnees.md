@@ -250,6 +250,8 @@ CREATE INDEX idx_psess_online ON player_sessions(server_id) WHERE left_at IS NUL
 
 **Règle de clôture** : sur `run_state → stopped|crashed` et à chaque réconciliation `sync.state`, toutes les sessions ouvertes du serveur sont clôturées (`left_at = ts` de l'événement) — sinon la liste « en ligne » ment après un crash.
 
+> **Implémentation (phase 6)** : `GET /api/servers/:id/players/history?limit=` expose `player_sessions` (du plus récent au plus ancien, `leftAt` null = en ligne) ; les joueurs sans UUID connu (logs sans ligne `UUID of player`) sont stockés sous `offline:<nom>` dans `players.uuid` et rendus `playerUuid: null`. Whitelist/ops/bans ne sont **toujours pas** dupliqués en base : `GET /api/servers/:id/config/<fichier>` relit les fichiers via l'agent à chaque affichage (cache front invalidé par les événements `player.action` / `server.configChanged`).
+
 ## 5. Backups, planificateur, tasks, migrations
 
 Partition d'exécution (voir doc 05) : **backups planifiés, rotation et watchdog = exécutés par l'agent** (survivent à un panel éteint) ; **start/stop/restart programmés et annonces = exécutés par le panel**. Les suppressions faites par la rotation locale remontent via l'événement `backup.rotated` pour que cette table ne diverge jamais du disque.
