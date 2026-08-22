@@ -14,6 +14,7 @@ import { z } from 'zod';
 import {
   desiredStateSchema,
   serverConfigSchema,
+  watchdogPolicySchema,
   watchedDirectorySchema,
   type ServerConfig,
 } from '@mmo/protocol';
@@ -61,6 +62,8 @@ export const agentStateSchema = z.object({
   servers: z.record(z.string(), serverRecordSchema).default({}),
   desiredStates: z.record(z.string(), desiredStateSchema).default({}),
   restoreOnBoot: z.boolean().default(false),
+  /** Politique watchdog par serveur (phase 7), poussée par `agent.configure.watchdog`. */
+  watchdog: z.record(z.string(), watchdogPolicySchema.omit({ serverId: true })).default({}),
   metricsIntervalSec: z.int().positive().default(15),
   seqs: z.record(z.string(), z.int().nonnegative()).default({}),
   pendingEvents: z.array(pendingEventSchema).default([]),

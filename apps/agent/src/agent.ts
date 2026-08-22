@@ -1,6 +1,8 @@
 /**
  * Assemblage du noyau local (phase 3) : état, connexion panel, scan, gestion des serveurs, relais
  * des événements (`server.stateChanged`, `console.lines`, `player.event`, `server.detected`…).
+ * Phase 7 : collecteur `metrics.sample` (tampon hors ligne rejoué) et watchdog local
+ * (crash/freeze/RAM/ports → `watchdog.alert`, `port.conflict`), politique poussée par `agent.configure`.
  */
 import os from 'node:os';
 
@@ -24,11 +26,14 @@ import type { WebSocketFactory } from './connection/ws-transport.js';
 import { Logger, errorMessage } from './log.js';
 import { ServerManager, type ServerManagerOptions } from './minecraft/server-manager.js';
 import type { ServerProcessEvent } from './minecraft/server-process.js';
+import { MetricsCollector } from './monitoring/metrics.js';
+import { PlatformSampler, type ProcessSampler } from './monitoring/sampler.js';
+import { Watchdog, type WatchdogOptions } from './monitoring/watchdog.js';
 import { JavaRegistry, defaultManagedJavaDir } from './platform/java.js';
 import { Scanner, type ScanDiff, type ScanTarget } from './scan/scanner.js';
 import { StateStore } from './state/store.js';
 
-export const AGENT_VERSION = '0.6.0';
+export const AGENT_VERSION = '0.7.0';
 
 export function currentOs(): Os {
   return process.platform === 'win32'
@@ -63,6 +68,23 @@ export interface AgentOptions {
   >;
   /** Purge de la corbeille `.mmo-trash/` (défaut 6 h ; 0 = désactivé). */
   trashPurgeIntervalMs?: number;
+  /** Échantillonneur CPU/RSS (défaut : selon l'OS ; tests : stub). */
+  sampler?: ProcessSampler;
+  /** Intervalle de métriques imposé (défaut : état persistant, 15 s). 0 = désactivé. */
+  metricsIntervalMs?: number;
+  /** Réglages fins du watchdog (tests : délais courts). */
+  watchdog?: Partial<
+    Pick<
+      WatchdogOptions,
+      | 'crashWindowMs'
+      | 'restartDelayMs'
+      | 'restartDelayMaxMs'
+      | 'minProbeIntervalMs'
+      | 'maxProbeIntervalMs'
+      | 'probeTimeoutMs'
+      | 'freezeFailures'
+    >
+  >;
   backoff?: { baseMs?: number; maxMs?: number };
   /** Sortie du processus (agent.restart) — injectable en test. */
   exit?: (code: number) => void;
@@ -77,6 +99,9 @@ export class Agent {
   readonly manager: ServerManager;
   readonly scanner: Scanner;
   readonly java: JavaRegistry;
+  readonly metrics: MetricsCollector;
+  readonly watchdog: Watchdog;
+  private readonly sampler: ProcessSampler;
   private connection: AgentConnection | undefined;
   private readonly consoleSubscriptions = new Set<string>();
   private scanTimer: ReturnType<typeof setInterval> | undefined;
@@ -107,6 +132,30 @@ export class Agent {
       serverIdForPath: (p) => this.serverIdForPath(p),
       onDiff: (diff) => {
         this.publishScan(diff);
+      },
+    });
+    this.sampler = options.sampler ?? new PlatformSampler(this.logger.child('metrics'));
+    this.watchdog = new Watchdog({
+      logger: this.logger.child('watchdog'),
+      policy: (serverId) => this.store.get().watchdog[serverId],
+      view: (serverId) => this.manager.watchdogView(serverId),
+      restart: (serverId) => this.startServer(serverId),
+      alert: (alert) => {
+        this.emit('watchdog.alert', (eventId) => ({ eventId, ...alert }));
+      },
+      ...options.watchdog,
+    });
+    this.metrics = new MetricsCollector({
+      logger: this.logger.child('metrics'),
+      sampler: this.sampler,
+      targets: () => this.manager.metricsTargets(),
+      emit: (sample) => {
+        this.emit('metrics.sample', sample);
+      },
+      isConnected: () => this.isConnected,
+      diskPath: options.stateDir,
+      onRamExceeded: (serverId, rssMb, maxRamMb) => {
+        this.watchdog.onRamExceeded(serverId, rssMb, maxRamMb);
       },
     });
   }
@@ -170,6 +219,16 @@ export class Agent {
       this.trashTimer.unref();
       void this.manager.purgeTrash();
     }
+    const metricsEvery =
+      this.options.metricsIntervalMs ?? this.store.get().metricsIntervalSec * 1000;
+    if (metricsEvery > 0) {
+      this.metrics.setInterval(metricsEvery);
+      this.metrics.start();
+    }
+    // Serveurs ré-adoptés ou relancés au boot : le watchdog les surveille dès maintenant.
+    for (const target of this.manager.metricsTargets()) {
+      this.watchdog.onStateChanged(target.serverId, target.state);
+    }
   }
 
   async stop(): Promise<void> {
@@ -177,8 +236,11 @@ export class Agent {
     this.scanTimer = undefined;
     if (this.trashTimer !== undefined) clearInterval(this.trashTimer);
     this.trashTimer = undefined;
+    this.metrics.stop();
+    this.watchdog.dispose();
     await this.connection?.stop();
     this.manager.dispose();
+    this.sampler.close();
     await this.store.flush();
     this.started = false;
   }
@@ -186,6 +248,8 @@ export class Agent {
   // --- Session --------------------------------------------------------------------------------
 
   private onSession(session: SessionInfo, peer: AgentPeer): void {
+    const replayed = this.metrics.replay();
+    if (replayed > 0) this.logger.info('replayed buffered metrics', { count: replayed });
     this.consoleSubscriptions.clear();
     for (const sub of session.subscriptions) {
       if (!sub.channel.startsWith('console:')) continue;
@@ -213,13 +277,34 @@ export class Agent {
   private buildHeartbeat(): EventPayload<'agent.heartbeat'> {
     const total = os.totalmem();
     const free = os.freemem();
+    const m = this.metrics.summary;
     return {
       ts: Date.now(),
+      ...(m?.cpuPct === undefined ? {} : { cpuPct: m.cpuPct, cpuSource: m.cpuSource }),
       ramUsedMb: Math.round((total - free) / 1048576),
       ramTotalMb: Math.max(1, Math.round(total / 1048576)),
+      ...(m?.diskUsedGb === undefined || m.diskTotalGb === undefined
+        ? {}
+        : { diskUsedGb: m.diskUsedGb, diskTotalGb: m.diskTotalGb }),
       activeServers: this.manager.runningCount,
       activeTasks: 0,
     };
+  }
+
+  /** Démarrage avec signalement `port.conflict` (handler `server.start` et watchdog). */
+  private async startServer(
+    serverId: string,
+  ): Promise<{ alreadyRunning: boolean; pid: number | undefined }> {
+    try {
+      return await this.manager.start(serverId);
+    } catch (error) {
+      if (error instanceof ProtocolError && error.code === 'E_PORT_IN_USE') {
+        const port = error.details?.port;
+        if (typeof port === 'number')
+          this.emit('port.conflict', { ts: Date.now(), port, serverId });
+      }
+      throw error;
+    }
   }
 
   // --- Handlers -------------------------------------------------------------------------------
@@ -242,8 +327,21 @@ export class Agent {
           if (cfg.desiredStates) s.desiredStates = cfg.desiredStates;
           if (cfg.restoreOnBoot !== undefined) s.restoreOnBoot = cfg.restoreOnBoot;
           if (cfg.metricsIntervalSec !== undefined) s.metricsIntervalSec = cfg.metricsIntervalSec;
+          if (cfg.watchdog) {
+            s.watchdog = {};
+            for (const { serverId, ...policy } of cfg.watchdog) s.watchdog[serverId] = policy;
+          }
         });
+        if (cfg.metricsIntervalSec !== undefined && this.options.metricsIntervalMs === undefined) {
+          this.metrics.setInterval(cfg.metricsIntervalSec * 1000);
+        }
         if (cfg.servers) await this.manager.applyConfigs(cfg.servers);
+        if (cfg.watchdog) {
+          // Politique modifiée à chaud : les sondes de freeze repartent avec le nouvel intervalle.
+          for (const target of this.manager.metricsTargets()) {
+            this.watchdog.onStateChanged(target.serverId, target.state);
+          }
+        }
         if (rescan) void this.runScan();
         return { applied: true as const };
       })
@@ -270,36 +368,33 @@ export class Agent {
         return { scannedPaths: diff.scannedPaths, servers: diff.servers };
       })
       .handle('server.start', async ({ serverId }) => {
-        try {
-          const r = await this.manager.start(serverId);
-          return {
-            alreadyRunning: r.alreadyRunning,
-            ...(r.pid === undefined ? {} : { pid: r.pid }),
-          };
-        } catch (error) {
-          if (error instanceof ProtocolError && error.code === 'E_PORT_IN_USE') {
-            const port = error.details?.port;
-            if (typeof port === 'number')
-              this.emit('port.conflict', { ts: Date.now(), port, serverId });
-          }
-          throw error;
-        }
+        this.watchdog.cancel(serverId);
+        const r = await this.startServer(serverId);
+        return {
+          alreadyRunning: r.alreadyRunning,
+          ...(r.pid === undefined ? {} : { pid: r.pid }),
+        };
       })
-      .handle('server.stop', async ({ serverId, timeoutSec, announce, forceAfterTimeout }) =>
-        this.manager.stop(serverId, {
+      .handle('server.stop', async ({ serverId, timeoutSec, announce, forceAfterTimeout }) => {
+        this.watchdog.cancel(serverId);
+        return this.manager.stop(serverId, {
           ...(timeoutSec === undefined ? {} : { timeoutMs: timeoutSec * 1000 }),
           ...(announce === undefined ? {} : { announce }),
           ...(forceAfterTimeout === undefined ? {} : { forceAfterTimeout }),
-        }),
-      )
+        });
+      })
       .handle('server.restart', async ({ serverId, timeoutSec, announce }) => {
+        this.watchdog.cancel(serverId);
         await this.manager.restart(serverId, {
           ...(timeoutSec === undefined ? {} : { timeoutMs: timeoutSec * 1000 }),
           ...(announce === undefined ? {} : { announce }),
         });
         return {};
       })
-      .handle('server.kill', ({ serverId }) => this.manager.kill(serverId))
+      .handle('server.kill', ({ serverId }) => {
+        this.watchdog.cancel(serverId);
+        return this.manager.kill(serverId);
+      })
       .handle('server.command', async ({ serverId, command }) => ({
         via: await this.manager.command(serverId, command),
       }))
@@ -379,6 +474,9 @@ export class Agent {
         await this.store.update((s) => {
           s.metricsIntervalSec = intervalSec;
         });
+        if (this.options.metricsIntervalMs === undefined) {
+          this.metrics.setInterval(intervalSec * 1000);
+        }
         return {};
       })
       .handle('java.list', async () => ({ runtimes: await this.java.list(true) }));
@@ -449,6 +547,14 @@ export class Agent {
     const ts = Date.now();
     switch (event.kind) {
       case 'state':
+        if (event.state === 'starting') this.metrics.resetServer(serverId);
+        this.watchdog.onStateChanged(serverId, event.state, {
+          ...(event.exitReason === undefined ? {} : { exitReason: event.exitReason }),
+          ...(event.crashReportPath === undefined
+            ? {}
+            : { crashReportPath: event.crashReportPath }),
+          ...(event.crashSignal === undefined ? {} : { crashSignal: event.crashSignal }),
+        });
         this.emit('server.stateChanged', (eventId) => ({
           eventId,
           serverId,
@@ -496,6 +602,11 @@ export class Agent {
           context: { serverId },
         });
         break;
+      case 'bind-failed': {
+        const port = this.store.getServer(serverId)?.runtime?.gamePort;
+        if (port !== undefined) this.emit('port.conflict', { ts, port, serverId });
+        break;
+      }
       case 'log-event':
         break;
     }

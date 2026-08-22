@@ -46,6 +46,8 @@ export type ServerProcessEvent =
       exitReason?: ExitReason;
       exitCode?: number;
       crashReportPath?: string;
+      /** Dernier signal de crash vu dans les logs (`out_of_memory`…), doc 06 §4 point 3. */
+      crashSignal?: string;
     }
   | { kind: 'lines'; lines: ConsoleLine[] }
   | {
@@ -57,7 +59,9 @@ export type ServerProcessEvent =
     }
   | { kind: 'log-event'; event: ServerLogEvent }
   | { kind: 'eula-required' }
-  | { kind: 'start-timeout' };
+  | { kind: 'start-timeout' }
+  /** `**** FAILED TO BIND TO PORT!` : le port de jeu est pris (conflit, phase 7). */
+  | { kind: 'bind-failed' };
 
 export interface SeqCounter {
   next(): number;
@@ -112,8 +116,9 @@ export class ServerProcess {
   private readonly classifier = new LogLineClassifier();
   private pendingLines: ConsoleLine[] = [];
   private batchTimer: ReturnType<typeof setTimeout> | undefined;
-  private stopRequested: 'stop' | 'kill' | undefined;
+  private stopRequested: 'stop' | 'kill' | 'freeze' | undefined;
   private eulaRequired = false;
+  private lastCrashSignal: string | undefined;
   /** Le serveur a annoncé son arrêt (`Stopping the server`) : arrêt intentionnel, même via une commande console. */
   private sawStopping = false;
   private exitWaiters: (() => void)[] = [];
@@ -383,9 +388,13 @@ export class ServerProcess {
     return { alreadyStopped: false, forced: true };
   }
 
-  async kill(): Promise<{ wasRunning: boolean }> {
+  /**
+   * Terminaison immédiate. `reason: 'freeze'` (watchdog) classe la sortie en `crashed` /
+   * `exitReason: 'freeze_kill'` (doc 04 §3) au lieu de `stopped` / `kill`.
+   */
+  async kill(options: { reason?: 'freeze' } = {}): Promise<{ wasRunning: boolean }> {
     if (!this.isRunning || this._pid === undefined) return { wasRunning: false };
-    this.stopRequested ??= 'kill';
+    this.stopRequested ??= options.reason === 'freeze' ? 'freeze' : 'kill';
     this.setState('stopping');
     this.signal('SIGKILL');
     await this.waitExit(15_000);
@@ -427,6 +436,7 @@ export class ServerProcess {
     this.clearTimers();
     this.stopRequested = undefined;
     this.eulaRequired = false;
+    this.lastCrashSignal = undefined;
     this.sawStopping = false;
     this.players.clear();
     this.classifier.reset();
@@ -447,7 +457,12 @@ export class ServerProcess {
 
   private setState(
     state: RunState,
-    extra: { exitReason?: ExitReason; exitCode?: number; crashReportPath?: string } = {},
+    extra: {
+      exitReason?: ExitReason;
+      exitCode?: number;
+      crashReportPath?: string;
+      crashSignal?: string;
+    } = {},
   ): void {
     const previous = this._state;
     if (previous === state && state !== 'stopped') return;
@@ -618,10 +633,15 @@ export class ServerProcess {
         // Arrêt volontaire signalé par le serveur (`stop` console, RCON, ou notre séquence d'arrêt).
         this.sawStopping = true;
         break;
+      case 'crash_signal':
+        this.lastCrashSignal = event.code;
+        break;
+      case 'bind_failed':
+        this.opts.onEvent({ kind: 'bind-failed' });
+        break;
       case 'player_login':
       case 'player_disconnect':
       case 'cant_keep_up':
-      case 'crash_signal':
         break;
     }
   }
@@ -637,6 +657,7 @@ export class ServerProcess {
     const pid = this._pid;
     const requested = this.stopRequested;
     const startedAt = this._startedAt ?? 0;
+    const crashSignal = this.lastCrashSignal;
     this.players.clear();
     const finish = (state: RunState, exitReason: ExitReason, crashReportPath?: string): void => {
       this.child = undefined;
@@ -645,6 +666,7 @@ export class ServerProcess {
         exitReason,
         ...(code === null ? {} : { exitCode: code }),
         ...(crashReportPath === undefined ? {} : { crashReportPath }),
+        ...(state === 'crashed' && crashSignal !== undefined ? { crashSignal } : {}),
       });
       this._pid = undefined;
       for (const w of this.exitWaiters) w();
@@ -656,6 +678,10 @@ export class ServerProcess {
     }
     if (requested === 'kill') {
       finish('stopped', 'kill');
+      return;
+    }
+    if (requested === 'freeze') {
+      finish('crashed', 'freeze_kill');
       return;
     }
     if (this.eulaRequired) {

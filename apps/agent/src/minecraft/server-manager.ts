@@ -21,9 +21,12 @@ import { createNodeDetectFs } from '@mmo/shared/node';
 import { FsService } from '../files/fs-service.js';
 import { listLogFiles, searchLogs, type SearchOptions } from '../files/logs.js';
 import { errorMessage, type Logger } from '../log.js';
+import type { MetricsTarget } from '../monitoring/metrics.js';
+import { TpsProbe } from '../monitoring/tps.js';
+import type { WatchdogServerView } from '../monitoring/watchdog.js';
 import { JavaRegistry, totalRamMb } from '../platform/java.js';
 import { findFreePort, isPortFree } from '../platform/ports.js';
-import { getProcessInfo } from '../platform/process-info.js';
+import { getProcessInfo, isProcessAlive } from '../platform/process-info.js';
 import type { ServerRecord, ServerRuntime, StateStore } from '../state/store.js';
 import { ConfigService, type CommandResult } from './config-files.js';
 import { buildLaunchCommand, type LaunchCommand } from './launch.js';
@@ -74,6 +77,7 @@ export interface ServerManagerOptions {
 
 export class ServerManager {
   private readonly processes = new Map<string, ServerProcess>();
+  private readonly tpsProbes = new Map<string, TpsProbe>();
   private readonly java: JavaRegistry;
   private readonly detectFs: DetectFs;
   private readonly starting = new Set<string>();
@@ -134,6 +138,8 @@ export class ServerManager {
       for (const config of configs) {
         const existing = s.servers[config.serverId];
         s.servers[config.serverId] = existing ? { ...existing, config } : { config };
+        // Loader/version ont pu changer : la chaîne TPS sera réapprise.
+        this.tpsProbes.delete(config.serverId);
       }
       const kept: typeof s.servers = {};
       for (const [id, record] of Object.entries(s.servers)) {
@@ -143,6 +149,7 @@ export class ServerManager {
         }
         this.processes.get(id)?.dispose();
         this.processes.delete(id);
+        this.tpsProbes.delete(id);
       }
       s.servers = kept;
     });
@@ -413,6 +420,59 @@ export class ServerManager {
     return total;
   }
 
+  // --- Monitoring (phase 7) -------------------------------------------------------------------
+
+  /** Serveurs à échantillonner (`metrics.sample`) : PID, état, joueurs, lecture TPS si `running`. */
+  metricsTargets(): MetricsTarget[] {
+    const out: MetricsTarget[] = [];
+    for (const [serverId, record] of Object.entries(this.options.store.get().servers)) {
+      const proc = this.processes.get(serverId);
+      if (!proc?.isRunning) continue;
+      const probe = this.tpsProbe(serverId, record, proc);
+      out.push({
+        serverId,
+        pid: proc.pid,
+        state: proc.state,
+        players: proc.onlinePlayers.length,
+        maxRamMb: record.config.maxRamMb,
+        readTps: () => probe.read(),
+      });
+    }
+    return out;
+  }
+
+  private tpsProbe(serverId: string, record: ServerRecord, proc: ServerProcess): TpsProbe {
+    let probe = this.tpsProbes.get(serverId);
+    if (!probe) {
+      probe = new TpsProbe({
+        serverDir: record.config.path,
+        loader: record.config.loader,
+        mcVersion: record.config.mcVersion,
+        exec: (command, timeoutMs) => proc.rconExec(command, timeoutMs),
+        ...(this.options.now === undefined ? {} : { now: this.options.now }),
+      });
+      this.tpsProbes.set(serverId, probe);
+    }
+    return probe;
+  }
+
+  /** Vue d'un serveur pour le watchdog (sonde RCON `list`, vivacité, kill « freeze »). */
+  watchdogView(serverId: string): WatchdogServerView | undefined {
+    const proc = this.processes.get(serverId);
+    if (!proc) return undefined;
+    return {
+      state: () => proc.state,
+      pid: proc.pid,
+      probe: proc.rcon
+        ? async (timeoutMs) => {
+            await proc.rconExec('list', timeoutMs);
+          }
+        : undefined,
+      alive: () => proc.pid !== undefined && isProcessAlive(proc.pid),
+      kill: (reason) => proc.kill({ reason }),
+    };
+  }
+
   // --- Snapshot -------------------------------------------------------------------------------
 
   snapshotServers(): RequestPayload<'sync.state'>['servers'] {
@@ -487,6 +547,10 @@ export class ServerManager {
   }
 
   private onProcessEvent(serverId: string, event: ServerProcessEvent): void {
+    if (event.kind === 'state' && event.state === 'starting') {
+      // Nouveau démarrage : mods/version ont pu changer, la chaîne TPS est réapprise.
+      this.tpsProbes.get(serverId)?.reset();
+    }
     if (event.kind === 'state' && (event.state === 'stopped' || event.state === 'crashed')) {
       this.persist(
         this.options.store.update((s) => {

@@ -49,6 +49,10 @@ export type Compression = z.infer<typeof compressionSchema>;
 export const cpuSourceSchema = z.enum(['cycles', 'proc', 'ticks']);
 export type CpuSource = z.infer<typeof cpuSourceSchema>;
 
+/** Méthode ayant fourni le TPS (doc 06 §6, chaîne de fallback) ; absent ⇒ « TPS indisponible ». */
+export const tpsSourceSchema = z.enum(['neoforge', 'forge', 'spark', 'tick_query']);
+export type TpsSource = z.infer<typeof tpsSourceSchema>;
+
 export const confidenceSchema = z.enum(['high', 'medium', 'low']);
 export type Confidence = z.infer<typeof confidenceSchema>;
 

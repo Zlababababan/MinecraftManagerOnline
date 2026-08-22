@@ -208,6 +208,7 @@ describe('événements serveur', () => {
       kind: 'crash_signal',
       code: 'out_of_memory',
     });
+    expect(matchServerLogEvent('**** FAILED TO BIND TO PORT!')).toEqual({ kind: 'bind_failed' });
     expect(matchServerLogEvent('Preparing spawn area: 42%')).toEqual({
       kind: 'preparing_spawn',
       percent: 42,

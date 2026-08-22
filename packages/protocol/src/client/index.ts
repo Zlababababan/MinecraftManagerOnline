@@ -15,6 +15,7 @@ import {
   osSchema,
   provisioningSchema,
   runStateSchema,
+  tpsSourceSchema,
 } from '../common.js';
 import { ERROR_CODES } from '../errors.js';
 import { consoleLineSchema, logsSearchSchema } from '../messages/console.js';
@@ -28,6 +29,7 @@ import {
   fsWriteSchema,
   relativePathSchema,
 } from '../messages/fs.js';
+import { metricsSampleSchema } from '../messages/monitoring.js';
 import {
   detectedServerSchema,
   playerActionResponseSchema,
@@ -324,6 +326,72 @@ export type FsReadResult = z.infer<typeof fsReadResultSchema>;
 export const logsSearchRequestSchema = logsSearchSchema.omit({ serverId: true });
 export type LogsSearchRequest = z.infer<typeof logsSearchRequestSchema>;
 
+// --- Métriques (phase 7) --------------------------------------------------------------------------
+
+export const metricsResolutionSchema = z.enum(['raw', '1m', '1h']);
+export type MetricsResolution = z.infer<typeof metricsResolutionSchema>;
+
+/** `from`/`to` en epoch ms ; `resolution` absente ⇒ choisie selon la plage (brut ≤ 3 h, 1 min ≤ 3 j, sinon 1 h). */
+export const metricsQuerySchema = z.object({
+  from: z.coerce.number().int().nonnegative(),
+  to: z.coerce.number().int().nonnegative().optional(),
+  resolution: metricsResolutionSchema.optional(),
+});
+export type MetricsQuery = z.infer<typeof metricsQuerySchema>;
+
+/** Point serveur normalisé : en brut `cpu`/`ram`/`tps` sont la valeur instantanée ; agrégé = moyenne + extrema. */
+export const serverMetricsPointSchema = z.object({
+  ts: epochMsSchema,
+  cpu: z.number().nullable(),
+  cpuMax: z.number().nullable().optional(),
+  ram: z.number().nullable(),
+  ramMax: z.number().nullable().optional(),
+  tps: z.number().nullable(),
+  tpsMin: z.number().nullable().optional(),
+  mspt: z.number().nullable().optional(),
+  players: z.int().nullable(),
+  samples: z.int().optional(),
+});
+export type ServerMetricsPoint = z.infer<typeof serverMetricsPointSchema>;
+
+export const machineMetricsPointSchema = z.object({
+  ts: epochMsSchema,
+  cpu: z.number().nullable(),
+  cpuMax: z.number().nullable().optional(),
+  ram: z.number().nullable(),
+  ramMax: z.number().nullable().optional(),
+  diskUsedGb: z.number().nullable(),
+  diskTotalGb: z.number().nullable(),
+  samples: z.int().optional(),
+});
+export type MachineMetricsPoint = z.infer<typeof machineMetricsPointSchema>;
+
+export const serverMetricsResultSchema = z.object({
+  resolution: metricsResolutionSchema,
+  from: epochMsSchema,
+  to: epochMsSchema,
+  points: z.array(serverMetricsPointSchema),
+  /** Dernier échantillon brut connu (même hors plage), pour l'affichage « maintenant ». */
+  latest: serverMetricsPointSchema.nullable(),
+  tpsSource: tpsSourceSchema.nullable(),
+  cpuSource: z.enum(['cycles', 'proc', 'ticks']).nullable(),
+});
+export type ServerMetricsResult = z.infer<typeof serverMetricsResultSchema>;
+
+export const machineMetricsResultSchema = z.object({
+  resolution: metricsResolutionSchema,
+  from: epochMsSchema,
+  to: epochMsSchema,
+  points: z.array(machineMetricsPointSchema),
+  latest: machineMetricsPointSchema.nullable(),
+  cpuSource: z.enum(['cycles', 'proc', 'ticks']).nullable(),
+});
+export type MachineMetricsResult = z.infer<typeof machineMetricsResultSchema>;
+
+/** Échantillon temps réel diffusé aux navigateurs (même forme que `metrics.sample` agent). */
+export const metricsSampleDtoSchema = metricsSampleSchema;
+export type MetricsSampleDto = z.infer<typeof metricsSampleDtoSchema>;
+
 // --- Événements et audit ---------------------------------------------------------------------------
 
 export const severitySchema = z.enum(['debug', 'info', 'warning', 'error', 'critical']);
@@ -408,6 +476,12 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     heartbeat: machineHeartbeatDtoSchema,
   }),
   z.object({ type: z.literal('server.state'), server: serverDtoSchema }),
+  /** Phase 7 : échantillon de métriques d'une machine (toutes les 15 s), pour les graphiques en direct. */
+  z.object({
+    type: z.literal('metrics.sample'),
+    machineId: z.string(),
+    sample: metricsSampleDtoSchema,
+  }),
   z.object({ type: z.literal('error'), error: apiErrorSchema, channel: z.string().optional() }),
 ]);
 export type ServerMessage = z.infer<typeof serverMessageSchema>;

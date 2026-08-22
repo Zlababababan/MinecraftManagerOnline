@@ -19,6 +19,10 @@
 //   --big-response <n>      `list` renvoie une réponse de n octets (test de fragmentation)
 //   --hold <ms>             reste vivant après EOF stdin (par défaut : pour toujours, comme un vrai serveur)
 //   --port <port>           « écoute » le port de jeu (bloque le port pour les tests de conflit)
+//   --freeze-after <ms>     (phase 7) après `Done` + délai, le serveur « gèle » : RCON ne répond plus
+//                           (sockets laissés ouverts), stdin ignoré, processus vivant — sauf `SIGKILL`
+//   --tps <mode>            (phase 7) répond aux commandes TPS : forge | neoforge | spark | tick | none
+//                           (défaut none = « Unknown command ») ; `--tps-value <n>` fixe le TPS (défaut 19.5)
 //
 // Phase 6 : `whitelist add|remove|list|on|off|reload`, `op`, `deop`, `ban`, `pardon`, `ban-ip`,
 // `pardon-ip`, `kick` — écrivent whitelist.json / ops.json / banned-*.json dans le cwd comme le
@@ -48,6 +52,10 @@ const modern = opt('modern-format', false) === true;
 const bigResponse = Number(opt('big-response', 0));
 const gamePort = opt('port', undefined);
 const logDir = opt('log-dir', undefined);
+const freezeAfter = opt('freeze-after', undefined);
+const tpsMode = String(opt('tps', 'none'));
+const tpsValue = Number(opt('tps-value', 19.5));
+let frozen = false;
 
 // RCON : options explicites, sinon server.properties du cwd (auto-provisionnement par l'agent)
 let rconPort = opt('rcon-port', undefined);
@@ -137,8 +145,36 @@ function doStop() {
   }, stopDelay);
 }
 
+function tpsResponse(name, rest) {
+  const mspt = (1000 / tpsValue).toFixed(3);
+  const tps = tpsValue.toFixed(3);
+  if (name === 'forge' && rest[0] === 'tps' && (tpsMode === 'forge' || tpsMode === 'neoforge')) {
+    return tpsMode === 'forge'
+      ? `Dim minecraft:overworld (Overworld): Mean tick time: ${mspt} ms. Mean TPS: ${tps}\nOverall: Mean tick time: ${mspt} ms. Mean TPS: ${tps}`
+      : `Overall: ${tps} TPS (${mspt} ms/tick)`;
+  }
+  if (name === 'neoforge' && rest[0] === 'tps' && tpsMode === 'neoforge') {
+    return `Overall: ${tps} TPS (${mspt} ms/tick)`;
+  }
+  if (name === 'spark' && rest[0] === 'tps' && tpsMode === 'spark') {
+    return (
+      `§8[§e⚡§8] §7TPS from last 5s, 10s, 1m, 5m, 15m:\n` +
+      `§8[§e⚡§8] §a*${tps}, §a*${tps}, §a*${tps}, §a*${tps}, §a*${tps}\n` +
+      `§8[§e⚡§8] §7Tick durations (min/med/95%ile/max ms) from last 10s, 1m:\n` +
+      `§8[§e⚡§8] §a1.0/§a${mspt}/§a${mspt}/§a${mspt};  §a1.0/§a${mspt}/§a${mspt}/§a${mspt}`
+    );
+  }
+  if (name === 'tick' && rest[0] === 'query' && tpsMode === 'tick') {
+    return `Target tick rate: 20.0 per second.\nAverage time per tick: ${mspt}ms (Target: 50.0ms)`;
+  }
+  return undefined;
+}
+
 function runCommand(cmd) {
+  if (frozen) return undefined;
   const [name, ...rest] = cmd.trim().replace(/^\//, '').split(/\s+/);
+  const tps = tpsResponse(name, rest);
+  if (tps !== undefined) return tps;
   switch (name) {
     case 'stop':
       if (ignoreStop) {
@@ -377,6 +413,8 @@ function startRcon() {
     let acc = Buffer.alloc(0);
     let authed = false;
     sock.on('data', (chunk) => {
+      // Gelé : le thread principal ne traite plus rien — aucune réponse, même à l'auth ou au paquet junk.
+      if (frozen) return;
       acc = Buffer.concat([acc, chunk]);
       while (acc.length >= 4) {
         const len = acc.readInt32LE(0);
@@ -397,7 +435,7 @@ function startRcon() {
             sock.write(encode(-1, 2, ''));
             continue;
           }
-          const out = runCommand(body);
+          const out = runCommand(body) ?? '';
           // Fragmentation à 4096 octets comme Minecraft
           const buf = Buffer.from(out, 'utf8');
           if (buf.length === 0) sock.write(encode(id, 0, ''));
@@ -450,6 +488,16 @@ if (eula) {
       for (const p of joins) join(p);
     }, 100);
     if (crashAfter !== undefined) setTimeout(crash, Number(crashAfter));
+    if (freezeAfter !== undefined) {
+      setTimeout(() => {
+        log(
+          'A single server tick took 60.00 seconds (should be max 0.05)',
+          'ERROR',
+          'Server Watchdog',
+        );
+        frozen = true;
+      }, Number(freezeAfter));
+    }
     if (exitAfter !== undefined) {
       setTimeout(() => {
         log('Stopping the server (external)');

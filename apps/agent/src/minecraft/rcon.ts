@@ -107,7 +107,9 @@ export class RconClient {
           details: { max: RCON_MAX_COMMAND_BYTES },
         });
       }
-      await this.ensureConnected();
+      // Le délai de la commande borne aussi l'authentification : une sonde de vivacité ne doit pas
+      // attendre 5 s de plus sur un serveur gelé (phase 7, watchdog).
+      await this.ensureConnected(timeoutMs);
       const id = this.allocId();
       const junkId = this.allocId();
       const packets = await this.roundTrip(
@@ -145,7 +147,7 @@ export class RconClient {
     return id;
   }
 
-  private async ensureConnected(): Promise<void> {
+  private async ensureConnected(timeoutMs?: number): Promise<void> {
     if (this.socket && this.authed) return;
     this.close();
     await this.open();
@@ -153,7 +155,7 @@ export class RconClient {
     const packets = await this.roundTrip(
       [encodeRconPacket(id, RCON_AUTH, this.options.password)],
       (p) => p.type === RCON_EXEC,
-      this.timeoutMs,
+      timeoutMs ?? this.timeoutMs,
       false,
     );
     const reply = packets.find((p) => p.type === RCON_EXEC);

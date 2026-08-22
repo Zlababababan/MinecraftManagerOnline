@@ -80,6 +80,9 @@ export interface FakePanel {
   nextPeer(): Promise<PanelPeer>;
   /** Ferme toutes les connexions agent sans arrêter le serveur (test de reconnexion). */
   dropAll(): void;
+  /** Panne simulée : les nouvelles connexions sont coupées immédiatement jusqu'à `resume()`. */
+  pause(): void;
+  resume(): void;
   close(): Promise<void>;
 }
 
@@ -112,7 +115,12 @@ export async function createFakePanel(
   const peers: PanelPeer[] = [];
   const sockets = new Set<WebSocket>();
   const waiters: ((peer: PanelPeer) => void)[] = [];
+  let paused = false;
   wss.on('connection', (ws) => {
+    if (paused) {
+      ws.terminate();
+      return;
+    }
     sockets.add(ws);
     ws.on('close', () => sockets.delete(ws));
     const peer = createRpcPeer({
@@ -138,6 +146,13 @@ export async function createFakePanel(
       }),
     dropAll: () => {
       for (const ws of sockets) ws.close(4000, 'dropped');
+    },
+    pause: () => {
+      paused = true;
+      for (const ws of sockets) ws.close(4000, 'paused');
+    },
+    resume: () => {
+      paused = false;
     },
     close: () =>
       new Promise((resolve) => {

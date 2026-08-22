@@ -7,6 +7,7 @@ import {
   javaRuntimeSchema,
   portSchema,
   serverIdSchema,
+  tpsSourceSchema,
   ulidSchema,
 } from '../common.js';
 
@@ -29,6 +30,8 @@ export const serverMetricsSchema = z.object({
   rssMb: z.int().nonnegative().optional(),
   tps: z.number().min(0).optional(),
   mspt: z.number().min(0).optional(),
+  /** Phase 7 : méthode ayant fourni `tps`/`mspt` (absente = indisponible, affiché franchement). */
+  tpsSource: tpsSourceSchema.optional(),
   players: z.int().nonnegative().optional(),
 });
 
@@ -44,7 +47,8 @@ export const watchdogAlertSchema = z.object({
   eventId: ulidSchema,
   serverId: serverIdSchema,
   ts: epochMsSchema,
-  kind: z.enum(['crash', 'freeze', 'crash_loop']),
+  /** Phase 7 : `ram` = garde-fou mémoire (RSS très au-dessus de `maxRamMb`), action toujours `none`. */
+  kind: z.enum(['crash', 'freeze', 'crash_loop', 'ram']),
   action: z.enum(['none', 'restart', 'kill_restart', 'gave_up']),
   attempt: z.int().nonnegative(),
   detail: z.string().optional(),
