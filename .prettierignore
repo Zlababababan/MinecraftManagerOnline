@@ -11,3 +11,5 @@ README.md
 CONTRIBUTING.md
 # Fixtures copiées de vrais dossiers serveurs : jamais reformatées
 packages/shared/test/fixtures/servers/**
+# Migrations Drizzle générées (drizzle-kit) : jamais reformatées
+apps/panel/drizzle/**
