@@ -35,6 +35,8 @@ Décisions validées le 2026-08-21. Ce document est la référence : toute déro
 | Bundling agent | esbuild → un seul `agent.js` CJS | **Règle : aucun module natif dans l'agent** |
 | Tests | Vitest, Playwright, « fake Java server » | Voir §9 |
 
+> **Implémentation (phase 4, `apps/panel`)** : Fastify 5 + `fastify-type-provider-zod` (schémas Zod = validation + types des routes, erreurs de validation → `E_VALIDATION`), `@fastify/websocket` (`/ws/agent`, `/ws/client`), `@fastify/cookie`, Drizzle + `better-sqlite3` (compilé localement sous Windows si le prebuild manque ; `allowBuilds` dans `pnpm-workspace.yaml`), `@node-rs/argon2` (argon2id, OWASP m = 19 MiB / t = 2 / p = 1). Le **contrat panel ↔ front** (DTO REST, messages de `/ws/client`, codes d'erreur HTTP) vit dans **`@mmo/protocol/client`**, distinct du protocole panel↔agent mais sous les mêmes règles (jamais `.strict()`). Toute erreur HTTP sort en `{ code, message, retryable, details }`, traduite par l'UI. Config par env : `MMO_DATA_DIR` (défaut `./data`), `MMO_HOST` (défaut `127.0.0.1`, `0.0.0.0`/`::` **refusés au démarrage**), `MMO_PORT`, `MMO_COOKIE_SECURE`, `MMO_MOJANG_MANIFEST`, `MMO_LOG_LEVEL`.
+
 ### Pourquoi TypeScript partout (et pas un agent Go)
 
 - La logique « intelligente » de l'agent (détection heuristique, parsing de logs, mapping MC→Java, watchdog) doit exister aussi côté panel : en TS elle vit une fois dans `packages/shared`, en Go elle serait dupliquée ou générée.
@@ -124,7 +126,7 @@ Portabilité : si Tailscale change ses conditions → **Headscale** (serveur de 
 ## 6. Sécurité (résumé)
 
 - Panel : écoute uniquement sur 127.0.0.1 (mode tailscale) ou sur l'interface dédiée — jamais `0.0.0.0`.
-- Sessions cookie (token haché en base), argon2id, RBAC admin/opérateur/lecture.
+- Sessions cookie (token haché en base), argon2id, RBAC admin/opérateur/lecture. *Phase 4* : cookie `mmo_session` (256 bits aléatoires, SHA-256 en base, `HttpOnly`, `SameSite=Lax`, `Secure` si `panel.publicUrl` est en https ou `MMO_COOKIE_SECURE=1`, 30 jours) ; **refus par défaut** — toute route non marquée `public` exige une session, rôle minimal par route (`viewer` < `operator` < `admin`) ; login limité à 10 essais/min par IP+compte ; le dernier admin actif ne peut être ni rétrogradé ni supprimé ; désactivation/changement de rôle/mot de passe = sessions révoquées. `/ws/client` authentifie par le même cookie à l'upgrade.
 - Secrets d'agent : 256 bits, hachés côté panel, rotation/révocation. Codes d'appairage : hachés, TTL 15 min, 5 essais, rate-limit.
 - L'authentification applicative des agents est **obligatoire même sous Tailscale** (les appareils des amis sont dans le tailnet ; Tailscale authentifie des machines, pas des rôles).
 - **Port RCON** : bloqué hors machine locale (règle pare-feu posée par l'agent + ACL réseau documentée) — il écoute en clair sur toutes les interfaces.
@@ -138,6 +140,8 @@ Portabilité : si Tailscale change ses conditions → **Headscale** (serveur de 
 ## 8. Premier démarrage (bootstrap)
 
 Wizard first-run : si la table `users` est vide → création du compte admin (endpoint verrouillé ensuite), génération des clés VAPID, choix du répertoire data et de la destination de backups par défaut, choix du mode d'accès. Rien de tout cela n'est fait « à la main ».
+
+> **Implémentation (phase 4, API)** : `GET /api/setup/status` → `{ needsSetup }` ; `POST /api/setup { username, password, locale?, publicUrl?, accessMode?, backupDestination? }` crée l'admin, génère les clés VAPID (P-256 via `node:crypto`, privée jamais exposée par l'API), enregistre les réglages et ouvre la session ; `E_SETUP_DONE` ensuite. Tant qu'aucun utilisateur n'existe, les routes protégées répondent `E_AUTH` avec `details.setupRequired = true` (le front redirige vers le wizard). **Dérogation** : le répertoire data se choisit **par l'environnement** (`MMO_DATA_DIR`), pas dans le wizard — la base doit exister avant la première page.
 
 ## 9. Tests
 

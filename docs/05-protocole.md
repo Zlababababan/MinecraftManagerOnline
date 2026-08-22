@@ -45,6 +45,8 @@ Admin (UI)                Panel                              Agent (nouvelle mac
 - Secret : 256 bits aléatoires. Agent : stocké dans `agent-state.json`, permissions restreintes (chmod 600 / ACL propriétaire). Panel : **hash SHA-256 uniquement**.
 - Rotation : `agent.rotateSecret` (les deux secrets valides 24 h pour éviter le lockout). Révocation : suppression de la machine dans l'UI.
 
+> **Implémentation (phase 4, panel)** : `POST /api/machines { name }` crée la machine `pending` et retourne le code (affiché une seule fois) + les one-liners d'installation (si `panel.publicUrl` est réglé) ; `POST /api/machines/:id/pairing-codes` régénère. `pair.request` compare le hash, vérifie TTL/usage unique/essais (doc 04 §2 : 5 échecs brûlent les codes actifs), négocie la version (`E_UNSUPPORTED_VERSION` sinon), enregistre `machine` (OS, arch, hostname, CPU, RAM) et répond `{ agentId = machines.id, secret }`. Rotation : `POST /api/machines/:id/rotate-secret` envoie `agent.rotateSecret` **avant** de remplacer le hash (l'ancien reste accepté jusqu'à `graceUntil`). Révocation : `DELETE /api/machines/:id` (session fermée code 4003, secret oublié, serveurs retirés) ou désactivation (`PATCH { disabled: true }`, `E_AUTH` à la prochaine `auth.hello`).
+
 ## 4. Authentification et session
 
 `auth.hello` (agent → panel) : `agentId`, `agentSecret`, `agentVersion`, `protoMin/protoMax`, `capabilities` (`rcon`, `zstd`, `direct-transfer`…), `compression` (codecs supportés par le runtime, spike n°3 — le panel choisit et renvoie `compression` dans `auth.ok`), `resume` (tasks en attente, dernier req acquitté), `machine` (hostname, OS, arch, CPU, RAM).
@@ -53,10 +55,12 @@ Admin (UI)                Panel                              Agent (nouvelle mac
 
 **`sync.state`** (si `wantFullSync`) : snapshot complet de vérité terrain — serveurs et états réels, **mode d'attache** (`attached` = stdin/stdout pipés ; `detached` = process survivant à un redémarrage d'agent, pilotage RCON + tail de logfile), tasks en cours, compteurs `seq`, ports occupés, JRE installés. **Le panel réconcilie sur ce snapshot** (l'agent est la vérité sur ce qui tourne) : correction des états, clôture des sessions joueurs orphelines, relance selon `desired_state`.
 
+> **Implémentation (phase 4, panel)** : toute requête/événement avant `auth.hello` → `E_AUTH` / ignoré. `auth.ok` : `wantFullSync` toujours `true`, `heartbeatIntervalSec` = 15, `compression` = `zstd` si annoncé sinon `gzip` sinon `none`, `subscriptions` = canaux `console:<serverId>` regardés par au moins un navigateur avec `sinceSeq` = dernier `seq` connu du panel (l'agent renvoie les lignes manquantes). **Une session par machine** : une nouvelle `auth.hello` ferme l'ancienne session (code 4000). Réconciliation sur `sync.state` : états et `pid`/`attachMode` alignés sur le snapshot (événements `server.stateChanged { reconciled: true }` pour les écarts), serveurs de la base absents du snapshot et « en marche » remis à `stopped`, sessions joueurs clôturées, `serverId` inconnus du panel journalisés ; puis, après la réponse, `agent.configure` complet et `server.start` des `desired_state = running` arrêtés (échec → événement `server.startFailed`).
+
 ## 5. Heartbeat et autonomie
 
 - Ping/pong WS + `agent.heartbeat` (event, 15 s) : CPU/RAM/disque machine, nb serveurs actifs, tasks actives.
-- Panel : agent **offline** après 40 s sans heartbeat → événement + push ; les serveurs de la machine passent à « inaccessible » (dérivé, jamais `stopped` : on ne sait pas).
+- Panel : agent **offline** après 40 s sans heartbeat → événement + push ; les serveurs de la machine passent à « inaccessible » (dérivé, jamais `stopped` : on ne sait pas). *Phase 4* : le panel ferme lui-même la session (code 4002) et émet `agent.offline` ; `last_seen_at` est rafraîchi à chaque heartbeat, dont la dernière valeur (CPU/RAM/disque) est exposée dans l'API machines et diffusée aux navigateurs (`machine.heartbeat`).
 - Agent sans panel : reconnexion en backoff (1 s → 60 s, jitter ±20 %), et **autonomie totale** — watchdog, backups planifiés, redémarrage des serveurs `desired_state='running'` au boot de la machine (le `desired_state` par serveur est poussé et **persisté côté agent** via `agent.configure`, politique « restaurer au boot » configurable).
 
 ## 6. Catalogue des messages
@@ -116,7 +120,7 @@ Identifiants : marqueur `.mmo-server.json` déposé dans le dossier, mais **le p
 | `logs.search` | P→A | Recherche dans les archives **exécutée par l'agent** (les logs ne quittent jamais la machine — pas d'archivage central en V1) |
 | `logs.listFiles` | P→A | Liste des `logs/*.log.gz` (téléchargeables via transferts) |
 
-Rattrapage : ring buffer agent (5 000 lignes / 2 Mo par serveur), `seq` monotone persisté. Trou trop grand → `{ truncated: true, oldestSeq }`, l'UI signale et complète via `logs.search`. Le `seq` déduplique aussi les batches reçus en double. Côté panel, les derniers `seq` consommés sont persistés périodiquement ; après un restart du panel, un `wantFullSync` peut laisser un trou visuel de console — assumé et affiché.
+Rattrapage : ring buffer agent (5 000 lignes / 2 Mo par serveur), `seq` monotone persisté. Trou trop grand → `{ truncated: true, oldestSeq }`, l'UI signale et complète via `logs.search`. Le `seq` déduplique aussi les batches reçus en double. Côté panel, les derniers `seq` consommés sont persistés périodiquement ; après un restart du panel, un `wantFullSync` peut laisser un trou visuel de console — assumé et affiché. *Phase 4* : relais console côté panel = ring buffer mémoire de 1 000 lignes par serveur, `console.subscribe` vers l'agent au **premier** navigateur abonné (`sinceSeq` = dernier `seq` du buffer), `console.unsubscribe` au départ du dernier, dédup par `seq` dans les deux sens ; `GET /api/servers/:id/console` sert le buffer (complété par un aller-retour agent si personne ne regarde).
 
 ### Fichiers et configuration
 
@@ -168,6 +172,8 @@ Plannings de backups : poussés via `agent.configure`, **déclenchés localement
 | `task.cancel` | P→A | Annulation coopérative (nettoyage des artefacts partiels) |
 | `task.list` | P→A | État de toutes les tasks connues de l'agent (réconciliation au boot du panel) |
 | `event.ack` | P→A | Acquittement batché des événements discrets critiques (`server.stateChanged`, `task.completed`, `watchdog.alert`, `player.event`, `backup.rotated`) — garantit que push et audit ne ratent rien |
+
+> **Implémentation (phase 4, panel)** : tous les types du jalon A sont **consommés** côté panel. Événements critiques : dédup par `eventId` (table `processed_events`, doc 04 §6) puis `event.ack` **batché** (50 ms ou 50 ids) — un rejeu déjà traité est ré-acquitté sans être réappliqué. `server.detected`/`server.updated` → adoption (doc 04 §3) puis `agent.configure` (débouncé 100 ms) ; `server.removed` → `detected = 0` ; `agent.log` ≥ WARN → table `events` ; `metrics.sample` ignoré jusqu'à la phase 7. Côté panel, chaque `req` vers l'agent porte l'`userId` de l'initiateur HTTP (§12). Les **codes d'erreur HTTP** propres au panel (`E_FORBIDDEN`, `E_RATE_LIMITED`, `E_SETUP_REQUIRED`, `E_SETUP_DONE`, `E_AGENT_OFFLINE`, `E_VALIDATION`) vivent dans `@mmo/protocol/client` avec le contrat panel↔front (DTO REST + messages de `/ws/client`), traduits par `errors` de `@mmo/shared`.
 
 ## 7. Sémantique des flux
 

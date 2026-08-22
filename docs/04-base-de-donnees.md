@@ -72,6 +72,8 @@ CREATE TABLE machines (
   agent_version    TEXT,
   protocol_version INTEGER,
   agent_token_hash TEXT,                                -- sha256 du secret d'agent
+  agent_token_prev_hash  TEXT,                          -- rotation (doc 05 §3) : ancien hash encore
+  agent_token_prev_until INTEGER,                       --   accepté jusqu'à cette date (24 h) — phase 4
   status           TEXT NOT NULL DEFAULT 'pending'
                    CHECK (status IN ('pending','online','offline','disabled')),
   last_seen_at     INTEGER,
@@ -89,9 +91,13 @@ CREATE TABLE pairing_codes (
   created_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL,                          -- TTL 15 min
   used_at    INTEGER,
-  machine_id TEXT REFERENCES machines(id)               -- rempli à l'usage
+  machine_id TEXT REFERENCES machines(id) ON DELETE CASCADE  -- voir note phase 4
 );
+```
 
+> **Implémentation (phase 4)** : la machine est créée **`pending` avec son nom** par l'admin (« Ajouter machine ») et `pairing_codes.machine_id` est renseigné **dès la création du code** (un code = une machine) ; `used_at` est posé à l'usage et la machine passe `offline` (l'agent se reconnecte avec `auth.hello`). Un nouveau code invalide les codes non utilisés de la même machine. Un code inconnu ne pouvant être attribué, chaque tentative ratée incrémente `attempts` de **tous** les codes actifs : 5 échecs brûlent les codes en attente (l'admin en régénère un). Le code en clair n'est retourné qu'une fois, dans la réponse de création.
+
+```sql
 -- Bundle agent UNIVERSEL (identique tous OS/arch) — voir doc 03 §3.
 CREATE TABLE agent_releases (
   version          TEXT PRIMARY KEY,
@@ -133,6 +139,8 @@ CREATE INDEX idx_java_machine ON java_runtimes(machine_id, major_version);
 
 **Autorité des identifiants** : `servers.id` est attribué **par le panel**. L'agent dépose un marqueur `.mmo-server.json` dans le dossier ; si un marqueur déjà connu réapparaît sur un autre chemin ou une autre machine (backup restauré, dossier copié), le panel traite un **conflit explicite** (UI : « copie ? migration ? ») et fait réécrire un nouvel ID si c'est une copie. Cas couvert par un test dédié.
 
+> **Implémentation (phase 4)** : tout serveur détecté dans un répertoire surveillé (ou ajouté manuellement via `POST /api/servers`) est **adopté automatiquement** : ligne `servers` créée avec un ULID du panel, `provisioning = ready` (`installing` si `needsInstall`), `java_major_required` résolu (manifest Mojang → table), puis `agent.configure.servers` poussé à l'agent qui écrit le marqueur. Si le marqueur porte un ID **inconnu** du panel (base restaurée), cet ID est **conservé**. Si le marqueur porte un ID **connu ailleurs** (autre chemin/machine) → **conflit** en mémoire (événement `server.conflict`, `GET /api/servers/conflicts`), résolu par `POST /api/servers/conflicts/resolve` : `copy` (nouveau serveur, nouvel ID réécrit dans le marqueur), `migrate` (l'ID suit le dossier, refusé si le serveur tourne), `ignore` (réapparaît au prochain scan). Un marqueur différent dans un dossier déjà connu (même chemin) n'est pas un conflit : l'ID du panel prime et l'agent réécrit le marqueur (événement `server.markerMismatch`). Dossier disparu (`server.removed`) → `detected = 0`, la ligne est conservée.
+
 ```sql
 CREATE TABLE servers (
   id                  TEXT PRIMARY KEY,
@@ -173,6 +181,7 @@ CREATE TABLE servers (
   pid                 INTEGER,
   started_at          INTEGER,
   stopped_at          INTEGER,
+  detection_json      TEXT,                             -- dernière sortie de detectServer() (phase 4)
   created_at          INTEGER NOT NULL,
   updated_at          INTEGER NOT NULL,
   UNIQUE (machine_id, path)
@@ -377,7 +386,18 @@ CREATE TABLE app_settings (
 );
 ```
 
-Les migrations de schéma sont gérées par drizzle-kit (table interne `__drizzle_migrations`).
+```sql
+-- Événements critiques d'agent déjà traités (eventId de server.stateChanged, player.event,
+-- server.detected…) : l'agent rejoue jusqu'à event.ack ; si le panel redémarre entre le traitement
+-- et l'ack, le rejeu est reconnu ici et seulement ré-acquitté. Purge > 24 h. (phase 4)
+CREATE TABLE processed_events (
+  event_id TEXT PRIMARY KEY,
+  ts       INTEGER NOT NULL
+);
+CREATE INDEX idx_processed_ts ON processed_events(ts);
+```
+
+Les migrations de schéma sont gérées par drizzle-kit (table interne `__drizzle_migrations`). **Implémentation (phase 4)** : schéma Drizzle dans `apps/panel/src/db/schema.ts` (+ `schema-metrics.ts`), migrations SQL commitées dans `apps/panel/drizzle/{mmo,metrics}` (`pnpm db:generate`, `db:generate:metrics`), rejouées à chaque ouverture. Deux détails que drizzle-kit ne modélise pas sont **posés à la main dans le SQL généré** (à reporter lors des prochaines générations) : `users.username … COLLATE NOCASE` et `WITHOUT ROWID` sur les tables de `metrics.db`.
 
 ## 7. `metrics.db` — métriques CPU/RAM/TPS
 
