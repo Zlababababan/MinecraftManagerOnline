@@ -299,8 +299,12 @@ describe('phase 8 — panel ↔ agent réels', () => {
     // non connectée (panel fermé pour lui), puis reconnexion.
     await agent!.stop();
     panel.ctx.registry.closeAll();
+    // URL de panel injoignable (port 1) : l'instance reste hors ligne quoi qu'il arrive, le
+    // résultat est journalisé dans l'état et rejoué par l'agent suivant.
     const offline = new Agent({
       stateDir,
+      panelUrl: 'ws://127.0.0.1:1/ws/agent',
+      backoff: { baseMs: 50, maxMs: 100 },
       logger: new Logger('agent-offline', { stderr: false }),
       scanIntervalMs: 0,
       trashPurgeIntervalMs: 0,

@@ -7,6 +7,7 @@
 import {
   Alert,
   Anchor,
+  Button,
   Card,
   Group,
   SegmentedControl,
@@ -14,20 +15,24 @@ import {
   Stack,
   Text,
 } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { IconAlertTriangle, IconInfoCircle } from '@tabler/icons-react';
 import { useState } from 'react';
 
 import type { MachineDto, ServerDto } from '@mmo/protocol/client';
 import { compareMcVersions } from '@mmo/shared';
 
+import { useInstallSpark, useSpark } from '../../api/phase8.js';
 import {
   METRICS_RANGES,
   useMachineMetrics,
+  useMe,
   useServerMetrics,
   type MetricsRange,
 } from '../../api/queries.js';
 import { useT } from '../../i18n/hooks.js';
-import { formatGb, formatMb, formatPct } from '../../lib/format.js';
+import { describeError } from '../../lib/errors.js';
+import { formatGb, formatMb, formatPct, hasRole } from '../../lib/format.js';
 import { ErrorAlert } from '../ErrorAlert.js';
 import { TimeSeriesChart } from './TimeSeriesChart.js';
 
@@ -112,6 +117,51 @@ export function tpsUnavailableReason(
   }
 }
 
+/** « Installer spark en un clic » (dette phase 7, via `fs.fetch`) — jamais requis. */
+function SparkInstall({ server }: { server: ServerDto }) {
+  const { t, i18n } = useT();
+  const me = useMe();
+  const spark = useSpark(server.id, server.reachable);
+  const install = useInstallSpark(server.id);
+  const canAct =
+    me.data !== undefined && hasRole(me.data.user.role, 'operator') && server.reachable;
+  if (!spark.data?.supported) return null;
+  if (spark.data.installed) {
+    return (
+      <Text size="sm" mt="xs" data-testid="spark-installed">
+        {t('web:metrics.sparkInstalled', { file: spark.data.file ?? 'spark' })}
+      </Text>
+    );
+  }
+  if (!canAct) return null;
+  return (
+    <Group mt="xs" gap="xs">
+      <Button
+        type="button"
+        size="xs"
+        variant="light"
+        loading={install.isPending}
+        data-testid="spark-install"
+        onClick={() => {
+          install.mutate(undefined, {
+            onSuccess: () => {
+              notifications.show({ message: t('web:metrics.sparkInstallStarted') });
+            },
+            onError: (error) => {
+              notifications.show({ color: 'red', message: describeError(i18n, error) });
+            },
+          });
+        }}
+      >
+        {t('web:metrics.sparkInstall')}
+      </Button>
+      <Text size="xs" c="dimmed">
+        {t('web:metrics.sparkInstallHint')}
+      </Text>
+    </Group>
+  );
+}
+
 export function ServerMetricsPanel({ server }: { server: ServerDto }) {
   const { t } = useT();
   const [range, setRange] = useState<MetricsRange>('1h');
@@ -191,6 +241,9 @@ export function ServerMetricsPanel({ server }: { server: ServerDto }) {
               {' — '}
               {t('web:metrics.sparkNeverRequired')}
             </>
+          )}
+          {(reason === 'fabricNoSpark' || reason === 'forgeNoAnswer') && (
+            <SparkInstall server={server} />
           )}
         </Alert>
       )}

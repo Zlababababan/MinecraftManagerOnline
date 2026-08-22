@@ -1,6 +1,6 @@
 /**
- * Page serveur : en-tête (état temps réel, actions), onglets aperçu / console / joueurs /
- * configuration / fichiers / journaux / événements / réglages (phase 6).
+ * Page serveur : en-tête (état temps réel, actions), onglets aperçu / métriques / console / joueurs /
+ * configuration / fichiers / sauvegardes / planificateur / journaux / événements / réglages.
  */
 import {
   Alert,
@@ -68,6 +68,12 @@ const FileExplorer = lazy(() =>
 const LogsPanel = lazy(() =>
   import('../components/logs/LogsPanel.js').then((m) => ({ default: m.LogsPanel })),
 );
+const BackupsPanel = lazy(() =>
+  import('../components/backups/BackupsPanel.js').then((m) => ({ default: m.BackupsPanel })),
+);
+const SchedulePanel = lazy(() =>
+  import('../components/schedule/SchedulePanel.js').then((m) => ({ default: m.SchedulePanel })),
+);
 const ServerMetricsPanel = lazy(() =>
   import('../components/metrics/MetricsPanel.js').then((m) => ({
     default: m.ServerMetricsPanel,
@@ -81,6 +87,8 @@ export const SERVER_TABS = [
   'players',
   'config',
   'files',
+  'backups',
+  'schedule',
   'logs',
   'events',
   'settings',
@@ -378,6 +386,16 @@ export function ServerPage({ serverId, tab }: { serverId: string; tab: ServerTab
         <Tabs.Panel value="files" pt="md">
           <Suspense fallback={<Loader size="sm" />}>
             <FileExplorer server={s} />
+          </Suspense>
+        </Tabs.Panel>
+        <Tabs.Panel value="backups" pt="md">
+          <Suspense fallback={<Loader size="sm" />}>
+            <BackupsPanel server={s} />
+          </Suspense>
+        </Tabs.Panel>
+        <Tabs.Panel value="schedule" pt="md">
+          <Suspense fallback={<Loader size="sm" />}>
+            <SchedulePanel server={s} />
           </Suspense>
         </Tabs.Panel>
         <Tabs.Panel value="logs" pt="md">

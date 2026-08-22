@@ -34,6 +34,7 @@ import { isLocale } from '@mmo/shared';
 
 import { useLogout, useUpdateMe } from '../api/queries.js';
 import { RouterNavLink, RouterUnstyledButton as RouterButton } from './links.js';
+import { TasksIndicator } from './tasks/TaskProgress.js';
 import { setLocale } from '../i18n/index.js';
 import { useRealtimeStore } from '../store/realtime.js';
 import { realtime } from '../ws/client.js';
@@ -257,6 +258,7 @@ export function Shell({ user }: { user: UserDto }) {
             </Text>
           </Group>
           <Group gap="xs" wrap="nowrap">
+            <TasksIndicator />
             <RealtimeIndicator />
             <ThemeMenu
               onChange={(theme) => {

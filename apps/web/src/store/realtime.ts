@@ -7,12 +7,15 @@ import type { QueryClient } from '@tanstack/react-query';
 import { create } from 'zustand';
 
 import type {
+  BackupDto,
   EventDto,
   MachineMetricsResult,
   ServerMetricsResult,
   ServerMessage,
+  TaskDto,
 } from '@mmo/protocol/client';
 
+import { phase8Keys, type BackupsResult } from '../api/phase8.js';
 import {
   METRICS_RANGE_MS,
   keys,
@@ -70,6 +73,10 @@ const INVALIDATING_EVENTS: Record<string, readonly (readonly string[])[]> = {
   'server.eulaAccepted': [keys.servers],
   'player.joined': [],
   'player.left': [],
+  // Phase 8
+  'task.completed': [phase8Keys.tasks],
+  'task.failed': [phase8Keys.tasks],
+  'schedule.run': [phase8Keys.allSchedules],
 };
 
 /** Événements liés à un serveur qui invalident des données de ce serveur (phase 6). */
@@ -83,6 +90,11 @@ const SERVER_SCOPED_INVALIDATIONS: Record<
   'server.configChanged': [keys.configAll, keys.filesAll],
   'server.fileChanged': [keys.filesAll, keys.configAll],
   'server.stateChanged': [keys.playerHistory],
+  // Phase 8 : une task terminée peut avoir changé les fichiers (restauration, fs.fetch) ou les backups.
+  'task.completed': [phase8Keys.backups, phase8Keys.serverTasks, keys.filesAll, phase8Keys.spark],
+  'task.failed': [phase8Keys.backups, phase8Keys.serverTasks],
+  'backup.rotated': [phase8Keys.backups],
+  'schedule.run': [phase8Keys.schedules],
 };
 
 export function applyServerMessage(queryClient: QueryClient, message: ServerMessage): void {
@@ -149,6 +161,12 @@ export function applyServerMessage(queryClient: QueryClient, message: ServerMess
     }
     case 'metrics.sample':
       applyMetricsSample(queryClient, message.machineId, message.sample);
+      return;
+    case 'task.update':
+      applyTaskUpdate(queryClient, message.task);
+      return;
+    case 'backup.update':
+      applyBackupUpdate(queryClient, message.backup);
       return;
     case 'console.snapshot':
     case 'console.lines':
@@ -241,4 +259,41 @@ export function bindRealtime(client: RealtimeClient, queryClient: QueryClient): 
     offStatus();
     offMessage();
   };
+}
+
+/** Task mise à jour (progression ou issue) : listes actives et par serveur mises à jour en place. */
+export function applyTaskUpdate(queryClient: QueryClient, task: TaskDto): void {
+  const active =
+    task.status === 'pending' || task.status === 'running' || task.status === 'stalled';
+  const merge = (old: { tasks: TaskDto[] } | undefined, keepFinished: boolean) => {
+    if (old === undefined) return old;
+    const exists = old.tasks.some((t) => t.id === task.id);
+    if (!active && !keepFinished) return { tasks: old.tasks.filter((t) => t.id !== task.id) };
+    return {
+      tasks: exists ? old.tasks.map((t) => (t.id === task.id ? task : t)) : [task, ...old.tasks],
+    };
+  };
+  queryClient.setQueryData(phase8Keys.activeTasks, (old: { tasks: TaskDto[] } | undefined) =>
+    merge(old, false),
+  );
+  if (task.serverId !== null) {
+    queryClient.setQueryData(
+      phase8Keys.serverTasks(task.serverId),
+      (old: { tasks: TaskDto[] } | undefined) => merge(old, true),
+    );
+  }
+}
+
+export function applyBackupUpdate(queryClient: QueryClient, backup: BackupDto): void {
+  queryClient.setQueryData(
+    phase8Keys.backups(backup.serverId),
+    (old: BackupsResult | undefined) => {
+      if (old === undefined) return old;
+      const exists = old.backups.some((b) => b.id === backup.id);
+      const backups = exists
+        ? old.backups.map((b) => (b.id === backup.id ? backup : b))
+        : [backup, ...old.backups];
+      return { ...old, backups: backups.filter((b) => b.status !== 'deleted') };
+    },
+  );
 }

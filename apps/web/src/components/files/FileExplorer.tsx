@@ -2,7 +2,8 @@
  * Explorateur de fichiers « mode avancé » (doc 02 §6) : navigation jailée au dossier serveur,
  * création de dossier/fichier, renommage, duplication, corbeille `.mmo-trash/` (jamais de
  * suppression directe), éditeur texte ≤ 512 Ko avec détection d'édition concurrente (sha256).
- * Upload/download de gros fichiers : phase 8 (transferts).
+ * Phase 8 : téléchargement (lien direct servi en flux par le panel via les transferts binaires)
+ * et envoi de fichiers (corps binaire brut, progression XHR, reprise panel↔agent transparente).
  */
 import {
   ActionIcon,
@@ -25,6 +26,7 @@ import { notifications } from '@mantine/notifications';
 import {
   IconCopy,
   IconDotsVertical,
+  IconDownload,
   IconFile,
   IconFilePlus,
   IconFolder,
@@ -32,12 +34,16 @@ import {
   IconLink,
   IconPencil,
   IconTrash,
+  IconUpload,
 } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { FsEntryDto, ServerDto } from '@mmo/protocol/client';
 
+import { fileDownloadUrl, uploadFile } from '../../api/phase8.js';
 import { useFileMutations, useFileRead, useFiles, useMe } from '../../api/queries.js';
+import { useQueryClient } from '@tanstack/react-query';
+import { keys } from '../../api/queries.js';
 import { ApiRequestError } from '../../api/client.js';
 import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
@@ -235,6 +241,9 @@ export function FileExplorer({ server }: { server: ServerDto }) {
   const [editing, setEditing] = useState<string | undefined>(undefined);
   const listing = useFiles(server.id, dir);
   const fsm = useFileMutations(server.id);
+  const qc = useQueryClient();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
   const canEdit =
     me.data !== undefined && hasRole(me.data.user.role, 'operator') && server.reachable;
   const fail = (error: unknown) => {
@@ -262,6 +271,61 @@ export function FileExplorer({ server }: { server: ServerDto }) {
         />
       ),
     });
+  };
+  const doUpload = async (file: File, overwrite: boolean) => {
+    const target = join(dir, file.name);
+    const id = notifications.show({
+      loading: true,
+      autoClose: false,
+      withCloseButton: false,
+      message: t('web:files.uploading', { name: file.name, pct: 0 }),
+    });
+    setUploading(true);
+    try {
+      await uploadFile(server.id, target, file, {
+        overwrite,
+        onProgress: (sent, total) => {
+          notifications.update({
+            id,
+            loading: true,
+            autoClose: false,
+            message: t('web:files.uploading', {
+              name: file.name,
+              pct: Math.round((sent / Math.max(1, total)) * 100),
+            }),
+          });
+        },
+      });
+      notifications.update({
+        id,
+        loading: false,
+        autoClose: 4000,
+        message: t('web:files.uploaded', { name: file.name }),
+      });
+      void qc.invalidateQueries({ queryKey: keys.filesAll(server.id) });
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.code === 'E_CONFLICT' && !overwrite) {
+        notifications.hide(id);
+        modals.openConfirmModal({
+          title: t('web:files.upload'),
+          children: <Text size="sm">{t('web:files.uploadExists', { name: file.name })}</Text>,
+          labels: { confirm: t('web:common.confirm'), cancel: t('web:common.cancel') },
+          onConfirm: () => {
+            void doUpload(file, true);
+          },
+        });
+        return;
+      }
+      notifications.update({
+        id,
+        loading: false,
+        autoClose: 6000,
+        color: 'red',
+        message: describeError(i18n, error),
+      });
+    } finally {
+      setUploading(false);
+    }
   };
   const newFolder = () => {
     askName(t('web:files.newFolder'), t('web:files.folderName'), '', (name) => {
@@ -323,7 +387,7 @@ export function FileExplorer({ server }: { server: ServerDto }) {
   return (
     <Stack gap="md" data-testid="file-explorer">
       <Alert color="gray" variant="light">
-        {t('web:files.advancedHint')} {t('web:files.transfersLater')}
+        {t('web:files.advancedHint')}
       </Alert>
       <Group justify="space-between" wrap="wrap">
         <Breadcrumbs data-testid="file-breadcrumbs">
@@ -369,6 +433,30 @@ export function FileExplorer({ server }: { server: ServerDto }) {
             >
               {t('web:files.newFile')}
             </Button>
+            <Button
+              type="button"
+              size="xs"
+              variant="light"
+              leftSection={<IconUpload size={14} />}
+              loading={uploading}
+              onClick={() => {
+                fileInput.current?.click();
+              }}
+              data-testid="file-upload"
+            >
+              {t('web:files.upload')}
+            </Button>
+            <input
+              ref={fileInput}
+              type="file"
+              hidden
+              data-testid="file-upload-input"
+              onChange={(e) => {
+                const file = e.currentTarget.files?.[0];
+                e.currentTarget.value = '';
+                if (file) void doUpload(file, false);
+              }}
+            />
           </Group>
         )}
       </Group>
@@ -386,7 +474,7 @@ export function FileExplorer({ server }: { server: ServerDto }) {
                 <Table.Th>{t('web:files.name')}</Table.Th>
                 <Table.Th visibleFrom="sm">{t('web:files.size')}</Table.Th>
                 <Table.Th visibleFrom="sm">{t('web:files.modified')}</Table.Th>
-                {canEdit && <Table.Th w={48} />}
+                <Table.Th w={48} />
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -425,7 +513,7 @@ export function FileExplorer({ server }: { server: ServerDto }) {
                   <Table.Td visibleFrom="sm">
                     {formatDateTime(entry.modifiedAt, i18n.language)}
                   </Table.Td>
-                  {canEdit && (
+                  {(canEdit || entry.kind === 'file') && (
                     <Table.Td>
                       <Menu position="bottom-end" withinPortal>
                         <Menu.Target>
@@ -438,7 +526,18 @@ export function FileExplorer({ server }: { server: ServerDto }) {
                           </ActionIcon>
                         </Menu.Target>
                         <Menu.Dropdown>
-                          {isTextFile(entry) && (
+                          {entry.kind === 'file' && (
+                            <Menu.Item
+                              component="a"
+                              href={fileDownloadUrl(server.id, join(dir, entry.name))}
+                              download={entry.name}
+                              leftSection={<IconDownload size={14} />}
+                              data-testid={`file-download-${entry.name}`}
+                            >
+                              {t('web:files.download')}
+                            </Menu.Item>
+                          )}
+                          {canEdit && isTextFile(entry) && (
                             <Menu.Item
                               leftSection={<IconPencil size={14} />}
                               onClick={() => {
@@ -448,32 +547,36 @@ export function FileExplorer({ server }: { server: ServerDto }) {
                               {t('web:files.edit')}
                             </Menu.Item>
                           )}
-                          <Menu.Item
-                            leftSection={<IconPencil size={14} />}
-                            onClick={() => {
-                              rename(entry);
-                            }}
-                          >
-                            {t('web:files.rename')}
-                          </Menu.Item>
-                          <Menu.Item
-                            leftSection={<IconCopy size={14} />}
-                            onClick={() => {
-                              copy(entry);
-                            }}
-                          >
-                            {t('web:files.copy')}
-                          </Menu.Item>
-                          <Menu.Divider />
-                          <Menu.Item
-                            color="red"
-                            leftSection={<IconTrash size={14} />}
-                            onClick={() => {
-                              remove(entry);
-                            }}
-                          >
-                            {t('web:files.delete')}
-                          </Menu.Item>
+                          {canEdit && (
+                            <>
+                              <Menu.Item
+                                leftSection={<IconPencil size={14} />}
+                                onClick={() => {
+                                  rename(entry);
+                                }}
+                              >
+                                {t('web:files.rename')}
+                              </Menu.Item>
+                              <Menu.Item
+                                leftSection={<IconCopy size={14} />}
+                                onClick={() => {
+                                  copy(entry);
+                                }}
+                              >
+                                {t('web:files.copy')}
+                              </Menu.Item>
+                              <Menu.Divider />
+                              <Menu.Item
+                                color="red"
+                                leftSection={<IconTrash size={14} />}
+                                onClick={() => {
+                                  remove(entry);
+                                }}
+                              >
+                                {t('web:files.delete')}
+                              </Menu.Item>
+                            </>
+                          )}
                         </Menu.Dropdown>
                       </Menu>
                     </Table.Td>

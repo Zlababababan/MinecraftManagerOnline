@@ -40,25 +40,26 @@ export default defineConfig({
     },
     {
       name: 'desktop-fr',
-      testMatch: /flow\.spec\.ts|whitelist\.spec\.ts|metrics\.spec\.ts|pwa\.spec\.ts/,
+      testMatch:
+        /flow\.spec\.ts|whitelist\.spec\.ts|metrics\.spec\.ts|backups\.spec\.ts|pwa\.spec\.ts/,
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'], locale: 'fr-FR' },
     },
     {
       name: 'desktop-en',
-      testMatch: /flow\.spec\.ts|whitelist\.spec\.ts|metrics\.spec\.ts/,
+      testMatch: /flow\.spec\.ts|whitelist\.spec\.ts|metrics\.spec\.ts|backups\.spec\.ts/,
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'], locale: 'en-US' },
     },
     {
       name: 'mobile-fr',
-      testMatch: /flow\.spec\.ts|whitelist\.spec\.ts|metrics\.spec\.ts/,
+      testMatch: /flow\.spec\.ts|whitelist\.spec\.ts|metrics\.spec\.ts|backups\.spec\.ts/,
       dependencies: ['setup'],
       use: { ...devices['Pixel 7'], locale: 'fr-FR' },
     },
     {
       name: 'mobile-en',
-      testMatch: /flow\.spec\.ts|whitelist\.spec\.ts|metrics\.spec\.ts/,
+      testMatch: /flow\.spec\.ts|whitelist\.spec\.ts|metrics\.spec\.ts|backups\.spec\.ts/,
       dependencies: ['setup'],
       use: { ...devices['Pixel 7'], locale: 'en-US' },
     },

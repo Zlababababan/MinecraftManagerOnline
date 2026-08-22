@@ -341,7 +341,7 @@ export class AgentTransfers {
     let size = 0;
     const handle = await open(partPath, 'w');
     try {
-      for await (const chunk of response.body as AsyncIterable<Uint8Array>) {
+      for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
         ctx.throwIfCancelled();
         await handle.write(chunk);
         sha256.update(chunk);
