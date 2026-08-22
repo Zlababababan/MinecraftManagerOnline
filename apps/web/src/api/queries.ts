@@ -366,8 +366,12 @@ export function useNewPairingCode(machineId: string) {
 export function useUpdateMachine(machineId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { name?: string; disabled?: boolean }) =>
-      api.patch<{ machine: MachineDto }>(`/api/machines/${machineId}`, body),
+    mutationFn: (body: {
+      name?: string;
+      disabled?: boolean;
+      tailnetHost?: string | null;
+      publicHost?: string | null;
+    }) => api.patch<{ machine: MachineDto }>(`/api/machines/${machineId}`, body),
     onSuccess: () => invalidateAll(qc),
   });
 }

@@ -42,6 +42,7 @@ import {
 import { ConflictsPanel } from '../components/ConflictsPanel.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { MachineHeader } from '../components/MachineHeader.js';
+import { MachineHostsCard } from '../components/access/MachineHostsCard.js';
 import { AgentCard } from '../components/machine/AgentCard.js';
 import { JavaCard } from '../components/machine/JavaCard.js';
 import { MachineMetricsPanel } from '../components/metrics/MetricsPanel.js';
@@ -224,6 +225,7 @@ export function MachinePage({ machineId }: { machineId: string }) {
       {myConflicts.length > 0 && <ConflictsPanel conflicts={myConflicts} />}
 
       <AgentCard machine={m} />
+      <MachineHostsCard machine={m} />
 
       <Card withBorder radius="md" padding="md">
         <Stack gap="sm">

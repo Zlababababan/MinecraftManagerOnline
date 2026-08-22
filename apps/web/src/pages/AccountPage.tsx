@@ -20,6 +20,10 @@ import { isLocale } from '@mmo/shared';
 
 import { useUpdateMe } from '../api/queries.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
+import {
+  NotificationPrefsCard,
+  PushCard,
+} from '../components/notifications/NotificationSettings.js';
 import { setLocale } from '../i18n/index.js';
 import { describeError } from '../lib/errors.js';
 
@@ -133,6 +137,8 @@ export function AccountPage({ user }: { user: UserDto }) {
           </Stack>
         </form>
       </Card>
+      <PushCard />
+      <NotificationPrefsCard />
     </Stack>
   );
 }

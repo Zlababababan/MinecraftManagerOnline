@@ -6,6 +6,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { create } from 'zustand';
 
+import { notificationTypeOf } from '@mmo/protocol/client';
 import type {
   BackupDto,
   EventDto,
@@ -18,6 +19,7 @@ import type {
 
 import { phase8Keys, type BackupsResult } from '../api/phase8.js';
 import { phase9Keys, type MigrationsResult } from '../api/phase9.js';
+import { phase10Keys } from '../api/phase10.js';
 import {
   METRICS_RANGE_MS,
   keys,
@@ -85,6 +87,9 @@ const INVALIDATING_EVENTS: Record<string, readonly (readonly string[])[]> = {
   'agent.updatePushed': [keys.machines],
   'agent.updateApplied': [keys.machines],
   'agent.updateRolledBack': [keys.machines],
+  // Phase 10 : certificat / adresse publiée ⇒ statut d'accès.
+  'access.certificateIssued': [phase10Keys.access],
+  'access.addressPublished': [phase10Keys.access],
 };
 
 /** Événements liés à un serveur qui invalident des données de ce serveur (phase 6). */
@@ -155,6 +160,10 @@ export function applyServerMessage(queryClient: QueryClient, message: ServerMess
     case 'event': {
       const event = message.event;
       store.pushEvent(event);
+      // Phase 10 : un événement notifiable rafraîchit le centre (non-lus).
+      if (notificationTypeOf(event) !== undefined) {
+        void queryClient.invalidateQueries({ queryKey: phase10Keys.notifications });
+      }
       const targets = INVALIDATING_EVENTS[event.type];
       for (const key of targets ?? []) {
         void queryClient.invalidateQueries({ queryKey: key });

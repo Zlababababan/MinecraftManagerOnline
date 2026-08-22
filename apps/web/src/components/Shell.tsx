@@ -22,8 +22,10 @@ import {
   IconLogout,
   IconMoon,
   IconServer2,
+  IconSettings,
   IconSun,
   IconUserCircle,
+  IconWorld,
 } from '@tabler/icons-react';
 import { Outlet, useNavigate } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
@@ -32,12 +34,66 @@ import { useT } from '../i18n/hooks.js';
 import type { UserDto } from '@mmo/protocol/client';
 import { isLocale } from '@mmo/shared';
 
+import { useAccessStatus, usePushStatus, usePushSubscribe } from '../api/phase10.js';
 import { useLogout, useUpdateMe } from '../api/queries.js';
+import { tDynamic } from '../i18n/index.js';
+import { hasRole } from '../lib/format.js';
+import { resyncPush } from '../lib/push.js';
+import { NotificationCenter } from './notifications/NotificationCenter.js';
 import { RouterNavLink, RouterUnstyledButton as RouterButton } from './links.js';
 import { TasksIndicator } from './tasks/TaskProgress.js';
 import { setLocale } from '../i18n/index.js';
 import { useRealtimeStore } from '../store/realtime.js';
 import { realtime } from '../ws/client.js';
+import { useEffect, useRef } from 'react';
+
+/** Phase 10 : indicateur d'accès public (mode + dernier test de joignabilité). */
+export function AccessIndicator({ isAdmin }: { isAdmin: boolean }) {
+  const { t, i18n } = useT();
+  const navigate = useNavigate();
+  const access = useAccessStatus();
+  const a = access.data?.access;
+  if (a === undefined) return null;
+  const color = a.lastTest === null ? 'gray' : a.lastTest.ok ? 'teal' : 'red';
+  const label = `${tDynamic(i18n, `web:access.modes.${a.mode}`)} · ${a.lastTest === null ? t('web:access.notListening') : a.lastTest.ok ? t('web:access.test.ok') : t('web:access.test.failed')}`;
+  return (
+    <Tooltip label={label} withArrow>
+      <Indicator
+        color={color}
+        size={10}
+        data-testid="access-indicator"
+        data-mode={a.mode}
+        data-ok={a.lastTest?.ok ?? 'unknown'}
+      >
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          aria-label={t('web:access.title')}
+          disabled={!isAdmin}
+          onClick={() => {
+            void navigate({ to: '/settings' });
+          }}
+        >
+          <IconWorld size={18} />
+        </ActionIcon>
+      </Indicator>
+    </Tooltip>
+  );
+}
+
+/** Phase 10 : re-synchronisation des abonnements push au démarrage (iOS purge silencieusement). */
+function PushResync() {
+  const push = usePushStatus();
+  const subscribe = usePushSubscribe();
+  const done = useRef(false);
+  const vapid = push.data?.vapidPublicKey;
+  useEffect(() => {
+    if (done.current || vapid === undefined) return;
+    done.current = true;
+    void resyncPush(vapid, (input) => subscribe.mutateAsync(input)).catch(() => undefined);
+  }, [vapid, subscribe]);
+  return null;
+}
 
 export function RealtimeIndicator() {
   const { t } = useT();
@@ -161,12 +217,23 @@ export function LanguageMenu({ onChange }: { onChange?: (locale: 'fr' | 'en') =>
   );
 }
 
-function NavItems({ onNavigate }: { onNavigate?: () => void }) {
+type NavTo = '/' | '/machines' | '/account' | '/settings';
+
+function NavItems({ onNavigate, isAdmin }: { onNavigate?: () => void; isAdmin: boolean }) {
   const { t } = useT();
-  const items: { to: '/' | '/machines' | '/account'; label: string; icon: ReactNode }[] = [
+  const items: { to: NavTo; label: string; icon: ReactNode }[] = [
     { to: '/', label: t('web:nav.dashboard'), icon: <IconLayoutDashboard size={18} /> },
     { to: '/machines', label: t('web:nav.machines'), icon: <IconServer2 size={18} /> },
     { to: '/account', label: t('web:nav.account'), icon: <IconUserCircle size={18} /> },
+    ...(isAdmin
+      ? [
+          {
+            to: '/settings' as const,
+            label: t('web:nav.settings'),
+            icon: <IconSettings size={18} />,
+          },
+        ]
+      : []),
   ];
   return (
     <Stack gap={4}>
@@ -186,12 +253,21 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function BottomNav() {
+function BottomNav({ isAdmin }: { isAdmin: boolean }) {
   const { t } = useT();
-  const items: { to: '/' | '/machines' | '/account'; label: string; icon: ReactNode }[] = [
+  const items: { to: NavTo; label: string; icon: ReactNode }[] = [
     { to: '/', label: t('web:nav.dashboard'), icon: <IconLayoutDashboard size={22} /> },
     { to: '/machines', label: t('web:nav.machines'), icon: <IconServer2 size={22} /> },
     { to: '/account', label: t('web:nav.account'), icon: <IconUserCircle size={22} /> },
+    ...(isAdmin
+      ? [
+          {
+            to: '/settings' as const,
+            label: t('web:nav.settings'),
+            icon: <IconSettings size={22} />,
+          },
+        ]
+      : []),
   ];
   return (
     <Group grow gap={0} h="100%" data-testid="bottom-nav">
@@ -220,6 +296,7 @@ export function Shell({ user }: { user: UserDto }) {
   const navigate = useNavigate();
   const logout = useLogout();
   const updateMe = useUpdateMe();
+  const isAdmin = hasRole(user.role, 'admin');
 
   const onLogout = (): void => {
     realtime.disconnect();
@@ -258,8 +335,11 @@ export function Shell({ user }: { user: UserDto }) {
             </Text>
           </Group>
           <Group gap="xs" wrap="nowrap">
+            <PushResync />
             <TasksIndicator />
+            <AccessIndicator isAdmin={isAdmin} />
             <RealtimeIndicator />
+            <NotificationCenter />
             <ThemeMenu
               onChange={(theme) => {
                 updateMe.mutate({ theme });
@@ -293,6 +373,17 @@ export function Shell({ user }: { user: UserDto }) {
                 >
                   {t('web:nav.account')}
                 </Menu.Item>
+                {isAdmin && (
+                  <Menu.Item
+                    leftSection={<IconSettings size={16} />}
+                    onClick={() => {
+                      void navigate({ to: '/settings' });
+                    }}
+                    data-testid="menu-settings"
+                  >
+                    {t('web:nav.settings')}
+                  </Menu.Item>
+                )}
                 <Menu.Item
                   leftSection={<IconLogout size={16} />}
                   onClick={onLogout}
@@ -306,13 +397,13 @@ export function Shell({ user }: { user: UserDto }) {
         </Group>
       </AppShell.Header>
       <AppShell.Navbar p="sm">
-        <NavItems onNavigate={close} />
+        <NavItems onNavigate={close} isAdmin={isAdmin} />
       </AppShell.Navbar>
       <AppShell.Main>
         <Outlet />
       </AppShell.Main>
       <AppShell.Footer hiddenFrom="sm" p={0}>
-        <BottomNav />
+        <BottomNav isAdmin={isAdmin} />
       </AppShell.Footer>
     </AppShell>
   );

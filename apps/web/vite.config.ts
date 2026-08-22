@@ -34,6 +34,9 @@ export default defineConfig({
         // L'API et les WebSockets ne passent jamais par le service worker.
         navigateFallbackDenylist: [/^\/api\//, /^\/ws\//],
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Phase 10 : gestion du push (affichage, clic, rotation d'abonnement) hors du SW généré.
+        importScripts: ['sw-push.js'],
+        globIgnores: ['**/sw-push.js'],
         cleanupOutdatedCaches: true,
       },
     }),

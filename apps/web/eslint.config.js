@@ -4,7 +4,15 @@ export default mmoEslint({
   tsconfigRootDir: import.meta.dirname,
   kind: 'web',
   extra: [
-    { ignores: ['scripts/**', 'dev-dist/**', 'playwright-report/**', 'test-results/**'] },
+    {
+      ignores: [
+        'scripts/**',
+        'dev-dist/**',
+        'playwright-report/**',
+        'test-results/**',
+        'public/**',
+      ],
+    },
     // Scripts e2e : Node (process, console) + Playwright.
     {
       files: ['e2e/**/*.ts', 'playwright.config.ts'],

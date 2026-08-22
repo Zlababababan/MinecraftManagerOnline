@@ -45,6 +45,7 @@ import { ErrorAlert } from '../components/ErrorAlert.js';
 import { EventsList } from '../components/EventsList.js';
 import { RunStateBadge } from '../components/badges.js';
 import { EulaCard } from '../components/config/EulaCard.js';
+import { PlayerAccessCard } from '../components/access/PlayerAccessCard.js';
 import { MigrationsCard } from '../components/migration/MigrationPanel.js';
 import { ServerActions } from '../components/ServerActions.js';
 import { serverSubtitle } from '../components/ServerCard.js';
@@ -204,6 +205,7 @@ function Overview({ server }: { server: ServerDto }) {
           </Stack>
         </Card>
       )}
+      <PlayerAccessCard server={server} />
       <MigrationsCard server={server} />
     </Stack>
   );

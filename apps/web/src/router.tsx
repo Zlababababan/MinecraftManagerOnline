@@ -31,6 +31,7 @@ import { MachinePage } from './pages/MachinePage.js';
 import { MachinesPage } from './pages/MachinesPage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { SERVER_TABS, ServerPage, type ServerTab } from './pages/ServerPage.js';
+import { SettingsPage } from './pages/SettingsPage.js';
 import { SetupPage } from './pages/SetupPage.js';
 import { bindRealtime } from './store/realtime.js';
 import { realtime } from './ws/client.js';
@@ -174,10 +175,26 @@ const accountRoute = createRoute({
   },
 });
 
+const settingsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings',
+  beforeLoad: ({ context }) => {
+    requireRole(context.user, 'admin');
+  },
+  component: SettingsPage,
+});
+
 const routeTree = rootRoute.addChildren([
   setupRoute,
   loginRoute,
-  appRoute.addChildren([indexRoute, serverRoute, machinesRoute, machineRoute, accountRoute]),
+  appRoute.addChildren([
+    indexRoute,
+    serverRoute,
+    machinesRoute,
+    machineRoute,
+    accountRoute,
+    settingsRoute,
+  ]),
 ]);
 
 export function createAppRouter(queryClient: QueryClient, history?: RouterHistory) {
