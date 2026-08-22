@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { RunState } from '@mmo/protocol';
+import { ProtocolError, type RunState } from '@mmo/protocol';
 
 import { Logger } from '../log.js';
 import { Watchdog, type WatchdogAlert, type WatchdogPolicy } from './watchdog.js';
@@ -12,6 +12,7 @@ function harness(policy: Partial<WatchdogPolicy> = {}) {
   const restarts: string[] = [];
   let state: RunState = 'running';
   let probeFails = false;
+  let probeError: 'E_TIMEOUT' | 'E_INTERRUPTED' | 'E_IO' = 'E_TIMEOUT';
   let alive = true;
   const kills: string[] = [];
   const watchdog = new Watchdog({
@@ -26,7 +27,10 @@ function harness(policy: Partial<WatchdogPolicy> = {}) {
     view: () => ({
       state: () => state,
       pid: 4242,
-      probe: () => (probeFails ? Promise.reject(new Error('timeout')) : Promise.resolve()),
+      probe: () =>
+        probeFails
+          ? Promise.reject(new ProtocolError(probeError, 'probe failed'))
+          : Promise.resolve(),
       alive: () => alive,
       kill: (reason) => {
         kills.push(reason);
@@ -53,6 +57,9 @@ function harness(policy: Partial<WatchdogPolicy> = {}) {
     kills,
     setState: (s: RunState) => {
       state = s;
+    },
+    setProbeError: (code: 'E_TIMEOUT' | 'E_INTERRUPTED' | 'E_IO') => {
+      probeError = code;
     },
     setProbeFails: (v: boolean) => {
       probeFails = v;
@@ -161,6 +168,23 @@ describe('Watchdog (doc 06 §4)', () => {
     });
     await vi.advanceTimersByTimeAsync(100);
     expect(h.restarts).toEqual(['s1']);
+  });
+
+  it('phase 12 : une connexion RCON fermée/refusée n’est pas un gel (seul E_TIMEOUT compte)', async () => {
+    const h = harness({ freezeTimeoutSec: 3 });
+    h.watchdog.onStateChanged('s1', 'running');
+    h.setProbeError('E_INTERRUPTED');
+    h.setProbeFails(true);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(h.alerts).toEqual([]);
+    expect(h.kills).toEqual([]);
+    h.setProbeError('E_IO');
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(h.alerts).toEqual([]);
+    // Puis de vraies expirations : 3 consécutives ⇒ gel.
+    h.setProbeError('E_TIMEOUT');
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(h.alerts).toEqual([expect.objectContaining({ kind: 'freeze', action: 'kill_restart' })]);
   });
 
   it('freeze : action none ⇒ une seule alerte tant que la sonde ne répond pas ; processus mort ⇒ rien', async () => {

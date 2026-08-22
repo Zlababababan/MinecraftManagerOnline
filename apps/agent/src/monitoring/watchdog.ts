@@ -3,13 +3,14 @@
  *  - **crash** : état `crashed` émis par `ServerProcess` (faisceau : exit sans arrêt demandé, rapport
  *    `crash-reports/`, patterns de log) → `watchdog.alert` + auto-restart optionnel, borné par
  *    `crashLoopMax` redémarrages par fenêtre glissante (défaut 10 min), délai croissant ;
- *  - **freeze** : sonde RCON `list` périodique (timeout 5 s) ; 3 échecs consécutifs, processus
- *    vivant ⇒ alerte + action `none` | `kill_restart` (exit classé `freeze_kill`, compte comme crash) ;
+ *  - **freeze** : sonde RCON `list` périodique (timeout 5 s) ; 3 **expirations** consécutives
+ *    (seul E_TIMEOUT compte : une connexion fermée/refusée n'est pas un gel), processus vivant ⇒
+ *    alerte + action `none` | `kill_restart` (exit classé `freeze_kill`, compte comme crash) ;
  *  - **RAM** : RSS très au-dessus de `maxRamMb` (collecteur de métriques) ⇒ alerte `ram`, une fois ;
  *  - **ports** : `FAILED TO BIND TO PORT` ou `E_PORT_IN_USE` au redémarrage ⇒ `port.conflict`.
  * La politique par serveur est poussée par `agent.configure.watchdog` et persistée dans l'état.
  */
-import type { EventPayload, RunState } from '@mmo/protocol';
+import { isProtocolError, type EventPayload, type RunState } from '@mmo/protocol';
 
 import { errorMessage, type Logger } from '../log.js';
 
@@ -261,6 +262,16 @@ export class Watchdog {
       s.freezeAlerted = false;
     } catch (error) {
       if (!view.alive() || view.state() !== 'running') return;
+      // Un gel = le thread principal ne répond plus : la commande **expire** (E_TIMEOUT). Une
+      // connexion fermée ou refusée (E_INTERRUPTED/E_IO) prouve au contraire un serveur réactif
+      // (phase 12 : un serveur sain a été tué pour « freeze » après des coupures RCON en série).
+      if (!isProtocolError(error) || error.code !== 'E_TIMEOUT') {
+        this.options.logger.debug('liveness probe error (not counted as freeze)', {
+          serverId,
+          error: errorMessage(error),
+        });
+        return;
+      }
       s.failures += 1;
       this.options.logger.debug('liveness probe failed', {
         serverId,
