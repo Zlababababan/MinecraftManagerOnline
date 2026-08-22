@@ -14,6 +14,8 @@
 //   --rcon-port <port>      active RCON (mot de passe `--rcon-password`, défaut : server.properties)
 //   --rcon-password <pwd>
 //   --rcon-delay <ms>       délai avant l'ouverture du listener RCON (défaut : juste avant `Done`)
+//   --rcon-strict-read      imite vanilla : une lecture TCP qui ne contient pas exactement un paquet
+//                           ferme la connexion (`RconClient.run` : `if (k != i - 4) return`)
 //   --log-dir <dir>         écrit aussi logs/latest.log (mode détaché)
 //   --modern-format         format de log Forge/NeoForge moderne avec mois localisé
 //   --big-response <n>      `list` renvoie une réponse de n octets (test de fragmentation)
@@ -76,6 +78,7 @@ if (rconPort === undefined && existsSync('server.properties')) {
   }
 }
 const rconDelay = Number(opt('rcon-delay', Math.max(0, doneAfter - 20)));
+const rconStrictRead = opt('rcon-strict-read', false) === true;
 
 const players = new Set();
 let saveCount = 0;
@@ -448,6 +451,10 @@ function startRcon() {
     sock.on('data', (chunk) => {
       // Gelé : le thread principal ne traite plus rien — aucune réponse, même à l'auth ou au paquet junk.
       if (frozen) return;
+      if (rconStrictRead && (chunk.length < 4 || chunk.readInt32LE(0) !== chunk.length - 4)) {
+        sock.destroy();
+        return;
+      }
       acc = Buffer.concat([acc, chunk]);
       while (acc.length >= 4) {
         const len = acc.readInt32LE(0);

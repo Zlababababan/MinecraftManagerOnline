@@ -11,6 +11,7 @@
  */
 import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdir, readdir, stat, writeFile } from 'node:fs/promises';
+import type { Socket } from 'node:net';
 import path from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 
@@ -415,6 +416,11 @@ export class ServerProcess {
       child.stderr?.removeAllListeners();
       child.stdin?.end();
       child.unref();
+      // Les tubes restent ouverts (jamais détruits : EPIPE côté Java) mais ne retiennent plus la
+      // boucle d'événements de l'agent.
+      for (const stream of [child.stdout, child.stderr]) {
+        if (stream && 'unref' in stream) (stream as Socket).unref();
+      }
     }
     this.child = undefined;
     this.tail?.stop();

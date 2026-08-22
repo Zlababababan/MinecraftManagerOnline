@@ -241,14 +241,27 @@ async function runScan(cli: Cli): Promise<number> {
 const invokedDirectly =
   process.argv[1] !== undefined &&
   /(?:^|[\\/])(?:main\.(?:ts|js)|agent\.js)$/.test(process.argv[1]);
+/**
+ * Sortie explicite : un serveur détaché (tubes stdio encore ouverts) ou un handle résiduel ne doit
+ * pas retenir le processus une fois l'arrêt terminé — observé sous systemd (phase 12) : SIGTERM
+ * honoré, agent déconnecté… mais processus vivant jusqu'au SIGKILL de `TimeoutStopSec`.
+ * stdout est vidé d'abord (tube asynchrone sous Windows : `paired with …` des installeurs).
+ */
+function exit(code: number): void {
+  process.exitCode = code;
+  process.stdout.write('', () => {
+    process.exit(code);
+  });
+}
+
 if (invokedDirectly) {
   main(process.argv.slice(2)).then(
     (code) => {
-      process.exitCode = code;
+      exit(code);
     },
     (error: unknown) => {
       process.stderr.write(`fatal: ${errorMessage(error)}\n`);
-      process.exitCode = 1;
+      exit(1);
     },
   );
 }

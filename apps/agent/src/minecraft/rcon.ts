@@ -5,6 +5,10 @@
  * - fin de réponse détectée par la technique du « paquet junk » : un paquet de type inconnu envoyé
  *   juste après la commande ; Minecraft y répond `Unknown request …` après tous les fragments
  *   (4 096 octets) de la réponse réelle ; repli sur un silence de `idleMs` (parser tolérant) ;
+ *   le junk n'est envoyé qu'après le **premier fragment** de réponse : le `RconClient` de vanilla
+ *   lit jusqu'à 1 460 octets et **ferme la connexion** si la lecture ne contient pas exactement un
+ *   paquet (`if (k != i - 4) return`), ce qui arrive dès que deux écritures coalescent (observé en
+ *   réel à la ré-adoption, phase 12) ;
  * - reconnexion automatique à la prochaine commande après une erreur.
  */
 import net from 'node:net';
@@ -112,13 +116,24 @@ export class RconClient {
       await this.ensureConnected(timeoutMs);
       const id = this.allocId();
       const junkId = this.allocId();
-      const packets = await this.roundTrip(
-        [encodeRconPacket(id, RCON_EXEC, command), encodeRconPacket(junkId, RCON_JUNK_TYPE, '')],
-        (p) => p.id === junkId,
-        timeoutMs ?? this.timeoutMs,
+      const limit = timeoutMs ?? this.timeoutMs;
+      // Jamais deux paquets dans une même lecture côté serveur (voir l'en-tête) : la commande part
+      // seule, le junk après le premier fragment de réponse (le serveur est alors de retour en lecture).
+      const first = await this.roundTrip(
+        [encodeRconPacket(id, RCON_EXEC, command)],
+        (p) => p.id === id,
+        limit,
+        false,
         true,
       );
-      return packets
+      const rest = await this.roundTrip(
+        [encodeRconPacket(junkId, RCON_JUNK_TYPE, '')],
+        (p) => p.id === junkId,
+        limit,
+        true,
+        false,
+      );
+      return [...first, ...rest]
         .filter((p) => p.id === id)
         .map((p) => p.body)
         .join('');
@@ -224,13 +239,15 @@ export class RconClient {
 
   /**
    * Envoie des paquets et attend jusqu'au paquet terminal (`isLast`), au silence (`idle`) ou au
-   * délai global. Résout avec tous les paquets reçus.
+   * délai global. Résout avec tous les paquets reçus (`reset = false` : conserve aussi ceux arrivés
+   * entre deux attentes successives).
    */
   private roundTrip(
     packets: Buffer[],
     isLast: (p: RconPacket) => boolean,
     timeoutMs: number,
     useIdle: boolean,
+    reset = true,
   ): Promise<RconPacket[]> {
     const socket = this.socket;
     if (!socket) {
@@ -239,7 +256,7 @@ export class RconClient {
       );
     }
     return new Promise<RconPacket[]>((resolve, reject) => {
-      this.received = [];
+      if (reset) this.received = [];
       let idleTimer: ReturnType<typeof setTimeout> | undefined;
       const timer = setTimeout(() => {
         finish(

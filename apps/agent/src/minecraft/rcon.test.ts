@@ -110,6 +110,52 @@ describe('client RCON maison (doc 06 §5)', () => {
     await expect(rcon.exec('list')).rejects.toMatchObject({ code: 'E_IO', retryable: true });
   });
 
+  it('lecture « vanilla » (un paquet par lecture, sinon coupure) : commande et junk jamais coalescés', async () => {
+    // Vanilla `RconClient.run` coupe la connexion si une lecture TCP ne contient pas exactement un
+    // paquet : le client doit envoyer le junk seulement après le premier fragment de réponse.
+    const strictPort = await freePort();
+    const strict = spawn(
+      process.execPath,
+      [
+        FAKE_SERVER,
+        '--done-after',
+        '50',
+        '--rcon-port',
+        String(strictPort),
+        '--rcon-password',
+        password,
+        '--rcon-delay',
+        '0',
+        '--rcon-strict-read',
+        '--big-response',
+        '9000',
+      ],
+      { stdio: ['pipe', 'ignore', 'ignore'] },
+    );
+    try {
+      await waitFor(async () => !(await isPortFree(strictPort)), 5000);
+      const rcon = new RconClient({ port: strictPort, password });
+      await waitFor(async () => {
+        try {
+          await rcon.connect();
+          return true;
+        } catch {
+          return false;
+        }
+      });
+      for (let i = 0; i < 20; i++) {
+        const list = await rcon.exec('list');
+        expect(list.length).toBe(9000);
+        expect(rcon.isConnected).toBe(true);
+      }
+      expect(await rcon.exec('accent')).toBe('éèàç');
+      expect(await rcon.exec('say hi')).toBe('');
+      rcon.close();
+    } finally {
+      strict.kill('SIGKILL');
+    }
+  });
+
   it('interprète `list` dans ses variantes', () => {
     expect(parseListResponse('There are 0 of a max of 20 players online:')).toEqual({
       online: 0,

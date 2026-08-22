@@ -97,7 +97,9 @@ Le script télécharge l'archive de la bonne plateforme depuis le panel, vérifi
 ### 2.2 Ce que fait le script — Windows
 
 - Fichiers dans `%LOCALAPPDATA%\Programs\mmo-agent` (runtime, `launcher.cjs`, `versions/<v>/agent.js`, `shawl.exe`), état dans `%LOCALAPPDATA%\mmo-agent`.
-- Service `mmo-agent` enregistré avec **shawl** ; il tourne **sous votre compte Windows** (mot de passe demandé une fois, dans la fenêtre élevée qui s'ouvre) pour que l'agent voie vos lecteurs mappés et vos dossiers. Le droit « Ouvrir une session en tant que service » est accordé automatiquement. Alternative : `-ServiceAccount LocalSystem`.
+- Service `mmo-agent` enregistré avec **shawl**, démarrage automatique ; il tourne **sous votre compte Windows** (mot de passe demandé une fois, dans la fenêtre élevée qui s'ouvre) pour que l'agent voie vos lecteurs mappés et vos dossiers. Le droit « Ouvrir une session en tant que service » est accordé automatiquement. Alternative : `-ServiceAccount LocalSystem`.
+- **Compte sans mot de passe** (session ouverte par code PIN ou sans mot de passe) : Windows interdit aux services d'ouvrir une session avec un mot de passe vide. Validez l'invite vide : le script l'indique et enregistre le service sous `LocalSystem` (l'agent ne voit alors pas vos lecteurs réseau mappés). Pour revenir à votre compte : définissez un mot de passe Windows puis relancez la commande.
+- En cas d'échec dans la fenêtre élevée, le message reste affiché (Entrée pour fermer) et le détail est dans `%TEMP%\mmo-install.log`.
 - Redémarrage automatique du service en cas de plantage ; arrêt propre = Ctrl+C transmis à l'agent, **jamais** l'arbre de processus : les serveurs Minecraft survivent à l'arrêt ou à la mise à jour de l'agent, puis sont ré-adoptés.
 - Options : `-NoService` (fichiers seulement), `-InstallDir`, `-StateDir`, `-Panel`, `-Archive <zip>` (hors ligne).
 - Désinstaller : `& ([scriptblock]::Create((irm https://<panel>/install.ps1))) -Uninstall` (ajoutez `-Purge` pour supprimer aussi l'état ; les serveurs Minecraft ne sont jamais touchés).
@@ -108,7 +110,8 @@ Le script télécharge l'archive de la bonne plateforme depuis le panel, vérifi
 - Unit systemd `mmo-agent` avec `KillMode=process` (les serveurs détachés survivent) et `Restart=on-failure`. `sudo` est demandé au besoin.
 - **Sans root** : `--user-service` installe dans `~/.local/share/mmo-agent` avec `systemctl --user` et `loginctl enable-linger` (démarre au boot sans session ouverte).
 - Options : `--no-service`, `--dir`, `--state-dir`, `--panel`, `--archive <tar.gz>` (hors ligne).
-- Désinstaller : `curl -fsSL https://<panel>/install.sh | sh -s -- --uninstall [--purge]` (ajoutez `--user-service` si installé ainsi).
+- Désinstaller : `curl -fsSL https://<panel>/install.sh | sh -s -- --uninstall [--purge]` (ajoutez `--user-service` si installé ainsi). Le compte système `mmo` est conservé (`userdel mmo` si vous n'en voulez plus).
+- Sous **WSL**, la VM s'arrête quelques secondes après la fermeture du dernier terminal : le service (et les serveurs) s'arrêtent avec elle — WSL convient pour essayer, pas pour héberger.
 
 ### 2.4 Ce que fait le script — macOS
 
