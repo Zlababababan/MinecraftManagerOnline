@@ -174,6 +174,7 @@ export const webEn = {
     one: 'Server',
     tabs: {
       overview: 'Overview',
+      metrics: 'Metrics',
       console: 'Console',
       players: 'Players',
       config: 'Configuration',
@@ -422,6 +423,69 @@ export const webEn = {
     file: 'File',
     noFiles: 'No log file yet.',
   },
+  watchdog: {
+    kind: {
+      crash: 'crash',
+      freeze: 'freeze (RCON not responding)',
+      crash_loop: 'crash loop',
+      ram: 'memory above the limit',
+    },
+    action: {
+      none: 'no action',
+      restart: 'automatic restart (attempt {{attempt}})',
+      kill_restart: 'killed and restarted (attempt {{attempt}})',
+      gave_up: 'gave up after {{attempt}} restart(s)',
+    },
+  },
+  metrics: {
+    title: 'Metrics',
+    cpu: 'CPU',
+    cpuCoreHint: '% of one core',
+    ram: 'Memory',
+    ramMax: 'Max heap',
+    tps: 'TPS',
+    players: 'Players',
+    noData: 'No data for this range yet.',
+    avg: 'average',
+    tpsUnavailable: 'TPS unavailable',
+    tpsSource: {
+      neoforge: 'via /neoforge tps',
+      forge: 'via /forge tps',
+      spark: 'via spark',
+      tick_query: 'via /tick query',
+      unknown: 'unknown source',
+    },
+    tpsReason: {
+      notRunning: 'The server is not running.',
+      vanillaOld:
+        'Vanilla servers before 1.20.3 do not expose their tick rate: there is nothing honest to show.',
+      fabricNoSpark:
+        'Fabric has no built-in TPS command. Installing the spark mod makes it available.',
+      forgeNoAnswer:
+        'The /forge tps command did not answer yet (server still loading, or RCON unavailable).',
+      unknown: 'No known method answered on this server.',
+    },
+    sparkLink: 'Download spark',
+    sparkNeverRequired: 'it is never required, everything else works without it.',
+    cpuTicks: {
+      title: 'CPU measured by ticks',
+      body: 'On this machine the CPU time of processes is measured by ticks, which can be heavily underestimated when Hyper-V is active (WSL2, Docker, memory integrity). Treat CPU values as a lower bound.',
+    },
+    ranges: { '1h': '1 h', '6h': '6 h', '24h': '24 h', '7d': '7 d', '30d': '30 d' },
+    resolution: {
+      raw: 'Raw samples (15 s)',
+      '1m': 'Per-minute averages (band = min/max)',
+      '1h': 'Hourly averages (band = min/max)',
+    },
+    charts: {
+      cpu: 'CPU (% of one core)',
+      ram: 'Memory (RSS)',
+      tps: 'TPS',
+      players: 'Players online',
+      machineCpu: 'Machine CPU',
+      machineRam: 'Machine memory',
+    },
+  },
   events: {
     title: 'Events',
     type: 'Type',
@@ -442,8 +506,8 @@ export const webEn = {
       'server.eulaAccepted': 'EULA accepted',
       'player.joined': 'Player joined: {{name}}',
       'player.left': 'Player left: {{name}}',
-      'watchdog.alert': 'Watchdog alert',
-      'port.conflict': 'Port conflict',
+      'watchdog.alert': 'Watchdog: {{kindLabel}} — {{actionLabel}}',
+      'port.conflict': 'Port conflict: {{port}}',
       'agent.log': 'Agent log',
       'server.configChanged': 'Configuration changed: {{file}}',
       'server.fileChanged': 'File changed: {{operation}}',

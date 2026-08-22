@@ -21,9 +21,16 @@ export function eventLabel(
   const key = `web:events.types.${event.type}`;
   if (exists(key)) {
     const state = typeof payload.state === 'string' ? payload.state : undefined;
+    const kind = typeof payload.kind === 'string' ? payload.kind : undefined;
+    const action = typeof payload.action === 'string' ? payload.action : undefined;
     return t(key, {
       ...payload,
       state: state === undefined ? '' : t(`common:runState.${state}`, { defaultValue: state }),
+      kindLabel: kind === undefined ? '' : t(`web:watchdog.kind.${kind}`, { defaultValue: kind }),
+      actionLabel:
+        action === undefined
+          ? ''
+          : t(`web:watchdog.action.${action}`, { defaultValue: action, ...payload }),
     });
   }
   return event.type;

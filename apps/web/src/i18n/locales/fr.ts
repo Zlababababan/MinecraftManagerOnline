@@ -172,6 +172,7 @@ export const webFr = {
     one: 'Serveur',
     tabs: {
       overview: 'Aperçu',
+      metrics: 'Métriques',
       console: 'Console',
       players: 'Joueurs',
       config: 'Configuration',
@@ -430,6 +431,69 @@ export const webFr = {
     file: 'Fichier',
     noFiles: 'Pas encore de fichier de journal.',
   },
+  watchdog: {
+    kind: {
+      crash: 'plantage',
+      freeze: 'gel (RCON ne répond plus)',
+      crash_loop: 'boucle de plantages',
+      ram: 'mémoire au-dessus de la limite',
+    },
+    action: {
+      none: 'aucune action',
+      restart: 'redémarrage automatique (tentative {{attempt}})',
+      kill_restart: 'tué puis redémarré (tentative {{attempt}})',
+      gave_up: 'abandon après {{attempt}} redémarrage(s)',
+    },
+  },
+  metrics: {
+    title: 'Métriques',
+    cpu: 'CPU',
+    cpuCoreHint: '% d’un cœur',
+    ram: 'Mémoire',
+    ramMax: 'Tas max',
+    tps: 'TPS',
+    players: 'Joueurs',
+    noData: 'Pas encore de données sur cette plage.',
+    avg: 'moyenne',
+    tpsUnavailable: 'TPS indisponible',
+    tpsSource: {
+      neoforge: 'via /neoforge tps',
+      forge: 'via /forge tps',
+      spark: 'via spark',
+      tick_query: 'via /tick query',
+      unknown: 'source inconnue',
+    },
+    tpsReason: {
+      notRunning: 'Le serveur n’est pas en marche.',
+      vanillaOld:
+        'Un serveur vanilla antérieur à 1.20.3 n’expose pas sa cadence de ticks : rien d’honnête à afficher.',
+      fabricNoSpark:
+        'Fabric n’a pas de commande TPS intégrée. Installer le mod spark la rend disponible.',
+      forgeNoAnswer:
+        'La commande /forge tps n’a pas encore répondu (serveur en cours de chargement, ou RCON indisponible).',
+      unknown: 'Aucune méthode connue n’a répondu sur ce serveur.',
+    },
+    sparkLink: 'Télécharger spark',
+    sparkNeverRequired: 'jamais requis, tout le reste fonctionne sans.',
+    cpuTicks: {
+      title: 'CPU mesuré par ticks',
+      body: 'Sur cette machine, le temps CPU des processus est mesuré par ticks, ce qui peut être fortement sous-évalué quand Hyper-V est actif (WSL2, Docker, intégrité de la mémoire). Considérez les valeurs CPU comme un minimum.',
+    },
+    ranges: { '1h': '1 h', '6h': '6 h', '24h': '24 h', '7d': '7 j', '30d': '30 j' },
+    resolution: {
+      raw: 'Échantillons bruts (15 s)',
+      '1m': 'Moyennes par minute (bande = min/max)',
+      '1h': 'Moyennes horaires (bande = min/max)',
+    },
+    charts: {
+      cpu: 'CPU (% d’un cœur)',
+      ram: 'Mémoire (RSS)',
+      tps: 'TPS',
+      players: 'Joueurs en ligne',
+      machineCpu: 'CPU de la machine',
+      machineRam: 'Mémoire de la machine',
+    },
+  },
   events: {
     title: 'Événements',
     type: 'Type',
@@ -450,8 +514,8 @@ export const webFr = {
       'server.eulaAccepted': 'EULA acceptée',
       'player.joined': 'Joueur connecté : {{name}}',
       'player.left': 'Joueur déconnecté : {{name}}',
-      'watchdog.alert': 'Alerte du watchdog',
-      'port.conflict': 'Conflit de port',
+      'watchdog.alert': 'Watchdog : {{kindLabel}} — {{actionLabel}}',
+      'port.conflict': 'Conflit de port : {{port}}',
       'agent.log': 'Journal de l’agent',
       'server.configChanged': 'Configuration modifiée : {{file}}',
       'server.fileChanged': 'Fichier modifié : {{operation}}',

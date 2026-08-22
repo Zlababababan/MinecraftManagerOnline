@@ -17,12 +17,14 @@ import type {
   FsReadResult,
   LogsSearchRequest,
   MachineDto,
+  MachineMetricsResult,
   PairingCodeDto,
   PlayerActionRequest,
   PlayerSessionDto,
   ResolvedPlayerDto,
   ServerConflictDto,
   ServerDto,
+  ServerMetricsResult,
   UserDto,
   addDirectorySchema,
   commandHistoryItemSchema,
@@ -65,6 +67,22 @@ export const keys = {
   filesAll: (id: string) => ['servers', id, 'files'] as const,
   fileRead: (id: string, path: string) => ['servers', id, 'file', path] as const,
   logFiles: (id: string) => ['servers', id, 'logs'] as const,
+  // Phase 7
+  serverMetrics: (id: string, range: MetricsRange) => ['servers', id, 'metrics', range] as const,
+  serverMetricsAll: (id: string) => ['servers', id, 'metrics'] as const,
+  machineMetrics: (id: string, range: MetricsRange) => ['machines', id, 'metrics', range] as const,
+  machineMetricsAll: (id: string) => ['machines', id, 'metrics'] as const,
+};
+
+/** Plages des graphiques ; la résolution (brut / 1 min / 1 h) est choisie par le panel. */
+export const METRICS_RANGES = ['1h', '6h', '24h', '7d', '30d'] as const;
+export type MetricsRange = (typeof METRICS_RANGES)[number];
+export const METRICS_RANGE_MS: Record<MetricsRange, number> = {
+  '1h': 3_600_000,
+  '6h': 6 * 3_600_000,
+  '24h': 24 * 3_600_000,
+  '7d': 7 * 24 * 3_600_000,
+  '30d': 30 * 24 * 3_600_000,
 };
 
 export interface ConfigGetResult<F extends ConfigFile> {
@@ -211,6 +229,31 @@ export const logFilesQuery = (id: string) =>
     staleTime: 30_000,
   });
 
+export const serverMetricsQuery = (id: string, range: MetricsRange) =>
+  queryOptions({
+    queryKey: keys.serverMetrics(id, range),
+    queryFn: ({ signal }) =>
+      api.get<ServerMetricsResult>(
+        `/api/servers/${id}/metrics?from=${String(Date.now() - METRICS_RANGE_MS[range])}`,
+        signal,
+      ),
+    staleTime: 30_000,
+    // Les plages agrégées ne sont pas alimentées en direct : on les rafraîchit périodiquement.
+    refetchInterval: range === '1h' ? false : 60_000,
+  });
+
+export const machineMetricsQuery = (id: string, range: MetricsRange) =>
+  queryOptions({
+    queryKey: keys.machineMetrics(id, range),
+    queryFn: ({ signal }) =>
+      api.get<MachineMetricsResult>(
+        `/api/machines/${id}/metrics?from=${String(Date.now() - METRICS_RANGE_MS[range])}`,
+        signal,
+      ),
+    staleTime: 30_000,
+    refetchInterval: range === '1h' ? false : 60_000,
+  });
+
 // --- Hooks -------------------------------------------------------------------------------------
 
 export const useMe = () => useQuery(meQuery);
@@ -232,6 +275,10 @@ export const useFiles = (id: string, path: string) => useQuery(filesQuery(id, pa
 export const useFileRead = (id: string, path: string | undefined) =>
   useQuery({ ...fileReadQuery(id, path ?? ''), enabled: path !== undefined });
 export const useLogFiles = (id: string) => useQuery(logFilesQuery(id));
+export const useServerMetrics = (id: string, range: MetricsRange) =>
+  useQuery(serverMetricsQuery(id, range));
+export const useMachineMetrics = (id: string, range: MetricsRange) =>
+  useQuery(machineMetricsQuery(id, range));
 
 // --- Mutations ---------------------------------------------------------------------------------
 

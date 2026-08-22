@@ -1,5 +1,6 @@
 /** En-tête machine (dashboard + page machine) : statut, dernier heartbeat, CPU/RAM/disque. */
-import { Group, Progress, Stack, Text, Tooltip } from '@mantine/core';
+import { Group, Progress, Stack, Text, ThemeIcon, Tooltip } from '@mantine/core';
+import { IconAlertTriangle } from '@tabler/icons-react';
 import { RouterAnchor } from './links.js';
 import { useT } from '../i18n/hooks.js';
 
@@ -89,9 +90,20 @@ export function MachineHeader({
             label={hb.cpuSource === undefined ? 'CPU' : t(`common:cpuSource.${hb.cpuSource}`)}
             withArrow
           >
-            <div>
+            <Group gap={4} wrap="nowrap" align="flex-end">
               <Gauge label={t('web:machine.cpu')} value={hb.cpuPct} text={formatPct(hb.cpuPct)} />
-            </div>
+              {hb.cpuSource === 'ticks' && (
+                <ThemeIcon
+                  size="sm"
+                  variant="light"
+                  color="yellow"
+                  aria-label={t('web:metrics.cpuTicks.title')}
+                  data-testid="cpu-ticks-icon"
+                >
+                  <IconAlertTriangle size={12} />
+                </ThemeIcon>
+              )}
+            </Group>
           </Tooltip>
           <Gauge
             label={t('web:machine.ram')}

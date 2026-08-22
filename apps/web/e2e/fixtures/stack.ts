@@ -81,6 +81,8 @@ async function startAgent(pairCode: string): Promise<void> {
     scanIntervalMs: 0,
     restrictPermissions: false,
     backoff: { baseMs: 100, maxMs: 500 },
+    // Phase 7 : métriques rapides pour que les graphiques se remplissent pendant le test.
+    metricsIntervalMs: 1000,
     manager: {
       commandBuilder: (ctx) => ({
         file: process.execPath,

@@ -6,9 +6,21 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { create } from 'zustand';
 
-import type { EventDto, ServerMessage } from '@mmo/protocol/client';
+import type {
+  EventDto,
+  MachineMetricsResult,
+  ServerMetricsResult,
+  ServerMessage,
+} from '@mmo/protocol/client';
 
-import { keys, machinesQuery, serverQuery, serversQuery } from '../api/queries.js';
+import {
+  METRICS_RANGE_MS,
+  keys,
+  machinesQuery,
+  serverQuery,
+  serversQuery,
+  type MetricsRange,
+} from '../api/queries.js';
 import type { RealtimeClient, RealtimeStatus } from '../ws/client.js';
 
 const MAX_RECENT_EVENTS = 100;
@@ -135,12 +147,80 @@ export function applyServerMessage(queryClient: QueryClient, message: ServerMess
       }
       return;
     }
+    case 'metrics.sample':
+      applyMetricsSample(queryClient, message.machineId, message.sample);
+      return;
     case 'console.snapshot':
     case 'console.lines':
     case 'error':
       // Consommés par les abonnés console (`useConsole`).
       return;
   }
+}
+
+/**
+ * Échantillon temps réel (15 s) : met à jour « maintenant » dans toutes les plages en cache et
+ * ajoute le point aux séries **brutes** (la plage glissante est tronquée) ; les plages agrégées
+ * sont rafraîchies par leur `refetchInterval`.
+ */
+function applyMetricsSample(
+  queryClient: QueryClient,
+  machineId: string,
+  sample: Extract<ServerMessage, { type: 'metrics.sample' }>['sample'],
+): void {
+  const cpuSource = sample.cpuSource ?? null;
+  queryClient.setQueriesData<MachineMetricsResult>(
+    { queryKey: keys.machineMetricsAll(machineId) },
+    (old) => {
+      if (old === undefined || (old.latest !== null && old.latest.ts >= sample.ts)) return old;
+      const point = {
+        ts: sample.ts,
+        cpu: sample.machine.cpuPct ?? null,
+        ram: sample.machine.ramUsedMb ?? null,
+        diskUsedGb: sample.machine.diskUsedGb ?? null,
+        diskTotalGb: sample.machine.diskTotalGb ?? null,
+      };
+      return { ...old, latest: point, cpuSource, points: appendRaw(old, point, sample.ts) };
+    },
+  );
+  for (const s of sample.servers) {
+    queryClient.setQueriesData<ServerMetricsResult>(
+      { queryKey: keys.serverMetricsAll(s.serverId) },
+      (old) => {
+        if (old === undefined || (old.latest !== null && old.latest.ts >= sample.ts)) return old;
+        const point = {
+          ts: sample.ts,
+          cpu: s.cpuPct ?? null,
+          ram: s.rssMb ?? null,
+          tps: s.tps ?? null,
+          mspt: s.mspt ?? null,
+          players: s.players ?? null,
+        };
+        return {
+          ...old,
+          latest: point,
+          tpsSource: s.tpsSource ?? null,
+          cpuSource,
+          points: appendRaw(old, point, sample.ts),
+        };
+      },
+    );
+  }
+}
+
+function appendRaw<P extends { ts: number }>(
+  old: { resolution: string; points: P[]; from: number; to: number },
+  point: P,
+  now: number,
+): P[] {
+  if (old.resolution !== 'raw') return old.points;
+  // La plage glissante est celle de la clé ('1h'…) ; on garde la largeur d'origine.
+  const span = old.to - old.from;
+  const range = (Object.keys(METRICS_RANGE_MS) as MetricsRange[]).find(
+    (r) => Math.abs(METRICS_RANGE_MS[r] - span) < 60_000,
+  );
+  const width = range === undefined ? span : METRICS_RANGE_MS[range];
+  return [...old.points.filter((p) => p.ts >= now - width), point];
 }
 
 /** Branche le client temps réel sur le store et le cache ; retourne la fonction de débranchement. */

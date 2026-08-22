@@ -68,9 +68,15 @@ const FileExplorer = lazy(() =>
 const LogsPanel = lazy(() =>
   import('../components/logs/LogsPanel.js').then((m) => ({ default: m.LogsPanel })),
 );
+const ServerMetricsPanel = lazy(() =>
+  import('../components/metrics/MetricsPanel.js').then((m) => ({
+    default: m.ServerMetricsPanel,
+  })),
+);
 
 export const SERVER_TABS = [
   'overview',
+  'metrics',
   'console',
   'players',
   'config',
@@ -343,6 +349,11 @@ export function ServerPage({ serverId, tab }: { serverId: string; tab: ServerTab
         </ScrollArea>
         <Tabs.Panel value="overview" pt="md">
           <Overview server={s} />
+        </Tabs.Panel>
+        <Tabs.Panel value="metrics" pt="md">
+          <Suspense fallback={<Loader size="sm" />}>
+            <ServerMetricsPanel server={s} />
+          </Suspense>
         </Tabs.Panel>
         <Tabs.Panel value="console" pt="md">
           <Suspense fallback={<Loader size="sm" />}>

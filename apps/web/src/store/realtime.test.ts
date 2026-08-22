@@ -111,6 +111,82 @@ describe('applyServerMessage', () => {
     expect(qc.getQueryState(keys.machines)?.isInvalidated).toBe(true);
   });
 
+  it('metrics.sample ajoute le point aux plages brutes, met à jour « maintenant » partout', () => {
+    const now = 1_000_000_000;
+    qc.setQueryData(keys.serverMetrics('s1', '1h'), {
+      resolution: 'raw',
+      from: now - 3_600_000,
+      to: now,
+      points: [
+        { ts: now - 3_600_000, cpu: 1, ram: 1, tps: null, players: 0 },
+        { ts: now - 15_000, cpu: 5, ram: 100, tps: 20, players: 1 },
+      ],
+      latest: { ts: now - 15_000, cpu: 5, ram: 100, tps: 20, players: 1 },
+      tpsSource: 'forge',
+      cpuSource: 'cycles',
+    });
+    qc.setQueryData(keys.serverMetrics('s1', '24h'), {
+      resolution: '1m',
+      from: now - 86_400_000,
+      to: now,
+      points: [{ ts: now - 60_000, cpu: 3, ram: 90, tps: 20, players: 1, samples: 4 }],
+      latest: { ts: now - 15_000, cpu: 5, ram: 100, tps: 20, players: 1 },
+      tpsSource: 'forge',
+      cpuSource: 'cycles',
+    });
+    qc.setQueryData(keys.machineMetrics('m1', '1h'), {
+      resolution: 'raw',
+      from: now - 3_600_000,
+      to: now,
+      points: [],
+      latest: null,
+      cpuSource: null,
+    });
+    applyServerMessage(qc, {
+      type: 'metrics.sample',
+      machineId: 'm1',
+      sample: {
+        ts: now + 15_000,
+        machine: { cpuPct: 33, ramUsedMb: 8000 },
+        servers: [
+          { serverId: 's1', cpuPct: 7, rssMb: 110, tps: 19, tpsSource: 'forge', players: 2 },
+        ],
+        cpuSource: 'ticks',
+      },
+    });
+    const raw = qc.getQueryData<{
+      points: { ts: number }[];
+      latest: { cpu: number };
+      cpuSource: string;
+    }>(keys.serverMetrics('s1', '1h'));
+    // Point ajouté, plus ancien tombé hors de la fenêtre glissante d'une heure
+    expect(raw?.points.map((p) => p.ts)).toEqual([now - 15_000, now + 15_000]);
+    expect(raw?.latest).toMatchObject({ cpu: 7, ram: 110, tps: 19, players: 2 });
+    expect(raw?.cpuSource).toBe('ticks');
+    const agg = qc.getQueryData<{ points: unknown[]; latest: { cpu: number } }>(
+      keys.serverMetrics('s1', '24h'),
+    );
+    expect(agg?.points).toHaveLength(1); // les plages agrégées ne reçoivent pas de point
+    expect(agg?.latest).toMatchObject({ cpu: 7 });
+    const machine = qc.getQueryData<{ points: { cpu: number | null }[]; latest: { ram: number } }>(
+      keys.machineMetrics('m1', '1h'),
+    );
+    expect(machine?.points).toEqual([
+      { ts: now + 15_000, cpu: 33, ram: 8000, diskUsedGb: null, diskTotalGb: null },
+    ]);
+    expect(machine?.latest).toMatchObject({ ram: 8000 });
+    // Échantillon rejoué plus ancien : ignoré pour « maintenant »
+    applyServerMessage(qc, {
+      type: 'metrics.sample',
+      machineId: 'm1',
+      sample: { ts: now, machine: {}, servers: [{ serverId: 's1', players: 9 }] },
+    });
+    expect(
+      qc.getQueryData<{ latest: { players: number } }>(keys.serverMetrics('s1', '1h'))?.latest
+        .players,
+    ).toBe(2);
+  });
+
   it('hello / pong mémorisent l’heure serveur', () => {
     applyServerMessage(qc, {
       type: 'hello',
