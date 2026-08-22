@@ -22,7 +22,7 @@ pnpm format             # Prettier --write ; `pnpm format:check` en CI
 
 Une commande ciblée : `pnpm --filter @mmo/panel test`, `pnpm --filter @mmo/web dev`.
 
-Développement du front : `pnpm --filter @mmo/panel dev` (API sur 127.0.0.1:3000) puis `pnpm --filter @mmo/web dev` (Vite sur 5173, proxy `/api` et `/ws`). En production le panel sert `apps/web/dist` (`pnpm build`). E2E : `pnpm --filter @mmo/web e2e` (Playwright, Chromium via `pnpm --filter @mmo/web exec playwright install chromium` la première fois ; construit le front, lance panel + agent réels + fake Java server). Le scénario `whitelist.spec.ts` (phase 6) lit les fichiers du serveur e2e sur disque : ne pas le lancer en parallèle d’un autre run. Les tests de l'agent lancent un sidecar PowerShell et un processus « burner » sous Windows (`monitoring/sampler.test.ts`) : `pnpm check` peut être bruyant en CPU pendant ~20 s.
+Développement du front : `pnpm --filter @mmo/panel dev` (API sur 127.0.0.1:3000) puis `pnpm --filter @mmo/web dev` (Vite sur 5173, proxy `/api` et `/ws`). En production le panel sert `apps/web/dist` (`pnpm build`). E2E : `pnpm --filter @mmo/web e2e` (Playwright, Chromium via `pnpm --filter @mmo/web exec playwright install chromium` la première fois ; construit le front, lance panel + agent réels + fake Java server). Le scénario `whitelist.spec.ts` (phase 6) lit les fichiers du serveur e2e sur disque : ne pas le lancer en parallèle d’un autre run. Le scénario `backups.spec.ts` (phase 8) crée puis supprime des archives dans le dossier d'état temporaire de l'agent e2e. Les tests de l'agent lancent un sidecar PowerShell et un processus « burner » sous Windows (`monitoring/sampler.test.ts`) : `pnpm check` peut être bruyant en CPU pendant ~20 s.
 
 ## Structure
 
@@ -48,6 +48,7 @@ Tous les packages sont ESM (`"type": "module"`), TypeScript **strict** (`@mmo/co
 | **i18n dès la première chaîne** : aucun texte visible en dur dans le front ni dans les push ; les erreurs sont des **codes**, l'UI traduit | `apps/web`, `apps/panel`, `packages/shared` | revue ; `no-console` en erreur dans `apps/web` |
 | **Une migration mergée ne se modifie jamais** : on en ajoute une nouvelle (Drizzle, SQL commité) | `apps/panel` | revue ; tests « migrations rejouées from scratch » (phase 4) |
 | **Timestamps = epoch en millisecondes**, partout (DB, protocole, API) | partout | schémas Zod |
+| **Jamais `ZSTD_c_nbWorkers`** (perte silencieuse de données, spike n°3) ; l'intégrité d'une archive ou d'un transfert repose sur **sha256 + taille**, jamais sur le codec | `apps/agent`, `packages/shared`, `apps/panel` | ESLint `no-restricted-syntax` (phase 8) ; tests backups (archive altérée refusée) |
 | **Versions épinglées** (`save-exact`), aucune dépendance publiée depuis < 3 jours (`minimumReleaseAge` pnpm), scripts postinstall sur liste blanche (`allowBuilds`) | `pnpm-workspace.yaml`, `.npmrc` | pnpm |
 | Le panel est l'autorité des identifiants serveurs | `apps/panel` | doc 04 |
 
