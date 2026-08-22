@@ -3,7 +3,7 @@
  * actions joueurs, historique `player_sessions`. Faux agent = `RpcPeer` rôle `agent` qui enregistre
  * les requêtes reçues.
  */
-import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from 'fastify';
+import type { InjectOptions, LightMyRequestResponse } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { ulid } from '@mmo/protocol';
