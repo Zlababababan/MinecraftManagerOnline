@@ -22,7 +22,7 @@ pnpm format             # Prettier --write ; `pnpm format:check` en CI
 
 Une commande ciblée : `pnpm --filter @mmo/panel test`, `pnpm --filter @mmo/web dev`.
 
-Développement du front : `pnpm --filter @mmo/panel dev` (API sur 127.0.0.1:3000) puis `pnpm --filter @mmo/web dev` (Vite sur 5173, proxy `/api` et `/ws`). En production le panel sert `apps/web/dist` (`pnpm build`). E2E : `pnpm --filter @mmo/web e2e` (Playwright, Chromium via `pnpm --filter @mmo/web exec playwright install chromium` la première fois ; construit le front, lance panel + agent réels + fake Java server). Le scénario `whitelist.spec.ts` (phase 6) lit les fichiers du serveur e2e sur disque : ne pas le lancer en parallèle d’un autre run.
+Développement du front : `pnpm --filter @mmo/panel dev` (API sur 127.0.0.1:3000) puis `pnpm --filter @mmo/web dev` (Vite sur 5173, proxy `/api` et `/ws`). En production le panel sert `apps/web/dist` (`pnpm build`). E2E : `pnpm --filter @mmo/web e2e` (Playwright, Chromium via `pnpm --filter @mmo/web exec playwright install chromium` la première fois ; construit le front, lance panel + agent réels + fake Java server). Le scénario `whitelist.spec.ts` (phase 6) lit les fichiers du serveur e2e sur disque : ne pas le lancer en parallèle d’un autre run. Les tests de l'agent lancent un sidecar PowerShell et un processus « burner » sous Windows (`monitoring/sampler.test.ts`) : `pnpm check` peut être bruyant en CPU pendant ~20 s.
 
 ## Structure
 
