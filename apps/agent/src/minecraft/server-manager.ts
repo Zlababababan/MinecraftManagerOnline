@@ -81,6 +81,8 @@ export class ServerManager {
   private readonly java: JavaRegistry;
   private readonly detectFs: DetectFs;
   private readonly starting = new Set<string>();
+  /** Phase 12 : allocation RCON sérialisée (démarrages simultanés ⇒ même port choisi sinon). */
+  private rconAllocation: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly options: ServerManagerOptions) {
     this.java = options.java ?? new JavaRegistry();
@@ -619,7 +621,21 @@ export class ServerManager {
     return rt;
   }
 
-  private async ensureRcon(
+  private ensureRcon(
+    serverId: string,
+    record: ServerRecord,
+  ): Promise<{ port: number; password: string }> {
+    // Un seul choix de port à la fois : la lecture de l'état, les sondes et l'écriture du store
+    // sont asynchrones, deux démarrages concurrents retenaient le même port libre (test d'échelle).
+    const run = this.rconAllocation.then(
+      () => this.allocateRcon(serverId, record),
+      () => this.allocateRcon(serverId, record),
+    );
+    this.rconAllocation = run.catch(() => undefined);
+    return run;
+  }
+
+  private async allocateRcon(
     serverId: string,
     record: ServerRecord,
   ): Promise<{ port: number; password: string }> {
@@ -632,7 +648,8 @@ export class ServerManager {
     // Le port de jeu du serveur lui-même ne doit pas être réutilisé pour RCON.
     const { props } = await readServerProperties(record.config.path);
     used.add(gamePortFromProperties(props));
-    let rcon = record.rcon;
+    // L'enregistrement passé en argument peut dater d'avant l'attente : relire l'état courant.
+    let rcon = this.options.store.get().servers[serverId]?.rcon ?? record.rcon;
     if (rcon && (used.has(rcon.port) || !(await isPortFree(rcon.port)))) rcon = undefined;
     if (!rcon) {
       const port = await findFreePort(from, to, used);
