@@ -11,6 +11,8 @@ Application web de pilotage à distance de serveurs Minecraft auto-hébergés : 
 - [Protocole panel-agent](docs/05-protocole.md)
 - [Serveurs Minecraft](docs/06-minecraft.md)
 - [Plan de développement](docs/07-plan-de-developpement.md)
+- **Guide utilisateur** : [Installation](docs/guide/installation.md) · [Ajouter une machine](docs/guide/ajouter-une-machine.md) · [FAQ réseau](docs/guide/faq-reseau.md)
+- [Pipeline de release](tools/release/README.md) — archives, signature, publication
 - [Spikes de validation](docs/spikes/) — résultats des vérifications techniques de la phase 0
 - [Contribuer](CONTRIBUTING.md) — prérequis, commandes, conventions
 
