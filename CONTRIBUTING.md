@@ -22,7 +22,7 @@ pnpm format             # Prettier --write ; `pnpm format:check` en CI
 
 Une commande ciblée : `pnpm --filter @mmo/panel test`, `pnpm --filter @mmo/web dev`.
 
-Développement du front : `pnpm --filter @mmo/panel dev` (API sur 127.0.0.1:3000) puis `pnpm --filter @mmo/web dev` (Vite sur 5173, proxy `/api` et `/ws`). En production le panel sert `apps/web/dist` (`pnpm build`). E2E : `pnpm --filter @mmo/web e2e` (Playwright, Chromium via `pnpm --filter @mmo/web exec playwright install chromium` la première fois ; construit le front, lance panel + agent réels + fake Java server). Le scénario `whitelist.spec.ts` (phase 6) lit les fichiers du serveur e2e sur disque : ne pas le lancer en parallèle d’un autre run. Le scénario `backups.spec.ts` (phase 8) crée puis supprime des archives dans le dossier d'état temporaire de l'agent e2e. Les tests de l'agent lancent un sidecar PowerShell et un processus « burner » sous Windows (`monitoring/sampler.test.ts`) : `pnpm check` peut être bruyant en CPU pendant ~20 s.
+Développement du front : `pnpm --filter @mmo/panel dev` (API sur 127.0.0.1:3000) puis `pnpm --filter @mmo/web dev` (Vite sur 5173, proxy `/api` et `/ws`). En production le panel sert `apps/web/dist` (`pnpm build`). E2E : `pnpm --filter @mmo/web e2e` (Playwright, Chromium via `pnpm --filter @mmo/web exec playwright install chromium` la première fois ; construit le front, lance panel + agent réels + fake Java server). Le scénario `whitelist.spec.ts` (phase 6) lit les fichiers du serveur e2e sur disque : ne pas le lancer en parallèle d’un autre run. Le scénario `backups.spec.ts` (phase 8) crée puis supprime des archives dans le dossier d'état temporaire de l'agent e2e. Le test d'intégration `phase9.test.ts` (panel + deux agents) redirige les appels sortants du panel (API Temurin/Zulu) vers un faux fournisseur local : aucun accès Internet requis. Les tests de l'agent lancent un sidecar PowerShell et un processus « burner » sous Windows (`monitoring/sampler.test.ts`) : `pnpm check` peut être bruyant en CPU pendant ~20 s.
 
 ## Structure
 
@@ -51,6 +51,7 @@ Tous les packages sont ESM (`"type": "module"`), TypeScript **strict** (`@mmo/co
 | **Jamais `ZSTD_c_nbWorkers`** (perte silencieuse de données, spike n°3) ; l'intégrité d'une archive ou d'un transfert repose sur **sha256 + taille**, jamais sur le codec | `apps/agent`, `packages/shared`, `apps/panel` | ESLint `no-restricted-syntax` (phase 8) ; tests backups (archive altérée refusée) |
 | **Versions épinglées** (`save-exact`), aucune dépendance publiée depuis < 3 jours (`minimumReleaseAge` pnpm), scripts postinstall sur liste blanche (`allowBuilds`) | `pnpm-workspace.yaml`, `.npmrc` | pnpm |
 | Le panel est l'autorité des identifiants serveurs | `apps/panel` | doc 04 |
+| **Le launcher de l'agent est figé** (`apps/agent/launcher/launcher.cjs` : CommonJS, zéro dépendance, jamais réseau, jamais mis à jour par `agent.update`) ; **la clé privée de signature ne vit jamais sur le panel** (`tools/signing/` ; la clé de développement commitée est remplacée par une clé de release hors dépôt en phase 11) | `apps/agent`, `tools/signing` | revue ; `launcher.test.ts` (rollback avec bundle cassé) ; `updater.test.ts` (signature invalide refusée) |
 
 ## Phases et documentation
 
@@ -71,7 +72,7 @@ Tous les packages sont ESM (`"type": "module"`), TypeScript **strict** (`@mmo/co
 |---|---|---|
 | Unitaires | Vitest (`*.test.ts` à côté du code) | fixtures copiées de vrais dossiers pour la détection/parsing |
 | Intégration panel | Vitest + `fastify.inject` + SQLite temporaire | |
-| Intégration agent | « fake Java server » (script Node) | pas de Java en CI |
+| Intégration agent | « fake Java server » (script Node) | pas de Java en CI ; phase 9 : deux agents in-process pour la migration, faux JRE (`major=N` + sonde injectée), launcher avec de faux bundles |
 | E2E | Playwright (à partir de la phase 5) | mobile + desktop, fr + en |
 
 La CI (`.github/workflows/ci.yml`) exécute format, build, typecheck, lint et tests sur **windows / ubuntu / ubuntu-arm / macos**. Une phase n'est terminée que si elle est verte sur les quatre.

@@ -100,12 +100,16 @@ Archive par plateforme (win-x64, linux-x64, linux-arm64, darwin-arm64) = `runtim
 5. **Les serveurs Minecraft ne tombent jamais** : processus Java détachés, ré-adoptés au redémarrage de l'agent (vérification PID **+ heure de démarrage du process + ligne de commande** — jamais le PID seul). Stdin perdu jusqu'au prochain restart du serveur → pilotage RCON entre-temps (mode `detached`).
 6. Le **runtime Node** a son propre canal (`runtime.update`, rare) : téléchargement de l'archive runtime, swap par le launcher au prochain restart.
 
+> **Implémentation (phase 9)** : `apps/agent/launcher/launcher.cjs` (copié dans `dist/` par le build) + `apps/agent/src/update/updater.ts` ; disposition `home/` = `versions/<v>/agent.js`, `current.json`, `next.json`, `trial.json`, `update-result.json`, `runtime/<v>/`, `runtime-next.json`/`runtime-current.json`, `launcher.log`. Santé = message IPC `healthy` (session panel établie) ; rollback N-1 après 30 s sans santé ou 2 crashs ; **testé** avec un bundle volontairement cassé (`launcher.test.ts` : crash → crash → rollback + `update-result.json`), un bundle muet (`health_timeout`) et une bascule réussie (`applied`). Signature : Ed25519 via `node:crypto` (`verify(null, …)`), clés publiques embarquées dans `src/update/keys.ts` ; `tools/signing/` (`keygen.mjs`, `sign.mjs`, clé de développement — **à remplacer par une clé de release hors dépôt en phase 11**). Détails protocole : doc 05 §9.
+
 ## 4. Gestionnaire Java intégré
 
 - Mapping MC→Java : **manifest Mojang** (`piston-meta.mojang.com/.../version_manifest_v2.json`, champ `javaVersion.majorVersion`), caché côté panel ; table statique en fallback hors-ligne : `[1.12,1.17)→8` (**strictement 8** pour Forge ≤ 1.16), `[1.17,1.20.5)→17`, `[1.20.5,…)→21`. **Override par serveur** toujours possible.
 - Téléchargement **multi-fournisseur** (matrice vérifiée le 2026-08-21) : **Temurin** (api.adoptium.net) → **Azul Zulu** (Java 8 macOS ARM, Java 17 Windows ARM) → **build x64 sous émulation** (Java 8 Windows ARM, introuvable ailleurs). Un 404 de l'API = combo indisponible (cas normal), passer au fallback.
 - Chaîne de fallback décidée **par le panel** (payload de `java.install`) + **mode relais** : le panel télécharge et sert le JRE aux agents sans Internet sortant.
 - Vérification SHA-256 systématique ; JREs sous `data/jre/<major>/`.
+
+> **Implémentation (phase 9)** — amendement : les JRE gérés vivent sous `<stateDir>/java/<major>-<vendor>[-x64]/` (un dossier par fournisseur, donc Temurin et Zulu d'une même version peuvent coexister) ; `JavaRegistry` les énumère avec les JVM système. Chaîne de sources décidée par le panel (`@mmo/shared` `java/providers.ts` : URLs des API Adoptium/Azul, interprétation des réponses ; `services/java-runtimes.ts` : appels, mode relais avec cache `<dataDir>/jre-cache/`). Le sha256 est vérifié quand le fournisseur le publie (Temurin : toujours ; Zulu : détail du paquet) ; en relais, c'est le panel qui vérifie à la mise en cache et l'agent qui revérifie le fichier servi. L'extraction ne dépend d'aucun module : zip maison (`src/java/zip.ts`) et tar.gz via le tar de la phase 8 (modes POSIX conservés pour `bin/java`, liens symboliques internes au JRE créés).
 
 ## 5. Couche d'accès (pluggable — aucune API Tailscale dans le code)
 
