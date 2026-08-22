@@ -5,6 +5,8 @@
  * (crash/freeze/RAM/ports → `watchdog.alert`, `port.conflict`), politique poussée par `agent.configure`.
  * Phase 8 : tasks (journal WAL, `task.*`), backups (création à chaud, restauration, rotation,
  * plannings locaux autonomes), transferts binaires (`fs.download/upload`, `fs.fetch`).
+ * Phase 9 : migration agent → agent (`migration.*`, `transfer.serve`), Java géré (`java.install/remove`),
+ * mises à jour (`agent.update`, `runtime.update`, signal de santé au launcher, `agent.updateResult`).
  */
 import os from 'node:os';
 
@@ -29,6 +31,10 @@ import {
 import type { WebSocketFactory } from './connection/ws-transport.js';
 import { BackupService } from './backup/backup-service.js';
 import { BackupScheduler } from './backup/scheduler.js';
+import { JavaInstaller } from './java/installer.js';
+import { AgentMigration } from './migration/migration.js';
+import { AgentUpdater, detectAgentHome } from './update/updater.js';
+import { panelHttpOrigin } from './util/download.js';
 import { Logger, errorMessage } from './log.js';
 import { ServerManager, type ServerManagerOptions } from './minecraft/server-manager.js';
 import type { ServerProcessEvent } from './minecraft/server-process.js';
@@ -42,8 +48,16 @@ import { TaskJournal } from './tasks/journal.js';
 import { TaskRunner } from './tasks/runner.js';
 import { AgentTransfers } from './transfer/transfers.js';
 
-export const AGENT_VERSION = '0.8.0';
-export const AGENT_CAPABILITIES = ['rcon', 'tasks', 'backups', 'transfers'];
+export const AGENT_VERSION = '0.9.0';
+export const AGENT_CAPABILITIES = [
+  'rcon',
+  'tasks',
+  'backups',
+  'transfers',
+  'migration',
+  'java',
+  'update',
+];
 
 export function currentOs(): Os {
   return process.platform === 'win32'
@@ -100,8 +114,20 @@ export interface AgentOptions {
   backupSchedulerTickMs?: number;
   /** Attente de confirmation console après `save-all` en stdin (tests : court). */
   saveSettleMs?: number;
-  /** `fetch` pour `fs.fetch` (tests : serveur local). */
+  /** `fetch` pour `fs.fetch`, `java.install`, `migration.import`, `agent.update` (tests : serveur local). */
   fetchImpl?: typeof fetch;
+  /** Phase 9 : dossier géré par le launcher (défaut `MMO_AGENT_HOME`) ; absent = mises à jour refusées. */
+  agentHome?: string | undefined;
+  /** Phase 9 : clés publiques Ed25519 acceptées (tests) ; défaut : clés embarquées. */
+  updatePublicKeys?: readonly string[];
+  /** Phase 9 : version annoncée (tests de mise à jour) ; défaut `AGENT_VERSION`. */
+  agentVersion?: string;
+  /** Phase 9 : adresses annoncées par `transfer.serve` (tests : `127.0.0.1`). */
+  serveAddresses?: () => string[];
+  /** Phase 9 : sonde `java -version` (tests). */
+  javaProbe?: (
+    javaPath: string,
+  ) => Promise<{ majorVersion: number; fullVersion: string; vendor: string } | undefined>;
   /** Sortie du processus (agent.restart) — injectable en test. */
   exit?: (code: number) => void;
   restrictPermissions?: boolean;
@@ -121,22 +147,29 @@ export class Agent {
   readonly backups: BackupService;
   readonly backupScheduler: BackupScheduler;
   readonly transfers: AgentTransfers;
+  readonly javaInstaller: JavaInstaller;
+  readonly migration: AgentMigration;
+  readonly updater: AgentUpdater;
+  readonly version: string;
   private readonly sampler: ProcessSampler;
   private sessionCompression: Compression | undefined;
   private connection: AgentConnection | undefined;
   private readonly consoleSubscriptions = new Set<string>();
   private scanTimer: ReturnType<typeof setInterval> | undefined;
+  private updateResultReported = false;
+  private javaSnapshot: RequestPayload<'sync.state'>['javaRuntimes'] = [];
   private trashTimer: ReturnType<typeof setInterval> | undefined;
   private started = false;
 
   constructor(private readonly options: AgentOptions) {
     this.logger = options.logger ?? new Logger('agent');
+    this.version = options.agentVersion ?? AGENT_VERSION;
     this.store = new StateStore(options.stateDir, {
       ...(options.restrictPermissions === undefined
         ? {}
         : { restrictPermissions: options.restrictPermissions }),
     });
-    this.java = new JavaRegistry(defaultManagedJavaDir(options.stateDir));
+    this.java = new JavaRegistry(defaultManagedJavaDir(options.stateDir), options.javaProbe);
     this.manager = new ServerManager({
       store: this.store,
       logger: this.logger.child('servers'),
@@ -220,6 +253,40 @@ export class Agent {
       sessionCompression: () => this.sessionCompression,
       ...(options.fetchImpl === undefined ? {} : { fetchImpl: options.fetchImpl }),
     });
+    const panelOrigin = (): string | undefined =>
+      panelHttpOrigin(this.options.panelUrl ?? this.store.get().panelUrl);
+    this.javaInstaller = new JavaInstaller({
+      managedDir: defaultManagedJavaDir(options.stateDir),
+      registry: this.java,
+      logger: this.logger.child('java'),
+      panelOrigin,
+      fetchImpl: options.fetchImpl,
+      ...(options.javaProbe === undefined ? {} : { probe: options.javaProbe }),
+    });
+    this.migration = new AgentMigration({
+      stateDir: options.stateDir,
+      store: this.store,
+      manager: this.manager,
+      backups: this.backups,
+      java: this.java,
+      logger: this.logger.child('migration'),
+      panelOrigin,
+      fetchImpl: options.fetchImpl,
+      ...(options.serveAddresses === undefined ? {} : { serveAddresses: options.serveAddresses }),
+    });
+    this.updater = new AgentUpdater({
+      home: options.agentHome ?? detectAgentHome(),
+      currentVersion: this.version,
+      logger: this.logger.child('update'),
+      ...(options.updatePublicKeys === undefined ? {} : { publicKeys: options.updatePublicKeys }),
+      panelOrigin,
+      fetchImpl: options.fetchImpl,
+      restart: (code) => {
+        void this.stop().then(() => {
+          (this.options.exit ?? ((c: number) => process.exit(c)))(code);
+        });
+      },
+    });
   }
 
   get isConnected(): boolean {
@@ -241,12 +308,14 @@ export class Agent {
     }
     await this.manager.init();
     await this.tasks.journal.load();
+    // Inventaire Java (sondes `java -version`, en cache ensuite) : remonté dans `sync.state`.
+    this.javaSnapshot = await this.java.list().catch(() => []);
     if (panelUrl !== undefined) {
       this.connection = new AgentConnection({
         panelUrl,
         store: this.store,
         logger: this.logger.child('ws'),
-        agentVersion: AGENT_VERSION,
+        agentVersion: this.version,
         pairCode: this.options.pairCode,
         capabilities: AGENT_CAPABILITIES,
         registerHandlers: (peer) => {
@@ -288,9 +357,11 @@ export class Agent {
     if (purgeEvery > 0) {
       this.trashTimer = setInterval(() => {
         void this.manager.purgeTrash();
+        void this.migration.purgeMigrated();
       }, purgeEvery);
       this.trashTimer.unref();
       void this.manager.purgeTrash();
+      void this.migration.purgeMigrated();
     }
     const metricsEvery =
       this.options.metricsIntervalMs ?? this.store.get().metricsIntervalSec * 1000;
@@ -315,6 +386,7 @@ export class Agent {
     this.watchdog.dispose();
     await this.tasks.dispose();
     await this.transfers.detachAll();
+    this.migration.closeAll();
     await this.connection?.stop();
     this.manager.dispose();
     this.sampler.close();
@@ -326,6 +398,14 @@ export class Agent {
 
   private onSession(session: SessionInfo, peer: AgentPeer): void {
     this.sessionCompression = session.compression;
+    // Phase 9 : santé confirmée au launcher (health-check post-mise à jour) et issue de la bascule.
+    this.updater.notifyHealthy();
+    if (!this.updateResultReported) {
+      this.updateResultReported = true;
+      void this.updater.consumeUpdateResult().then((result) => {
+        if (result) this.emit('agent.updateResult', (eventId) => ({ eventId, ...result }));
+      });
+    }
     const replayed = this.metrics.replay();
     if (replayed > 0) this.logger.info('replayed buffered metrics', { count: replayed });
     this.consoleSubscriptions.clear();
@@ -353,7 +433,7 @@ export class Agent {
       })),
       seqs: { ...this.store.get().seqs },
       portsInUse: this.manager.portsInUse(),
-      javaRuntimes: [],
+      javaRuntimes: this.javaSnapshot,
     };
   }
 
@@ -398,13 +478,58 @@ export class Agent {
     peer
       .handle('agent.info', async () => ({
         machine: machineInfo(),
-        agentVersion: AGENT_VERSION,
+        agentVersion: this.version,
         runtimeVersion: process.version,
         volumes: [],
         javaRuntimes: await this.java.list(),
         watchedDirectories: this.store.get().watchedDirectories.map((d) => d.path),
         capabilities: AGENT_CAPABILITIES,
       }))
+      // Phase 9 — mises à jour
+      .handle('agent.update', (req) => this.updater.update(req))
+      .handle('runtime.update', (req) => this.updater.updateRuntime(req))
+      // Phase 9 — Java géré
+      .handle('java.install', async ({ taskId, ...req }) => {
+        const active = [...this.tasks.list()].find(
+          (t) => t.kind === 'java.install' && t.status === 'running' && t.taskId !== taskId,
+        );
+        if (active) {
+          throw new ProtocolError('E_BUSY', 'another java.install is running', {
+            details: { taskId: active.taskId },
+          });
+        }
+        await this.tasks.start({ taskId, kind: 'java.install', payload: req }, async (ctx) => {
+          const result = await this.javaInstaller.install(req, ctx);
+          this.javaSnapshot = await this.java.list(true).catch(() => this.javaSnapshot);
+          return { ...result };
+        });
+        return { taskId };
+      })
+      .handle('java.remove', async ({ path: javaPath }) => {
+        const removed = await this.javaInstaller.remove(javaPath);
+        this.javaSnapshot = await this.java.list(true).catch(() => this.javaSnapshot);
+        return { removed };
+      })
+      // Phase 9 — migration
+      .handle('migration.export', async ({ taskId, ...req }) => {
+        this.ensureServerIdle(req.serverId, taskId);
+        this.watchdog.cancel(req.serverId);
+        await this.tasks.start(
+          { taskId, kind: 'migration.export', serverId: req.serverId, payload: req },
+          (ctx) => this.migration.exportServer(req, ctx),
+        );
+        return { taskId };
+      })
+      .handle('transfer.serve', (req) => this.migration.serve(req))
+      .handle('migration.precheck', (req) => this.migration.precheck(req))
+      .handle('migration.import', async ({ taskId, ...req }) => {
+        await this.tasks.start(
+          { taskId, kind: 'migration.import', serverId: req.config.serverId, payload: req },
+          (ctx) => this.migration.importServer(req, ctx),
+        );
+        return { taskId };
+      })
+      .handle('migration.finalize', (req) => this.migration.finalize(req))
       .handle('agent.configure', async (cfg) => {
         const rescan = cfg.watchedDirectories !== undefined;
         await this.store.update((s) => {
@@ -569,14 +694,21 @@ export class Agent {
         }
         return {};
       })
-      .handle('java.list', async () => ({ runtimes: await this.java.list(true) }));
+      .handle('java.list', async () => {
+        this.javaSnapshot = await this.java.list(true);
+        return { runtimes: this.javaSnapshot };
+      });
   }
 
   // --- Tasks, backups, fs.fetch (phase 8) -----------------------------------------------------
 
   /** Une seule task backup/restore à la fois par serveur (`E_BUSY`), sauf rejeu du même `taskId`. */
   private ensureServerIdle(serverId: string, taskId: string): void {
-    const active = this.tasks.activeFor(serverId, ['backup.create', 'backup.restore']);
+    const active = this.tasks.activeFor(serverId, [
+      'backup.create',
+      'backup.restore',
+      'migration.export',
+    ]);
     if (active && active.taskId !== taskId) {
       throw new ProtocolError('E_BUSY', 'another backup task is running for this server', {
         details: { serverId, taskId: active.taskId, kind: active.kind },
@@ -771,7 +903,7 @@ export class Agent {
   }
 
   describe(): string {
-    return `${PROJECT_NAME} agent ${AGENT_VERSION} — protocole v${String(PROTOCOL_VERSION)} — node ${process.version} ${process.platform}/${process.arch}`;
+    return `${PROJECT_NAME} agent ${this.version} — protocole v${String(PROTOCOL_VERSION)} — node ${process.version} ${process.platform}/${process.arch}`;
   }
 }
 

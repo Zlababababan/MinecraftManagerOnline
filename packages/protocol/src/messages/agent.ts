@@ -47,6 +47,8 @@ export const authHelloSchema = z.object({
   agentId: z.string().min(1),
   agentSecret: z.string().min(1),
   agentVersion: z.string(),
+  /** Phase 9 : version du runtime Node (`process.version`), pour le canal `runtime.update`. */
+  runtimeVersion: z.string().optional(),
   protoMin: z.int().positive(),
   protoMax: z.int().positive(),
   capabilities: z.array(capabilitySchema).default([]),

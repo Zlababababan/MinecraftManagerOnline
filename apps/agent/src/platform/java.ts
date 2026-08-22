@@ -131,26 +131,37 @@ export function parseJavaVersionOutput(output: string): JavaVersionInfo | undefi
 
 export function probeJavaVersion(javaPath: string): Promise<JavaVersionInfo | undefined> {
   return new Promise((resolve) => {
-    execFile(
-      javaPath,
-      ['-version'],
-      { encoding: 'utf8', timeout: 20_000, windowsHide: true },
-      (error, stdout, stderr) => {
-        if (error && stderr === '' && stdout === '') {
-          resolve(undefined);
-          return;
-        }
-        resolve(parseJavaVersionOutput(`${stderr}\n${stdout}`));
-      },
-    );
+    try {
+      execFile(
+        javaPath,
+        ['-version'],
+        { encoding: 'utf8', timeout: 20_000, windowsHide: true },
+        (error, stdout, stderr) => {
+          if (error && stderr === '' && stdout === '') {
+            resolve(undefined);
+            return;
+          }
+          resolve(parseJavaVersionOutput(`${stderr}\n${stdout}`));
+        },
+      );
+    } catch {
+      // Fichier non exécutable (EACCES/UNKNOWN synchrone sous Windows) : pas un runtime.
+      resolve(undefined);
+    }
   });
 }
 
 export class JavaRegistry {
   private cache = new Map<string, JavaRuntime>();
   private scanned = false;
+  private readonly probeFn: (javaPath: string) => Promise<JavaVersionInfo | undefined>;
 
-  constructor(private readonly managedDir?: string) {}
+  constructor(
+    private readonly managedDir?: string,
+    probe?: (javaPath: string) => Promise<JavaVersionInfo | undefined>,
+  ) {
+    this.probeFn = probe ?? probeJavaVersion;
+  }
 
   async list(refresh = false): Promise<JavaRuntime[]> {
     if (!this.scanned || refresh) {
@@ -162,7 +173,7 @@ export class JavaRegistry {
           next.set(p, cached);
           continue;
         }
-        const info = await probeJavaVersion(p);
+        const info = await this.probeFn(p);
         if (!info) continue;
         next.set(p, {
           majorVersion: info.majorVersion,
@@ -183,7 +194,7 @@ export class JavaRegistry {
     const p = path.normalize(javaPath);
     const cached = this.cache.get(p);
     if (cached) return cached;
-    const info = await probeJavaVersion(p);
+    const info = await this.probeFn(p);
     if (!info) return undefined;
     const rt: JavaRuntime = {
       majorVersion: info.majorVersion,

@@ -782,6 +782,192 @@
       "response": {
         "verified": true
       }
+    },
+    {
+      "type": "migration.export",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "serverId": "srv_01",
+        "migrationId": "mig_01",
+        "backupId": "bk_mig_01",
+        "announce": "Migration dans 30 s"
+      },
+      "response": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A"
+      }
+    },
+    {
+      "type": "transfer.serve",
+      "request": {
+        "serverId": "srv_01",
+        "backupId": "bk_mig_01",
+        "token": "0123456789abcdef0123456789abcdef",
+        "ttlSec": 600
+      },
+      "response": {
+        "urls": [
+          "http://192.168.1.10:49321/0123456789abcdef0123456789abcdef",
+          "http://[fd00::10]:49321/0123456789abcdef0123456789abcdef"
+        ],
+        "size": 123456,
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expiresAt": 1787331055000
+      }
+    },
+    {
+      "type": "migration.precheck",
+      "request": {
+        "serverId": "srv_01",
+        "path": "D:\\Serveurs\\Survie",
+        "gamePort": 25565,
+        "javaMajor": 17,
+        "requiredBytes": 1300000
+      },
+      "response": {
+        "ok": false,
+        "path": {
+          "ok": true
+        },
+        "port": {
+          "ok": true
+        },
+        "java": {
+          "ok": false,
+          "code": "java_missing",
+          "installable": true
+        },
+        "disk": {
+          "ok": true,
+          "freeBytes": 50000000000,
+          "requiredBytes": 1300000
+        }
+      }
+    },
+    {
+      "type": "migration.import",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2B",
+        "migrationId": "mig_01",
+        "config": {
+          "serverId": "srv_01",
+          "path": "D:\\Serveurs\\Survie",
+          "name": "Survie",
+          "maxRamMb": 4096,
+          "loader": "vanilla",
+          "mcVersion": "1.20.1",
+          "javaMajor": 17
+        },
+        "manifest": {
+          "backupId": "bk_mig_01",
+          "serverId": "srv_01",
+          "kind": "pre_migration",
+          "createdAt": 1787330455000,
+          "codec": "gzip",
+          "archivePath": "E:\\MMO\\backups\\srv_01\\bk_mig_01.tar.gz",
+          "sizeBytes": 123456,
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "files": 42,
+          "bytesRaw": 654321,
+          "hot": false,
+          "serverName": "Survie",
+          "mcVersion": "1.20.1",
+          "loader": "vanilla"
+        },
+        "sources": [
+          {
+            "url": "http://192.168.1.10:49321/0123456789abcdef0123456789abcdef",
+            "kind": "direct"
+          },
+          {
+            "url": "/api/relay/9f8e7d6c5b4a39281706f5e4d3c2b1a0",
+            "kind": "relay"
+          }
+        ],
+        "startAfter": true
+      },
+      "response": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2B"
+      }
+    },
+    {
+      "type": "migration.finalize",
+      "request": {
+        "serverId": "srv_01",
+        "migrationId": "mig_01",
+        "path": "E:\\Minecraft\\Server\\Survie",
+        "action": "rename"
+      },
+      "response": {
+        "path": "E:\\Minecraft\\Server\\Survie.migrated-20260822-1530",
+        "renamed": true,
+        "purgeAfter": 1787935255000
+      }
+    },
+    {
+      "type": "java.install",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2C",
+        "majorVersion": 17,
+        "sources": [
+          {
+            "vendor": "temurin",
+            "url": "https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jre/hotspot/normal/eclipse",
+            "archive": "zip",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "size": 45000000
+          },
+          {
+            "vendor": "temurin",
+            "url": "/api/relay/9f8e7d6c5b4a39281706f5e4d3c2b1a0",
+            "archive": "zip",
+            "relay": true
+          }
+        ]
+      },
+      "response": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2C"
+      }
+    },
+    {
+      "type": "java.remove",
+      "request": {
+        "path": "C:\\Users\\me\\AppData\\Local\\mmo-agent\\java\\17-temurin\\bin\\java.exe"
+      },
+      "response": {
+        "removed": true
+      }
+    },
+    {
+      "type": "agent.update",
+      "request": {
+        "version": "0.9.0",
+        "url": "/api/relay/9f8e7d6c5b4a39281706f5e4d3c2b1a0",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "signature": "MEUCIQDxbase64",
+        "size": 2900000,
+        "runtimeVersion": "24.19.0"
+      },
+      "response": {
+        "accepted": true,
+        "currentVersion": "0.8.0",
+        "alreadyCurrent": false
+      }
+    },
+    {
+      "type": "runtime.update",
+      "request": {
+        "version": "24.19.0",
+        "os": "windows",
+        "arch": "x64",
+        "url": "https://nodejs.org/dist/v24.19.0/node-v24.19.0-win-x64.zip",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "archive": "zip"
+      },
+      "response": {
+        "accepted": true,
+        "currentVersion": "24.13.0",
+        "pending": true
+      }
     }
   ],
   "events": [
@@ -1109,6 +1295,18 @@
       "payload": {
         "transferId": "0123456789abcdef0123456789abcdef",
         "reason": "user"
+      }
+    },
+    {
+      "type": "agent.updateResult",
+      "payload": {
+        "eventId": "01J5X8ZK3Q9WYE2R7M4T6B8N2F",
+        "ts": 1787330455000,
+        "kind": "agent",
+        "status": "rolled_back",
+        "version": "0.8.0",
+        "otherVersion": "0.9.0",
+        "reason": "health_timeout"
       }
     }
   ]

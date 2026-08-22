@@ -3,6 +3,8 @@
  * et événements. Jalon A (phase 2), puis jalons B (tasks, backups) et C (transferts binaires) en
  * phase 8 — ajoutés sans bump de version, le protocole n'évolue que par ajout. Les messages de
  * contrôle des transferts sont bidirectionnels (`both`) : chaque pair peut être émetteur ou récepteur.
+ * Phase 9 (sans bump) : migration agent → agent, `java.install/remove`, `agent.update` /
+ * `runtime.update` + `agent.updateResult`.
  */
 import type { z } from 'zod';
 
@@ -97,6 +99,24 @@ import {
   taskListResponseSchema,
   taskProgressSchema,
 } from './messages/tasks.js';
+import { javaInstallSchema, javaRemoveResponseSchema, javaRemoveSchema } from './messages/java.js';
+import {
+  migrationExportSchema,
+  migrationFinalizeResponseSchema,
+  migrationFinalizeSchema,
+  migrationImportSchema,
+  migrationPrecheckResponseSchema,
+  migrationPrecheckSchema,
+  transferServeResponseSchema,
+  transferServeSchema,
+} from './messages/migration.js';
+import {
+  agentUpdateResponseSchema,
+  agentUpdateResultSchema,
+  agentUpdateSchema,
+  runtimeUpdateResponseSchema,
+  runtimeUpdateSchema,
+} from './messages/update.js';
 import {
   fsDownloadStartResponseSchema,
   fsDownloadStartSchema,
@@ -191,6 +211,18 @@ export const REQUESTS = {
   'fs.download.start': req('p2a', fsDownloadStartSchema, fsDownloadStartResponseSchema),
   'fs.upload.start': req('p2a', fsUploadStartSchema, fsUploadStartResponseSchema),
   'fs.transfer.done': req('both', fsTransferDoneSchema, fsTransferDoneResponseSchema),
+  // Phase 9 — migration agent → agent
+  'migration.export': req('p2a', migrationExportSchema, taskAcceptedSchema),
+  'transfer.serve': req('p2a', transferServeSchema, transferServeResponseSchema),
+  'migration.precheck': req('p2a', migrationPrecheckSchema, migrationPrecheckResponseSchema),
+  'migration.import': req('p2a', migrationImportSchema, taskAcceptedSchema),
+  'migration.finalize': req('p2a', migrationFinalizeSchema, migrationFinalizeResponseSchema),
+  // Phase 9 — Java géré
+  'java.install': req('p2a', javaInstallSchema, taskAcceptedSchema),
+  'java.remove': req('p2a', javaRemoveSchema, javaRemoveResponseSchema),
+  // Phase 9 — mises à jour
+  'agent.update': req('p2a', agentUpdateSchema, agentUpdateResponseSchema),
+  'runtime.update': req('p2a', runtimeUpdateSchema, runtimeUpdateResponseSchema),
 } as const satisfies Record<string, RequestDefinition>;
 
 export const EVENTS = {
@@ -213,6 +245,8 @@ export const EVENTS = {
   // Jalon C
   'fs.transfer.ack': evt('both', fsTransferAckSchema),
   'fs.transfer.cancel': evt('both', fsTransferCancelSchema),
+  // Phase 9
+  'agent.updateResult': evt('a2p', agentUpdateResultSchema, true),
 } as const satisfies Record<string, EventDefinition>;
 
 export type RequestType = keyof typeof REQUESTS;

@@ -14,7 +14,14 @@ import { relativePathSchema } from './fs.js';
 export const taskIdSchema = ulidSchema;
 
 /** Genres connus (chaîne libre : un genre inconnu est affiché tel quel par l'UI). */
-export const TASK_KINDS = ['backup.create', 'backup.restore', 'fs.fetch'] as const;
+export const TASK_KINDS = [
+  'backup.create',
+  'backup.restore',
+  'fs.fetch',
+  'migration.export',
+  'migration.import',
+  'java.install',
+] as const;
 export const taskKindSchema = z.string().min(1);
 
 export const taskStatusSchema = z.enum(['pending', 'running', 'done', 'failed', 'cancelled']);

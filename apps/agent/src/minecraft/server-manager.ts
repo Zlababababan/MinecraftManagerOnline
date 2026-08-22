@@ -165,6 +165,12 @@ export class ServerManager {
 
   // --- Contrôle -------------------------------------------------------------------------------
 
+  /** Ajoute ou remplace un seul serveur (phase 9 : import de migration) sans toucher aux autres. */
+  async upsertConfig(config: ServerConfig): Promise<void> {
+    const others = this.options.store.serverConfigs().filter((c) => c.serverId !== config.serverId);
+    await this.applyConfigs([...others, config]);
+  }
+
   get(serverId: string): ServerProcess | undefined {
     return this.processes.get(serverId);
   }

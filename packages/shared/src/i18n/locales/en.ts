@@ -56,6 +56,9 @@ export const en = {
     E_JAVA_UNAVAILABLE: 'No suitable Java runtime (Java {{majorVersion}}) is available.',
     E_CHECKSUM_MISMATCH: 'Checksum mismatch — the file is corrupted.',
     E_INTERRUPTED: 'The operation was interrupted; it can be retried.',
+    E_PRECHECK_FAILED: 'Pre-checks on the target machine failed.',
+    E_SIGNATURE_INVALID: 'Invalid bundle signature — update refused.',
+    E_UNREACHABLE: 'No direct address reachable; relaying through the panel.',
     E_INTERNAL: 'Internal error.',
     // Codes propres au panel (`@mmo/protocol/client`, phase 4)
     E_FORBIDDEN: 'You do not have permission to do this.',
@@ -64,6 +67,7 @@ export const en = {
     E_SETUP_DONE: 'The panel is already set up.',
     E_AGENT_OFFLINE: 'The agent of this machine is not connected.',
     E_VALIDATION: 'Invalid input.',
+    E_NO_RELEASE: 'No agent release published on this panel.',
   },
   detection: {
     source: {

@@ -56,6 +56,9 @@ export const fr = {
     E_JAVA_UNAVAILABLE: 'Aucun runtime Java adapté (Java {{majorVersion}}) n’est disponible.',
     E_CHECKSUM_MISMATCH: 'Somme de contrôle incorrecte — le fichier est corrompu.',
     E_INTERRUPTED: 'L’opération a été interrompue ; elle peut être relancée.',
+    E_PRECHECK_FAILED: 'Les vérifications préalables sur la machine cible ont échoué.',
+    E_SIGNATURE_INVALID: 'La signature du bundle est invalide — mise à jour refusée.',
+    E_UNREACHABLE: 'Aucune adresse directe joignable ; passage par le panel.',
     E_INTERNAL: 'Erreur interne.',
     // Codes propres au panel (`@mmo/protocol/client`, phase 4)
     E_FORBIDDEN: 'Vous n’avez pas le droit d’effectuer cette action.',
@@ -64,6 +67,7 @@ export const fr = {
     E_SETUP_DONE: 'Le panel est déjà configuré.',
     E_AGENT_OFFLINE: 'L’agent de cette machine n’est pas connecté.',
     E_VALIDATION: 'Saisie invalide.',
+    E_NO_RELEASE: 'Aucune release d’agent publiée sur ce panel.',
   },
   detection: {
     source: {

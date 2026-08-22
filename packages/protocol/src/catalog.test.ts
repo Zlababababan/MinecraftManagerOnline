@@ -91,7 +91,7 @@ describe('catalogue v1 — tests de contrat sur fixtures', () => {
   });
 
   it('un type inconnu n’est ni une requête ni un événement', () => {
-    expect(isRequestType('migration.export')).toBe(false);
+    expect(isRequestType('cluster.rebalance')).toBe(false);
     expect(isEventType('migration.progress')).toBe(false);
     expect(isRequestType('__proto__')).toBe(false);
   });

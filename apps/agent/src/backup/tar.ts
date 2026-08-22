@@ -8,7 +8,7 @@
  * - `extractTar()` consomme un flux tar et écrit dans un dossier, chemins jailés (`..` refusé).
  */
 import { createReadStream } from 'node:fs';
-import { lstat, mkdir, open, readdir, utimes } from 'node:fs/promises';
+import { lstat, mkdir, open, readdir, symlink, utimes } from 'node:fs/promises';
 import path from 'node:path';
 
 export const TAR_BLOCK = 512;
@@ -206,6 +206,8 @@ interface ParsedHeader {
   mtimeSec: number;
   typeflag: string;
   mode: number;
+  /** Cible d'un lien symbolique (typeflag `2`). */
+  linkname: string;
 }
 
 function readString(buf: Buffer, offset: number, length: number): string {
@@ -241,6 +243,7 @@ function parseHeader(buf: Buffer): ParsedHeader | undefined {
     mtimeSec: readOctal(buf, 136, 12),
     typeflag: readString(buf, 156, 1) || '0',
     mode: readOctal(buf, 100, 8),
+    linkname: readString(buf, 157, 100),
   };
 }
 
@@ -290,19 +293,36 @@ export function safeRelative(name: string): string | undefined {
  * Extrait un flux tar dans `dest`. Les fichiers sont écrits séquentiellement ; les dossiers créés à
  * la volée. Résout quand le flux est terminé (fin d'archive ou EOF).
  */
+export interface ExtractOptions {
+  onProgress?: (p: ExtractProgress) => void;
+  shouldAbort?: () => boolean;
+  /** Phase 9 : ignore les N premiers composants de chemin (`jdk-17.0.12+7-jre/bin/java` → `bin/java`). */
+  stripComponents?: number;
+  /** Phase 9 : applique le mode POSIX de l'archive (bit exécutable de `bin/java`) ; ignoré sous Windows. */
+  preserveMode?: boolean;
+  /** Phase 9 : crée les liens symboliques dont la cible reste dans `dest` (JRE macOS) ; sinon ignorés. */
+  symlinks?: boolean;
+}
+
 export async function extractTar(
   source: AsyncIterable<Uint8Array>,
   dest: string,
-  options: {
-    onProgress?: (p: ExtractProgress) => void;
-    shouldAbort?: () => boolean;
-  } = {},
+  options: ExtractOptions = {},
 ): Promise<ExtractResult> {
+  const strip = options.stripComponents ?? 0;
+  const preserveMode = options.preserveMode === true && process.platform !== 'win32';
+  const entryRel = (name: string): string | undefined => {
+    const rel = safeRelative(name);
+    if (rel === undefined || strip === 0) return rel;
+    const parts = rel.split('/');
+    return parts.length > strip ? parts.slice(strip).join('/') : undefined;
+  };
   const skipped: string[] = [];
   let files = 0;
   let bytes = 0;
   let pending: Buffer = Buffer.alloc(0);
   let paxOverrides: Record<string, string> | undefined;
+  let paxLink: string | undefined;
   let current:
     | {
         header: ParsedHeader;
@@ -333,11 +353,12 @@ export async function extractTar(
   const startEntry = async (h: ParsedHeader): Promise<void> => {
     const name = paxOverrides?.path ?? h.name;
     const size = paxOverrides?.size === undefined ? h.size : Number(paxOverrides.size);
+    paxLink = paxOverrides?.linkpath;
     paxOverrides = undefined;
-    const rel = safeRelative(name);
+    const rel = entryRel(name);
     const pad = size % TAR_BLOCK === 0 ? 0 : TAR_BLOCK - (size % TAR_BLOCK);
     if (rel === undefined) {
-      if (name !== '') skipped.push(name);
+      if (name !== '' && (strip === 0 || safeRelative(name) === undefined)) skipped.push(name);
       current = {
         header: h,
         rel: undefined,
@@ -361,6 +382,29 @@ export async function extractTar(
       };
       return;
     }
+    if (h.typeflag === '2' && options.symlinks === true) {
+      const target = (paxLink ?? h.linkname).replace(/\\/g, '/');
+      paxLink = undefined;
+      // Lien relatif dont la résolution reste dans `dest` ; tout le reste est ignoré.
+      const root = path.resolve(dest);
+      const resolved = path.resolve(path.dirname(abs), target);
+      const inside = resolved === root || resolved.startsWith(root + path.sep);
+      if (!target.startsWith('/') && !/^[A-Za-z]:/.test(target) && inside) {
+        await mkdir(path.dirname(abs), { recursive: true });
+        await symlink(target, abs).catch(() => {
+          skipped.push(name);
+        });
+      } else skipped.push(name);
+      current = {
+        header: h,
+        rel: undefined,
+        remaining: size,
+        padding: pad,
+        handle: undefined,
+        abs: undefined,
+      };
+      return;
+    }
     if (h.typeflag !== '0' && h.typeflag !== '7' && h.typeflag !== '') {
       skipped.push(name);
       current = {
@@ -374,7 +418,7 @@ export async function extractTar(
       return;
     }
     await mkdir(path.dirname(abs), { recursive: true });
-    const handle = await open(abs, 'w');
+    const handle = await open(abs, 'w', preserveMode ? h.mode & 0o7777 || 0o644 : undefined);
     current = { header: h, rel, remaining: size, padding: pad, handle, abs };
   };
 

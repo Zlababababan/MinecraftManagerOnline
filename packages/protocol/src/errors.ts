@@ -22,6 +22,12 @@ export const ERROR_CODES = [
   'E_JAVA_UNAVAILABLE',
   'E_CHECKSUM_MISMATCH',
   'E_INTERRUPTED',
+  /** Phase 9 : pré-checks de migration refusés (`details.checks`). */
+  'E_PRECHECK_FAILED',
+  /** Phase 9 : signature Ed25519 d'un bundle invalide. */
+  'E_SIGNATURE_INVALID',
+  /** Phase 9 : aucune source directe joignable (le panel bascule en relais). */
+  'E_UNREACHABLE',
   'E_INTERNAL',
 ] as const;
 
@@ -55,6 +61,9 @@ const DEFAULT_RETRYABLE: Readonly<Record<ErrorCode, boolean>> = {
   E_JAVA_UNAVAILABLE: false,
   E_CHECKSUM_MISMATCH: true,
   E_INTERRUPTED: true,
+  E_PRECHECK_FAILED: false,
+  E_SIGNATURE_INVALID: false,
+  E_UNREACHABLE: true,
   E_INTERNAL: false,
 };
 

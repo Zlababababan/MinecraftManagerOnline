@@ -315,6 +315,7 @@ export class AgentConnection {
       agentId,
       agentSecret,
       agentVersion: this.options.agentVersion,
+      runtimeVersion: process.version.replace(/^v/, ''),
       protoMin: PROTOCOL_VERSION,
       protoMax: PROTOCOL_VERSION,
       capabilities: this.options.capabilities ?? ['rcon'],

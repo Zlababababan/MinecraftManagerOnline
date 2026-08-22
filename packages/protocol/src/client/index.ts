@@ -29,6 +29,8 @@ import {
   fsWriteSchema,
   relativePathSchema,
 } from '../messages/fs.js';
+import { javaVendorSchema } from '../messages/java.js';
+import { migrationPrecheckResponseSchema } from '../messages/migration.js';
 import { metricsSampleSchema } from '../messages/monitoring.js';
 import { backupCodecSchema, backupKindSchema } from '../messages/tasks.js';
 import {
@@ -50,6 +52,8 @@ export const PANEL_ERROR_CODES = [
   'E_SETUP_DONE',
   'E_AGENT_OFFLINE',
   'E_VALIDATION',
+  /** Phase 9 : aucune release d'agent publiée / bundle introuvable. */
+  'E_NO_RELEASE',
 ] as const;
 export const API_ERROR_CODES = [...ERROR_CODES, ...PANEL_ERROR_CODES] as const;
 export const apiErrorCodeSchema = z.enum(API_ERROR_CODES);
@@ -153,6 +157,10 @@ export const machineDtoSchema = z.object({
   cpuCores: z.int().nullable(),
   ramTotalMb: z.int().nullable(),
   createdAt: epochMsSchema,
+  /** Phase 9 : runtime Node de l'agent, dernière release publiée et disponibilité d'une mise à jour. */
+  runtimeVersion: z.string().nullable().optional(),
+  latestRelease: z.string().nullable().optional(),
+  updateAvailable: z.boolean().optional(),
   heartbeat: machineHeartbeatDtoSchema.optional(),
   watchedDirectories: z.array(
     z.object({
@@ -549,6 +557,117 @@ export const sparkStatusSchema = z.object({
 });
 export type SparkStatus = z.infer<typeof sparkStatusSchema>;
 
+// --- Phase 9 : migrations, Java géré, releases d'agent ----------------------------------------------
+
+export const migrationStatusSchema = z.enum([
+  'pending',
+  'backing_up',
+  'transferring',
+  'restoring',
+  'verifying',
+  'done',
+  'failed',
+  'rolled_back',
+]);
+export type MigrationStatus = z.infer<typeof migrationStatusSchema>;
+
+export const migrationDtoSchema = z.object({
+  id: z.string(),
+  serverId: z.string(),
+  fromMachineId: z.string(),
+  toMachineId: z.string(),
+  toDirectoryId: z.string().nullable(),
+  sourcePath: z.string().nullable(),
+  toPath: z.string().nullable(),
+  backupId: z.string().nullable(),
+  status: migrationStatusSchema,
+  progressPct: z.number().nullable(),
+  /** `direct` | `relay` une fois le transfert engagé. */
+  mode: z.string().nullable(),
+  exportTaskId: z.string().nullable(),
+  importTaskId: z.string().nullable(),
+  restartAfter: z.boolean(),
+  startedAt: epochMsSchema,
+  finishedAt: epochMsSchema.nullable(),
+  error: apiErrorSchema.nullable(),
+  createdBy: z.string().nullable(),
+});
+export type MigrationDto = z.infer<typeof migrationDtoSchema>;
+
+export const startMigrationSchema = z.object({
+  toMachineId: z.string().min(1),
+  /** Répertoire surveillé cible (le dossier sera `<dir>/<nom>`) ou chemin absolu explicite. */
+  toDirectoryId: z.string().min(1).optional(),
+  toPath: z.string().min(1).optional(),
+  /** Relancer sur la cible si le serveur tournait (défaut : oui). */
+  restartAfter: z.boolean().default(true),
+  /** Installer le JRE manquant sur la cible avant import (task `java.install`). */
+  installJava: z.boolean().default(false),
+  announce: z.string().max(200).optional(),
+});
+export type StartMigrationInput = z.infer<typeof startMigrationSchema>;
+
+export const migrationPrecheckRequestSchema = startMigrationSchema.pick({
+  toMachineId: true,
+  toDirectoryId: true,
+  toPath: true,
+});
+export const migrationPrecheckDtoSchema = migrationPrecheckResponseSchema.extend({
+  toPath: z.string(),
+});
+export type MigrationPrecheckDto = z.infer<typeof migrationPrecheckDtoSchema>;
+
+export const javaRuntimeDtoSchema = z.object({
+  id: z.string(),
+  machineId: z.string(),
+  majorVersion: z.int(),
+  fullVersion: z.string().nullable(),
+  vendor: z.string().nullable(),
+  path: z.string(),
+  managed: z.boolean(),
+  installedAt: epochMsSchema,
+  /** Serveurs de la machine qui requièrent cette version majeure. */
+  usedBy: z.int().nonnegative().optional(),
+});
+export type JavaRuntimeDto = z.infer<typeof javaRuntimeDtoSchema>;
+
+export const installJavaSchema = z.object({
+  majorVersion: z.int().positive().max(99),
+  /** Forcer le relais panel (machine sans Internet sortant). */
+  relay: z.boolean().default(false),
+  /** Fournisseur imposé (sinon chaîne complète Temurin → Zulu → x64 émulé). */
+  vendor: javaVendorSchema.optional(),
+});
+export type InstallJavaInput = z.infer<typeof installJavaSchema>;
+
+export const agentReleaseDtoSchema = z.object({
+  version: z.string(),
+  protocolVersion: z.int(),
+  channel: z.string(),
+  releasedAt: epochMsSchema,
+  sha256: z.string(),
+  size: z.int().nonnegative(),
+  runtimeVersion: z.string().nullable(),
+  notes: z.string().nullable(),
+  /** Signature Ed25519 (base64) — vérifiable par la clé publique embarquée dans l'agent. */
+  signature: z.string(),
+});
+export type AgentReleaseDto = z.infer<typeof agentReleaseDtoSchema>;
+
+export const publishReleaseQuerySchema = z.object({
+  version: z.string().min(1).max(64),
+  signature: z.string().min(1),
+  protocolVersion: z.coerce.number().int().positive().optional(),
+  channel: z.string().min(1).max(32).optional(),
+  runtimeVersion: z.string().max(32).optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const updateAgentSchema = z.object({
+  /** Version à pousser (défaut : dernière release du canal stable). */
+  version: z.string().min(1).optional(),
+});
+
 export const uploadQuerySchema = z.object({
   path: relativePathSchema,
   size: z.coerce.number().int().nonnegative(),
@@ -602,6 +721,8 @@ export const EDITABLE_SETTINGS = [
   'retention.auditDays',
   'agents.restoreOnBoot',
   'metrics.intervalSec',
+  /** Phase 9 : mise à jour automatique des agents à la connexion ('1'/'0'). */
+  'agents.autoUpdate',
 ] as const;
 export const settingsPatchSchema = z.partialRecord(z.enum(EDITABLE_SETTINGS), z.string());
 
@@ -648,6 +769,8 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   /** Phase 8 : progression et issue des tasks, sauvegardes mises à jour. */
   z.object({ type: z.literal('task.update'), task: taskDtoSchema }),
   z.object({ type: z.literal('backup.update'), backup: backupDtoSchema }),
+  /** Phase 9 : progression d'une migration. */
+  z.object({ type: z.literal('migration.update'), migration: migrationDtoSchema }),
   z.object({ type: z.literal('error'), error: apiErrorSchema, channel: z.string().optional() }),
 ]);
 export type ServerMessage = z.infer<typeof serverMessageSchema>;

@@ -9,6 +9,7 @@ export * from './i18n/index.js';
 export * from './minecraft/version.js';
 export * from './minecraft/tps.js';
 export * from './java/index.js';
+export * from './java/providers.js';
 export * from './logs/parser.js';
 export * from './logs/patterns.js';
 export * from './detection/fs.js';

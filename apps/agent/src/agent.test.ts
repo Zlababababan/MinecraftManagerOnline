@@ -180,7 +180,7 @@ describe('agent de bout en bout (faux panel + fake Java server)', () => {
     });
     const info = await peer.request('agent.info', {});
     expect(info.watchedDirectories).toEqual([serversRoot]);
-    expect(info.agentVersion).toBe('0.8.0');
+    expect(info.agentVersion).toBe('0.9.0');
 
     // Phase 6, serveur arrêté : fichiers, configuration et joueurs via la session
     const listing = await peer.request('fs.list', { serverId: 'srv_vanilla', path: '' });

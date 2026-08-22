@@ -17,6 +17,9 @@ export interface ScanOptions extends DetectOptions {
   excludePaths?: string[];
 }
 
+/** `<nom>.migrated-<yyyymmdd-hhmm>` : renommage fait par `migration.finalize` (doc 05 §8). */
+export const MIGRATED_DIR = /\.migrated-\d{8}-\d{4}$/i;
+
 const DEFAULT_EXCLUDED = new Set([
   '.mmo-trash',
   '.git',
@@ -49,6 +52,8 @@ export async function scanForServers(
     const entries = await fs.readdir(dir);
     for (const e of entries) {
       if (e.kind !== 'dir' || excludedNames.has(e.name.toLowerCase())) continue;
+      // Phase 9 : dossier source d'une migration terminée (purge différée par l'agent) — jamais redétecté.
+      if (MIGRATED_DIR.test(e.name)) continue;
       await visit(joinPath(dir, e.name), depth + 1);
     }
   }

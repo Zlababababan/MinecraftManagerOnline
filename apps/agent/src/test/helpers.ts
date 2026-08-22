@@ -6,6 +6,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
+import { deflateRawSync } from 'node:zlib';
 import { WebSocketServer, type WebSocket } from 'ws';
 
 import { createRpcPeer, type RpcPeer, type RpcTransport } from '@mmo/protocol';
@@ -173,4 +174,55 @@ export async function createFakePanel(
         });
       }),
   };
+}
+
+/** Zip minimal (entrées `store` ou `deflate`) pour les tests d'archives. */
+export function buildZip(entries: { name: string; data: Buffer; deflate?: boolean }[]): Buffer {
+  const locals: Buffer[] = [];
+  const centrals: Buffer[] = [];
+  let offset = 0;
+  const crcTable = new Uint32Array(256).map((_, n) => {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    return c >>> 0;
+  });
+  const crc32 = (buf: Buffer): number => {
+    let c = 0xffffffff;
+    for (const b of buf) c = (crcTable[(c ^ b) & 0xff] ?? 0) ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+  };
+  for (const e of entries) {
+    const name = Buffer.from(e.name, 'utf8');
+    const method = e.deflate ? 8 : 0;
+    const payload = e.deflate ? deflateRawSync(e.data) : e.data;
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(method, 8);
+    local.writeUInt32LE(crc32(e.data), 14);
+    local.writeUInt32LE(payload.byteLength, 18);
+    local.writeUInt32LE(e.data.byteLength, 22);
+    local.writeUInt16LE(name.byteLength, 26);
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(method, 10);
+    central.writeUInt32LE(crc32(e.data), 16);
+    central.writeUInt32LE(payload.byteLength, 20);
+    central.writeUInt32LE(e.data.byteLength, 24);
+    central.writeUInt16LE(name.byteLength, 28);
+    central.writeUInt32LE(offset, 42);
+    locals.push(local, name, payload);
+    centrals.push(central, name);
+    offset += local.byteLength + name.byteLength + payload.byteLength;
+  }
+  const cd = Buffer.concat(centrals);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(entries.length, 8);
+  eocd.writeUInt16LE(entries.length, 10);
+  eocd.writeUInt32LE(cd.byteLength, 12);
+  eocd.writeUInt32LE(offset, 16);
+  return Buffer.concat([...locals, cd, eocd]);
 }

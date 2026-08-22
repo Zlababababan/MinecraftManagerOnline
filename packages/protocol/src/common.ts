@@ -38,7 +38,17 @@ export type Os = z.infer<typeof osSchema>;
 export const archSchema = z.enum(['x64', 'arm64']);
 
 /** Capacités optionnelles annoncées dans `auth.hello` (chaîne libre ; valeurs connues documentées). */
-export const KNOWN_CAPABILITIES = ['rcon', 'zstd', 'direct-transfer'] as const;
+export const KNOWN_CAPABILITIES = [
+  'rcon',
+  'zstd',
+  'direct-transfer',
+  'tasks',
+  'backups',
+  'transfers',
+  'migration',
+  'java',
+  'update',
+] as const;
 export const capabilitySchema = z.string().min(1);
 
 /** Compression des flux volumineux : zstd par défaut si la capacité est annoncée, gzip en repli (spike n°3). */
