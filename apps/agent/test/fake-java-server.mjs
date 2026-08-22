@@ -19,6 +19,11 @@
 //   --big-response <n>      `list` renvoie une réponse de n octets (test de fragmentation)
 //   --hold <ms>             reste vivant après EOF stdin (par défaut : pour toujours, comme un vrai serveur)
 //   --port <port>           « écoute » le port de jeu (bloque le port pour les tests de conflit)
+//
+// Phase 6 : `whitelist add|remove|list|on|off|reload`, `op`, `deop`, `ban`, `pardon`, `ban-ip`,
+// `pardon-ip`, `kick` — écrivent whitelist.json / ops.json / banned-*.json dans le cwd comme le
+// vrai serveur (UUID hors ligne v3, `online-mode=false` implicite).
+import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -176,9 +181,161 @@ function runCommand(cmd) {
     case 'accent':
       log('Accents : éèàç — ok');
       return 'éèàç';
-    default:
+    default: {
+      const handled = playerCommand(name, rest);
+      if (handled !== undefined) {
+        log(handled);
+        return handled;
+      }
       log(`Unknown or incomplete command, see below for error`, 'INFO');
       return 'Unknown or incomplete command, see below for error\n' + cmd + '<--[HERE]';
+    }
+  }
+}
+
+// --- Listes joueurs (fichiers JSON, comme le vrai serveur) --------------------------------------
+function offlineUuid(name) {
+  const md5 = createHash('md5').update(`OfflinePlayer:${name}`, 'utf8').digest();
+  md5[6] = (md5[6] & 0x0f) | 0x30;
+  md5[8] = (md5[8] & 0x3f) | 0x80;
+  const h = md5.toString('hex');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+function loadJson(file) {
+  try {
+    const v = JSON.parse(readFileSync(file, 'utf8'));
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+function saveJson(file, list) {
+  writeFileSync(file, JSON.stringify(list, null, 2) + '\n');
+}
+const lists = {
+  whitelist: loadJson('whitelist.json'),
+  ops: loadJson('ops.json'),
+  bannedPlayers: loadJson('banned-players.json'),
+  bannedIps: loadJson('banned-ips.json'),
+};
+let whitelistOn = false;
+function banDate() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())} +0000`;
+}
+function byName(list, name) {
+  return list.findIndex((e) => String(e.name).toLowerCase() === String(name).toLowerCase());
+}
+const DEFAULT_REASON = 'Banned by an operator.';
+function playerCommand(name, rest) {
+  switch (name) {
+    case 'whitelist': {
+      const [sub, target] = rest;
+      if (sub === 'add') {
+        if (byName(lists.whitelist, target) !== -1) return 'Player is already whitelisted';
+        lists.whitelist.push({ uuid: offlineUuid(target), name: target });
+        saveJson('whitelist.json', lists.whitelist);
+        return `Added ${target} to the whitelist`;
+      }
+      if (sub === 'remove') {
+        const i = byName(lists.whitelist, target);
+        if (i === -1) return 'Player is not whitelisted';
+        lists.whitelist.splice(i, 1);
+        saveJson('whitelist.json', lists.whitelist);
+        return `Removed ${target} from the whitelist`;
+      }
+      if (sub === 'list') {
+        return lists.whitelist.length === 0
+          ? 'There are no whitelisted players'
+          : `There are ${lists.whitelist.length} whitelisted player(s): ${lists.whitelist.map((e) => e.name).join(', ')}`;
+      }
+      if (sub === 'on' || sub === 'off') {
+        whitelistOn = sub === 'on';
+        return whitelistOn ? 'Whitelist is now turned on' : 'Whitelist is now turned off';
+      }
+      if (sub === 'reload') {
+        lists.whitelist = loadJson('whitelist.json');
+        return 'Reloaded the whitelist';
+      }
+      return undefined;
+    }
+    case 'op': {
+      const [target] = rest;
+      if (byName(lists.ops, target) !== -1)
+        return 'Nothing changed. The player already is an operator';
+      lists.ops.push({
+        uuid: offlineUuid(target),
+        name: target,
+        level: 4,
+        bypassesPlayerLimit: false,
+      });
+      saveJson('ops.json', lists.ops);
+      return `Made ${target} a server operator`;
+    }
+    case 'deop': {
+      const [target] = rest;
+      const i = byName(lists.ops, target);
+      if (i === -1) return 'Nothing changed. The player is not an operator';
+      lists.ops.splice(i, 1);
+      saveJson('ops.json', lists.ops);
+      return `Made ${target} no longer a server operator`;
+    }
+    case 'ban': {
+      const [target, ...reason] = rest;
+      if (byName(lists.bannedPlayers, target) !== -1)
+        return 'Nothing changed. The player is already banned';
+      const why = reason.length > 0 ? reason.join(' ') : DEFAULT_REASON;
+      lists.bannedPlayers.push({
+        uuid: offlineUuid(target),
+        name: target,
+        created: banDate(),
+        source: 'Server',
+        expires: 'forever',
+        reason: why,
+      });
+      saveJson('banned-players.json', lists.bannedPlayers);
+      leave(target);
+      return `Banned ${target}: ${why}`;
+    }
+    case 'pardon': {
+      const [target] = rest;
+      const i = byName(lists.bannedPlayers, target);
+      if (i === -1) return 'Nothing changed. The player is not banned';
+      lists.bannedPlayers.splice(i, 1);
+      saveJson('banned-players.json', lists.bannedPlayers);
+      return `Unbanned ${target}`;
+    }
+    case 'ban-ip': {
+      const [ip, ...reason] = rest;
+      if (lists.bannedIps.some((e) => e.ip === ip))
+        return 'Nothing changed. That IP is already banned';
+      lists.bannedIps.push({
+        ip,
+        created: banDate(),
+        source: 'Server',
+        expires: 'forever',
+        reason: reason.length > 0 ? reason.join(' ') : DEFAULT_REASON,
+      });
+      saveJson('banned-ips.json', lists.bannedIps);
+      return `Banned IP ${ip}`;
+    }
+    case 'pardon-ip': {
+      const [ip] = rest;
+      const i = lists.bannedIps.findIndex((e) => e.ip === ip);
+      if (i === -1) return 'Nothing changed. That IP is not banned';
+      lists.bannedIps.splice(i, 1);
+      saveJson('banned-ips.json', lists.bannedIps);
+      return `Unbanned IP ${ip}`;
+    }
+    case 'kick': {
+      const [target, ...reason] = rest;
+      if (!players.has(target)) return 'No player was found';
+      leave(target);
+      return `Kicked ${target}: ${reason.length > 0 ? reason.join(' ') : 'Kicked by an operator'}`;
+    }
+    default:
+      return undefined;
   }
 }
 

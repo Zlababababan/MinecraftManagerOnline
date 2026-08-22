@@ -28,7 +28,7 @@ import { JavaRegistry, defaultManagedJavaDir } from './platform/java.js';
 import { Scanner, type ScanDiff, type ScanTarget } from './scan/scanner.js';
 import { StateStore } from './state/store.js';
 
-export const AGENT_VERSION = '0.3.0';
+export const AGENT_VERSION = '0.6.0';
 
 export function currentOs(): Os {
   return process.platform === 'win32'
@@ -57,8 +57,12 @@ export interface AgentOptions {
       | 'startTimeoutMs'
       | 'rconProbeIntervalMs'
       | 'exitPollMs'
+      | 'fetchImpl'
+      | 'now'
     >
   >;
+  /** Purge de la corbeille `.mmo-trash/` (défaut 6 h ; 0 = désactivé). */
+  trashPurgeIntervalMs?: number;
   backoff?: { baseMs?: number; maxMs?: number };
   /** Sortie du processus (agent.restart) — injectable en test. */
   exit?: (code: number) => void;
@@ -76,6 +80,7 @@ export class Agent {
   private connection: AgentConnection | undefined;
   private readonly consoleSubscriptions = new Set<string>();
   private scanTimer: ReturnType<typeof setInterval> | undefined;
+  private trashTimer: ReturnType<typeof setInterval> | undefined;
   private started = false;
 
   constructor(private readonly options: AgentOptions) {
@@ -157,11 +162,21 @@ export class Agent {
       this.scanTimer.unref();
       void this.runScan();
     }
+    const purgeEvery = this.options.trashPurgeIntervalMs ?? 6 * 3600_000;
+    if (purgeEvery > 0) {
+      this.trashTimer = setInterval(() => {
+        void this.manager.purgeTrash();
+      }, purgeEvery);
+      this.trashTimer.unref();
+      void this.manager.purgeTrash();
+    }
   }
 
   async stop(): Promise<void> {
     if (this.scanTimer !== undefined) clearInterval(this.scanTimer);
     this.scanTimer = undefined;
+    if (this.trashTimer !== undefined) clearInterval(this.trashTimer);
+    this.trashTimer = undefined;
     await this.connection?.stop();
     this.manager.dispose();
     await this.store.flush();
@@ -304,6 +319,46 @@ export class Agent {
         return {};
       })
       .handle('player.list', ({ serverId }) => this.manager.require(serverId).listPlayers())
+      .handle('player.action', ({ serverId, action, target, reason, level }) =>
+        this.manager.config(serverId).playerAction(action, target, reason, level),
+      )
+      .handle('player.resolve', ({ serverId, names }) =>
+        this.manager.resolvePlayers(serverId, names),
+      )
+      // Fichiers et configuration (phase 6)
+      .handle('fs.list', async ({ serverId, path: p }) => ({
+        entries: await this.manager.files(serverId).list(p),
+      }))
+      .handle('fs.stat', ({ serverId, path: p }) => this.manager.files(serverId).stat(p))
+      .handle('fs.mkdir', async ({ serverId, path: p }) => {
+        await this.manager.files(serverId).mkdir(p);
+        return {};
+      })
+      .handle('fs.rename', async ({ serverId, from, to, overwrite }) => {
+        await this.manager.files(serverId).rename(from, to, overwrite);
+        return {};
+      })
+      .handle('fs.copy', async ({ serverId, from, to, overwrite }) => {
+        await this.manager.files(serverId).copy(from, to, overwrite);
+        return {};
+      })
+      .handle('fs.delete', ({ serverId, path: p }) => this.manager.files(serverId).delete(p))
+      .handle('fs.read', ({ serverId, path: p, maxBytes }) =>
+        this.manager.files(serverId).read(p, maxBytes),
+      )
+      .handle('fs.write', ({ serverId, path: p, content, expectedSha256 }) =>
+        this.manager.files(serverId).write(p, content, expectedSha256),
+      )
+      .handle('config.get', ({ serverId, file }) => this.manager.config(serverId).get(file))
+      .handle('config.set', ({ serverId, file, data, expectedSha256 }) =>
+        this.manager.config(serverId).set(file, data, expectedSha256),
+      )
+      .handle('logs.listFiles', async ({ serverId }) => ({
+        files: await this.manager.listLogFiles(serverId),
+      }))
+      .handle('logs.search', ({ serverId, ...options }) =>
+        this.manager.searchLogs(serverId, options),
+      )
       .handle('console.subscribe', ({ serverId, sinceSeq }) => {
         const proc = this.manager.require(serverId);
         this.consoleSubscriptions.add(serverId);

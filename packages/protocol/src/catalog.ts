@@ -53,8 +53,12 @@ import {
   watchdogAlertSchema,
 } from './messages/monitoring.js';
 import {
+  playerActionResponseSchema,
+  playerActionSchema,
   playerEventSchema,
   playerListResponseSchema,
+  playerResolveResponseSchema,
+  playerResolveSchema,
   scanRunResponseSchema,
   scanRunSchema,
   serverCommandResponseSchema,
@@ -121,6 +125,8 @@ export const REQUESTS = {
   'server.eulaAccept': req('p2a', serverRefSchema, emptyPayloadSchema),
   'server.setProvisioning': req('p2a', serverSetProvisioningSchema, emptyPayloadSchema),
   'player.list': req('p2a', serverRefSchema, playerListResponseSchema),
+  'player.action': req('p2a', playerActionSchema, playerActionResponseSchema),
+  'player.resolve': req('p2a', playerResolveSchema, playerResolveResponseSchema),
   // Console et logs
   'console.subscribe': req('p2a', consoleSubscribeSchema, consoleSubscribeResponseSchema),
   'console.unsubscribe': req('p2a', serverRefSchema, emptyPayloadSchema),

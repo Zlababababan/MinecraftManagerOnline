@@ -180,7 +180,52 @@ describe('agent de bout en bout (faux panel + fake Java server)', () => {
     });
     const info = await peer.request('agent.info', {});
     expect(info.watchedDirectories).toEqual([serversRoot]);
-    expect(info.agentVersion).toBe('0.3.0');
+    expect(info.agentVersion).toBe('0.6.0');
+
+    // Phase 6, serveur arrêté : fichiers, configuration et joueurs via la session
+    const listing = await peer.request('fs.list', { serverId: 'srv_vanilla', path: '' });
+    expect(listing.entries.map((e) => e.name)).toEqual(
+      expect.arrayContaining(['server.properties', 'eula.txt', 'logs']),
+    );
+    const props = await peer.request('config.get', {
+      serverId: 'srv_vanilla',
+      file: 'server.properties',
+    });
+    expect(props.data).toMatchObject({ 'server-port': String(gamePort) });
+    const resolved = await peer.request('player.resolve', {
+      serverId: 'srv_vanilla',
+      names: ['Bob'],
+    });
+    expect(resolved.onlineMode).toBe(true);
+    await peer.request('config.set', {
+      serverId: 'srv_vanilla',
+      file: 'server.properties',
+      data: { 'online-mode': 'false' },
+    });
+    const offline = await peer.request('player.resolve', {
+      serverId: 'srv_vanilla',
+      names: ['Bob'],
+    });
+    expect(offline).toMatchObject({
+      onlineMode: false,
+      players: [{ name: 'Bob', source: 'offline' }],
+    });
+    expect(
+      await peer.request('player.action', {
+        serverId: 'srv_vanilla',
+        action: 'whitelistAdd',
+        target: 'Bob',
+      }),
+    ).toEqual({ applied: 'file' });
+    const wl = await peer.request('config.get', {
+      serverId: 'srv_vanilla',
+      file: 'whitelist.json',
+    });
+    expect(wl.data).toMatchObject([{ name: 'Bob' }] as unknown[]);
+    const logs = await peer.request('logs.listFiles', { serverId: 'srv_vanilla' });
+    expect(logs.files.map((f) => f.name)).toEqual(['latest.log']);
+    const found = await peer.request('logs.search', { serverId: 'srv_vanilla', query: 'starting' });
+    expect(found.matches).toHaveLength(1);
 
     // Démarrage
     const started = await peer.request('server.start', { serverId: 'srv_vanilla' });
@@ -222,6 +267,27 @@ describe('agent de bout en bout (faux panel + fake Java server)', () => {
     // Heartbeat : serveurs actifs
     await waitFor(() => cap.heartbeats.some((h) => h.activeServers === 1), 5000);
 
+    // Phase 6, serveur en marche : routage en commandes
+    const live = await peer.request('config.set', {
+      serverId: 'srv_vanilla',
+      file: 'whitelist.json',
+      data: [],
+    });
+    expect(live).toMatchObject({ applied: 'commands', commands: ['whitelist remove Bob'] });
+    await waitFor(
+      async () =>
+        (
+          (await peer.request('config.get', { serverId: 'srv_vanilla', file: 'whitelist.json' }))
+            .data as unknown[]
+        ).length === 0,
+      5000,
+    );
+    const trashed = await peer.request('fs.delete', {
+      serverId: 'srv_vanilla',
+      path: 'whitelist.json',
+    });
+    expect(trashed.trashedAs).toMatch(/^\.mmo-trash\/\d+-whitelist\.json$/);
+
     // Arrêt propre
     expect(await peer.request('server.stop', { serverId: 'srv_vanilla', timeoutSec: 5 })).toEqual({
       alreadyStopped: false,
@@ -254,8 +320,17 @@ describe('agent de bout en bout (faux panel + fake Java server)', () => {
     await expect(peer.request('server.start', { serverId: 'ghost' })).rejects.toMatchObject({
       code: 'E_NOT_FOUND',
     });
+    // Chemin absolu refusé par le schéma (jail), serveur inconnu, type non géré par l'agent.
     await expect(peer.request('fs.list', { serverId: 'ghost', path: '/' })).rejects.toMatchObject({
-      code: 'E_UNSUPPORTED_TYPE',
+      code: 'E_INVALID_PAYLOAD',
+    });
+    await expect(peer.request('fs.list', { serverId: 'ghost', path: '' })).rejects.toMatchObject({
+      code: 'E_NOT_FOUND',
+    });
+    await expect(
+      peer.request('fs.list', { serverId: 'ghost', path: '../x' }),
+    ).rejects.toMatchObject({
+      code: 'E_INVALID_PAYLOAD',
     });
     const java = await peer.request('java.list', {});
     expect(Array.isArray(java.runtimes)).toBe(true);

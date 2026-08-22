@@ -215,6 +215,27 @@
       }
     },
     {
+      "type": "player.action",
+      "request": {
+        "serverId": "srv_01",
+        "action": "ban",
+        "target": "Griefer",
+        "reason": "griefing"
+      },
+      "response": { "applied": "commands", "response": "Banned Griefer: griefing", "warnings": [] }
+    },
+    {
+      "type": "player.resolve",
+      "request": { "serverId": "srv_01", "names": ["Notch", "Unknown_Player_X"] },
+      "response": {
+        "players": [
+          { "name": "Notch", "uuid": "069a79f4-44e9-4726-a5be-fca90e38aaf5", "source": "mojang" },
+          { "name": "Unknown_Player_X", "uuid": null, "source": "unknown" }
+        ],
+        "onlineMode": true
+      }
+    },
+    {
       "type": "console.subscribe",
       "request": { "serverId": "srv_01", "sinceSeq": 4200 },
       "response": {

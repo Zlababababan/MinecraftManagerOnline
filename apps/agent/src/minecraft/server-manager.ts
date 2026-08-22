@@ -18,12 +18,17 @@ import {
 import { detectServer, javaRequirementFromTable, type DetectFs } from '@mmo/shared';
 import { createNodeDetectFs } from '@mmo/shared/node';
 
+import { FsService } from '../files/fs-service.js';
+import { listLogFiles, searchLogs, type SearchOptions } from '../files/logs.js';
 import { errorMessage, type Logger } from '../log.js';
 import { JavaRegistry, totalRamMb } from '../platform/java.js';
 import { findFreePort, isPortFree } from '../platform/ports.js';
 import { getProcessInfo } from '../platform/process-info.js';
 import type { ServerRecord, ServerRuntime, StateStore } from '../state/store.js';
+import { ConfigService, type CommandResult } from './config-files.js';
 import { buildLaunchCommand, type LaunchCommand } from './launch.js';
+import { resolvePlayers, type FetchLike } from './players.js';
+import { parseBooleanProperty } from './properties.js';
 import {
   acceptEula,
   ensureRconProvisioned,
@@ -62,6 +67,9 @@ export interface ServerManagerOptions {
   startTimeoutMs?: number;
   rconProbeIntervalMs?: number;
   exitPollMs?: number;
+  /** Résolution Mojang (tests : stub). */
+  fetchImpl?: FetchLike | undefined;
+  now?: () => number;
 }
 
 export class ServerManager {
@@ -325,6 +333,84 @@ export class ServerManager {
       });
     }
     await acceptEula(record.config.path);
+  }
+
+  // --- Fichiers, configuration, joueurs (phase 6) ------------------------------------------------
+
+  serverDir(serverId: string): string {
+    const record = this.options.store.getServer(serverId);
+    if (!record) {
+      throw new ProtocolError('E_NOT_FOUND', `unknown server ${serverId}`, {
+        details: { serverId },
+      });
+    }
+    return record.config.path;
+  }
+
+  files(serverId: string): FsService {
+    return new FsService(this.serverDir(serverId), {
+      ...(this.options.now === undefined ? {} : { now: this.options.now }),
+    });
+  }
+
+  config(serverId: string): ConfigService {
+    const dir = this.serverDir(serverId);
+    return new ConfigService({
+      serverDir: dir,
+      isRunning: () => this.processes.get(serverId)?.isRunning ?? false,
+      exec: (command) => this.execWithResponse(serverId, command),
+      fetchImpl: this.options.fetchImpl,
+      ...(this.options.now === undefined ? {} : { now: this.options.now }),
+    });
+  }
+
+  /** RCON de préférence (réponse corrélée), stdin en repli. */
+  private async execWithResponse(serverId: string, command: string): Promise<CommandResult> {
+    const proc = this.require(serverId);
+    if (proc.rcon && proc.state === 'running') {
+      try {
+        return { via: 'rcon', response: await proc.rconExec(command, 5000) };
+      } catch (error) {
+        this.options.logger.debug('rcon exec failed, falling back to stdin', {
+          serverId,
+          error: errorMessage(error),
+        });
+      }
+    }
+    return { via: await proc.sendCommand(command) };
+  }
+
+  async resolvePlayers(serverId: string, names: string[]) {
+    const dir = this.serverDir(serverId);
+    const props = await readServerProperties(dir);
+    const onlineMode = parseBooleanProperty(props.props.get('online-mode')) ?? true;
+    const players = await resolvePlayers(names, {
+      serverDir: dir,
+      onlineMode,
+      fetchImpl: this.options.fetchImpl,
+    });
+    return { players, onlineMode };
+  }
+
+  listLogFiles(serverId: string) {
+    return listLogFiles(this.serverDir(serverId));
+  }
+
+  searchLogs(serverId: string, options: SearchOptions) {
+    return searchLogs(this.serverDir(serverId), options);
+  }
+
+  /** Purge des corbeilles `.mmo-trash/` de tous les serveurs connus (7 jours). */
+  async purgeTrash(): Promise<number> {
+    let total = 0;
+    for (const serverId of Object.keys(this.options.store.get().servers)) {
+      try {
+        total += await this.files(serverId).purgeTrash();
+      } catch (error) {
+        this.options.logger.warn('trash purge failed', { serverId, error: errorMessage(error) });
+      }
+    }
+    return total;
   }
 
   // --- Snapshot -------------------------------------------------------------------------------

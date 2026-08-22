@@ -174,3 +174,48 @@ export const playerListResponseSchema = z.object({
   max: z.int().nonnegative().optional(),
   players: z.array(z.object({ name: z.string(), uuid: z.string().optional() })),
 });
+
+/** Actions joueurs (phase 6) — routées par l'agent : en marche → commandes ; arrêté → fichiers (kick impossible). */
+export const playerActionKindSchema = z.enum([
+  'kick',
+  'ban',
+  'pardon',
+  'banIp',
+  'pardonIp',
+  'op',
+  'deop',
+  'whitelistAdd',
+  'whitelistRemove',
+]);
+export type PlayerActionKind = z.infer<typeof playerActionKindSchema>;
+export const playerActionSchema = z.object({
+  serverId: serverIdSchema,
+  action: playerActionKindSchema,
+  /** Nom de joueur, ou adresse IP pour `banIp`/`pardonIp`. */
+  target: z.string().min(1).max(64),
+  reason: z.string().max(256).optional(),
+  /** Niveau d'op (1–4) en mode fichier ; ignoré en mode commandes (avertissement). */
+  level: z.int().min(1).max(4).optional(),
+});
+export const playerActionResponseSchema = z.object({
+  applied: z.enum(['file', 'commands']),
+  /** Réponse RCON si disponible (vide via stdin). */
+  response: z.string().optional(),
+  warnings: z.array(z.string()).optional(),
+});
+
+/** Résolution nom → UUID (doc 06 §7) : usercache local, API Mojang (online-mode) ou UUID v3 hors ligne. */
+export const playerResolveSchema = z.object({
+  serverId: serverIdSchema,
+  names: z.array(z.string().min(1).max(16)).min(1).max(50),
+});
+export const resolvedPlayerSchema = z.object({
+  name: z.string(),
+  uuid: z.string().nullable(),
+  source: z.enum(['usercache', 'mojang', 'offline', 'unknown']),
+});
+export type ResolvedPlayer = z.infer<typeof resolvedPlayerSchema>;
+export const playerResolveResponseSchema = z.object({
+  players: z.array(resolvedPlayerSchema),
+  onlineMode: z.boolean(),
+});
