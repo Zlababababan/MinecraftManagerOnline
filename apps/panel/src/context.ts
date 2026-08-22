@@ -18,6 +18,7 @@ import { AuditService } from './services/audit.js';
 import { EventBus } from './services/events.js';
 import { JavaResolver } from './services/java.js';
 import { MachinesService } from './services/machines.js';
+import { MetricsService } from './services/metrics.js';
 import { ProcessedEventsService } from './services/processed-events.js';
 import { ServersService } from './services/servers.js';
 import { SessionsService } from './services/sessions.js';
@@ -31,6 +32,8 @@ export interface AppContext {
   db: MmoDatabase;
   sqlite: Database.Database;
   metrics: MetricsDatabase;
+  metricsSqlite: Database.Database;
+  metricsService: MetricsService;
   settings: SettingsService;
   audit: AuditService;
   events: EventBus;
@@ -92,6 +95,13 @@ export function createContext(options: ContextOptions): AppContext {
   events.subscribe((event) => {
     hub.broadcast({ type: 'event', event });
   });
+  const metricsService = new MetricsService({
+    sqlite: metrics.sqlite,
+    now,
+    onSample: (machineId, sample) => {
+      hub.broadcast({ type: 'metrics.sample', machineId, sample });
+    },
+  });
 
   // Au démarrage : aucun agent n'est connecté, tout `online` est un reliquat d'une exécution précédente.
   machines.markAllOffline();
@@ -103,6 +113,8 @@ export function createContext(options: ContextOptions): AppContext {
     db,
     sqlite: mmo.sqlite,
     metrics: metrics.db,
+    metricsSqlite: metrics.sqlite,
+    metricsService,
     settings,
     audit,
     events,
@@ -118,6 +130,7 @@ export function createContext(options: ContextOptions): AppContext {
     close: () => {
       registry.closeAll();
       hub.closeAll();
+      metricsService.close();
       mmo.close();
       metrics.close();
     },

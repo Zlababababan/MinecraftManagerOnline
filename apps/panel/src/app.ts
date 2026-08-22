@@ -100,4 +100,7 @@ export function runMaintenance(ctx: AppContext): void {
   ctx.events.purgeOlderThan(t - ctx.settings.getInt('retention.eventsDays', 90) * day);
   ctx.audit.purgeOlderThan(t - ctx.settings.getInt('retention.auditDays', 365) * day);
   ctx.sqlite.pragma('wal_checkpoint(PASSIVE)');
+  // Métriques (doc 04 §7) : downsampling brut → 1 min → 1 h, purge, checkpoint du second fichier.
+  ctx.metricsService.maintain(t);
+  ctx.metricsSqlite.pragma('wal_checkpoint(PASSIVE)');
 }

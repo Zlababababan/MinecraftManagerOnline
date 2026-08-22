@@ -24,6 +24,7 @@ import type { PanelConfig } from '../config.js';
 import type { AuditService } from '../services/audit.js';
 import type { EventBus } from '../services/events.js';
 import type { MachinesService } from '../services/machines.js';
+import type { MetricsService } from '../services/metrics.js';
 import type { ProcessedEventsService } from '../services/processed-events.js';
 import type { ServersService } from '../services/servers.js';
 import type { ConsoleRelay } from './console.js';
@@ -37,6 +38,7 @@ export interface AgentSessionDeps {
   now: () => number;
   machines: MachinesService;
   servers: ServersService;
+  metrics: MetricsService;
   events: EventBus;
   audit: AuditService;
   processed: ProcessedEventsService;
@@ -167,14 +169,26 @@ export class AgentSession {
     });
     peer.on('watchdog.alert', (p, ctx) => {
       this.critical(ctx, () => {
+        const machineId = this.requireAuth();
         this.deps.events.publish({
           type: 'watchdog.alert',
           severity: p.kind === 'crash_loop' || p.action === 'gave_up' ? 'critical' : 'warning',
-          machineId: this.requireAuth(),
+          machineId,
           serverId: p.serverId,
           payload: p,
           ts: p.ts,
         });
+        // Les actions automatiques (relance, kill) laissent une trace d'audit, comme un opérateur.
+        if (p.action !== 'none') {
+          const row = this.deps.servers.get(p.serverId);
+          this.deps.audit.record({
+            action: `watchdog.${p.action}`,
+            targetType: 'server',
+            targetId: p.serverId,
+            targetLabel: row?.name,
+            details: { kind: p.kind, attempt: p.attempt, detail: p.detail ?? null },
+          });
+        }
       });
     });
     peer.on('console.lines', (p) => {
@@ -204,9 +218,14 @@ export class AgentSession {
         ts: p.ts,
       });
     });
-    peer.on('metrics.sample', () => {
-      this.requireAuth();
-      // Phase 7 : écriture par lots dans metrics.db.
+    peer.on('metrics.sample', (p) => {
+      const machineId = this.requireAuth();
+      // Seuls les serveurs connus du panel sont retenus (l'agent peut remonter un ID obsolète).
+      const known = new Set(this.deps.servers.listByMachine(machineId).map((r) => r.id));
+      this.deps.metrics.ingest(machineId, {
+        ...p,
+        servers: p.servers.filter((s) => known.has(s.serverId)),
+      });
     });
   }
 
@@ -461,6 +480,10 @@ export class AgentSession {
     if (machineId === undefined) return;
     if (this.deps.registry.detach(this, machineId)) {
       this.deps.machines.markOffline(machineId);
+      this.deps.metrics.forgetMachine(
+        machineId,
+        this.deps.servers.listByMachine(machineId).map((r) => r.id),
+      );
       this.deps.events.publish({
         type: 'agent.offline',
         severity: 'warning',

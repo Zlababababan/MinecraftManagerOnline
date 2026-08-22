@@ -7,6 +7,7 @@ import { z } from 'zod';
 import {
   commandRequestSchema,
   createServerSchema,
+  metricsQuerySchema,
   playerActionRequestSchema,
   playerResolveRequestSchema,
   resolveConflictSchema,
@@ -58,6 +59,16 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
   r.get('/api/servers/:id', { schema: { params: idParams } }, (request) => ({
     server: dto(ctx.servers.require(request.params.id)),
   }));
+
+  /** Métriques historiques (phase 7) : brut / 1 min / 1 h selon la plage, dernier échantillon. */
+  r.get(
+    '/api/servers/:id/metrics',
+    { schema: { params: idParams, querystring: metricsQuerySchema } },
+    (request) => {
+      const row = ctx.servers.require(request.params.id);
+      return ctx.metricsService.queryServer(row.id, request.query);
+    },
+  );
 
   /** Ajout manuel d'un dossier arbitraire (doc 02 §2) : scan ciblé puis adoption. */
   r.post(
@@ -125,6 +136,7 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
       const row = ctx.servers.require(request.params.id);
       ctx.servers.delete(row.id);
       ctx.relay.forget(row.id);
+      ctx.metricsService.deleteServer(row.id);
       ctx.audit.record({
         ...auditMeta(request),
         action: 'server.deleted',

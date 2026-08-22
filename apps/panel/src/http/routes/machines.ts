@@ -6,6 +6,7 @@ import { z } from 'zod';
 import {
   addDirectorySchema,
   createMachineSchema,
+  metricsQuerySchema,
   scanRequestSchema,
   updateMachineSchema,
   type MachineDto,
@@ -93,6 +94,16 @@ export function registerMachineRoutes(app: FastifyInstance, ctx: AppContext): vo
   r.get('/api/machines/:id', { schema: { params: idParams } }, (request) => ({
     machine: machineDto(ctx, ctx.machines.require(request.params.id)),
   }));
+
+  /** Métriques historiques de la machine (phase 7). */
+  r.get(
+    '/api/machines/:id/metrics',
+    { schema: { params: idParams, querystring: metricsQuerySchema } },
+    (request) => {
+      const row = ctx.machines.require(request.params.id);
+      return ctx.metricsService.queryMachine(row.id, request.query);
+    },
+  );
 
   /** « Ajouter machine » : création + premier code d'appairage. */
   r.post(

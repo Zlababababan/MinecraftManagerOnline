@@ -16,6 +16,7 @@ export function registerWsRoutes(app: FastifyInstance, ctx: AppContext): void {
       now: ctx.now,
       machines: ctx.machines,
       servers: ctx.servers,
+      metrics: ctx.metricsService,
       events: ctx.events,
       audit: ctx.audit,
       processed: ctx.processed,
