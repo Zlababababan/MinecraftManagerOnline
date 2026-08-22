@@ -1,7 +1,13 @@
+import '@mantine/core/styles.layer.css';
+import '@mantine/notifications/styles.layer.css';
+import 'mantine-datatable/styles.layer.css';
+import './styles.css';
+import './i18n/index.js';
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { App } from './App.js';
+import { App } from './app.js';
 
 const root = document.getElementById('root');
 if (root === null) {

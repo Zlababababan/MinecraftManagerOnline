@@ -1,0 +1,19 @@
+/* Styles globaux : navigation basse mobile, zones sûres iOS (PWA installée). */
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
+.mmo-bottomnav-item {
+  color: var(--mantine-color-dimmed);
+}
+
+[data-active] .mmo-bottomnav-item {
+  color: var(--mantine-primary-color-filled);
+}
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .mantine-AppShell-footer {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

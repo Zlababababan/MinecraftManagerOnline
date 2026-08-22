@@ -1,0 +1,142 @@
+/** Machines : liste + ajout (code d'appairage affiché une seule fois) + conflits de marqueur. */
+import { Button, Card, Group, Modal, Stack, Text, TextInput, Title } from '@mantine/core';
+import { useForm } from '@mantine/form';
+import { IconPlus } from '@tabler/icons-react';
+import { useNavigate } from '@tanstack/react-router';
+import { useState } from 'react';
+import { useT } from '../i18n/hooks.js';
+
+import type { PairingCodeDto } from '@mmo/protocol/client';
+
+import { useConflicts, useCreateMachine, useMachines, useMe, useServers } from '../api/queries.js';
+import { ConflictsPanel } from '../components/ConflictsPanel.js';
+import { ErrorAlert } from '../components/ErrorAlert.js';
+import { MachineHeader } from '../components/MachineHeader.js';
+import { PairingCodeCard } from '../components/PairingCodeCard.js';
+import { hasRole } from '../lib/format.js';
+import { useNow } from '../lib/hooks.js';
+
+export function AddMachineModal({ opened, onClose }: { opened: boolean; onClose: () => void }) {
+  const { t } = useT();
+  const create = useCreateMachine();
+  const [pairing, setPairing] = useState<PairingCodeDto | undefined>(undefined);
+  const form = useForm({
+    initialValues: { name: '' },
+    validate: { name: (v) => (v.trim() === '' ? t('web:errors.validation') : null) },
+  });
+  const close = (): void => {
+    setPairing(undefined);
+    form.reset();
+    create.reset();
+    onClose();
+  };
+  const submit = form.onSubmit((values) => {
+    create.mutate(
+      { name: values.name.trim() },
+      {
+        onSuccess: (data) => {
+          setPairing(data.pairing);
+        },
+      },
+    );
+  });
+  return (
+    <Modal opened={opened} onClose={close} title={t('web:machine.create.title')} size="lg">
+      {pairing === undefined ? (
+        <form onSubmit={submit}>
+          <Stack gap="sm">
+            <TextInput
+              label={t('web:machine.create.name')}
+              placeholder={t('web:machine.create.namePlaceholder')}
+              required
+              autoFocus
+              data-testid="machine-name"
+              {...form.getInputProps('name')}
+            />
+            <ErrorAlert error={create.error} />
+            <Group justify="flex-end">
+              <Button type="submit" loading={create.isPending} data-testid="machine-create">
+                {t('web:machine.create.submit')}
+              </Button>
+            </Group>
+          </Stack>
+        </form>
+      ) : (
+        <Stack gap="md">
+          <PairingCodeCard pairing={pairing} />
+          <Group justify="flex-end">
+            <Button onClick={close} data-testid="pairing-close">
+              {t('web:common.close')}
+            </Button>
+          </Group>
+        </Stack>
+      )}
+    </Modal>
+  );
+}
+
+export function MachinesPage({ openAdd }: { openAdd: boolean }) {
+  const { t } = useT();
+  const navigate = useNavigate();
+  const me = useMe();
+  const machines = useMachines();
+  const servers = useServers();
+  const conflicts = useConflicts();
+  const now = useNow(10_000);
+  const isAdmin = me.data !== undefined && hasRole(me.data.user.role, 'admin');
+  const setOpen = (open: boolean): void => {
+    void navigate({ to: '/machines', search: open ? { add: true } : {}, replace: true });
+  };
+
+  return (
+    <Stack gap="lg" data-testid="machines-page">
+      <Group justify="space-between">
+        <Title order={2}>{t('web:machine.title')}</Title>
+        {isAdmin && (
+          <Button
+            leftSection={<IconPlus size={16} />}
+            size="sm"
+            onClick={() => {
+              setOpen(true);
+            }}
+            data-testid="add-machine"
+          >
+            {t('web:dashboard.addMachine')}
+          </Button>
+        )}
+      </Group>
+      <ErrorAlert error={machines.error} />
+      {conflicts.data !== undefined && <ConflictsPanel conflicts={conflicts.data.conflicts} />}
+      {machines.data?.machines.length === 0 && (
+        <Text c="dimmed">{t('web:dashboard.noMachines')}</Text>
+      )}
+      {machines.data?.machines.map((machine) => {
+        const count = servers.data?.servers.filter((s) => s.machineId === machine.id).length;
+        return (
+          <Card
+            key={machine.id}
+            withBorder
+            radius="md"
+            padding="md"
+            data-testid="machine-row"
+            data-machine-id={machine.id}
+          >
+            <Stack gap="xs">
+              <MachineHeader machine={machine} now={now} />
+              <Text size="xs" c="dimmed">
+                {t('web:machine.servers')} : {count ?? '…'} · {t('web:machine.directories')} :{' '}
+                {machine.watchedDirectories.length}
+              </Text>
+            </Stack>
+          </Card>
+        );
+      })}
+      <AddMachineModal
+        opened={openAdd && isAdmin}
+        onClose={() => {
+          setOpen(false);
+        }}
+      />
+    </Stack>
+  );
+}

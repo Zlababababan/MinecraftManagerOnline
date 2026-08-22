@@ -13,3 +13,7 @@ CONTRIBUTING.md
 packages/shared/test/fixtures/servers/**
 # Migrations Drizzle générées (drizzle-kit) : jamais reformatées
 apps/panel/drizzle/**
+# Sorties Playwright
+apps/web/test-results/**
+apps/web/playwright-report/**
+apps/web/dev-dist/**

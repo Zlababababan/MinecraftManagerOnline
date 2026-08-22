@@ -1,13 +1,61 @@
-import { PROJECT_NAME } from '@mmo/shared';
+/** Racine React : Mantine (thème sombre natif, clair/système), Query, Modals, Notifications, Router. */
+import { MantineProvider, createTheme, localStorageColorSchemeManager } from '@mantine/core';
+import { ModalsProvider } from '@mantine/modals';
+import { Notifications } from '@mantine/notifications';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { RouterProvider, type RouterHistory } from '@tanstack/react-router';
+import { useState } from 'react';
 
-import { pageTitle } from './title.js';
+import { ApiRequestError } from './api/client.js';
+import { PwaUpdater } from './pwa.js';
+import { createAppRouter } from './router.js';
 
-/** Squelette — la phase 5 apportera Mantine, le routeur, l'i18n et la PWA. */
-export function App() {
+export const theme = createTheme({
+  primaryColor: 'teal',
+  defaultRadius: 'md',
+  fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+});
+
+export const colorSchemeManager = localStorageColorSchemeManager({ key: 'mmo.theme' });
+
+export function createQueryClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: (count, error) =>
+          !(error instanceof ApiRequestError && error.status < 500) && count < 2,
+        refetchOnWindowFocus: true,
+        staleTime: 10_000,
+      },
+    },
+  });
+}
+
+export function App({
+  queryClient,
+  pwa = true,
+  history,
+}: {
+  queryClient?: QueryClient;
+  pwa?: boolean;
+  /** Historique mémoire (tests). */
+  history?: RouterHistory;
+}) {
+  const [client] = useState(() => queryClient ?? createQueryClient());
+  const [router] = useState(() => createAppRouter(client, history));
   return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem' }}>
-      <h1>{pageTitle(PROJECT_NAME)}</h1>
-      <p>Phase 1 — fondations du monorepo.</p>
-    </main>
+    <MantineProvider
+      theme={theme}
+      defaultColorScheme="dark"
+      colorSchemeManager={colorSchemeManager}
+    >
+      <QueryClientProvider client={client}>
+        <ModalsProvider>
+          <Notifications position="top-right" />
+          {pwa && <PwaUpdater />}
+          <RouterProvider router={router} />
+        </ModalsProvider>
+      </QueryClientProvider>
+    </MantineProvider>
   );
 }

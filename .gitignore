@@ -12,3 +12,9 @@ coverage/
 Thumbs.db
 # spikes : résultats bruts volumineux
 docs/spikes/scripts/results/*.log
+# Playwright (apps/web)
+test-results/
+playwright-report/
+dev-dist/
+# données locales du panel
+apps/panel/data/
