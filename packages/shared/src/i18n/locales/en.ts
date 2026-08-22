@@ -57,6 +57,13 @@ export const en = {
     E_CHECKSUM_MISMATCH: 'Checksum mismatch — the file is corrupted.',
     E_INTERRUPTED: 'The operation was interrupted; it can be retried.',
     E_INTERNAL: 'Internal error.',
+    // Codes propres au panel (`@mmo/protocol/client`, phase 4)
+    E_FORBIDDEN: 'You do not have permission to do this.',
+    E_RATE_LIMITED: 'Too many attempts — please wait a moment.',
+    E_SETUP_REQUIRED: 'The panel has not been set up yet.',
+    E_SETUP_DONE: 'The panel is already set up.',
+    E_AGENT_OFFLINE: 'The agent of this machine is not connected.',
+    E_VALIDATION: 'Invalid input.',
   },
   detection: {
     source: {

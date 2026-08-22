@@ -57,6 +57,13 @@ export const fr = {
     E_CHECKSUM_MISMATCH: 'Somme de contrôle incorrecte — le fichier est corrompu.',
     E_INTERRUPTED: 'L’opération a été interrompue ; elle peut être relancée.',
     E_INTERNAL: 'Erreur interne.',
+    // Codes propres au panel (`@mmo/protocol/client`, phase 4)
+    E_FORBIDDEN: 'Vous n’avez pas le droit d’effectuer cette action.',
+    E_RATE_LIMITED: 'Trop de tentatives — patientez un instant.',
+    E_SETUP_REQUIRED: 'Le panel n’est pas encore configuré.',
+    E_SETUP_DONE: 'Le panel est déjà configuré.',
+    E_AGENT_OFFLINE: 'L’agent de cette machine n’est pas connecté.',
+    E_VALIDATION: 'Saisie invalide.',
   },
   detection: {
     source: {

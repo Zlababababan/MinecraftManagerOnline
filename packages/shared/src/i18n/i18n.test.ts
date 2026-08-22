@@ -1,4 +1,5 @@
 import { ERROR_CODES } from '@mmo/protocol';
+import { API_ERROR_CODES } from '@mmo/protocol/client';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -33,7 +34,7 @@ describe('i18n', () => {
   });
 
   it('chaque code d’erreur du protocole est traduit en fr et en en', () => {
-    for (const code of ERROR_CODES) {
+    for (const code of [...ERROR_CODES, ...API_ERROR_CODES]) {
       expect(resources.fr.errors).toHaveProperty(code);
       expect(resources.en.errors).toHaveProperty(code);
     }
