@@ -35,6 +35,7 @@ import { JavaInstaller } from './java/installer.js';
 import { AgentMigration } from './migration/migration.js';
 import { AgentUpdater, detectAgentHome } from './update/updater.js';
 import { panelHttpOrigin } from './util/download.js';
+import { ForbiddenRoots } from './files/forbidden.js';
 import { Logger, errorMessage } from './log.js';
 import { ServerManager, type ServerManagerOptions } from './minecraft/server-manager.js';
 import type { ServerProcessEvent } from './minecraft/server-process.js';
@@ -138,6 +139,8 @@ export interface AgentOptions {
 export class Agent {
   readonly logger: Logger;
   readonly store: StateStore;
+  /** Phase 12 : dossiers jamais acceptés comme serveur/destination/scan (état, installation). */
+  private readonly forbidden: ForbiddenRoots;
   readonly manager: ServerManager;
   readonly scanner: Scanner;
   readonly java: JavaRegistry;
@@ -164,6 +167,7 @@ export class Agent {
   constructor(private readonly options: AgentOptions) {
     this.logger = options.logger ?? new Logger('agent');
     this.version = options.agentVersion ?? AGENT_VERSION;
+    this.forbidden = new ForbiddenRoots([options.stateDir, options.agentHome ?? detectAgentHome()]);
     this.store = new StateStore(options.stateDir, {
       ...(options.restrictPermissions === undefined
         ? {}
@@ -553,6 +557,13 @@ export class Agent {
       })
       .handle('migration.finalize', (req) => this.migration.finalize(req))
       .handle('agent.configure', async (cfg) => {
+        // Phase 12 : jamais le dossier d'état/d'installation comme serveur, destination ou scan.
+        for (const s of cfg.servers ?? []) this.forbidden.assert(s.path, 'server path');
+        for (const d of cfg.watchedDirectories ?? []) {
+          this.forbidden.assert(d.path, 'watched directory', false);
+        }
+        if (cfg.backupDestination)
+          this.forbidden.assert(cfg.backupDestination, 'backup destination');
         const rescan = cfg.watchedDirectories !== undefined;
         await this.store.update((s) => {
           if (cfg.watchedDirectories) s.watchedDirectories = cfg.watchedDirectories;
@@ -600,7 +611,10 @@ export class Agent {
       })
       .handle('scan.run', async ({ directoryIds, paths }) => {
         const targets = this.scanTargets(directoryIds);
-        for (const p of paths ?? []) targets.push({ id: undefined, path: p });
+        for (const p of paths ?? []) {
+          this.forbidden.assert(p, 'scan path', false);
+          targets.push({ id: undefined, path: p });
+        }
         const diff = await this.scanner.scan(targets);
         return { scannedPaths: diff.scannedPaths, servers: diff.servers };
       })

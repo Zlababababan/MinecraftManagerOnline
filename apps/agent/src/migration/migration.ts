@@ -398,6 +398,13 @@ export class AgentMigration {
     req: ParsedRequestPayload<'migration.finalize'>,
   ): Promise<{ path: string; renamed: boolean; purgeAfter?: number }> {
     const source = path.resolve(req.path);
+    // Phase 12 : seul le dossier enregistré pour ce serveur peut être renommé/purgé.
+    const known = this.options.store.serverConfigs().find((c) => c.serverId === req.serverId);
+    if (known === undefined || path.resolve(known.path) !== source) {
+      throw new ProtocolError('E_NOT_FOUND', 'unknown server or path mismatch for finalize', {
+        details: { serverId: req.serverId, path: req.path },
+      });
+    }
     const proc = this.options.manager.get(req.serverId);
     if (proc?.isRunning) {
       throw new ProtocolError('E_BUSY', 'server is still running on the source machine');

@@ -59,6 +59,18 @@ export function clearSessionCookie(ctx: AppContext, reply: FastifyReply): void {
   });
 }
 
+/** /api ou /ws selon le motif de route, l'URL brute ou l'URL décodée (déni par défaut au doute). */
+export function isProtectedRequest(request: Pick<FastifyRequest, 'url' | 'routeOptions'>): boolean {
+  const raw = request.url.split('?')[0] ?? '';
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    return true;
+  }
+  return isApiOrWs(raw) || isApiOrWs(decoded) || isApiOrWs(request.routeOptions.url ?? '');
+}
+
 export function requireUser(request: FastifyRequest): UserRow {
   if (!request.user) throw new AppError('E_AUTH', 'authentication required');
   return request.user;
@@ -75,7 +87,10 @@ export function registerAuth(app: FastifyInstance, ctx: AppContext): void {
     request.user = resolved?.user;
     const config = request.routeOptions.config;
     // Surface protégée = /api et /ws ; le reste (front statique, fallback SPA) est public.
-    if (config.public === true || !isApiOrWs(request.url.split('?')[0] ?? '')) {
+    // Phase 12 : la décision se prend sur le **motif de route** (`routeOptions.url`, après
+    // décodage par le routeur) et sur l'URL décodée — jamais sur l'URL brute seule :
+    // `GET /%61pi/settings` était routé vers `/api/settings` sans session.
+    if (config.public === true || !isProtectedRequest(request)) {
       done();
       return;
     }

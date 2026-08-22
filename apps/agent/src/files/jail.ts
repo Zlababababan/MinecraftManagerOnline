@@ -24,8 +24,9 @@ export function normalizeRelative(input: string): string {
     });
   }
   for (const part of parts) {
-    // Caractères interdits sous Windows (et de toute façon douteux ailleurs) + NUL.
-    if (/[<>:"|?*\0]/.test(part)) {
+    // Caractères interdits sous Windows (et de toute façon douteux ailleurs) + NUL ; noms de
+    // périphériques (`CON`, `NUL`…) ; point/espace final (Windows les retire : `foo.` ≡ `foo`).
+    if (/[<>:"|?*\0]/.test(part) || WINDOWS_RESERVED.test(part) || /[. ]$/.test(part)) {
       throw new ProtocolError('E_INVALID_PAYLOAD', 'invalid path segment', {
         details: { path: input, segment: part },
       });
@@ -35,8 +36,24 @@ export function normalizeRelative(input: string): string {
 }
 
 export function isTrashPath(relative: string): boolean {
-  return relative === TRASH_DIR || relative.startsWith(`${TRASH_DIR}/`);
+  const first = relative.split('/')[0] ?? '';
+  // Casse ignorée : NTFS/APFS confondent `.MMO-TRASH` et `.mmo-trash` (phase 12).
+  return first.toLowerCase() === TRASH_DIR;
 }
+
+/** Marqueur d'identité du serveur (doc 06) : jamais écrit/déplacé/remplacé par `fs.*`. */
+export const MARKER_NAME = '.mmo-server.json';
+
+/**
+ * Chemin réservé à l'agent : corbeille (source des purges) et marqueur à la racine. Refusé comme
+ * cible de `write`/`rename`/`copy`/`mkdir`/upload/fetch et comme source de `delete`/`rename`.
+ */
+export function isReservedPath(relative: string): boolean {
+  return isTrashPath(relative) || relative.toLowerCase() === MARKER_NAME;
+}
+
+/** Noms de périphériques Windows (`CON`, `NUL`, `COM1`…) — refusés sur toutes les plateformes. */
+const WINDOWS_RESERVED = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i;
 
 export class Jail {
   readonly root: string;

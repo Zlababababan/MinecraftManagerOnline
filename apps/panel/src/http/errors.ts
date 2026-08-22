@@ -59,8 +59,15 @@ export function registerErrorHandler(
       return;
     }
     const app = AppError.from(error);
-    if (app.status >= 500) request.log.error({ err: error }, app.message);
-    else request.log.info({ code: app.code }, app.message);
+    if (app.status >= 500) {
+      // Le détail (chemins, SQLite…) reste dans le journal ; le client reçoit un message générique.
+      request.log.error({ err: error }, app.message);
+      void reply
+        .code(app.status)
+        .send({ ...app.toJSON(), message: 'internal error', details: undefined });
+      return;
+    }
+    request.log.info({ code: app.code }, app.message);
     void reply.code(app.status).send(app.toJSON());
   });
 

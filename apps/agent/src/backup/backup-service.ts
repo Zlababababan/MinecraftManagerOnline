@@ -286,11 +286,11 @@ export class BackupService {
       try {
         const parsed = backupManifestSchema.safeParse(JSON.parse(await readFile(file, 'utf8')));
         if (parsed.success) {
-          // L'archive est attendue à côté du manifeste (déplacement d'un dossier de backups).
-          const local = path.join(dir, path.basename(parsed.data.archivePath));
+          // L'archive est **toujours** à côté du manifeste (déplacement d'un dossier de backups ;
+          // phase 12 : un manifeste forgé ne désigne plus un fichier arbitraire à supprimer).
           manifests.push({
             ...parsed.data,
-            archivePath: (await exists(parsed.data.archivePath)) ? parsed.data.archivePath : local,
+            archivePath: path.join(dir, path.basename(parsed.data.archivePath)),
           });
         }
       } catch {

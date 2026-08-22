@@ -81,6 +81,13 @@ describe('panel — API, auth, RBAC, migrations', () => {
     expect(res.json()).toEqual({ needsSetup: true });
     res = await panel.app.inject({ method: 'GET', url: '/api/machines' });
     expect(res.statusCode).toBe(401);
+    // Phase 12 : le pourcent-encodage du préfixe ne contourne ni l'auth ni le RBAC (le routeur
+    // décode avant de router, le hook décidait sur l'URL brute).
+    for (const url of ['/%61pi/machines', '/%61pi/settings', '/%2Fapi/users', '/ws%2Fclient']) {
+      res = await panel.app.inject({ method: 'GET', url });
+      if (url.startsWith('/%61pi')) expect(res.statusCode, url).toBe(401);
+      expect(res.body, url).not.toMatch(/"(?:machines|settings|users)"\s*:/);
+    }
     expect(res.json<{ details: { setupRequired: boolean } }>().details.setupRequired).toBe(true);
 
     res = await panel.app.inject({

@@ -168,6 +168,7 @@ export function ThemeMenu({ onChange }: { onChange?: (theme: string) => void }) 
           onClick={() => {
             pick('auto');
           }}
+          data-testid="theme-auto"
         >
           {t('web:theme.auto')}
         </Menu.Item>

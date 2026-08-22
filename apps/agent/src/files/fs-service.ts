@@ -22,7 +22,23 @@ import path from 'node:path';
 import { ProtocolError, type ParsedResponsePayload, type fsEntryKindSchema } from '@mmo/protocol';
 import type { z } from 'zod';
 
-import { Jail, TRASH_DIR, isTrashPath, normalizeRelative } from './jail.js';
+import {
+  Jail,
+  MARKER_NAME,
+  TRASH_DIR,
+  isReservedPath,
+  isTrashPath,
+  normalizeRelative,
+} from './jail.js';
+
+/** Cible ou source réservée à l'agent (corbeille, marqueur d'identité) → refus. */
+export function assertNotReserved(rel: string, action: string): void {
+  if (rel === '' || isReservedPath(rel)) {
+    throw new ProtocolError('E_INVALID_PAYLOAD', `cannot ${action} this path`, {
+      details: { path: rel },
+    });
+  }
+}
 
 export type FsEntryKind = z.infer<typeof fsEntryKindSchema>;
 export type FsEntry = ParsedResponsePayload<'fs.list'>['entries'][number];
@@ -130,7 +146,7 @@ export class FsService {
 
   async mkdir(relative: string): Promise<void> {
     const rel = normalizeRelative(relative);
-    if (rel === '') throw new ProtocolError('E_INVALID_PAYLOAD', 'empty path');
+    assertNotReserved(rel, 'create');
     const abs = await this.jail.resolveChecked(rel);
     try {
       await mkdir(abs, { recursive: true });
@@ -142,7 +158,14 @@ export class FsService {
   async rename(from: string, to: string, overwrite = false): Promise<void> {
     const relFrom = normalizeRelative(from);
     const relTo = normalizeRelative(to);
-    if (relFrom === '' || relTo === '') throw new ProtocolError('E_INVALID_PAYLOAD', 'empty path');
+    // Restauration depuis la corbeille autorisée (source `.mmo-trash/<ts>-nom`), jamais l'inverse.
+    if (relFrom === '' || (isTrashPath(relFrom) && relFrom.split('/').length < 2)) {
+      throw new ProtocolError('E_INVALID_PAYLOAD', 'cannot rename this path', {
+        details: { path: relFrom },
+      });
+    }
+    if (relFrom.toLowerCase() === MARKER_NAME) assertNotReserved(relFrom, 'rename');
+    assertNotReserved(relTo, 'rename to');
     const absFrom = await this.jail.resolveChecked(relFrom);
     const absTo = await this.jail.resolveChecked(relTo);
     if (!overwrite && (await exists(absTo))) {
@@ -161,7 +184,8 @@ export class FsService {
   async copy(from: string, to: string, overwrite = false): Promise<void> {
     const relFrom = normalizeRelative(from);
     const relTo = normalizeRelative(to);
-    if (relFrom === '' || relTo === '') throw new ProtocolError('E_INVALID_PAYLOAD', 'empty path');
+    if (relFrom === '') throw new ProtocolError('E_INVALID_PAYLOAD', 'empty path');
+    assertNotReserved(relTo, 'copy to');
     if (relTo === relFrom || relTo.startsWith(`${relFrom}/`)) {
       throw new ProtocolError('E_INVALID_PAYLOAD', 'cannot copy a directory into itself');
     }
@@ -183,11 +207,7 @@ export class FsService {
   /** Déplace vers `.mmo-trash/<epoch>-<nom>` (jamais de suppression directe). */
   async delete(relative: string): Promise<{ trashedAs: string }> {
     const rel = normalizeRelative(relative);
-    if (rel === '' || isTrashPath(rel)) {
-      throw new ProtocolError('E_INVALID_PAYLOAD', 'cannot delete this path', {
-        details: { path: rel },
-      });
-    }
+    assertNotReserved(rel, 'delete');
     const abs = await this.jail.resolveChecked(rel);
     if (!(await exists(abs))) {
       throw new ProtocolError('E_NOT_FOUND', `no such file: ${rel}`, { details: { path: rel } });
@@ -270,11 +290,7 @@ export class FsService {
     expectedSha256?: string,
   ): Promise<{ sha256: string }> {
     const rel = normalizeRelative(relative);
-    if (rel === '' || isTrashPath(rel)) {
-      throw new ProtocolError('E_INVALID_PAYLOAD', 'cannot write this path', {
-        details: { path: rel },
-      });
-    }
+    assertNotReserved(rel, 'write');
     const abs = await this.jail.resolveChecked(rel);
     if (expectedSha256 !== undefined) {
       let current: string | undefined;

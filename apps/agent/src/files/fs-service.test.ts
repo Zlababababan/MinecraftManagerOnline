@@ -5,7 +5,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { tmpDir } from '../test/helpers.js';
 import { FsService, sha256 } from './fs-service.js';
-import { TRASH_DIR, normalizeRelative } from './jail.js';
+import { ForbiddenRoots } from './forbidden.js';
+import { MARKER_NAME, TRASH_DIR, isReservedPath, normalizeRelative } from './jail.js';
 
 describe('jail des chemins (doc 05 §6)', () => {
   it('normalise les séparateurs et refuse `..`, racines et lettres de lecteur', () => {
@@ -17,6 +18,42 @@ describe('jail des chemins (doc 05 §6)', () => {
         expect.objectContaining({ code: 'E_INVALID_PAYLOAD' }) as Error,
       );
     }
+  });
+
+  it('phase 12 : noms réservés Windows, point/espace final, corbeille et marqueur en toute casse', () => {
+    for (const bad of ['CON', 'logs/nul.txt', 'COM1.log', 'foo.', 'bar ', 'a/LPT9/b']) {
+      expect(() => normalizeRelative(bad), bad).toThrow(
+        expect.objectContaining({ code: 'E_INVALID_PAYLOAD' }) as Error,
+      );
+    }
+    expect(normalizeRelative('console.txt')).toBe('console.txt');
+    expect(normalizeRelative('config/nulls.json')).toBe('config/nulls.json');
+    expect(isReservedPath('.MMO-TRASH/x')).toBe(true);
+    expect(isReservedPath(TRASH_DIR)).toBe(true);
+    expect(isReservedPath(MARKER_NAME.toUpperCase())).toBe(true);
+    expect(isReservedPath(`world/${MARKER_NAME}`)).toBe(false);
+    expect(isReservedPath('mods')).toBe(false);
+  });
+
+  it('phase 12 : racines interdites (état et installation de l’agent)', () => {
+    const state = path.resolve('/srv/mmo/state');
+    const home = path.resolve('/srv/mmo/app');
+    const f = new ForbiddenRoots([state, home, undefined]);
+    // Égal, contenu, contenant → refusés comme racine de jail ; ancêtre toléré pour un scan.
+    expect(f.overlaps(state)).toBe(true);
+    expect(f.overlaps(path.join(state, 'x'))).toBe(true);
+    expect(f.overlaps(path.resolve('/srv/mmo'))).toBe(true);
+    expect(f.overlaps(path.resolve('/srv'))).toBe(true);
+    expect(f.overlaps(path.resolve('/srv/minecraft/vanilla'))).toBe(false);
+    expect(f.overlaps(path.resolve('/srv/mmo/state-old'))).toBe(false);
+    expect(f.inside(path.resolve('/srv'))).toBe(false);
+    expect(f.inside(path.join(home, 'versions'))).toBe(true);
+    expect(() => {
+      f.assert(state, 'server path');
+    }).toThrow(expect.objectContaining({ code: 'E_INVALID_PAYLOAD' }) as Error);
+    expect(() => {
+      f.assert(path.resolve('/srv'), 'watched directory', false);
+    }).not.toThrow();
   });
 });
 
@@ -109,6 +146,32 @@ describe('FsService (fs.* sur un dossier serveur)', () => {
     now += 8 * 24 * 3600_000;
     expect(await fs.purgeTrash()).toBe(1);
     expect(await readdir(path.join(dir, TRASH_DIR))).toEqual([]);
+  });
+
+  it('phase 12 : corbeille et marqueur jamais cibles de write/mkdir/rename/copy, marqueur jamais déplacé', async () => {
+    await writeFile(path.join(dir, MARKER_NAME), '{"serverId":"s1"}');
+    await expect(fs.write(MARKER_NAME, '{}')).rejects.toMatchObject({ code: 'E_INVALID_PAYLOAD' });
+    await expect(fs.write('.MMO-Server.json', '{}')).rejects.toMatchObject({
+      code: 'E_INVALID_PAYLOAD',
+    });
+    await expect(fs.delete(MARKER_NAME)).rejects.toMatchObject({ code: 'E_INVALID_PAYLOAD' });
+    await expect(fs.rename(MARKER_NAME, 'x.json')).rejects.toMatchObject({
+      code: 'E_INVALID_PAYLOAD',
+    });
+    await expect(fs.rename('server.properties', `${TRASH_DIR}/0-x`)).rejects.toMatchObject({
+      code: 'E_INVALID_PAYLOAD',
+    });
+    await expect(fs.copy('server.properties', '.MMO-TRASH/x')).rejects.toMatchObject({
+      code: 'E_INVALID_PAYLOAD',
+    });
+    await expect(fs.mkdir(TRASH_DIR)).rejects.toMatchObject({ code: 'E_INVALID_PAYLOAD' });
+    await expect(fs.write(`${TRASH_DIR}/evil`, 'x')).rejects.toMatchObject({
+      code: 'E_INVALID_PAYLOAD',
+    });
+    // Le marqueur reste lisible, et un fichier homonyme dans un sous-dossier n'est pas réservé.
+    expect((await fs.read(MARKER_NAME)).content).toContain('s1');
+    await fs.write(`world/${MARKER_NAME}`, '{}');
+    expect(await stat(path.join(dir, 'world', MARKER_NAME))).toBeTruthy();
   });
 
   it('refuse les liens symboliques qui sortent de la racine', async () => {

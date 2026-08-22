@@ -10,17 +10,21 @@ import type { Readable } from 'node:stream';
 import { z } from 'zod';
 
 import type { AppContext } from '../../context.js';
+import { normalizeOrigin } from '../../util/origin.js';
 import { AppError } from '../../errors.js';
 import { auditMeta } from './setup-auth.js';
 
 const fileParams = z.object({ file: z.string().min(1).max(128) });
 
-/** Origine vue par la requête (derrière `tailscale serve` : `x-forwarded-proto` + `host`). */
+/**
+ * Origine vue par la requête : `request.protocol` / `request.host` honorent `x-forwarded-*`
+ * uniquement depuis un proxy de confiance (`trustProxy: 'loopback'` — `tailscale serve`), et la
+ * valeur est validée comme origine stricte avant d'être injectée dans un script (phase 12).
+ */
 export function requestOrigin(request: FastifyRequest): string | undefined {
-  const host = request.headers['x-forwarded-host'] ?? request.headers.host;
-  if (host === undefined || host === '') return undefined;
-  const proto = request.headers['x-forwarded-proto'] ?? request.protocol;
-  return `${String(proto).split(',')[0]?.trim() ?? 'http'}://${String(host).split(',')[0]?.trim() ?? ''}`;
+  const host = request.host;
+  if (host === '') return undefined;
+  return normalizeOrigin(`${request.protocol}://${host}`);
 }
 
 export function registerPhase11Routes(app: FastifyInstance, ctx: AppContext): void {

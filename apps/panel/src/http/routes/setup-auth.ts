@@ -13,6 +13,7 @@ import {
 } from '@mmo/protocol/client';
 
 import type { AppContext } from '../../context.js';
+import { normalizeOrigin } from '../../util/origin.js';
 import { AppError } from '../../errors.js';
 import { SETTING_KEYS } from '../../services/settings.js';
 import { toUserDto } from '../../services/users.js';
@@ -65,8 +66,13 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
       const vapid = generateVapidKeys();
       ctx.settings.set(SETTING_KEYS.vapidPublicKey, vapid.publicKey);
       ctx.settings.set(SETTING_KEYS.vapidPrivateKey, vapid.privateKey);
-      if (body.publicUrl !== undefined)
-        ctx.settings.set(SETTING_KEYS.publicUrl, body.publicUrl.replace(/\/+$/, ''));
+      if (body.publicUrl !== undefined) {
+        const origin = normalizeOrigin(body.publicUrl);
+        if (origin === undefined) {
+          throw new AppError('E_VALIDATION', 'publicUrl must be an http(s) origin');
+        }
+        ctx.settings.set(SETTING_KEYS.publicUrl, origin);
+      }
       if (body.accessMode !== undefined) ctx.settings.set(SETTING_KEYS.accessMode, body.accessMode);
       if (body.backupDestination !== undefined) {
         ctx.settings.set(SETTING_KEYS.backupDestination, body.backupDestination);

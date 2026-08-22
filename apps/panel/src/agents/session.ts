@@ -444,11 +444,11 @@ export class AgentSession {
   private onPairRequest(p: ParsedRequestPayload<'pair.request'>) {
     const negotiated = negotiateProtocolVersion({ protoMin: p.protoMin, protoMax: p.protoMax });
     if (!negotiated.ok) throw unsupportedVersion(negotiated.reason);
-    const { machine, secret } = this.deps.machines.consumePairingCode(p.code, {
-      machine: p.machine,
-      agentVersion: p.agentVersion,
-      protocolVersion: negotiated.version,
-    });
+    const { machine, secret } = this.deps.machines.consumePairingCode(
+      p.code,
+      { machine: p.machine, agentVersion: p.agentVersion, protocolVersion: negotiated.version },
+      this.transport.remoteAddress ?? 'unknown',
+    );
     this.deps.audit.record({
       action: 'machine.paired',
       targetType: 'machine',

@@ -27,6 +27,8 @@ import {
 import { chunkCodec, effectiveCompression, sha256Hasher } from '@mmo/shared/node';
 
 import type { AgentPeer } from '../connection/connection.js';
+import { assertNotReserved } from '../files/fs-service.js';
+import { normalizeRelative } from '../files/jail.js';
 import { errorMessage, type Logger } from '../log.js';
 import type { ServerManager } from '../minecraft/server-manager.js';
 import type { BackupService } from '../backup/backup-service.js';
@@ -234,6 +236,7 @@ export class AgentTransfers {
       await existing.handle.close().catch(() => undefined);
       this.uploads.delete(p.transferId);
     }
+    assertNotReserved(normalizeRelative(p.path), 'upload to');
     const finalPath = await this.options.manager.files(p.serverId).jail.resolveChecked(p.path);
     if (!p.overwrite && (await exists(finalPath))) {
       throw new ProtocolError('E_CONFLICT', 'target file exists', { details: { path: p.path } });
@@ -314,6 +317,7 @@ export class AgentTransfers {
     req: Omit<ParsedRequestPayload<'fs.fetch'>, 'taskId'>,
     ctx: TaskContext,
   ): Promise<{ path: string; size: number; sha256: string }> {
+    assertNotReserved(normalizeRelative(req.path), 'fetch to');
     const finalPath = await this.options.manager.files(req.serverId).jail.resolveChecked(req.path);
     if (!req.overwrite && (await exists(finalPath))) {
       throw new ProtocolError('E_CONFLICT', 'target file exists', { details: { path: req.path } });

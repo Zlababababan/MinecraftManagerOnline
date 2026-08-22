@@ -20,6 +20,7 @@ import { registerPhase11Routes } from './http/routes/phase11.js';
 import { registerServerRoutes } from './http/routes/servers.js';
 import { registerSetupAndAuthRoutes } from './http/routes/setup-auth.js';
 import { registerTaskRoutes } from './http/routes/tasks.js';
+import { registerSecurityHeaders } from './http/security.js';
 import { registerStatic } from './http/static.js';
 import { registerUserRoutes } from './http/routes/users.js';
 import { registerWsRoutes } from './http/routes/ws.js';
@@ -70,6 +71,7 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   // Front buildé (si présent) : fichiers statiques + fallback SPA hors /api et /ws.
   const webServed = await registerStatic(app, config.webDir);
   registerErrorHandler(app, { spaFallback: webServed });
+  registerSecurityHeaders(app, ctx);
   registerAuth(app, ctx);
   registerMiscRoutes(app, ctx);
   registerSetupAndAuthRoutes(app, ctx);

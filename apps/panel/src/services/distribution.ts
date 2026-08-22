@@ -6,7 +6,7 @@
  * (upload admin) ou par une copie manuelle de `release/<version>/`. Importer un manifeste publie
  * aussi le bundle comme release d'agent (`ReleasesService`) si cette version n'existe pas encore.
  */
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { createReadStream, createWriteStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -21,6 +21,7 @@ import {
 } from '@mmo/protocol/client';
 
 import { AppError, notFound } from '../errors.js';
+import { normalizeOrigin } from '../util/origin.js';
 import type { ReleasesService } from './releases.js';
 import { SETTING_KEYS, type SettingsService } from './settings.js';
 
@@ -117,7 +118,7 @@ export class DistributionService {
 
   platform(platform: string): DistPlatformDto {
     const m = this.manifest();
-    const f = m?.platforms[platform];
+    const f = m && Object.hasOwn(m.platforms, platform) ? m.platforms[platform] : undefined;
     if (!m || !f) throw notFound('distribution', platform);
     return {
       platform,
@@ -151,12 +152,11 @@ export class DistributionService {
       path.join(this.deps.installDir ?? DEFAULT_INSTALL_DIR, name),
       'utf8',
     );
-    const url = (this.deps.settings.get(SETTING_KEYS.publicUrl) ?? requestOrigin ?? '').replace(
-      /\/+$/,
-      '',
-    );
+    const url =
+      normalizeOrigin(this.deps.settings.get(SETTING_KEYS.publicUrl)) ??
+      normalizeOrigin(requestOrigin);
     return {
-      body: template.replaceAll('__PANEL_URL__', url === '' ? '__PANEL_URL__' : url),
+      body: template.replaceAll('__PANEL_URL__', url ?? '__PANEL_URL__'),
       type: SCRIPTS[name],
     };
   }
@@ -171,19 +171,20 @@ export class DistributionService {
     }
     await mkdir(this.deps.distDir, { recursive: true });
     const target = path.join(this.deps.distDir, file);
-    const tmp = `${target}.tmp`;
+    const tmp = `${target}.${randomBytes(4).toString('hex')}.tmp`;
     const hash = createHash('sha256');
     let size = 0;
     body.on('data', (chunk: Buffer) => {
       hash.update(chunk);
       size += chunk.byteLength;
     });
-    await pipeline(body, createWriteStream(tmp));
-    if (size === 0) {
+    try {
+      await pipeline(body, createWriteStream(tmp));
+      if (size === 0) throw new AppError('E_VALIDATION', 'empty file');
+      await rename(tmp, target);
+    } finally {
       await rm(tmp, { force: true });
-      throw new AppError('E_VALIDATION', 'empty file');
     }
-    await rename(tmp, target);
     return { file, sha256: hash.digest('hex'), size };
   }
 

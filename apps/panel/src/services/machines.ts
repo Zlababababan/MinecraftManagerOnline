@@ -4,7 +4,7 @@
  * les deux secrets valides 24 h ; révocation = suppression/désactivation de la machine.
  */
 import { ProtocolError, ulid, type RequestPayload } from '@mmo/protocol';
-import { and, asc, eq, gt, isNull, lt, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, isNull, lt, ne } from 'drizzle-orm';
 
 import type { MmoDatabase } from '../db/client.js';
 import {
@@ -16,6 +16,7 @@ import {
   type WatchedDirectoryRow,
 } from '../db/schema.js';
 import { conflict, notFound } from '../errors.js';
+import { RateLimiter } from '../util/rate-limit.js';
 import {
   generateAgentSecret,
   generatePairingCode,
@@ -26,6 +27,7 @@ import {
 
 export const PAIRING_TTL_MS = 15 * 60_000;
 export const PAIRING_MAX_ATTEMPTS = 5;
+export const PAIRING_WINDOW_MS = 10 * 60_000;
 export const SECRET_GRACE_MS = 24 * 3_600_000;
 
 type MachineInfo = RequestPayload<'pair.request'>['machine'];
@@ -36,10 +38,18 @@ export interface PairingResult {
 }
 
 export class MachinesService {
+  private readonly pairLimiter: RateLimiter;
+
   constructor(
     private readonly db: MmoDatabase,
     private readonly now: () => number,
-  ) {}
+  ) {
+    this.pairLimiter = new RateLimiter({
+      max: PAIRING_MAX_ATTEMPTS,
+      windowMs: PAIRING_WINDOW_MS,
+      now,
+    });
+  }
 
   list(): MachineRow[] {
     return this.db.select().from(machines).orderBy(asc(machines.createdAt)).all();
@@ -151,14 +161,23 @@ export class MachinesService {
   }
 
   /**
-   * Consomme un code (doc 05 §3) : hash comparé, TTL, usage unique, compteur d'essais. Un code
-   * inconnu incrémente les essais de tous les codes actifs (un code ne pouvant être identifié,
-   * 5 tentatives ratées brûlent les codes en attente — l'admin en régénère un).
+   * Consomme un code (doc 05 §3) : hash comparé, TTL, usage unique. Phase 12 : les essais sont
+   * limités **par adresse** (`PAIRING_MAX_ATTEMPTS` par `PAIRING_WINDOW_MS`) — un code inconnu ne
+   * brûle plus les codes en attente (un anonyme pouvait rendre tout appairage impossible) ;
+   * l'espace 29^8 rend la force brute vaine sous cette limite.
    */
   consumePairingCode(
     code: string,
     info: { machine: MachineInfo; agentVersion: string; protocolVersion: number },
+    ip = 'unknown',
   ): PairingResult {
+    if (!this.pairLimiter.hit(ip)) {
+      throw new ProtocolError(
+        'E_PAIRING_CODE_INVALID',
+        'too many pairing attempts from this address — retry later',
+        { retryable: true },
+      );
+    }
     const t = this.now();
     const active = and(isNull(pairingCodes.usedAt), gt(pairingCodes.expiresAt, t));
     const row = this.db
@@ -166,18 +185,12 @@ export class MachinesService {
       .from(pairingCodes)
       .where(and(eq(pairingCodes.codeHash, hashPairingCode(code)), active))
       .get();
-    if (!row || row.attempts >= PAIRING_MAX_ATTEMPTS || row.machineId === null) {
-      this.db
-        .update(pairingCodes)
-        .set({ attempts: sql`${pairingCodes.attempts} + 1` })
-        .where(active)
-        .run();
-      throw new ProtocolError(
-        'E_PAIRING_CODE_INVALID',
-        'invalid, expired or exhausted pairing code',
-      );
+    const machineId = row?.machineId;
+    if (machineId === undefined || machineId === null) {
+      throw new ProtocolError('E_PAIRING_CODE_INVALID', 'invalid or expired pairing code');
     }
-    const machine = this.get(row.machineId);
+    this.pairLimiter.reset(ip);
+    const machine = this.get(machineId);
     if (!machine || machine.status === 'disabled') {
       throw new ProtocolError(
         'E_PAIRING_CODE_INVALID',
@@ -186,7 +199,7 @@ export class MachinesService {
     }
     const secret = generateAgentSecret();
     this.db.transaction((tx) => {
-      tx.update(pairingCodes).set({ usedAt: t }).where(eq(pairingCodes.id, row.id)).run();
+      tx.update(pairingCodes).set({ usedAt: t }).where(eq(pairingCodes.machineId, machineId)).run();
       tx.update(machines)
         .set({
           ...machineColumns(info.machine),

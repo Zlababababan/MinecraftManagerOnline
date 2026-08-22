@@ -91,7 +91,7 @@ describe('/ws/agent — appairage, authentification, session', () => {
     });
     await a.close();
 
-    // 5 essais ratés brûlent le code en attente.
+    // 5 essais ratés depuis une adresse la bloquent 10 min (le code en attente n'est plus brûlé).
     const second = await newMachine('PC2');
     const b = await agent();
     for (let i = 0; i < 5; i++) {
@@ -103,7 +103,12 @@ describe('/ws/agent — appairage, authentification, session', () => {
     }
     await expect(b.peer.request('pair.request', pairPayload(second.code))).rejects.toMatchObject({
       code: 'E_PAIRING_CODE_INVALID',
+      message: expect.stringContaining('too many pairing attempts') as string,
     });
+    // Fenêtre écoulée : le même code (non brûlé) est accepté.
+    panel.clock.advance(10 * 60_000 + 1);
+    const okSecond = await b.peer.request('pair.request', pairPayload(second.code));
+    expect(okSecond.agentId).toBe(second.machineId);
 
     // TTL : un code régénéré expire après 15 min.
     const regen = await panel.app.inject({
@@ -116,7 +121,7 @@ describe('/ws/agent — appairage, authentification, session', () => {
     await expect(b.peer.request('pair.request', pairPayload(freshCode))).rejects.toMatchObject({
       code: 'E_PAIRING_CODE_INVALID',
     });
-    expect(panel.ctx.events.list({ type: 'machine.paired' })).toHaveLength(1);
+    expect(panel.ctx.events.list({ type: 'machine.paired' })).toHaveLength(2);
   });
 
   it('auth.hello : secret invalide, machine désactivée, négociation N/N-1, auth.ok, une session par machine', async () => {
