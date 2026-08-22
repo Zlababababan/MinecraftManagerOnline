@@ -17,9 +17,23 @@ export const SETTING_KEYS = {
   vapidPublicKey: 'push.vapidPublicKey',
   vapidPrivateKey: 'push.vapidPrivateKey',
   setupCompletedAt: 'setup.completedAt',
+  /** Phase 10 : couche d'accès (doc 03 §5). */
+  accessDomain: 'access.domain',
+  accessHttpsPort: 'access.httpsPort',
+  dnsProvider: 'access.dns.provider',
+  dnsToken: 'access.dns.token',
+  dnsZone: 'access.dns.zone',
+  dnsUpdateUrl: 'access.dns.updateUrl',
+  acmeEmail: 'access.acme.email',
+  acmeDirectory: 'access.acme.directory',
+  dyndnsEnabled: 'access.dyndns.enabled',
+  accessPublicHost: 'access.publicHost',
 } as const;
 
-const SECRET_KEYS: ReadonlySet<string> = new Set([SETTING_KEYS.vapidPrivateKey]);
+const SECRET_KEYS: ReadonlySet<string> = new Set([
+  SETTING_KEYS.vapidPrivateKey,
+  SETTING_KEYS.dnsToken,
+]);
 
 const DEFAULTS: Readonly<Record<string, string>> = {
   [SETTING_KEYS.accessMode]: 'tailscale',
@@ -27,6 +41,9 @@ const DEFAULTS: Readonly<Record<string, string>> = {
   [SETTING_KEYS.auditRetentionDays]: '365',
   [SETTING_KEYS.restoreOnBoot]: 'true',
   [SETTING_KEYS.metricsIntervalSec]: '15',
+  [SETTING_KEYS.accessHttpsPort]: '443',
+  [SETTING_KEYS.dnsProvider]: 'manual',
+  [SETTING_KEYS.dyndnsEnabled]: 'false',
 };
 
 export class SettingsService {
@@ -63,6 +80,8 @@ export class SettingsService {
     const out: Record<string, string> = { ...DEFAULTS };
     for (const row of this.db.select().from(appSettings).all()) {
       if (!SECRET_KEYS.has(row.key)) out[row.key] = row.value;
+      // Un secret n'est jamais renvoyé, mais l'UI doit savoir s'il est renseigné.
+      else out[`${row.key}.set`] = row.value === '' ? 'false' : 'true';
     }
     return out;
   }

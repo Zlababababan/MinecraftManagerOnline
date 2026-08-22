@@ -36,6 +36,8 @@ export const users = sqliteTable(
     isActive: integer('is_active').notNull().default(1),
     createdAt: integer('created_at').notNull(),
     lastLoginAt: integer('last_login_at'),
+    /** Phase 10 : curseur « vu » du centre de notifications (id d'événement). */
+    notificationsSeenId: integer('notifications_seen_id').notNull().default(0),
   },
   (t) => [
     check('users_role', sql`${t.role} IN ('admin','operator','viewer')`),
@@ -73,6 +75,9 @@ export const pushSubscriptions = sqliteTable(
     createdAt: integer('created_at').notNull(),
     lastSuccessAt: integer('last_success_at'),
     failCount: integer('fail_count').notNull().default(0),
+    /** Phase 10 : navigateur (diagnostic) et dernière re-synchronisation par le front. */
+    userAgent: text('user_agent'),
+    lastSeenAt: integer('last_seen_at'),
   },
   (t) => [index('idx_push_user').on(t.userId)],
 );
@@ -116,6 +121,10 @@ export const machines = sqliteTable(
     createdAt: integer('created_at').notNull(),
     /** Phase 9 : runtime Node annoncé par l'agent (`auth.hello.runtimeVersion`). */
     runtimeVersion: text('runtime_version'),
+    /** Phase 10 : adresses remontées par l'agent (JSON `{ tailnet, global }`) et surcharges manuelles. */
+    addresses: text('addresses'),
+    tailnetHost: text('tailnet_host'),
+    publicHost: text('public_host'),
   },
   (t) => [
     check('machines_os', sql`${t.os} IN ('windows','linux','macos')`),

@@ -15,6 +15,7 @@ import { registerFileRoutes } from './http/routes/files.js';
 import { registerMachineRoutes } from './http/routes/machines.js';
 import { registerMiscRoutes } from './http/routes/misc.js';
 import { registerPhase9Routes } from './http/routes/phase9.js';
+import { registerPhase10Routes } from './http/routes/phase10.js';
 import { registerServerRoutes } from './http/routes/servers.js';
 import { registerSetupAndAuthRoutes } from './http/routes/setup-auth.js';
 import { registerTaskRoutes } from './http/routes/tasks.js';
@@ -59,6 +60,7 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
       ? {}
       : { transferReconnectWaitMs: options.transferReconnectWaitMs }),
     ...(options.migrationTtlMs === undefined ? {} : { migrationTtlMs: options.migrationTtlMs }),
+    ...(options.access === undefined ? {} : { access: options.access }),
   });
 
   await app.register(cookie);
@@ -76,7 +78,13 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   registerFileRoutes(app, ctx);
   registerTaskRoutes(app, ctx);
   registerPhase9Routes(app, ctx);
+  registerPhase10Routes(app, ctx);
   registerWsRoutes(app, ctx);
+
+  // Phase 10 : après `listen`, le listener HTTPS du mode direct délègue au serveur HTTP de Fastify.
+  app.addHook('onListen', () => {
+    ctx.access.start(app.server);
+  });
 
   // Purges planifiées (doc 04 §8.6) : sessions, codes d'appairage, événements, audit, dédup.
   const maintenance = setInterval(() => {

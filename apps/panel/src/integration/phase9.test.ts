@@ -426,7 +426,7 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
     expect(await readFile(path.join(home, 'versions', '9.9.9', 'agent.js'))).toEqual(bundle);
     expect(JSON.parse(await readFile(path.join(home, 'next.json'), 'utf8'))).toMatchObject({
       version: '9.9.9',
-      previous: '0.9.0',
+      previous: '0.10.0',
     });
 
     // Bundle signé avec une autre clé : refusé par l'agent (E_SIGNATURE_INVALID), rien d'écrit.
@@ -451,7 +451,7 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
       JSON.stringify({
         kind: 'agent',
         status: 'rolled_back',
-        version: '0.9.0',
+        version: '0.10.0',
         otherVersion: '9.9.10',
         reason: 'crash_loop',
         ts: Date.now(),
@@ -478,7 +478,7 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
     );
     const ev = panel.ctx.events.list({ type: 'agent.updateRolledBack', limit: 5 })[0]!;
     expect(ev.payload).toMatchObject({
-      version: '0.9.0',
+      version: '0.10.0',
       otherVersion: '9.9.10',
       reason: 'crash_loop',
     });

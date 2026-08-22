@@ -76,14 +76,27 @@ export class MachinesService {
       ramTotalMb: null,
       createdAt: this.now(),
       runtimeVersion: null,
+      addresses: null,
+      tailnetHost: null,
+      publicHost: null,
     };
     this.db.insert(machines).values(row).run();
     return row;
   }
 
-  update(id: string, patch: { name?: string | undefined; disabled?: boolean | undefined }) {
+  update(
+    id: string,
+    patch: {
+      name?: string | undefined;
+      disabled?: boolean | undefined;
+      tailnetHost?: string | null | undefined;
+      publicHost?: string | null | undefined;
+    },
+  ) {
     const current = this.require(id);
     const set: Partial<MachineRow> = {};
+    if (patch.tailnetHost !== undefined) set.tailnetHost = emptyToNull(patch.tailnetHost);
+    if (patch.publicHost !== undefined) set.publicHost = emptyToNull(patch.publicHost);
     if (patch.name !== undefined && patch.name !== current.name) {
       if (this.db.select().from(machines).where(eq(machines.name, patch.name)).get()) {
         throw conflict(`machine name ${patch.name} already exists`, { name: patch.name });
@@ -329,6 +342,11 @@ export class MachinesService {
   }
 }
 
+function emptyToNull(value: string | null | undefined): string | null {
+  const trimmed = value?.trim() ?? '';
+  return trimmed === '' ? null : trimmed;
+}
+
 function machineColumns(info: MachineInfo): Partial<MachineRow> {
   return {
     os: info.os,
@@ -337,5 +355,6 @@ function machineColumns(info: MachineInfo): Partial<MachineRow> {
     cpuModel: info.cpuModel ?? null,
     cpuCores: info.cpuCores ?? null,
     ramTotalMb: info.ramTotalMb ?? null,
+    ...(info.addresses === undefined ? {} : { addresses: JSON.stringify(info.addresses) }),
   };
 }

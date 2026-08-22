@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { AgentSession } from '../../agents/session.js';
 import { createServerWsTransport } from '../../agents/ws-transport.js';
 import type { AppContext } from '../../context.js';
+import { requestVia } from '../../services/access.js';
 import { toUserDto } from '../../services/users.js';
 import { requireUser } from '../auth.js';
 
@@ -28,6 +29,23 @@ export function registerWsRoutes(app: FastifyInstance, ctx: AppContext): void {
       transfers: ctx.transfers,
       releases: ctx.releases,
       javaRuntimes: ctx.javaRuntimes,
+    });
+  });
+
+  /**
+   * Phase 10 : sonde publique de la couche d'accès — annonce ce que le panel a vu de la requête
+   * (`via`) puis renvoie chaque frame telle quelle (texte ou binaire) pendant 15 s au plus.
+   */
+  app.get('/ws/probe', { websocket: true, config: { public: true } }, (socket, request) => {
+    socket.send(JSON.stringify({ type: 'probe', via: requestVia(request.headers), ts: ctx.now() }));
+    const timer = setTimeout(() => {
+      socket.close(1000, 'probe timeout');
+    }, 15_000);
+    socket.on('message', (data, isBinary) => {
+      socket.send(data, { binary: isBinary });
+    });
+    socket.on('close', () => {
+      clearTimeout(timer);
     });
   });
 

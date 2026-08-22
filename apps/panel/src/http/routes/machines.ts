@@ -17,6 +17,7 @@ import type { AppContext } from '../../context.js';
 import type { MachineRow } from '../../db/schema.js';
 import { SETTING_KEYS } from '../../services/settings.js';
 import { requireUser } from '../auth.js';
+import { parseJson } from '../../util/json.js';
 import { machineUpdateFields } from './phase9.js';
 import { auditMeta } from './setup-auth.js';
 
@@ -42,6 +43,14 @@ export function machineDto(ctx: AppContext, row: MachineRow): MachineDto {
     ramTotalMb: row.ramTotalMb,
     createdAt: row.createdAt,
     ...machineUpdateFields(ctx, row),
+    addresses: parseJson<{ tailnet?: string[]; global?: string[] } | null>(row.addresses, null)
+      ? {
+          tailnet: parseJson<{ tailnet?: string[] }>(row.addresses, {}).tailnet ?? [],
+          global: parseJson<{ global?: string[] }>(row.addresses, {}).global ?? [],
+        }
+      : { tailnet: [], global: [] },
+    tailnetHost: row.tailnetHost,
+    publicHost: row.publicHost,
     ...(hb === undefined
       ? {}
       : {

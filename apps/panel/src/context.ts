@@ -5,6 +5,8 @@ import path from 'node:path';
 import type Database from 'better-sqlite3';
 
 import { ConsoleRelay } from './agents/console.js';
+import { AccessService } from './services/access.js';
+import { NotificationsService } from './services/notifications.js';
 import { AgentRegistry } from './agents/registry.js';
 import { ClientHub } from './clients/hub.js';
 import type { PanelConfig } from './config.js';
@@ -66,6 +68,9 @@ export interface AppContext {
   releases: ReleasesService;
   javaRuntimes: JavaRuntimesService;
   migrations: MigrationsService;
+  /** Phase 10 : notifications (push + centre) et couche d'accès. */
+  notifications: NotificationsService;
+  access: AccessService;
   /** `fetch` injectable (tests) pour les appels sortants du panel (manifest Mojang, API spark). */
   fetchImpl: typeof fetch | undefined;
   close(): void;
@@ -85,6 +90,19 @@ export interface ContextOptions {
   transferReconnectWaitMs?: number;
   /** Phase 9 : TTL des listeners/jetons de migration (tests : court). */
   migrationTtlMs?: number;
+  /** Phase 10 : options de la couche d'accès (tests : adresses locales, faux DNS/ACME, cadences). */
+  access?: Partial<
+    Pick<
+      ConstructorParameters<typeof AccessService>[0],
+      | 'localAddresses'
+      | 'resolveTxt'
+      | 'acmeDirectory'
+      | 'acme'
+      | 'dyndnsIntervalMs'
+      | 'renewIntervalMs'
+      | 'renewBeforeDays'
+    >
+  >;
 }
 
 export function createContext(options: ContextOptions): AppContext {
@@ -217,6 +235,30 @@ export function createContext(options: ContextOptions): AppContext {
     ...(options.migrationTtlMs === undefined ? {} : { ttlMs: options.migrationTtlMs }),
   });
 
+  // Phase 10 : notifications (abonné au bus) et couche d'accès.
+  const notifications = new NotificationsService({
+    db,
+    now,
+    events,
+    settings,
+    logger,
+    fetchImpl: options.fetch ?? fetch,
+    serverName: (id) => servers.get(id)?.name,
+    machineName: (id) => machines.get(id)?.name,
+  });
+  const access = new AccessService({
+    config,
+    settings,
+    machines,
+    servers,
+    events,
+    audit,
+    logger,
+    now,
+    fetchImpl: options.fetch ?? fetch,
+    ...(options.access ?? {}),
+  });
+
   // Au démarrage : aucun agent n'est connecté, tout `online` est un reliquat d'une exécution précédente.
   machines.markAllOffline();
   // Les tasks encore « en cours » seront réconciliées (`task.list`) à la reconnexion de chaque agent.
@@ -252,8 +294,12 @@ export function createContext(options: ContextOptions): AppContext {
     releases,
     javaRuntimes,
     migrations,
+    notifications,
+    access,
     fetchImpl: options.fetch,
     close: () => {
+      access.stop();
+      notifications.dispose();
       migrations.dispose();
       scheduler.stop();
       registry.closeAll();

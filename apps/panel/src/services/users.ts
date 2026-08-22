@@ -85,6 +85,7 @@ export class UsersService {
       isActive: 1,
       createdAt: this.now(),
       lastLoginAt: null,
+      notificationsSeenId: 0,
     };
     this.db.insert(users).values(row).run();
     return row;
