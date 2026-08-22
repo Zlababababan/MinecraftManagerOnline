@@ -15,6 +15,7 @@ import { registerMachineRoutes } from './http/routes/machines.js';
 import { registerMiscRoutes } from './http/routes/misc.js';
 import { registerServerRoutes } from './http/routes/servers.js';
 import { registerSetupAndAuthRoutes } from './http/routes/setup-auth.js';
+import { registerStatic } from './http/static.js';
 import { registerUserRoutes } from './http/routes/users.js';
 import { registerWsRoutes } from './http/routes/ws.js';
 
@@ -55,7 +56,9 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   await app.register(cookie);
   await app.register(websocket, { options: { maxPayload: 16 * 1024 * 1024 } });
 
-  registerErrorHandler(app);
+  // Front buildé (si présent) : fichiers statiques + fallback SPA hors /api et /ws.
+  const webServed = await registerStatic(app, config.webDir);
+  registerErrorHandler(app, { spaFallback: webServed });
   registerAuth(app, ctx);
   registerMiscRoutes(app, ctx);
   registerSetupAndAuthRoutes(app, ctx);

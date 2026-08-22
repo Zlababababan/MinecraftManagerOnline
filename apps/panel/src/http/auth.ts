@@ -13,6 +13,7 @@ import type { UserRow } from '../db/schema.js';
 import { AppError, forbidden } from '../errors.js';
 import { SETTING_KEYS } from '../services/settings.js';
 import { hasRole } from '../services/users.js';
+import { isApiOrWs } from './static.js';
 
 export const SESSION_COOKIE = 'mmo_session';
 
@@ -73,7 +74,8 @@ export function registerAuth(app: FastifyInstance, ctx: AppContext): void {
     const resolved = ctx.sessions.resolve(token);
     request.user = resolved?.user;
     const config = request.routeOptions.config;
-    if (config.public === true) {
+    // Surface protégée = /api et /ws ; le reste (front statique, fallback SPA) est public.
+    if (config.public === true || !isApiOrWs(request.url.split('?')[0] ?? '')) {
       done();
       return;
     }

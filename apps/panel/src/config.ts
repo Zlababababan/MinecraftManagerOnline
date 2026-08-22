@@ -15,7 +15,12 @@ export interface PanelConfig {
   cookieSecure: boolean | undefined;
   /** Accès au manifest Mojang (mapping MC→Java) ; `false` = table statique seulement. */
   mojangManifest: boolean;
+  /** Dossier du front buildé (`apps/web/dist`) ; `undefined` ou absent = API seule. */
+  webDir: string | undefined;
 }
+
+/** `apps/web/dist` relatif à ce fichier (valable depuis `src/` comme depuis `dist/`). */
+export const DEFAULT_WEB_DIR = path.resolve(import.meta.dirname, '../../web/dist');
 
 const FORBIDDEN_HOSTS = new Set(['0.0.0.0', '::', '[::]']);
 
@@ -37,6 +42,7 @@ export function defaultConfig(overrides: Partial<PanelConfig> = {}): PanelConfig
     sessionTtlMs: 30 * 24 * 3_600_000,
     cookieSecure: undefined,
     mojangManifest: true,
+    webDir: DEFAULT_WEB_DIR,
     ...overrides,
   };
   assertListenHost(config.host);
@@ -51,5 +57,6 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): PanelConfig
     port: Number(env.MMO_PORT ?? 3000),
     ...(secure === undefined ? {} : { cookieSecure: secure === '1' || secure === 'true' }),
     mojangManifest: env.MMO_MOJANG_MANIFEST !== '0',
+    webDir: env.MMO_WEB_DIR === undefined ? DEFAULT_WEB_DIR : path.resolve(env.MMO_WEB_DIR),
   });
 }

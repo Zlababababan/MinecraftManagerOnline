@@ -6,8 +6,17 @@ import {
 } from 'fastify-type-provider-zod';
 
 import { AppError } from '../errors.js';
+import { sendIndex, wantsSpaFallback } from './static.js';
 
-export function registerErrorHandler(app: FastifyInstance): void {
+export interface ErrorHandlerOptions {
+  /** Front servi : les navigations inconnues (hors /api et /ws) reçoivent `index.html`. */
+  spaFallback?: boolean;
+}
+
+export function registerErrorHandler(
+  app: FastifyInstance,
+  options: ErrorHandlerOptions = {},
+): void {
   app.setErrorHandler((error: unknown, request, reply) => {
     if (hasZodFastifySchemaValidationErrors(error)) {
       void reply.code(400).send(
@@ -55,7 +64,11 @@ export function registerErrorHandler(app: FastifyInstance): void {
     void reply.code(app.status).send(app.toJSON());
   });
 
-  app.setNotFoundHandler((_request, reply) => {
+  app.setNotFoundHandler((request, reply) => {
+    if (options.spaFallback === true && wantsSpaFallback(request)) {
+      void sendIndex(reply);
+      return;
+    }
     void reply.code(404).send(new AppError('E_NOT_FOUND', 'route not found').toJSON());
   });
 }

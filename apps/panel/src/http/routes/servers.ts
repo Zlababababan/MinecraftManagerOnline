@@ -179,7 +179,7 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
     action('stop'),
     {
       config: { role: 'operator' },
-      schema: { params: idParams, body: stopServerSchema.optional() },
+      schema: { params: idParams, body: stopServerSchema.nullish() },
     },
     async (request) => {
       const user = requireUser(request);
@@ -208,7 +208,7 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
     action('restart'),
     {
       config: { role: 'operator' },
-      schema: { params: idParams, body: stopServerSchema.optional() },
+      schema: { params: idParams, body: stopServerSchema.nullish() },
     },
     async (request) => {
       const user = requireUser(request);
