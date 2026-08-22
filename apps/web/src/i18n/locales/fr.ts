@@ -861,6 +861,33 @@ export const webFr = {
       publicKey: 'Clé publique VAPID',
     },
   },
+  distribution: {
+    title: 'Distribution de l’agent',
+    hint: 'Archives d’installation servies par ce panel (runtime Node épinglé + agent + launcher) et scripts install.ps1 / install.sh. Publiées avec tools/release/publish.mjs.',
+    empty:
+      'Aucune archive publiée : les one-liners d’installation échoueront. Construisez puis publiez une release :',
+    version: 'Agent {{version}}',
+    releasePublished: 'release d’agent publiée (agent.update)',
+    releaseMissing: 'release d’agent absente',
+    devKey: 'signée avec la clé de développement',
+    platform: 'Plateforme',
+    file: 'Archive',
+    size: 'Taille',
+    missing: 'non publiée',
+    platforms: {
+      win_x64: 'Windows x64',
+      linux_x64: 'Linux x64',
+      linux_arm64: 'Linux ARM64',
+      darwin_arm64: 'macOS Apple Silicon',
+    },
+    needPublicUrl:
+      'Renseignez l’URL publique du panel (Général) pour obtenir les commandes d’installation.',
+    oneLinersHint:
+      'Commandes génériques (sans code d’appairage) ; la page « Ajouter une machine » donne la commande complète.',
+    clear: 'Supprimer',
+    clearConfirm:
+      'Supprimer les archives publiées ? La release d’agent (agent.update) est conservée.',
+  },
   access: {
     title: 'Accès distant',
     mode: 'Mode d’accès',
