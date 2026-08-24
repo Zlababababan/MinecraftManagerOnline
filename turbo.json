@@ -3,6 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": ["MMO_RELEASE_BUILD"],
       "outputs": ["dist/**"]
     },
     "typecheck": {

@@ -426,7 +426,7 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
     expect(await readFile(path.join(home, 'versions', '9.9.9', 'agent.js'))).toEqual(bundle);
     expect(JSON.parse(await readFile(path.join(home, 'next.json'), 'utf8'))).toMatchObject({
       version: '9.9.9',
-      previous: '0.11.0',
+      previous: '1.0.0',
     });
 
     // Bundle signé avec une autre clé : refusé par l'agent (E_SIGNATURE_INVALID), rien d'écrit.

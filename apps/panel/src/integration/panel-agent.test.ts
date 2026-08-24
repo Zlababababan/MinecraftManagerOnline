@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { ServerDto } from '@mmo/protocol/client';
 
-import { Agent } from '../../../agent/src/agent.js';
+import { AGENT_VERSION, Agent } from '../../../agent/src/agent.js';
 import { Logger } from '../../../agent/src/log.js';
 import {
   connectClient,
@@ -114,7 +114,7 @@ describe('intégration panel ↔ agent réels', () => {
     expect(agent.store.get().agentId).toBe(machine.id);
     expect(panel.ctx.machines.require(machine.id)).toMatchObject({
       status: 'online',
-      agentVersion: '0.11.0',
+      agentVersion: AGENT_VERSION,
     });
     await waitFor(
       () => panel.ctx.events.list({ machineId: machine.id, type: 'agent.online' }).length === 1,

@@ -12,6 +12,11 @@ await build({
   sourcemap: true,
   legalComments: 'none',
   logLevel: 'info',
+  // Phase 12 : un build de release (tools/release/build.mjs --release) n'embarque que les clés de
+  // release — la clé de développement est retirée à la compilation (`src/update/keys.ts`).
+  define: {
+    'process.env.MMO_RELEASE_BUILD': JSON.stringify(process.env.MMO_RELEASE_BUILD ?? ''),
+  },
 });
 
 // Launcher figé (doc 03 §3) : copié tel quel à côté du bundle.

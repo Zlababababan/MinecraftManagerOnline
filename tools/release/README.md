@@ -20,9 +20,10 @@ pnpm release:publish -- --panel https://panel --user admin
 La clé privée Ed25519 vit **chez le mainteneur, hors dépôt** (doc 03 §3) :
 
 1. `node tools/signing/keygen.mjs <dossier-hors-dépôt>` → `private.pem` + `public.txt`.
-2. Ajouter la clé publique (SPKI base64) dans `apps/agent/src/update/keys.ts` (`AGENT_UPDATE_PUBLIC_KEYS`, plusieurs clés acceptées = rotation) et livrer cette version d'agent **avant** de signer avec la nouvelle clé.
+2. Ajouter la clé publique (SPKI base64) dans `apps/agent/src/update/keys.ts` (`RELEASE_KEYS`, plusieurs clés acceptées = rotation) et livrer cette version d'agent **avant** de signer avec la nouvelle clé. La clé de développement n'est présente que dans les builds non `--release` (`MMO_RELEASE_BUILD`, esbuild `define`).
 3. `MMO_SIGNING_KEY=<chemin>/private.pem pnpm release:build -- --release` (ou `--key`). Sans clé, la clé de développement `tools/signing/dev.private.pem` est utilisée et `--release` refuse ; le manifeste porte `signingKey: "dev"` et le panel l'affiche (Réglages → Distribution).
 4. CI : le workflow `release.yml` (tag `v*`) lit le secret `MMO_SIGNING_KEY_PEM`.
+5. **Release 1.0.0 (2026-08-23)** : clé générée chez le mainteneur (`C:\Users\<user>\.mmo\signing\mmo-release.private.pem`, publique `MCowBQYDK2VwAyEAiUDWJLKR+sl8iyPeWm3DEVze+zj+an5PAoQVviUh/Sc=` embarquée), archives des 4 plateformes + panel win-x64 construites avec `--release --panel`, `smoke.mjs` vert (sha256, contenu, `launcher.cjs --version` sur le runtime embarqué).
 
 Reproductibilité : entrées triées, horodatages = `SOURCE_DATE_EPOCH` (0 par défaut), modes explicites ; deux builds du même commit donnent les mêmes sha256 (vérifié).
 

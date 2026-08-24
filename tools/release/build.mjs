@@ -69,7 +69,13 @@ const protocolVersion = Number(
 );
 
 function pnpm(...argv) {
-  execFileSync('pnpm', argv, { cwd: ROOT, stdio: 'inherit', shell: process.platform === 'win32' });
+  execFileSync('pnpm', argv, {
+    cwd: ROOT,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+    // --release : le bundle agent n'accepte que les clés de release (apps/agent/src/update/keys.ts).
+    env: { ...process.env, MMO_RELEASE_BUILD: isRelease ? '1' : '' },
+  });
 }
 if (!args.includes('--skip-build')) {
   console.log('[release] pnpm build');
