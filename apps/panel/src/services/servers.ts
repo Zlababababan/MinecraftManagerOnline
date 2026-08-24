@@ -61,6 +61,8 @@ export interface ServersServiceDeps {
   settings: SettingsService;
   /** Phase 8 : plannings de backups poussés à l'agent (`backup_policies`). */
   backupSchedules?: (serverIds: string[]) => RequestPayload<'agent.configure'>['backupSchedules'];
+  /** Recette 1.0 : politique de sauvegarde par défaut posée à la création d'un serveur. */
+  seedBackupPolicy?: (serverId: string) => void;
 }
 
 const RUNNING_STATES: ReadonlySet<ServerRow['runState']> = new Set([
@@ -359,6 +361,13 @@ export class ServersService {
       updatedAt: t,
     };
     this.db.insert(servers).values(row).run();
+    // Sauvegarde « prête à l'emploi » : chaque nouveau serveur reçoit la politique par défaut
+    // (quotidienne, rétention 7, si en marche). Jamais bloquant pour l'adoption.
+    try {
+      this.deps.seedBackupPolicy?.(row.id);
+    } catch {
+      // la politique pourra être créée à la main
+    }
     return row;
   }
 

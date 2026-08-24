@@ -32,6 +32,8 @@ interface ManifestExtras {
   comment?: string;
 }
 
+export const DEFAULT_POLICY = { cron: '0 4 * * *', keepLast: 7, onlyIfRunning: true } as const;
+
 export class BackupsService {
   constructor(private readonly deps: BackupsServiceDeps) {}
 
@@ -273,6 +275,29 @@ export class BackupsService {
       createdAt: row.createdAt,
       nextRunAt: row.enabled === 1 ? (nextCronRun(row.cron, this.deps.now()) ?? null) : null,
     };
+  }
+
+  /**
+   * Politique par défaut d'un nouveau serveur : quotidienne à 04h00, 7 archives conservées,
+   * seulement si le serveur tourne (un serveur arrêté ne change pas — pas d'archives dupliquées).
+   * Politique ordinaire ensuite : l'utilisateur la modifie ou la supprime librement.
+   */
+  seedDefaultPolicy(serverId: string): BackupPolicyRow {
+    return this.createPolicy(serverId, {
+      cron: DEFAULT_POLICY.cron,
+      keepLast: DEFAULT_POLICY.keepLast,
+      onlyIfRunning: DEFAULT_POLICY.onlyIfRunning,
+    });
+  }
+
+  hasPolicies(serverId: string): boolean {
+    return (
+      this.deps.db
+        .select({ id: backupPolicies.id })
+        .from(backupPolicies)
+        .where(eq(backupPolicies.serverId, serverId))
+        .get() !== undefined
+    );
   }
 
   createPolicy(serverId: string, input: BackupPolicyInput): BackupPolicyRow {

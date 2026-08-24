@@ -350,7 +350,9 @@ export function ServerPage({ serverId, tab }: { serverId: string; tab: ServerTab
         }}
         keepMounted={false}
       >
-        <ScrollArea type="never" scrollbars="x">
+        {/* Barre visible quand les onglets débordent (fenêtre étroite/mobile) — `never` cachait
+            l'existence des onglets hors champ et bloquait le défilement à la souris. */}
+        <ScrollArea type="auto" scrollbars="x" scrollbarSize={6}>
           <Tabs.List style={{ flexWrap: 'nowrap', minWidth: 'max-content' }}>
             {SERVER_TABS.map((name) => (
               <Tabs.Tab key={name} value={name} data-testid={`tab-${name}`}>

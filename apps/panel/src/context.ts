@@ -32,7 +32,7 @@ import { ProcessedEventsService } from './services/processed-events.js';
 import { SchedulerService } from './services/scheduler.js';
 import { ServersService } from './services/servers.js';
 import { SessionsService } from './services/sessions.js';
-import { SettingsService } from './services/settings.js';
+import { SETTING_KEYS, SettingsService } from './services/settings.js';
 import { TasksService } from './services/tasks.js';
 import { TransferService } from './services/transfers.js';
 import { UiEventsService } from './services/ui-events.js';
@@ -137,6 +137,9 @@ export function createContext(options: ContextOptions): AppContext {
     java,
     settings,
     backupSchedules: (serverIds) => backups.schedulesFor(serverIds),
+    seedBackupPolicy: (serverId) => {
+      backups.seedDefaultPolicy(serverId);
+    },
   });
   const processed = new ProcessedEventsService(db, now);
   const registry = new AgentRegistry();
@@ -178,6 +181,14 @@ export function createContext(options: ContextOptions): AppContext {
       hub.broadcast({ type: 'backup.update', backup });
     },
   });
+  // Rattrapage unique (recette 1.0) : les serveurs d'avant la politique par défaut en reçoivent
+  // une s'ils n'en ont aucune. Jamais rejoué ensuite — supprimer la politique reste définitif.
+  if (settings.get(SETTING_KEYS.backupDefaultsSeeded) !== '1') {
+    for (const row of servers.list()) {
+      if (!backups.hasPolicies(row.id)) backups.seedDefaultPolicy(row.id);
+    }
+    settings.set(SETTING_KEYS.backupDefaultsSeeded, '1');
+  }
   const scheduler = new SchedulerService({
     db,
     now,

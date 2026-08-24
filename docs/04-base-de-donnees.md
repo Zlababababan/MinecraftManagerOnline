@@ -262,6 +262,8 @@ CREATE INDEX idx_psess_online ON player_sessions(server_id) WHERE left_at IS NUL
 
 Partition d'exécution (voir doc 05) : **backups planifiés, rotation et watchdog = exécutés par l'agent** (survivent à un panel éteint) ; **start/stop/restart programmés et annonces = exécutés par le panel**. Les suppressions faites par la rotation locale remontent via l'événement `backup.rotated` pour que cette table ne diverge jamais du disque.
 
+**Politique par défaut (post-1.0, recette)** : chaque serveur créé (détection, ajout manuel, copie de conflit) reçoit une politique `0 4 * * *`, `keep_last 7`, `only_if_running 1` (un serveur arrêté ne change pas — pas d'archives dupliquées) — politique ordinaire, modifiable/supprimable. Rattrapage unique au démarrage du panel pour les serveurs existants sans politique (`app_settings backups.defaultsSeeded='1'` — supprimer sa politique reste définitif).
+
 ```sql
 CREATE TABLE backup_policies (
   id              TEXT PRIMARY KEY,

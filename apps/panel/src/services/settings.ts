@@ -8,6 +8,8 @@ export const SETTING_KEYS = {
   publicUrl: 'panel.publicUrl',
   accessMode: 'access.mode',
   backupDestination: 'backups.defaultDestination',
+  /** Recette 1.0 : rattrapage unique des politiques de sauvegarde par défaut ('1' = fait). */
+  backupDefaultsSeeded: 'backups.defaultsSeeded',
   eventsRetentionDays: 'retention.eventsDays',
   auditRetentionDays: 'retention.auditDays',
   restoreOnBoot: 'agents.restoreOnBoot',

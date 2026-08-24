@@ -103,6 +103,12 @@ describe('phase 8 — panel ↔ agent réels', () => {
     });
     server = res.json<{ servers: ServerDto[] }>().servers[0]!;
     await waitFor(() => agent!.store.get().servers[server.id] !== undefined, 10_000);
+    // Recette 1.0 : tout serveur détecté reçoit une politique par défaut (quotidienne, keep 7,
+    // si en marche). Vérifiée ici, puis retirée : la suite teste les politiques explicites.
+    const seeded = panel.ctx.backups.listPolicies(server.id);
+    expect(seeded).toHaveLength(1);
+    expect(seeded[0]).toMatchObject({ cron: '0 4 * * *', keepLast: 7, onlyIfRunning: 1 });
+    panel.ctx.backups.deletePolicy(seeded[0]!.id);
   });
   afterEach(async () => {
     await agent?.stop();
