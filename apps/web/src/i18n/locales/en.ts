@@ -237,6 +237,11 @@ export const webEn = {
       clear: 'Clear',
       search: 'Search',
       viewerHint: 'Viewers cannot send commands.',
+      history: 'History (logs/latest.log)',
+      live: 'Live',
+      historyTooBig:
+        'History too large to display here — download logs/latest.log (button above) or use the Logs tab.',
+      download: 'Download logs/latest.log (attach it when asking for help)',
     },
     players: {
       none: 'No player online.',

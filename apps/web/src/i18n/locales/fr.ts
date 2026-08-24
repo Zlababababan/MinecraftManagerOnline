@@ -235,6 +235,11 @@ export const webFr = {
       clear: 'Effacer',
       search: 'Rechercher',
       viewerHint: 'La lecture seule ne permet pas d’envoyer des commandes.',
+      history: 'Historique (logs/latest.log)',
+      live: 'Direct',
+      historyTooBig:
+        'Historique trop volumineux pour être affiché ici — téléchargez logs/latest.log (bouton ci-dessus) ou utilisez l’onglet Journaux.',
+      download: 'Télécharger logs/latest.log (à joindre pour du support)',
     },
     players: {
       none: 'Aucun joueur en ligne.',

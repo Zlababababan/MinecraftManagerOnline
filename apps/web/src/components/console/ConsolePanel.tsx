@@ -3,11 +3,14 @@
  * `/ws/client` (snapshot + lignes), saisie de commandes (`POST /api/servers/:id/command`) avec
  * historique ↑/↓ et complétion Tab (V1). Un miroir textuel caché expose les dernières lignes
  * (accessibilité + tests e2e, xterm rendant sur une grille de cellules).
+ * Historique : la fin de `logs/latest.log` est préchargée en tête (les lignes live arrivées
+ * pendant la lecture sont mises en attente puis rejouées) — indispensable en mode détaché, où le
+ * tampon console repart vide à chaque redémarrage de l'agent.
  */
 import { ActionIcon, Box, Group, Paper, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { useComputedColorScheme } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconSend, IconTrash } from '@tabler/icons-react';
+import { IconDownload, IconSend, IconTrash } from '@tabler/icons-react';
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import { useQuery } from '@tanstack/react-query';
@@ -17,7 +20,8 @@ import { useT } from '../../i18n/hooks.js';
 import type { ConsoleLine } from '@mmo/protocol';
 import { consoleChannel, type ServerMessage } from '@mmo/protocol/client';
 
-import { commandHistoryQuery, useSendCommand } from '../../api/queries.js';
+import { fileDownloadUrl } from '../../api/phase8.js';
+import { commandHistoryQuery, fileReadQuery, useSendCommand } from '../../api/queries.js';
 import { describeError } from '../../lib/errors.js';
 import { realtime, type RealtimeClient } from '../../ws/client.js';
 import { CommandHistory, complete } from './commands.js';
@@ -25,6 +29,16 @@ import { CommandHistory, complete } from './commands.js';
 import '@xterm/xterm/css/xterm.css';
 
 const MIRROR_LINES = 200;
+const LOG_FILE = 'logs/latest.log';
+const HISTORY_LINES = 200;
+
+/** Dernières lignes non vides d'un contenu de log, pour le préchargement de la console. */
+export function historyLines(content: string, max = HISTORY_LINES): string[] {
+  return content
+    .split(/\r?\n/)
+    .filter((l) => l !== '')
+    .slice(-max);
+}
 
 const LEVEL_STYLE: Record<ConsoleLine['level'], string> = {
   TRACE: '\x1b[2m',
@@ -74,6 +88,15 @@ export function ConsolePanel({
   const send = useSendCommand(serverId);
   const history = useMemo(() => new CommandHistory(), []);
   const seededRef = useRef(false);
+  // Historique de `logs/latest.log` : tant qu'il n'est pas écrit, les lignes live sont en attente.
+  const historyDoneRef = useRef(false);
+  const pendingRef = useRef<ConsoleLine[]>([]);
+  const flushRef = useRef<() => void>(() => undefined);
+  const logHistory = useQuery({
+    ...fileReadQuery(serverId, LOG_FILE),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
   // Historique serveur (ordre antéchronologique) → amorce de l'historique local, une seule fois.
   useEffect(() => {
@@ -125,6 +148,29 @@ export function ConsolePanel({
         : { background: '#ffffff', foreground: '#1a1b1e', cursor: '#1a1b1e' };
   }, [colorScheme]);
 
+  // Historique : fin de `logs/latest.log` écrite en tête (estompée), puis rejeu des lignes en attente.
+  useEffect(() => {
+    if (historyDoneRef.current || logHistory.isPending) return;
+    historyDoneRef.current = true;
+    const term = termRef.current;
+    const data = logHistory.data;
+    if (term !== null && data !== undefined && data.content !== '') {
+      if (data.truncated) {
+        term.writeln(`\x1b[2m${t('web:server.console.historyTooBig')}\x1b[0m`);
+      } else {
+        const lines = historyLines(data.content);
+        if (lines.length > 0) {
+          term.writeln(`\x1b[2m─── ${t('web:server.console.history')} ───\x1b[0m`);
+          for (const line of lines) term.writeln(`\x1b[2m${line}\x1b[0m`);
+          term.writeln(`\x1b[2m─── ${t('web:server.console.live')} ───\x1b[0m`);
+          setEmpty(false);
+          setMirror((prev) => [...prev, ...lines].slice(-MIRROR_LINES));
+        }
+      }
+    }
+    flushRef.current();
+  }, [logHistory.isPending, logHistory.data, t]);
+
   // Abonnement console : snapshot (rattrapage par `seq`, sans doublon) puis lignes live.
   useEffect(() => {
     const append = (lines: ConsoleLine[]): void => {
@@ -140,12 +186,25 @@ export function ConsolePanel({
       setEmpty(false);
       setMirror((prev) => [...prev, ...fresh.map((l) => l.text)].slice(-MIRROR_LINES));
     };
+    // Tant que l'historique n'est pas écrit, on met en attente pour préserver l'ordre d'affichage.
+    const enqueue = (lines: ConsoleLine[]): void => {
+      if (historyDoneRef.current) {
+        append(lines);
+        return;
+      }
+      pendingRef.current.push(...lines);
+    };
+    flushRef.current = () => {
+      const pending = pendingRef.current;
+      pendingRef.current = [];
+      if (pending.length > 0) append(pending);
+    };
     const handler = (message: ServerMessage): void => {
       if (message.type === 'console.snapshot' && message.serverId === serverId) {
         setTruncated(message.truncated);
-        append(message.lines);
+        enqueue(message.lines);
       } else if (message.type === 'console.lines' && message.serverId === serverId) {
-        append(message.lines);
+        enqueue(message.lines);
       } else if (message.type === 'error' && message.channel === consoleChannel(serverId)) {
         notifications.show({ color: 'red', message: describeError(i18n, message.error) });
       }
@@ -237,18 +296,33 @@ export function ConsolePanel({
             {t('web:server.console.empty')}
           </Text>
         )}
-        <Tooltip label={t('web:server.console.clear')} withArrow>
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            size="sm"
-            onClick={clear}
-            style={{ position: 'absolute', top: 6, right: 6 }}
-            aria-label={t('web:server.console.clear')}
-          >
-            <IconTrash size={14} />
-          </ActionIcon>
-        </Tooltip>
+        <Group gap={4} style={{ position: 'absolute', top: 6, right: 6 }}>
+          <Tooltip label={t('web:server.console.download')} withArrow>
+            <ActionIcon
+              component="a"
+              href={fileDownloadUrl(serverId, LOG_FILE)}
+              download
+              variant="subtle"
+              color="gray"
+              size="sm"
+              aria-label={t('web:server.console.download')}
+              data-testid="console-download-log"
+            >
+              <IconDownload size={14} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label={t('web:server.console.clear')} withArrow>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              onClick={clear}
+              aria-label={t('web:server.console.clear')}
+            >
+              <IconTrash size={14} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
       </Paper>
       {truncated && (
         <Text size="xs" c="dimmed">

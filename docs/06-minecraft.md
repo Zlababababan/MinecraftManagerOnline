@@ -77,6 +77,7 @@ de backups exclus) :
   - Forge 1.12 : format classique avec un logger intercalé `[HH:mm:ss] [Thread/LEVEL] [FML]: …`
   - Toute ligne qui ne matche aucun pattern (stacktraces) est rattachée à l'entrée précédente, même niveau. Niveaux : INFO/WARN/ERROR/FATAL/DEBUG/TRACE.
 - **Autocomplétion console (V1 honnête)** : liste statique des commandes vanilla + pseudos depuis `usercache.json` + historique de l'utilisateur (pas d'accès à l'arbre Brigadier des mods).
+- **Historique dans l'UI (post-1.0, recette)** : le tampon console (5 000 lignes) repart vide à chaque redémarrage de l'agent, et le tail `detached` démarre en fin de fichier → console vide après un reboot. L'onglet console précharge donc la fin de `logs/latest.log` via `fs.read` (bloc « Historique » estompé au-dessus du direct, 200 lignes max ; les lignes live reçues pendant la lecture sont rejouées après, jamais mélangées) ; si le fichier dépasse le plafond `fs.read` (512 Ko), message + renvoi vers le téléchargement. Un bouton de la console télécharge `logs/latest.log` en un clic (route `files/download` existante) — pensé pour « joindre les logs » en support. Un léger recouvrement historique/tampon est possible (séparateurs visuels, pas de dédup).
 
 ## 4. Cycle de vie
 
