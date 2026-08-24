@@ -61,6 +61,6 @@ Environnement visé (déjà en place sur le poste de dev) : panel de test `D:\mm
 ## Si quelque chose casse
 
 - Panel : sortie visible dans la fenêtre de `start-panel.cmd` (+ `D:\mmo-test\panel-data\`).
-- Agent : `C:\Users\Yassin\AppData\Local\Programs\mmo-agent\launcher.log` et `logs\shawl_for_mmo-agent_rCURRENT.log` ; état : `C:\Users\Yassin\AppData\Local\mmo-agent\agent-state.json`.
+- Agent : `%LOCALAPPDATA%\Programs\mmo-agent\launcher.log` et `logs\shawl_for_mmo-agent_rCURRENT.log` ; état : `%LOCALAPPDATA%\mmo-agent\agent-state.json`.
 - Redémarrer le service agent : `services.msc` (admin) → `mmo-agent` → Redémarrer.
 - Noter : étape, action, attendu vs obtenu, heure (pour croiser avec les logs).
