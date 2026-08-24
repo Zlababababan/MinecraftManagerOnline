@@ -8,6 +8,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { App } from './app.js';
+import { installUiTelemetry } from './lib/ui-telemetry.js';
+
+installUiTelemetry();
 
 const root = document.getElementById('root');
 if (root === null) {

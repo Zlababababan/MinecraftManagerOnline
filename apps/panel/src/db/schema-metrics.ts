@@ -2,7 +2,26 @@
  * Schéma `metrics.db` (doc 04 §7) : brut 15 s (48 h), 1 min (14 j), 1 h (2 ans). Fichier séparé
  * de `mmo.db` (un écrivain par fichier). Rempli en phase 7 ; les migrations sont posées dès la phase 4.
  */
-import { integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+
+/**
+ * Parcours UI (maintenance/diagnostic) : clics et navigations envoyés par lots par le front.
+ * Volume faible, purge par rétention (`retention.uiEventsDays`, défaut 14 j) dans `runMaintenance`.
+ */
+export const uiEvents = sqliteTable(
+  'ui_events',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    ts: integer('ts').notNull(),
+    userId: text('user_id'),
+    username: text('username'),
+    /** `click` ou `nav`. */
+    kind: text('kind').notNull(),
+    page: text('page').notNull(),
+    target: text('target'),
+  },
+  (t) => [index('ui_events_ts').on(t.ts)],
+);
 
 export const metricsServerRaw = sqliteTable(
   'metrics_server_raw',

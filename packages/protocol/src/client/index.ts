@@ -722,6 +722,34 @@ export const eventsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(1000).optional(),
 });
 
+// --- Parcours UI (maintenance) ---------------------------------------------------------------------
+
+/** Interaction d'interface capturée côté client (clic, navigation), envoyée par lots. */
+export const uiEventInputSchema = z.object({
+  ts: epochMsSchema,
+  kind: z.enum(['click', 'nav']),
+  /** Chemin de la page (`location.pathname`), jamais de query string (données sensibles). */
+  page: z.string().max(200),
+  /** Identifiant de l'élément cliqué : `data-testid`, `aria-label` ou texte du bouton. */
+  target: z.string().max(200).optional(),
+});
+export type UiEventInput = z.infer<typeof uiEventInputSchema>;
+
+export const uiEventsPostSchema = z.object({
+  events: z.array(uiEventInputSchema).min(1).max(100),
+});
+
+export const uiEventDtoSchema = uiEventInputSchema.extend({
+  id: z.int(),
+  userId: z.string().nullable(),
+  username: z.string().nullable(),
+});
+export type UiEventDto = z.infer<typeof uiEventDtoSchema>;
+
+export const uiEventsQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(1000).optional(),
+});
+
 // --- Réglages --------------------------------------------------------------------------------------
 
 /** Clés modifiables par l'API (`app_settings`) ; les clés secrètes (VAPID privé…) ne sortent jamais. */
@@ -731,6 +759,7 @@ export const EDITABLE_SETTINGS = [
   'backups.defaultDestination',
   'retention.eventsDays',
   'retention.auditDays',
+  'retention.uiEventsDays',
   'agents.restoreOnBoot',
   'metrics.intervalSec',
   /** Phase 9 : mise à jour automatique des agents à la connexion ('1'/'0'). */

@@ -141,5 +141,6 @@ export function runMaintenance(ctx: AppContext): void {
   }
   // Métriques (doc 04 §7) : downsampling brut → 1 min → 1 h, purge, checkpoint du second fichier.
   ctx.metricsService.maintain(t);
+  ctx.uiEvents.purgeOlderThan(t - ctx.settings.getInt('retention.uiEventsDays', 14) * day);
   ctx.metricsSqlite.pragma('wal_checkpoint(PASSIVE)');
 }

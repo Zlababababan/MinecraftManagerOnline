@@ -35,6 +35,7 @@ import { SessionsService } from './services/sessions.js';
 import { SettingsService } from './services/settings.js';
 import { TasksService } from './services/tasks.js';
 import { TransferService } from './services/transfers.js';
+import { UiEventsService } from './services/ui-events.js';
 import { UsersService } from './services/users.js';
 
 export interface AppContext {
@@ -46,6 +47,7 @@ export interface AppContext {
   metrics: MetricsDatabase;
   metricsSqlite: Database.Database;
   metricsService: MetricsService;
+  uiEvents: UiEventsService;
   settings: SettingsService;
   audit: AuditService;
   events: EventBus;
@@ -158,6 +160,8 @@ export function createContext(options: ContextOptions): AppContext {
       hub.broadcast({ type: 'metrics.sample', machineId, sample });
     },
   });
+
+  const uiEvents = new UiEventsService(metrics.sqlite);
 
   const tasks = new TasksService({
     db,
@@ -281,6 +285,7 @@ export function createContext(options: ContextOptions): AppContext {
     metrics: metrics.db,
     metricsSqlite: metrics.sqlite,
     metricsService,
+    uiEvents,
     settings,
     audit,
     events,

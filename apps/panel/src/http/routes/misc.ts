@@ -4,7 +4,12 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 
 import { PROTOCOL_VERSION } from '@mmo/protocol';
-import { eventsQuerySchema, settingsPatchSchema } from '@mmo/protocol/client';
+import {
+  eventsQuerySchema,
+  settingsPatchSchema,
+  uiEventsPostSchema,
+  uiEventsQuerySchema,
+} from '@mmo/protocol/client';
 import { PROJECT_NAME } from '@mmo/shared';
 
 import type { AppContext } from '../../context.js';
@@ -38,6 +43,21 @@ export function registerMiscRoutes(app: FastifyInstance, ctx: AppContext): void 
       },
     },
     (request) => ({ audit: ctx.audit.list(request.query.limit ?? 200) }),
+  );
+
+  // Parcours UI : ingestion par lots (tout utilisateur connecté), lecture admin (diagnostic).
+  r.post('/api/ui-events', { schema: { body: uiEventsPostSchema } }, (request, reply) => {
+    ctx.uiEvents.record(
+      { userId: request.user?.id ?? null, username: request.user?.username ?? null },
+      request.body.events,
+    );
+    return reply.code(204).send();
+  });
+
+  r.get(
+    '/api/ui-events',
+    { config: { role: 'admin' }, schema: { querystring: uiEventsQuerySchema } },
+    (request) => ({ events: ctx.uiEvents.list(request.query.limit ?? 200) }),
   );
 
   r.get('/api/settings', { config: { role: 'admin' } }, () => ({
