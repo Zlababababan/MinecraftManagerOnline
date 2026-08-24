@@ -230,6 +230,23 @@ describe('phase 10 — notifications et accès joueurs', () => {
     });
   });
 
+  it('cliquer une notification la marque vue : la pastille disparaît', async () => {
+    const user = userEvent.setup();
+    renderWith(<NotificationCenter />);
+    const indicator = await screen.findByTestId('notifications-indicator');
+    await waitFor(() => {
+      expect(indicator).toHaveAttribute('data-unread', '1');
+    });
+    await user.click(screen.getByTestId('notifications-open'));
+    await user.click(await screen.findByTestId('notification-10'));
+    await waitFor(() => {
+      expect(calls.find((c) => c.path === '/api/notifications/seen')?.body).toEqual({ id: 10 });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('notifications-indicator')).toHaveAttribute('data-unread', '0');
+    });
+  });
+
   it('préférences : interrupteurs depuis l’API, PUT partiel', async () => {
     const user = userEvent.setup();
     renderWith(<NotificationPrefsCard />);

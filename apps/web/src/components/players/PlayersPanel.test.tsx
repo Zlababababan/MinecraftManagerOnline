@@ -163,7 +163,7 @@ describe('PlayersPanel — liste blanche sans jamais voir un fichier', () => {
     renderPanel();
     await user.click(screen.getByTestId('players-view-whitelist'));
     expect(await screen.findByTestId('whitelist-empty')).toBeInTheDocument();
-    expect(screen.getByTestId('whitelist-status')).toHaveTextContent('Liste blanche désactivée');
+    expect(screen.getByTestId('whitelist-status')).toHaveTextContent('Whitelist désactivée');
 
     await user.type(screen.getByTestId('whitelist-add-name'), 'Bob');
     await user.click(screen.getByTestId('whitelist-add-submit'));

@@ -26,7 +26,10 @@ export const propertiesFr = {
     label: 'Hardcore',
     help: 'Difficulté verrouillée sur difficile, et les joueurs passent spectateurs à leur mort.',
   },
-  pvp: { label: 'Joueur contre joueur', help: 'Autoriser les joueurs à se blesser entre eux.' },
+  pvp: {
+    label: 'PvP (joueur contre joueur)',
+    help: 'Autoriser les joueurs à se blesser entre eux.',
+  },
   'allow-flight': {
     label: 'Autoriser le vol',
     help: 'Tolérer les joueurs qui volent en survie (mods, bugs d’élytres). Désactivé = expulsion pour vol.',
@@ -41,12 +44,12 @@ export const propertiesFr = {
     help: 'Vérifie les comptes auprès de Mojang. À désactiver seulement en LAN ou derrière un proxy — sinon n’importe qui peut usurper un pseudo.',
   },
   'white-list': {
-    label: 'Liste blanche activée',
-    help: 'Seuls les joueurs de la liste blanche peuvent se connecter. Appliqué immédiatement si le serveur tourne.',
+    label: 'Whitelist activée',
+    help: 'Seuls les joueurs de la whitelist peuvent se connecter. Appliqué immédiatement si le serveur tourne.',
   },
   'enforce-whitelist': {
-    label: 'Appliquer la liste blanche',
-    help: 'Expulse les joueurs en ligne retirés de la liste blanche.',
+    label: 'Appliquer la whitelist',
+    help: 'Expulse les joueurs en ligne retirés de la whitelist.',
   },
   'player-idle-timeout': {
     label: 'Délai d’inactivité (minutes)',
@@ -77,7 +80,7 @@ export const propertiesFr = {
     help: 'Nom du dossier du monde. En changer charge ou crée un autre monde.',
   },
   'level-seed': {
-    label: 'Graine du monde',
+    label: 'Seed du monde',
     help: 'Utilisée seulement à la génération d’un nouveau monde.',
   },
   'level-type': {
@@ -94,15 +97,15 @@ export const propertiesFr = {
   },
   'allow-nether': { label: 'Autoriser le Nether', help: 'Active les portails du Nether.' },
   'spawn-monsters': {
-    label: 'Apparition des monstres',
+    label: 'Spawn des monstres',
     help: 'Les monstres apparaissent la nuit et dans le noir.',
   },
   'spawn-animals': {
-    label: 'Apparition des animaux',
+    label: 'Spawn des animaux',
     help: 'Les animaux passifs apparaissent naturellement.',
   },
   'spawn-npcs': {
-    label: 'Apparition des villageois',
+    label: 'Spawn des villageois',
     help: 'Les villageois peuplent les villages.',
   },
   'max-world-size': {

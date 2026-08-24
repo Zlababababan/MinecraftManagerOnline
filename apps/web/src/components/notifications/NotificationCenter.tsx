@@ -55,6 +55,9 @@ export function NotificationCenter() {
 
   const onOpen = (e: EventDto): void => {
     close();
+    // Cliquer une notification la marque vue (elle et les plus anciennes : curseur `seenId`) —
+    // la pastille ne doit pas survivre à un clic sur la notification la plus récente.
+    if (e.id > seenId) markSeen.mutate(e.id);
     if (e.serverId !== null)
       void navigate({ to: '/servers/$serverId', params: { serverId: e.serverId } });
     else if (e.machineId !== null)
