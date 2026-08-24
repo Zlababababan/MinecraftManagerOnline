@@ -129,6 +129,8 @@ export const updateUserSchema = z.object({
   isActive: z.boolean().optional(),
   password: passwordSchema.optional(),
 });
+export type CreateUserInput = z.infer<typeof createUserSchema>;
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 
 // --- Machines --------------------------------------------------------------------------------------
 
@@ -713,6 +715,7 @@ export const auditDtoSchema = z.object({
   details: z.unknown(),
   ip: z.string().nullable(),
 });
+export type AuditDto = z.infer<typeof auditDtoSchema>;
 
 export const eventsQuerySchema = z.object({
   sinceId: z.coerce.number().int().nonnegative().optional(),

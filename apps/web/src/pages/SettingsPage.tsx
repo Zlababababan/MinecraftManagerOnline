@@ -22,8 +22,10 @@ import { notifications } from '@mantine/notifications';
 
 import { usePushStatus, useSettings, useUpdateSettings } from '../api/phase10.js';
 import { AccessCard } from '../components/admin/AccessCard.js';
+import { AuditCard } from '../components/admin/AuditCard.js';
 import { DistributionCard } from '../components/admin/DistributionCard.js';
 import { PanelBackupsCard } from '../components/admin/PanelBackupsCard.js';
+import { UsersCard } from '../components/admin/UsersCard.js';
 import { useT } from '../i18n/hooks.js';
 import { describeError } from '../lib/errors.js';
 
@@ -153,10 +155,12 @@ export function SettingsPage() {
     <Stack gap="lg" data-testid="settings-page">
       <Title order={2}>{t('web:settings.title')}</Title>
       {settings.data !== undefined && <GeneralCard settings={settings.data.settings} />}
+      <UsersCard />
       <AccessCard />
       <DistributionCard />
       <PanelBackupsCard />
       <PushAdminCard />
+      <AuditCard />
     </Stack>
   );
 }
