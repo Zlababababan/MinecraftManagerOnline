@@ -10,6 +10,8 @@ Plateformes packagées : **Windows x64**, **Linux x64**, **Linux ARM64** (Raspbe
 
 Récupérez l'archive `mmo-panel-<version>-<plateforme>.zip` (Windows) ou `.tar.gz` (Linux / macOS) de la release. Elle contient le runtime Node épinglé, le panel, l'interface web et les archives d'installation des agents pour les 4 plateformes (`dist-agent/`).
 
+> Pas d'archive disponible pour votre plateforme ? Construisez-la depuis les sources en deux commandes : voir « Démarrage rapide » dans le [README](../../README.md).
+
 ### 1.2 Extraire et lancer
 
 **Windows** — extrayez dans un dossier permanent, par exemple `C:\mmo\panel`, puis :
