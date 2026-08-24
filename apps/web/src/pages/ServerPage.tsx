@@ -9,7 +9,6 @@ import {
   Group,
   Loader,
   NumberInput,
-  ScrollArea,
   SimpleGrid,
   Stack,
   Switch,
@@ -43,6 +42,7 @@ import {
 
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { EventsList } from '../components/EventsList.js';
+import { ScrollableTabsList } from '../components/ScrollableTabsList.js';
 import { RunStateBadge } from '../components/badges.js';
 import { EulaCard } from '../components/config/EulaCard.js';
 import { PlayerAccessCard } from '../components/access/PlayerAccessCard.js';
@@ -350,9 +350,7 @@ export function ServerPage({ serverId, tab }: { serverId: string; tab: ServerTab
         }}
         keepMounted={false}
       >
-        {/* Barre visible quand les onglets débordent (fenêtre étroite/mobile) — `never` cachait
-            l'existence des onglets hors champ et bloquait le défilement à la souris. */}
-        <ScrollArea type="auto" scrollbars="x" scrollbarSize={6}>
+        <ScrollableTabsList activeValue={tab}>
           <Tabs.List style={{ flexWrap: 'nowrap', minWidth: 'max-content' }}>
             {SERVER_TABS.map((name) => (
               <Tabs.Tab key={name} value={name} data-testid={`tab-${name}`}>
@@ -360,7 +358,7 @@ export function ServerPage({ serverId, tab }: { serverId: string; tab: ServerTab
               </Tabs.Tab>
             ))}
           </Tabs.List>
-        </ScrollArea>
+        </ScrollableTabsList>
         <Tabs.Panel value="overview" pt="md">
           <Overview server={s} />
         </Tabs.Panel>

@@ -53,6 +53,8 @@ export const webEn = {
     ago: '{{value}} ago',
     now: 'just now',
     reload: 'Reload the page',
+    scrollLeft: 'Scroll left',
+    scrollRight: 'Scroll right',
     staleVersion:
       'The panel was updated while this page was open. Reload to switch to the new version.',
   },

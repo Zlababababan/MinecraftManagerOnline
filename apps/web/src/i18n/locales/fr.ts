@@ -51,6 +51,8 @@ export const webFr = {
     ago: 'il y a {{value}}',
     now: 'à l’instant',
     reload: 'Recharger la page',
+    scrollLeft: 'Défiler vers la gauche',
+    scrollRight: 'Défiler vers la droite',
     staleVersion:
       'Le panel a été mis à jour pendant que cette page était ouverte. Rechargez pour passer à la nouvelle version.',
   },
