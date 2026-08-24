@@ -431,6 +431,103 @@ describe('phase 8 — panel ↔ agent réels', () => {
     expect(panel.ctx.scheduler.list(server.id)).toHaveLength(1);
   });
 
+  it('planificateur v2 : multi-horaires, exécution unique, occurrence manquée', async () => {
+    // Validation : cron/runAt mutuellement exclusifs, runAt passé et expression invalide refusés.
+    let res = await api('POST', `/api/servers/${server.id}/schedules`, {
+      action: 'start',
+      cron: '0 8 * * *',
+      runAt: Date.now() + 3_600_000,
+    });
+    expect(res.statusCode).toBe(400);
+    res = await api('POST', `/api/servers/${server.id}/schedules`, { action: 'start' });
+    expect(res.statusCode).toBe(400);
+    res = await api('POST', `/api/servers/${server.id}/schedules`, {
+      action: 'start',
+      runAt: Date.now() - 1000,
+    });
+    expect(res.statusCode).toBe(400);
+    res = await api('POST', `/api/servers/${server.id}/schedules`, {
+      action: 'start',
+      cron: '0 8 * * *\npas du cron',
+    });
+    expect(res.statusCode).toBe(400);
+
+    // Multi-horaires : une expression par ligne, prochaine échéance = minimum des trois.
+    res = await api('POST', `/api/servers/${server.id}/schedules`, {
+      action: 'start',
+      cron: '0 8 * * *\n30 12 * * *\n0 20 * * *',
+    });
+    expect(res.statusCode).toBe(200);
+    interface Sched {
+      id: string;
+      cron: string | null;
+      runAt: number | null;
+      enabled: boolean;
+      nextRunAt: number | null;
+      lastStatus: string | null;
+    }
+    const multi = res.json<{ schedule: Sched }>().schedule;
+    expect(multi.cron).toBe('0 8 * * *\n30 12 * * *\n0 20 * * *');
+    expect(multi.runAt).toBeNull();
+    expect(multi.nextRunAt).toBeGreaterThan(Date.now() - 60_000);
+    const nd = new Date(multi.nextRunAt ?? 0);
+    expect(['8:0', '12:30', '20:0']).toContain(
+      `${String(nd.getHours())}:${String(nd.getMinutes())}`,
+    );
+
+    // Exécution unique : nextRunAt = runAt, cron null ; échéance forcée à l'instant → exécutée
+    // (le serveur démarre) puis désactivée sans réarmement.
+    const runAt = Date.now() + 3_600_000;
+    res = await api('POST', `/api/servers/${server.id}/schedules`, { action: 'start', runAt });
+    expect(res.statusCode).toBe(200);
+    const once = res.json<{ schedule: Sched }>().schedule;
+    expect(once.cron).toBeNull();
+    expect(once.runAt).toBe(runAt);
+    expect(once.nextRunAt).toBe(runAt);
+    const { sql } = await import('drizzle-orm');
+    panel.ctx.db.run(
+      sql`UPDATE scheduled_tasks SET run_at = ${Date.now() - 1000}, next_run_at = ${Date.now() - 1000} WHERE id = ${once.id}`,
+    );
+    expect(await panel.ctx.scheduler.tick()).toEqual([once.id]);
+    await waitFor(() => panel.ctx.servers.require(server.id).runState === 'running', 15_000);
+    const done = panel.ctx.scheduler.toDto(panel.ctx.scheduler.require(once.id));
+    expect(done.lastStatus).toBe('ok');
+    expect(done.enabled).toBe(false);
+    expect(done.nextRunAt).toBeNull();
+    expect(await panel.ctx.scheduler.tick()).toEqual([]);
+
+    // Réarmement : fournir un nouveau runAt à l'update réactive la tâche.
+    const runAt2 = Date.now() + 7_200_000;
+    res = await api('PUT', `/api/servers/${server.id}/schedules/${once.id}`, { runAt: runAt2 });
+    expect(res.statusCode).toBe(200);
+    expect(res.json<{ schedule: Sched }>().schedule).toMatchObject({
+      enabled: true,
+      runAt: runAt2,
+      nextRunAt: runAt2,
+    });
+
+    // Occurrence manquée (retard > tolérance) : jamais exécutée, `missed` définitif, événement
+    // d'avertissement (→ notification schedule.failed).
+    panel.ctx.db.run(
+      sql`UPDATE scheduled_tasks SET run_at = ${Date.now() - 11 * 60_000}, next_run_at = ${Date.now() - 11 * 60_000} WHERE id = ${once.id}`,
+    );
+    expect(await panel.ctx.scheduler.tick()).toEqual([]);
+    const missed = panel.ctx.scheduler.toDto(panel.ctx.scheduler.require(once.id));
+    expect(missed.lastStatus).toBe('missed');
+    expect(missed.enabled).toBe(false);
+    expect(missed.nextRunAt).toBeNull();
+    const warned = panel.ctx.events
+      .list({ serverId: server.id, type: 'schedule.run' })
+      .filter((e) => e.severity === 'warning')
+      .map((e) => e.payload as { scheduleId?: string; status?: string });
+    expect(warned.some((p) => p.scheduleId === once.id && p.status === 'missed')).toBe(true);
+    // Et re-tick : une tâche manquée reste manquée.
+    expect(await panel.ctx.scheduler.tick()).toEqual([]);
+    expect(panel.ctx.scheduler.toDto(panel.ctx.scheduler.require(once.id)).lastStatus).toBe(
+      'missed',
+    );
+  });
+
   it('agent perdu pendant une task → stalled, puis réconciliation à la reconnexion ; VACUUM INTO', async () => {
     // Task fantôme côté panel (ordre jamais parvenu à l'agent) : inconnue de l'agent → E_INTERRUPTED.
     panel.ctx.tasks.create({

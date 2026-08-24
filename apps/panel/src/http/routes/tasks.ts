@@ -357,7 +357,12 @@ export function registerTaskRoutes(app: FastifyInstance, ctx: AppContext): void 
         targetType: 'server',
         targetId: row.id,
         targetLabel: row.name,
-        details: { scheduleId: schedule.id, action: schedule.action, cron: schedule.cron },
+        details: {
+          scheduleId: schedule.id,
+          action: schedule.action,
+          cron: schedule.cron,
+          runAt: schedule.runAt,
+        },
       });
       return { schedule: ctx.scheduler.toDto(schedule) };
     },

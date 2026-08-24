@@ -399,7 +399,10 @@ export const scheduledTasks = sqliteTable(
     action: text('action', {
       enum: ['start', 'stop', 'restart', 'backup', 'command', 'announce'],
     }).notNull(),
+    // Récurrence : 1 à 10 expressions à 5 champs, une par ligne ; '' si exécution unique (run_at).
     cron: text('cron').notNull(),
+    // Exécution unique à cet instant (epoch ms) ; NULL si récurrente (cron).
+    runAt: integer('run_at'),
     payload: text('payload'),
     enabled: integer('enabled').notNull().default(1),
     lastRunAt: integer('last_run_at'),

@@ -533,7 +533,10 @@ export const scheduledTaskDtoSchema = z.object({
   id: z.string(),
   serverId: z.string().nullable(),
   action: scheduledActionSchema,
-  cron: z.string(),
+  /** Récurrence : 1 à 10 expressions à 5 champs, une par ligne. `null` si exécution unique. */
+  cron: z.string().nullable(),
+  /** Exécution unique à cet instant (epoch ms, heure du panel). `null` si récurrente. */
+  runAt: epochMsSchema.nullable(),
   payload: schedulePayloadSchema.nullable(),
   enabled: z.boolean(),
   lastRunAt: epochMsSchema.nullable(),
@@ -546,7 +549,10 @@ export type ScheduledTaskDto = z.infer<typeof scheduledTaskDtoSchema>;
 
 export const scheduledTaskInputSchema = z.object({
   action: scheduledActionSchema,
-  cron: z.string().min(9).max(100),
+  /** Récurrence (exclusif avec `runAt`) : 1 à 10 expressions à 5 champs, une par ligne. */
+  cron: z.string().min(9).max(400).optional(),
+  /** Exécution unique à cet instant (exclusif avec `cron`) ; la fournir réarme la tâche. */
+  runAt: epochMsSchema.optional(),
   payload: schedulePayloadSchema.nullable().optional(),
   enabled: z.boolean().optional(),
 });

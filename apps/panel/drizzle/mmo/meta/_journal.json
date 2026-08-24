@@ -29,6 +29,13 @@
       "when": 1787418461386,
       "tag": "0003_phase10",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1787592867957,
+      "tag": "0004_scheduler_v2",
+      "breakpoints": true
     }
   ]
 }
