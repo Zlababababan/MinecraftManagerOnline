@@ -31,6 +31,7 @@ interface Captured {
   players: ParsedEventPayload<'player.event'>[];
   lines: ParsedEventPayload<'console.lines'>[];
   heartbeats: EventPayload<'agent.heartbeat'>[];
+  updates: ParsedEventPayload<'agent.updateResult'>[];
   acked: string[];
 }
 
@@ -62,6 +63,9 @@ function panelBehaviour(cap: Captured) {
     peer.on('agent.heartbeat', (p) => {
       cap.heartbeats.push(p);
     });
+    peer.on('agent.updateResult', (p) => {
+      cap.updates.push(p);
+    });
   };
 }
 
@@ -84,6 +88,7 @@ describe('agent de bout en bout (faux panel + fake Java server)', () => {
       players: [],
       lines: [],
       heartbeats: [],
+      updates: [],
       acked: [],
     };
     panel = await createFakePanel(panelBehaviour(cap));
@@ -334,6 +339,51 @@ describe('agent de bout en bout (faux panel + fake Java server)', () => {
     });
     const java = await peer.request('java.list', {});
     expect(Array.isArray(java.runtimes)).toBe(true);
+  });
+
+  it('issue `applied` écrite après la connexion (réaction du launcher au healthy) : remontée sans redémarrage', async () => {
+    const { dir: home, cleanup: cleanupHome } = await tmpDir('mmo-e2e-home-');
+    try {
+      agent = new Agent({
+        stateDir,
+        panelUrl: panel.url,
+        logger,
+        scanIntervalMs: 0,
+        restrictPermissions: false,
+        backoff: { baseMs: 50, maxMs: 200 },
+        agentHome: home,
+        updateResultDelaysMs: [0, 200, 3000],
+      });
+      await agent.store.load();
+      await agent.store.update((s) => {
+        s.agentId = 'agt_1';
+        s.agentSecret = 'b'.repeat(64);
+      });
+      await agent.start();
+      await waitForPeer(panel);
+      await waitFor(() => cap.syncs.length === 1, 5000);
+      // Le launcher n'écrit l'issue `applied` qu'en recevant notre `healthy` : le fichier apparaît
+      // APRÈS la lecture faite à la connexion. Les relectures différées doivent le trouver.
+      await writeFile(
+        path.join(home, 'update-result.json'),
+        JSON.stringify({
+          kind: 'agent',
+          status: 'applied',
+          version: '1.1.0',
+          otherVersion: '1.0.0',
+          ts: 7,
+        }),
+      );
+      await waitFor(() => cap.updates.length === 1, 10_000);
+      expect(cap.updates[0]).toMatchObject({
+        kind: 'agent',
+        status: 'applied',
+        version: '1.1.0',
+        otherVersion: '1.0.0',
+      });
+    } finally {
+      await cleanupHome();
+    }
   });
 });
 

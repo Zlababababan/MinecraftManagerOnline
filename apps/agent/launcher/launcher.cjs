@@ -49,7 +49,17 @@ function readJson(file) {
 function writeJson(file, value) {
   const p = path.join(HOME, file);
   fs.writeFileSync(`${p}.tmp`, JSON.stringify(value, null, 2) + '\n');
-  fs.renameSync(`${p}.tmp`, p);
+  // Windows : rename peut échouer EPERM/EBUSY si la cible est ouverte (agent en train de la
+  // consommer, antivirus) — réessayer brièvement plutôt que de laisser l'exception remonter.
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      fs.renameSync(`${p}.tmp`, p);
+      return;
+    } catch (error) {
+      if (attempt >= 5) throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50 * attempt);
+    }
+  }
 }
 function remove(file) {
   try {
@@ -78,7 +88,20 @@ function listVersions() {
   }
 }
 function reportResult(kind, status, version, otherVersion, reason) {
-  writeJson('update-result.json', { kind, status, version, otherVersion, reason, ts: Date.now() });
+  // Ne doit JAMAIS tuer le launcher : la bascule est déjà actée (current.json/trial.json) — au
+  // pire l'agent ne remontera pas l'issue au panel (journalisée ici dans tous les cas).
+  try {
+    writeJson('update-result.json', {
+      kind,
+      status,
+      version,
+      otherVersion,
+      reason,
+      ts: Date.now(),
+    });
+  } catch (error) {
+    log(`failed to write update-result.json: ${error.message}`);
+  }
   log(
     `${kind} ${status}: ${version}${otherVersion ? ` (other: ${otherVersion})` : ''}${reason ? ` — ${reason}` : ''}`,
   );

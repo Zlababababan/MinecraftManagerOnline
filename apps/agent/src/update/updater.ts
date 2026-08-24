@@ -215,18 +215,31 @@ export class AgentUpdater {
 
   // --- Issue des mises à jour (écrite par le launcher) --------------------------------------------
 
-  /** Lit puis supprime `update-result.json` (issue de la dernière bascule du launcher). */
+  /**
+   * Consomme `update-result.json` (issue de la dernière bascule du launcher) : revendication par
+   * rename (atomique) puis lecture — un `rm` direct pouvait effacer, sans le lire, un résultat que
+   * le launcher venait de réécrire entre notre lecture et la suppression (course observée sur le
+   * test manuel 1.0 : `applied` perdu). Si le launcher écrit après la revendication, le nouveau
+   * fichier reste en place pour l'appel suivant.
+   */
   async consumeUpdateResult(): Promise<UpdateResultPayload | undefined> {
     const home = this.options.home;
     if (home === undefined) return undefined;
     const file = path.join(home, 'update-result.json');
-    let raw: string;
+    const claimed = path.join(home, `update-result.${String(process.pid)}.consumed.json`);
     try {
-      raw = await readFile(file, 'utf8');
+      await rename(file, claimed);
     } catch {
       return undefined;
     }
-    await rm(file, { force: true }).catch(() => undefined);
+    let raw: string;
+    try {
+      raw = await readFile(claimed, 'utf8');
+    } catch {
+      return undefined;
+    } finally {
+      await rm(claimed, { force: true }).catch(() => undefined);
+    }
     try {
       const j = JSON.parse(raw) as Partial<UpdateResultPayload> & { ts?: number };
       if (

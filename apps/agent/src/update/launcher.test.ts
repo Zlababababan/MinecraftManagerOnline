@@ -145,6 +145,24 @@ describe('launcher : bascule, health-check, rollback', () => {
     expect(await json('trial.json')).toBeUndefined();
   });
 
+  it("échec d'écriture d'update-result.json : bascule appliquée, launcher vivant", async () => {
+    await setup(
+      { '1.0.0': fakeBundle('update-then-healthy'), '1.1.0': fakeBundle('healthy') },
+      '1.0.0',
+    );
+    // Cible non remplaçable (dossier non vide) : simule l'EPERM Windows observé quand l'agent
+    // tient le fichier au moment du rename (test manuel 1.0) — le launcher crashait.
+    await mkdir(path.join(home, 'update-result.json'), { recursive: true });
+    await writeFile(path.join(home, 'update-result.json', 'occupe'), 'x');
+    start();
+    await waitFor(async () => (await starts()).includes('1.1.0'), 20_000);
+    await waitFor(async () => (await json('trial.json')) === undefined, 20_000);
+    // reportResult a échoué (5 tentatives ≈ 500 ms) : laisser passer la fenêtre puis vérifier.
+    await new Promise((r) => setTimeout(r, 1000));
+    expect(child?.exitCode).toBeNull();
+    expect(await json('current.json')).toEqual({ version: '1.1.0' });
+  });
+
   it('phase 11 — `--version` : exécution unique, code de sortie rendu tel quel, pas de relance', async () => {
     await setup(
       {

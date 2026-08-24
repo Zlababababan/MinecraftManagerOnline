@@ -5,7 +5,7 @@
  * + `runtime-next.json` ; `update-result.json` consommé une seule fois.
  */
 import { createHash, generateKeyPairSync, sign } from 'node:crypto';
-import { readFile, stat, writeFile } from 'node:fs/promises';
+import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 
@@ -181,6 +181,19 @@ describe('AgentUpdater', () => {
       reason: 'crash_loop',
     });
     expect(await updater.consumeUpdateResult()).toBeUndefined();
+
+    // Résultats successifs (ex. applied écrit par le launcher après notre healthy) : chacun est
+    // revendiqué par rename puis lu — jamais supprimé sans lecture — sans résidu `*.consumed`.
+    await writeFile(
+      path.join(home, 'update-result.json'),
+      JSON.stringify({ kind: 'runtime', status: 'applied', version: '24.18.0', ts: 6 }),
+    );
+    expect(await updater.consumeUpdateResult()).toMatchObject({
+      kind: 'runtime',
+      status: 'applied',
+      version: '24.18.0',
+    });
+    expect((await readdir(home)).filter((f) => f.includes('consumed'))).toEqual([]);
   });
 
   it('runtime.update : archive zip vérifiée, extraite, runtime-next.json', async () => {

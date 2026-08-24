@@ -123,6 +123,12 @@ export interface AgentOptions {
   agentHome?: string | undefined;
   /** Phase 9 : clés publiques Ed25519 acceptées (tests) ; défaut : clés embarquées. */
   updatePublicKeys?: readonly string[];
+  /**
+   * Délais (ms) des lectures d'`update-result.json` après la première session. Le launcher écrit
+   * l'issue `applied` en réaction à notre `healthy` : une lecture unique au même instant la
+   * manquait systématiquement (remontée au redémarrage suivant, voire perdue). Tests uniquement.
+   */
+  updateResultDelaysMs?: readonly number[];
   /** Phase 9 : version annoncée (tests de mise à jour) ; défaut `AGENT_VERSION`. */
   agentVersion?: string;
   /** Phase 9 : adresses annoncées par `transfer.serve` (tests : `127.0.0.1`). */
@@ -436,9 +442,17 @@ export class Agent {
     this.updater.notifyHealthy();
     if (!this.updateResultReported) {
       this.updateResultReported = true;
-      void this.updater.consumeUpdateResult().then((result) => {
-        if (result) this.emit('agent.updateResult', (eventId) => ({ eventId, ...result }));
-      });
+      // Plusieurs lectures : le launcher écrit l'issue `applied` en réaction au `healthy` qu'on
+      // vient d'envoyer — une lecture immédiate unique arrivait toujours avant l'écriture.
+      const consume = () => {
+        void this.updater.consumeUpdateResult().then((result) => {
+          if (result) this.emit('agent.updateResult', (eventId) => ({ eventId, ...result }));
+        });
+      };
+      for (const delayMs of this.options.updateResultDelaysMs ?? [0, 1000, 5000]) {
+        if (delayMs === 0) consume();
+        else setTimeout(consume, delayMs).unref();
+      }
     }
     const replayed = this.metrics.replay();
     if (replayed > 0) this.logger.info('replayed buffered metrics', { count: replayed });
