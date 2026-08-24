@@ -12,7 +12,7 @@ Environnement visé (déjà en place sur le poste de dev) : panel de test `D:\mm
 
 ## 1. Machine et tableau de bord
 
-- [ ] La carte machine affiche CPU/RAM/disque qui bougent (rafraîchissement ~15 s).
+- [ ] La carte machine affiche CPU/RAM/disque qui bougent, avec « Mis à jour à l'instant / il y a X s » sous les jauges (rafraîchissement ~15 s, précisé dans l'infobulle).
 - [ ] La machine `WSL-Ubuntu` apparaît **hors ligne** (normal : WSL désinstallé) — la supprimer via son menu, elle ne doit plus revenir.
 
 ## 2. Détection d'un nouveau serveur

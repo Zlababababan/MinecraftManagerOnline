@@ -123,6 +123,8 @@ export const webEn = {
     },
     connected: 'Connected',
     lastSeen: 'Last seen',
+    updated: 'Updated',
+    refreshHint: 'Refreshes automatically every ~15 s',
     cpu: 'CPU',
     ram: 'RAM',
     disk: 'Disk',

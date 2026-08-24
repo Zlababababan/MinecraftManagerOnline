@@ -224,6 +224,8 @@ describe('App', () => {
     expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
     expect(screen.getByTestId('stat-machines')).toHaveTextContent('1');
     expect(screen.getByTestId('machine-link')).toHaveTextContent('Tour');
+    // Fraîcheur du heartbeat affichée (ts=1 → ancien, donc « il y a … »).
+    expect(screen.getByTestId('machine-updated')).toHaveTextContent(/^Mis à jour il y a /);
     const card = screen.getByTestId('server-card');
     expect(card).toHaveTextContent('Vanilla');
 

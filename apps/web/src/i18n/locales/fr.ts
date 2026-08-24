@@ -121,6 +121,8 @@ export const webFr = {
     },
     connected: 'Connectée',
     lastSeen: 'Vue pour la dernière fois',
+    updated: 'Mis à jour',
+    refreshHint: 'Actualisation automatique toutes les ~15 s',
     cpu: 'CPU',
     ram: 'RAM',
     disk: 'Disque',

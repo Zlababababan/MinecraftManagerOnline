@@ -6,7 +6,7 @@ import { useT } from '../i18n/hooks.js';
 
 import type { MachineDto } from '@mmo/protocol/client';
 
-import { ago, formatGb, formatMb, formatPct } from '../lib/format.js';
+import { ago, formatDuration, formatGb, formatMb, formatPct } from '../lib/format.js';
 import { MachineStatusBadge } from './badges.js';
 
 function Gauge({ label, value, text }: { label: string; value: number | undefined; text: string }) {
@@ -48,6 +48,8 @@ export function MachineHeader({
       ? (hb.diskUsedGb / hb.diskTotalGb) * 100
       : undefined;
   const seen = ago(machine.lastSeenAt, now);
+  // Fraîcheur du heartbeat : « à l'instant » sous 10 s (cadence du tick useNow), sinon « il y a X ».
+  const hbAge = hb === undefined ? undefined : Math.max(0, now - hb.ts);
   return (
     <Group justify="space-between" align="flex-start" wrap="wrap" gap="md">
       <Stack gap={2} style={{ minWidth: 0 }}>
@@ -86,37 +88,47 @@ export function MachineHeader({
         </Text>
       </Stack>
       {hb !== undefined && machine.connected && (
-        <Group gap="md" wrap="wrap">
-          <Tooltip
-            label={hb.cpuSource === undefined ? 'CPU' : t(`common:cpuSource.${hb.cpuSource}`)}
-            withArrow
-          >
-            <Group gap={4} wrap="nowrap" align="flex-end">
-              <Gauge label={t('web:machine.cpu')} value={hb.cpuPct} text={formatPct(hb.cpuPct)} />
-              {hb.cpuSource === 'ticks' && (
-                <ThemeIcon
-                  size="sm"
-                  variant="light"
-                  color="yellow"
-                  aria-label={t('web:metrics.cpuTicks.title')}
-                  data-testid="cpu-ticks-icon"
-                >
-                  <IconAlertTriangle size={12} />
-                </ThemeIcon>
-              )}
-            </Group>
+        <Stack gap={4} align="flex-end">
+          <Group gap="md" wrap="wrap">
+            <Tooltip
+              label={hb.cpuSource === undefined ? 'CPU' : t(`common:cpuSource.${hb.cpuSource}`)}
+              withArrow
+            >
+              <Group gap={4} wrap="nowrap" align="flex-end">
+                <Gauge label={t('web:machine.cpu')} value={hb.cpuPct} text={formatPct(hb.cpuPct)} />
+                {hb.cpuSource === 'ticks' && (
+                  <ThemeIcon
+                    size="sm"
+                    variant="light"
+                    color="yellow"
+                    aria-label={t('web:metrics.cpuTicks.title')}
+                    data-testid="cpu-ticks-icon"
+                  >
+                    <IconAlertTriangle size={12} />
+                  </ThemeIcon>
+                )}
+              </Group>
+            </Tooltip>
+            <Gauge
+              label={t('web:machine.ram')}
+              value={ramPct}
+              text={`${formatMb(hb.ramUsedMb)} / ${formatMb(hb.ramTotalMb ?? machine.ramTotalMb)}`}
+            />
+            <Gauge
+              label={t('web:machine.disk')}
+              value={diskPct}
+              text={`${formatGb(hb.diskUsedGb)} / ${formatGb(hb.diskTotalGb)}`}
+            />
+          </Group>
+          <Tooltip label={t('web:machine.refreshHint')} withArrow>
+            <Text size="xs" c="dimmed" data-testid="machine-updated">
+              {t('web:machine.updated')}{' '}
+              {hbAge !== undefined && hbAge < 10_000
+                ? t('web:common.now')
+                : t('web:common.ago', { value: formatDuration(hbAge ?? 0) })}
+            </Text>
           </Tooltip>
-          <Gauge
-            label={t('web:machine.ram')}
-            value={ramPct}
-            text={`${formatMb(hb.ramUsedMb)} / ${formatMb(hb.ramTotalMb ?? machine.ramTotalMb)}`}
-          />
-          <Gauge
-            label={t('web:machine.disk')}
-            value={diskPct}
-            text={`${formatGb(hb.diskUsedGb)} / ${formatGb(hb.diskTotalGb)}`}
-          />
-        </Group>
+        </Stack>
       )}
     </Group>
   );
