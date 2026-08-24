@@ -203,3 +203,37 @@ export function nextCronRun(expression: string, after: number): number | undefin
     return undefined;
   }
 }
+
+// --- Listes d'expressions (Planificateur v2) --------------------------------------------------
+// Une planification peut combiner plusieurs échéances (« tous les jours à 8h00, 12h30 et
+// 20h00 ») : plusieurs expressions à 5 champs dans une même chaîne, une par ligne.
+
+/** Nombre maximal d'expressions dans une liste. */
+export const CRON_LIST_MAX = 10;
+
+/** Découpe une liste d'expressions (une par ligne) ; lignes vides ignorées. */
+export function splitCronList(text: string): string[] {
+  return text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '');
+}
+
+/** Liste valide : 1 à `CRON_LIST_MAX` expressions, toutes analysables. */
+export function isValidCronList(text: string): boolean {
+  const list = splitCronList(text);
+  return list.length >= 1 && list.length <= CRON_LIST_MAX && list.every((e) => isValidCron(e));
+}
+
+/**
+ * Prochaine occurrence parmi toutes les expressions de la liste (le minimum) ; `undefined` si
+ * aucune expression n'a d'occurrence (liste vide, invalide, ou ex. `31 feb`).
+ */
+export function nextCronRunList(text: string, after: number): number | undefined {
+  let best: number | undefined;
+  for (const expression of splitCronList(text)) {
+    const next = nextCronRun(expression, after);
+    if (next !== undefined && (best === undefined || next < best)) best = next;
+  }
+  return best;
+}

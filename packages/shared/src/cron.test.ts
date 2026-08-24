@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { CronError, cronMatches, cronNext, isValidCron, nextCronRun, parseCron } from './cron.js';
+import {
+  CronError,
+  cronMatches,
+  cronNext,
+  isValidCron,
+  isValidCronList,
+  nextCronRun,
+  nextCronRunList,
+  parseCron,
+  splitCronList,
+} from './cron.js';
 
 const local = (y: number, m: number, d: number, h = 0, min = 0): number =>
   new Date(y, m - 1, d, h, min, 0, 0).getTime();
@@ -73,5 +83,34 @@ describe('cron — prochaine occurrence (heure locale)', () => {
     expect(cronMatches(spec, new Date(local(2026, 8, 24, 6, 30)))).toBe(true); // lundi
     expect(cronMatches(spec, new Date(local(2026, 8, 23, 6, 30)))).toBe(false); // dimanche
     expect(cronMatches(spec, new Date(local(2026, 8, 24, 6, 31)))).toBe(false);
+  });
+});
+
+describe('cron — listes d’expressions (une par ligne)', () => {
+  it('découpe en ignorant les lignes vides et les espaces', () => {
+    expect(splitCronList('0 8 * * *\n\n  30 12 * * *  \n')).toEqual(['0 8 * * *', '30 12 * * *']);
+    expect(splitCronList('')).toEqual([]);
+  });
+
+  it('valide chaque expression et borne la taille', () => {
+    expect(isValidCronList('0 8 * * *')).toBe(true);
+    expect(isValidCronList('0 8 * * *\n30 12 * * *\n0 20 * * *')).toBe(true);
+    expect(isValidCronList('')).toBe(false);
+    expect(isValidCronList('0 8 * * *\npas du cron')).toBe(false);
+    expect(isValidCronList(Array(11).fill('0 8 * * *').join('\n'))).toBe(false);
+  });
+
+  it('prochaine occurrence = minimum des expressions', () => {
+    const after = local(2026, 8, 24, 10, 0); // lundi 10h00
+    expect(nextCronRunList('0 8 * * *\n30 12 * * *\n0 20 * * *', after)).toBe(
+      local(2026, 8, 24, 12, 30),
+    );
+    expect(nextCronRunList('0 8 * * *', local(2026, 8, 24, 9, 0))).toBe(
+      nextCronRun('0 8 * * *', local(2026, 8, 24, 9, 0)),
+    );
+    // Les expressions sans occurrence sont ignorées ; aucune occurrence → undefined.
+    expect(nextCronRunList('0 0 31 feb *\n0 20 * * *', after)).toBe(local(2026, 8, 24, 20, 0));
+    expect(nextCronRunList('0 0 31 feb *', after)).toBeUndefined();
+    expect(nextCronRunList('', after)).toBeUndefined();
   });
 });
