@@ -84,11 +84,11 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 | Démarrage / arrêt / redémarrage programmés | V1 |
 | Messages d'annonce en jeu avant un arrêt | V1 |
 | Tâches personnalisées (commande planifiée) | Futur |
-| Exécution unique (« le [date] à [heure] », sans récurrence) | Futur — Planificateur v2 |
-| Plusieurs horaires par jour dans une même planification | Futur — Planificateur v2 |
-| Fréquences en langage simple, expression cron reléguée à un mode avancé replié | Futur — Planificateur v2 |
+| Exécution unique (« le [date] à [heure] », sans récurrence) | V1 (Planificateur v2, 2026-08-24) |
+| Plusieurs horaires par jour dans une même planification | V1 (Planificateur v2, 2026-08-24) |
+| Fréquences en langage simple, expression cron reléguée à un mode avancé replié | V1 (Planificateur v2, 2026-08-24) |
 
-> **Chantier « Planificateur v2 » (acté 2026-08-24, recette utilisateur)** : premier développement post-1.0. Constat de recette : « cron » et l'expression à étoiles sont du jargon inaccessible aux débutants, l'heure quotidienne est mal saisie, l'exécution unique et le multi-horaires manquent. Concerne le planificateur du serveur **et** les planifications de sauvegarde (même composant `CronInput`). « Prochaine exécution » reste visible pour tous.
+> **Planificateur v2 (livré 2026-08-24, premier développement post-1.0)** : constat de recette — « cron » et l'expression à étoiles sont du jargon inaccessible aux débutants, l'heure quotidienne était mal saisie, l'exécution unique et le multi-horaires manquaient. Livré : composant `ScheduleInput` commun au planificateur du serveur et aux politiques de sauvegarde — fréquences en français (« Tous les jours », « Certains jours de la semaine » à puces multi-jours, « Toutes les N heures », « Une seule fois », « Avancé »), sélecteurs natifs date/heure, plusieurs horaires par jour (planificateur seulement : plusieurs expressions cron, une par ligne — les politiques de sauvegarde restent à un horaire par politique, cron simple compris par tous les agents), « Prochaine exécution » mise en évidence et descriptions en langage simple dans les listes. Exécution unique : `runAt` côté serveur (voir doc 04 §5) ; manquée si le panel était éteint à l'heure prévue (tolérance 10 min), définitivement — badge « Manquée » explicite dans l'UI.
 
 ## 9. Utilisateurs et sécurité
 

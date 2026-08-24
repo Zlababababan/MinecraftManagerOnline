@@ -5,7 +5,6 @@
  * (cron + rotation) poussées à l'agent et exécutées par lui, panel éteint ou non.
  */
 import {
-  Anchor,
   Badge,
   Button,
   Card,
@@ -49,7 +48,7 @@ import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
 import { formatBytes, formatDateTime, hasRole } from '../../lib/format.js';
 import { ErrorAlert } from '../ErrorAlert.js';
-import { CronInput } from '../schedule/CronInput.js';
+import { ScheduleInput, describeWhen, isScheduleValid } from '../schedule/ScheduleInput.js';
 import { TaskProgressRow, isActiveTask } from '../tasks/TaskProgress.js';
 
 function kindColor(kind: BackupDto['kind']): string {
@@ -454,7 +453,14 @@ function PoliciesCard({
             <Group key={p.id} justify="space-between" wrap="wrap" data-testid={`policy-${p.id}`}>
               <Stack gap={0}>
                 <Group gap="xs">
-                  <code>{p.cron}</code>
+                  <Text size="sm" fw={600}>
+                    {describeWhen(
+                      p.cron,
+                      null,
+                      i18n.t as (k: string, o?: Record<string, unknown>) => string,
+                      i18n.language,
+                    )}
+                  </Text>
                   {!p.enabled && (
                     <Badge size="xs" color="gray">
                       {t('web:schedule.disabled')}
@@ -562,7 +568,17 @@ function PolicyForm({
   return (
     <Card withBorder padding="sm" data-testid="policy-form">
       <Stack gap="sm">
-        <CronInput value={cron} onChange={setCron} testId="policy-cron" />
+        {/* Une politique = un horaire (cron simple compris par tous les agents) : pas d'exécution
+            unique ni de multi-horaires — créer plusieurs politiques pour plusieurs horaires. */}
+        <ScheduleInput
+          value={{ cron, runAt: null }}
+          onChange={(v) => {
+            setCron(v.cron ?? '');
+          }}
+          allowOnce={false}
+          allowMultipleTimes={false}
+          testId="policy-cron"
+        />
         <Group gap="xs" grow>
           <NumberInput
             label={t('web:backups.keepLastLabel')}
@@ -601,16 +617,14 @@ function PolicyForm({
             onClick={() => {
               onSubmit({ cron, keepLast, keepDays, onlyIfRunning });
             }}
+            disabled={!isScheduleValid({ cron, runAt: null })}
             data-testid="policy-save"
           >
             {t('web:common.save')}
           </Button>
         </Group>
         <Text size="xs" c="dimmed">
-          {t('web:backups.localTimeHint')}{' '}
-          <Anchor href="https://crontab.guru" target="_blank" rel="noreferrer" size="xs">
-            crontab.guru
-          </Anchor>
+          {t('web:backups.localTimeHint')}
         </Text>
       </Stack>
     </Card>

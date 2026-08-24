@@ -32,7 +32,12 @@ import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
 import { formatDateTime, hasRole } from '../../lib/format.js';
 import { ErrorAlert } from '../ErrorAlert.js';
-import { CronInput } from './CronInput.js';
+import {
+  ScheduleInput,
+  describeWhen,
+  isScheduleValid,
+  type ScheduleValue,
+} from './ScheduleInput.js';
 
 const ACTIONS: ScheduledAction[] = ['start', 'stop', 'restart', 'command', 'announce'];
 
@@ -58,7 +63,6 @@ export function SchedulePanel({ server }: { server: ServerDto }) {
     notifications.show({ color: 'red', message: describeError(i18n, error) });
   };
   const schedules = q.data?.schedules ?? [];
-  const tKey = (key: string): string => (i18n.t as (k: string) => string)(key);
 
   return (
     <Stack gap="md" data-testid="schedule-panel">
@@ -113,79 +117,20 @@ export function SchedulePanel({ server }: { server: ServerDto }) {
                 }}
               />
             ) : (
-              <Group
+              <ScheduleRow
                 key={s.id}
-                justify="space-between"
-                wrap="wrap"
-                data-testid={`schedule-${s.id}`}
-              >
-                <Stack gap={0} style={{ minWidth: 0 }}>
-                  <Group gap="xs">
-                    <Text size="sm" fw={600}>
-                      {describeSchedule(s, tKey)}
-                    </Text>
-                    {!s.enabled && (
-                      <Badge size="xs" color="gray">
-                        {t('web:schedule.disabled')}
-                      </Badge>
-                    )}
-                    {s.lastStatus !== null && s.lastStatus !== 'ok' && (
-                      <Badge size="xs" color="red">
-                        {s.lastStatus}
-                      </Badge>
-                    )}
-                  </Group>
-                  <Text size="xs" c="dimmed">
-                    <code>{s.cron}</code>
-                    {s.nextRunAt === null
-                      ? ''
-                      : ` · ${t('web:schedule.nextRun', { date: formatDateTime(s.nextRunAt, i18n.language) })}`}
-                    {s.lastRunAt === null
-                      ? ''
-                      : ` · ${t('web:schedule.lastRun', { date: formatDateTime(s.lastRunAt, i18n.language) })}`}
-                    {(s.payload?.warnMinutes?.length ?? 0) > 0
-                      ? ` · ${t('web:schedule.warnings', { minutes: (s.payload?.warnMinutes ?? []).join(', ') })}`
-                      : ''}
-                  </Text>
-                </Stack>
-                {canAct && (
-                  <Group gap="xs">
-                    <Switch
-                      size="sm"
-                      checked={s.enabled}
-                      label={t('web:schedule.enabled')}
-                      onChange={(e) => {
-                        m.update.mutate(
-                          { scheduleId: s.id, enabled: e.currentTarget.checked },
-                          { onError: fail },
-                        );
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      size="compact-xs"
-                      variant="default"
-                      onClick={() => {
-                        setEditing(s);
-                      }}
-                    >
-                      {t('web:common.edit')}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="compact-xs"
-                      color="red"
-                      variant="subtle"
-                      onClick={() => {
-                        m.remove.mutate(s.id, { onError: fail });
-                      }}
-                      data-testid={`schedule-delete-${s.id}`}
-                    >
-                      {t('web:common.delete')}
-                    </Button>
-                  </Group>
-                )}
-              </Group>
+                s={s}
+                canAct={canAct}
+                onEdit={() => {
+                  setEditing(s);
+                }}
+                onToggle={(enabled) => {
+                  m.update.mutate({ scheduleId: s.id, enabled }, { onError: fail });
+                }}
+                onDelete={() => {
+                  m.remove.mutate(s.id, { onError: fail });
+                }}
+              />
             ),
           )}
           {editing === 'new' && (
@@ -209,6 +154,98 @@ export function SchedulePanel({ server }: { server: ServerDto }) {
   );
 }
 
+function ScheduleRow({
+  s,
+  canAct,
+  onEdit,
+  onToggle,
+  onDelete,
+}: {
+  s: ScheduledTaskDto;
+  canAct: boolean;
+  onEdit: () => void;
+  onToggle: (enabled: boolean) => void;
+  onDelete: () => void;
+}) {
+  const { t, i18n } = useT();
+  const tKey = (key: string, opts?: Record<string, unknown>): string =>
+    (i18n.t as (k: string, o?: Record<string, unknown>) => string)(key, opts);
+  // Exécution unique terminée : exécutée (ok/erreur) ou manquée — plus d'échéance, plus de switch.
+  const finished = s.runAt !== null && s.nextRunAt === null;
+  const missed = s.lastStatus === 'missed';
+  return (
+    <Group justify="space-between" wrap="wrap" data-testid={`schedule-${s.id}`}>
+      <Stack gap={0} style={{ minWidth: 0 }}>
+        <Group gap="xs">
+          <Text size="sm" fw={600}>
+            {describeSchedule(s, tKey)}
+          </Text>
+          {finished && missed && (
+            <Badge size="xs" color="orange">
+              {t('web:schedule.missed')}
+            </Badge>
+          )}
+          {finished && s.lastStatus === 'ok' && (
+            <Badge size="xs" color="teal">
+              {t('web:schedule.executed')}
+            </Badge>
+          )}
+          {!finished && !s.enabled && (
+            <Badge size="xs" color="gray">
+              {t('web:schedule.disabled')}
+            </Badge>
+          )}
+          {s.lastStatus !== null && s.lastStatus !== 'ok' && !missed && (
+            <Badge size="xs" color="red">
+              {s.lastStatus}
+            </Badge>
+          )}
+        </Group>
+        <Text size="xs" c="dimmed">
+          {describeWhen(s.cron, s.runAt, tKey, i18n.language)}
+          {s.nextRunAt === null
+            ? ''
+            : ` · ${t('web:schedule.nextRun', { date: formatDateTime(s.nextRunAt, i18n.language) })}`}
+          {missed ? ` · ${t('web:schedule.missedHint')}` : ''}
+          {s.lastRunAt === null
+            ? ''
+            : ` · ${t('web:schedule.lastRun', { date: formatDateTime(s.lastRunAt, i18n.language) })}`}
+          {(s.payload?.warnMinutes?.length ?? 0) > 0
+            ? ` · ${t('web:schedule.warnings', { minutes: (s.payload?.warnMinutes ?? []).join(', ') })}`
+            : ''}
+        </Text>
+      </Stack>
+      {canAct && (
+        <Group gap="xs">
+          {!finished && (
+            <Switch
+              size="sm"
+              checked={s.enabled}
+              label={t('web:schedule.enabled')}
+              onChange={(e) => {
+                onToggle(e.currentTarget.checked);
+              }}
+            />
+          )}
+          <Button type="button" size="compact-xs" variant="default" onClick={onEdit}>
+            {t('web:common.edit')}
+          </Button>
+          <Button
+            type="button"
+            size="compact-xs"
+            color="red"
+            variant="subtle"
+            onClick={onDelete}
+            data-testid={`schedule-delete-${s.id}`}
+          >
+            {t('web:common.delete')}
+          </Button>
+        </Group>
+      )}
+    </Group>
+  );
+}
+
 function ScheduleForm({
   initial,
   onSubmit,
@@ -220,7 +257,11 @@ function ScheduleForm({
 }) {
   const { t } = useT();
   const [action, setAction] = useState<ScheduledAction>(initial?.action ?? 'restart');
-  const [cron, setCron] = useState(initial?.cron ?? '0 4 * * *');
+  const [when, setWhen] = useState<ScheduleValue>(
+    initial === undefined
+      ? { cron: '0 4 * * *', runAt: null }
+      : { cron: initial.cron, runAt: initial.runAt },
+  );
   const [command, setCommand] = useState(initial?.payload?.command ?? '');
   const [message, setMessage] = useState(initial?.payload?.message ?? '');
   const [warn, setWarn] = useState((initial?.payload?.warnMinutes ?? [5, 1]).join(', '));
@@ -235,7 +276,11 @@ function ScheduleForm({
       ...(message !== '' ? { message } : {}),
       ...(needsWarnings && warnMinutes.length > 0 ? { warnMinutes } : {}),
     };
-    onSubmit({ action, cron, payload });
+    onSubmit({
+      action,
+      ...(when.runAt !== null ? { runAt: when.runAt } : { cron: when.cron ?? '' }),
+      payload,
+    });
   };
   return (
     <Card withBorder padding="sm" data-testid="schedule-form">
@@ -250,7 +295,7 @@ function ScheduleForm({
           }}
           data-testid="schedule-action"
         />
-        <CronInput value={cron} onChange={setCron} testId="schedule-cron" />
+        <ScheduleInput value={when} onChange={setWhen} testId="schedule-cron" />
         {action === 'command' && (
           <TextInput
             label={t('web:schedule.command')}
@@ -288,7 +333,13 @@ function ScheduleForm({
           <Button type="button" variant="default" size="xs" onClick={onCancel}>
             {t('web:common.cancel')}
           </Button>
-          <Button type="button" size="xs" onClick={submit} data-testid="schedule-save">
+          <Button
+            type="button"
+            size="xs"
+            onClick={submit}
+            disabled={!isScheduleValid(when)}
+            data-testid="schedule-save"
+          >
             {t('web:common.save')}
           </Button>
         </Group>

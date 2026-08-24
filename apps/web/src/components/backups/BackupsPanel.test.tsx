@@ -1,13 +1,13 @@
 /**
  * Onglet Sauvegardes contre une API simulée : liste (genre, taille, état, à chaud), création (modal
- * → POST), restauration (modal avec backup de sécurité et relance → POST), politiques (cron, rotation),
- * progression d'une task active projetée par `task.update` ; préréglages cron.
+ * → POST), restauration (modal avec backup de sécurité et relance → POST), politiques (fréquence
+ * décrite en français + rotation), progression d'une task active projetée par `task.update`.
  */
 import { MantineProvider } from '@mantine/core';
 import { ModalsProvider } from '@mantine/modals';
 import { Notifications } from '@mantine/notifications';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -15,7 +15,6 @@ import type { BackupDto, BackupPolicyDto, ServerDto, TaskDto, UserDto } from '@m
 
 import { i18n } from '../../i18n/index.js';
 import { applyTaskUpdate } from '../../store/realtime.js';
-import { buildCron, detectPreset } from '../schedule/CronInput.js';
 import { BackupsPanel } from './BackupsPanel.js';
 
 const server: ServerDto = {
@@ -183,7 +182,9 @@ describe('BackupsPanel', () => {
     expect(row).toHaveTextContent('à chaud');
     expect(row).toHaveTextContent('avant modpack');
     expect(row).toHaveTextContent('1842 fichiers');
-    expect(screen.getByTestId('policy-pol1')).toHaveTextContent('0 4 * * *');
+    // Planificateur v2 : la fréquence est décrite en français, plus d'expression cron visible.
+    expect(screen.getByTestId('policy-pol1')).toHaveTextContent('Tous les jours à 04:00');
+    expect(screen.getByTestId('policy-pol1')).not.toHaveTextContent('0 4 * * *');
     expect(screen.getByTestId('policy-pol1')).toHaveTextContent('garde les 7 dernières');
   });
 
@@ -262,11 +263,9 @@ describe('BackupsPanel', () => {
       expect(screen.getByTestId('policy-new')).toBeInTheDocument();
     });
     await user.click(screen.getByTestId('policy-new'));
-    await user.tripleClick(screen.getByTestId('policy-cron-hour'));
-    await user.keyboard('3');
-    await user.tripleClick(screen.getByTestId('policy-cron-minute'));
-    await user.keyboard('30');
-    expect(screen.getByTestId('policy-cron-preview')).toHaveTextContent('30 3 * * *');
+    // Sélecteur d'heure natif (un seul horaire par politique de sauvegarde).
+    fireEvent.change(screen.getByTestId('policy-cron-time-0'), { target: { value: '03:30' } });
+    expect(screen.getByTestId('policy-cron-preview')).toHaveTextContent('Prochaine exécution');
     await user.click(screen.getByTestId('policy-save'));
     await waitFor(() => {
       expect(calls.some((c) => c.path === '/api/servers/s1/backup-policies')).toBe(true);
@@ -277,28 +276,5 @@ describe('BackupsPanel', () => {
       keepDays: null,
       onlyIfRunning: false,
     });
-  });
-});
-
-describe('préréglages cron', () => {
-  it('construit et reconnaît les expressions', () => {
-    expect(
-      buildCron('daily', { hour: 4, minute: 0, weekday: 'sun', everyHours: 1, custom: '' }),
-    ).toBe('0 4 * * *');
-    expect(
-      buildCron('weekly', { hour: 3, minute: 15, weekday: 'mon', everyHours: 1, custom: '' }),
-    ).toBe('15 3 * * mon');
-    expect(
-      buildCron('hourly', { hour: 0, minute: 5, weekday: 'sun', everyHours: 6, custom: '' }),
-    ).toBe('5 */6 * * *');
-    expect(detectPreset('0 4 * * *')).toMatchObject({ preset: 'daily', hour: 4, minute: 0 });
-    expect(detectPreset('15 3 * * mon')).toMatchObject({ preset: 'weekly', weekday: 'mon' });
-    expect(detectPreset('15 3 * * 1')).toMatchObject({ preset: 'weekly', weekday: 'mon' });
-    expect(detectPreset('5 */6 * * *')).toMatchObject({
-      preset: 'hourly',
-      everyHours: 6,
-      minute: 5,
-    });
-    expect(detectPreset('0 0 1 * *')).toMatchObject({ preset: 'custom' });
   });
 });
