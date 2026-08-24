@@ -87,8 +87,9 @@ export function AuditCard() {
               {t('web:settings.audit.empty')}
             </Text>
           ) : (
-            <Table.ScrollContainer minWidth={640}>
-              <Table striped highlightOnHover fz="sm">
+            // Hauteur bornée : 200 entrées ne doivent pas allonger la page des Réglages.
+            <Table.ScrollContainer minWidth={640} maxHeight={380}>
+              <Table striped highlightOnHover fz="sm" stickyHeader>
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th>{t('web:common.date')}</Table.Th>
