@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "MinecraftManagerOnline — pilotage à distance de serveurs Minecraft auto-hébergés",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@11.15.0",
   "engines": {

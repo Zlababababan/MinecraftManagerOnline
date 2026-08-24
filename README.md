@@ -2,6 +2,19 @@
 
 Application web de pilotage à distance de serveurs Minecraft auto-hébergés : démarrage/arrêt, console temps réel, joueurs, backups, planification — multi-machines, multi-OS (Windows / Linux / macOS, x64 et ARM), utilisable sur PC et mobile (PWA).
 
+## Démarrage rapide (utilisateur)
+
+1. **Récupérez l'archive du panel** `mmo-panel-<version>-<plateforme>.zip` (Windows) ou `.tar.gz` (Linux / macOS) depuis la page des releases du dépôt. S'il n'y en a pas (ou pas pour votre plateforme), construisez-la vous-même — Node ≥ 22 et pnpm suffisent :
+
+   ```bash
+   pnpm install
+   pnpm release:build -- --panel
+   ```
+
+   L'archive apparaît dans `release/<version>/`. Deux choses à savoir : l'archive du **panel** est produite pour la plateforme sur laquelle vous buildez (construisez sous Linux pour héberger sous Linux — les archives d'**agents** des 4 plateformes sont, elles, toujours produites) ; sans clé de mainteneur le build est signé avec la clé de développement, ce que le panel affiche — pleinement fonctionnel pour un usage personnel.
+
+2. **Suivez le [guide d'installation](docs/guide/installation.md)** : panel en deux commandes puis wizard du premier démarrage, agents installés en un clic depuis le panel, et accès pour vos amis et votre téléphone (Tailscale par défaut — fonctionne même sans IP publique).
+
 ## Documentation
 
 - [Présentation du projet](docs/01-presentation.md)
@@ -27,4 +40,4 @@ Monorepo pnpm + Turborepo : `apps/panel` (API Fastify), `apps/web` (PWA React), 
 
 ## Licence
 
-Projet propriétaire — tous droits réservés. Voir [LICENSE](LICENSE).
+Distribué sous licence [MIT](LICENSE).

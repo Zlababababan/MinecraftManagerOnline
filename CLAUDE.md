@@ -3,7 +3,7 @@
 Fichier de contexte pour Claude uniquement. Style volontairement dense. **À maintenir** : mettre à jour la section « État » à chaque fin de phase, décision structurante, ou avant de proposer un changement de chat.
 
 ## Projet
-Pilotage à distance de serveurs Minecraft auto-hébergés. Architecture : panel central (web + API + SQLite) + agents (1 par machine, WebSocket sortant, appairage par code). Multi-OS Win/Linux/macOS, x64 + ARM64. PWA responsive FR/EN, thème sombre. Licence propriétaire. Pas de MVP : application complète (périmètre = doc 02).
+Pilotage à distance de serveurs Minecraft auto-hébergés. Architecture : panel central (web + API + SQLite) + agents (1 par machine, WebSocket sortant, appairage par code). Multi-OS Win/Linux/macOS, x64 + ARM64. PWA responsive FR/EN, thème sombre. Licence MIT (propriétaire jusqu'à v1.0.0 incluse, bascule MIT décidée avec la 1.0.1). Pas de MVP : application complète (périmètre = doc 02).
 
 ## Source de vérité = docs/ — lire À LA DEMANDE, ne pas dupliquer ici
 - 01-presentation : vision, principes, glossaire
