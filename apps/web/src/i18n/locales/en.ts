@@ -52,6 +52,9 @@ export const webEn = {
     status: 'Status',
     ago: '{{value}} ago',
     now: 'just now',
+    reload: 'Reload the page',
+    staleVersion:
+      'The panel was updated while this page was open. Reload to switch to the new version.',
   },
   realtime: {
     connecting: 'Connecting…',

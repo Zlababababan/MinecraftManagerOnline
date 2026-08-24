@@ -8,8 +8,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { App } from './app.js';
+import { installChunkReload } from './lib/chunk-reload.js';
 import { installUiTelemetry } from './lib/ui-telemetry.js';
 
+installChunkReload();
 installUiTelemetry();
 
 const root = document.getElementById('root');

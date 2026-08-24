@@ -50,6 +50,9 @@ export const webFr = {
     status: 'État',
     ago: 'il y a {{value}}',
     now: 'à l’instant',
+    reload: 'Recharger la page',
+    staleVersion:
+      'Le panel a été mis à jour pendant que cette page était ouverte. Rechargez pour passer à la nouvelle version.',
   },
   realtime: {
     connecting: 'Connexion…',
