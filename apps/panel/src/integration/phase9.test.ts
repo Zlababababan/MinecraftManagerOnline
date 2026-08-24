@@ -18,7 +18,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { JavaRuntimeDto, MigrationDto, ServerDto, TaskDto } from '@mmo/protocol/client';
 
-import { Agent } from '../../../agent/src/agent.js';
+import { Agent, AGENT_VERSION } from '../../../agent/src/agent.js';
 import { Logger } from '../../../agent/src/log.js';
 import { probeJavaVersion } from '../../../agent/src/platform/java.js';
 import { buildZip } from '../../../agent/src/test/helpers.js';
@@ -426,7 +426,7 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
     expect(await readFile(path.join(home, 'versions', '9.9.9', 'agent.js'))).toEqual(bundle);
     expect(JSON.parse(await readFile(path.join(home, 'next.json'), 'utf8'))).toMatchObject({
       version: '9.9.9',
-      previous: '1.0.0',
+      previous: AGENT_VERSION,
     });
 
     // Bundle signé avec une autre clé : refusé par l'agent (E_SIGNATURE_INVALID), rien d'écrit.
