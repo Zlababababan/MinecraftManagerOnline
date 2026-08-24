@@ -39,7 +39,7 @@ Environnement visé (déjà en place sur le poste de dev) : panel de test `D:\mm
 
 - [ ] Lancer une sauvegarde manuelle du serveur → archive listée avec taille/date.
 - [ ] Modifier un fichier (ou en supprimer un), puis **restaurer** la sauvegarde (serveur arrêté) → le fichier revient.
-- [ ] Créer une planification (ex. toutes les heures, rétention 3) → une exécution part à l'heure prévue (ou vérifier simplement qu'elle est enregistrée et affichée).
+- [ ] Une planification **par défaut** existe déjà sur chaque serveur (quotidienne 04h00, 7 conservées, seulement si en marche) — vérifier qu'elle est affichée. En créer une seconde (ex. toutes les heures, rétention 3) → une exécution part à l'heure prévue (ou vérifier simplement qu'elle est enregistrée et affichée).
 - [ ] Réglages → Sauvegardes du panel : lancer une sauvegarde du panel → fichier créé, listé.
 
 ## 6. Métriques et joueurs

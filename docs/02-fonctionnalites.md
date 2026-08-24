@@ -84,6 +84,11 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 | Démarrage / arrêt / redémarrage programmés | V1 |
 | Messages d'annonce en jeu avant un arrêt | V1 |
 | Tâches personnalisées (commande planifiée) | Futur |
+| Exécution unique (« le [date] à [heure] », sans récurrence) | Futur — Planificateur v2 |
+| Plusieurs horaires par jour dans une même planification | Futur — Planificateur v2 |
+| Fréquences en langage simple, expression cron reléguée à un mode avancé replié | Futur — Planificateur v2 |
+
+> **Chantier « Planificateur v2 » (acté 2026-08-24, recette utilisateur)** : premier développement post-1.0. Constat de recette : « cron » et l'expression à étoiles sont du jargon inaccessible aux débutants, l'heure quotidienne est mal saisie, l'exécution unique et le multi-horaires manquent. Concerne le planificateur du serveur **et** les planifications de sauvegarde (même composant `CronInput`). « Prochaine exécution » reste visible pour tous.
 
 ## 9. Utilisateurs et sécurité
 
@@ -112,3 +117,16 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 | Dashboard : cartes serveurs groupées par machine, stats globales | V1 |
 | Page serveur : onglets Console / Joueurs / Config / Backups / Stats / Fichiers | V1 |
 | Carte du monde en ligne | Futur |
+
+## 12. Post-1.0 — ajouts livrés pendant la recette utilisateur (2026-08-24)
+
+Compléments décidés et livrés au fil de la recette (`docs/guide/recette.md`), hors périmètre initial mais actés dans les docs techniques :
+
+| Ajout | Référence |
+|---|---|
+| Politique de sauvegarde par défaut à la création d'un serveur (quotidienne 04h00, 7 conservées, si en marche) + rattrapage unique pour l'existant | doc 04 §5 |
+| Console : historique de `logs/latest.log` préchargé + téléchargement en un clic | doc 06 §3 |
+| Parcours UI (clics/navigations) enregistré dans `metrics.db` pour la maintenance et le diagnostic, rétention 14 j | doc 04 §7 |
+| Écrans Réglages → Utilisateurs et Journal d'audit (réalisation UI de fonctions V1 du §9 qui n'existaient que côté API) | — |
+| Rechargement automatique du front quand un déploiement du panel invalide les chunks ouverts | — |
+| Indicateur de fraîcheur du heartbeat machine, onglets défilants avec chevrons, pastille de notification effacée au clic, termes techniques Minecraft gardés en anglais en français (Kill, Seed, Whitelist, Spawn, PvP) | — |

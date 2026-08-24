@@ -166,6 +166,18 @@ Les trois vérifications listées en doc 03 §10, **avant toute ligne de code de
 
 ---
 
+## Post-1.0 — recette utilisateur et suite du plan
+
+> **Recette utilisateur (2026-08-24)** : parcours `docs/guide/recette.md` déroulé en direct par l'utilisateur sur l'installation de test (blocs 0–7 validés ; §8 mobile non joué). Chaque écart a été corrigé au fil de l'eau — 10 commits (`3a6e89a` → `8c86a46`), `pnpm check` + `format:check` verts, doc 02 §12 pour la liste des ajouts. Écart le plus notable : les écrans **Utilisateurs** et **Journal d'audit** (fonctions V1 du doc 02 §9) n'existaient que côté API — leçon : le critère « zéro fonctionnalité V1 manquante » de la phase 12 avait été vérifié sur l'API, pas sur l'UI. Nouvel outil de diagnostic né d'une demande utilisateur : le **parcours UI** (`ui_events`, doc 04 §7) — les clics enregistrés ont servi le jour même à localiser un écart (pastille de notifications).
+
+### Chantier 1 — Planificateur v2 (prochain développement)
+
+Périmètre : doc 02 §8 (encadré). Exécution unique (« le [date] à [heure] » — nécessite le support du `SchedulerService`, qui n'évalue que du cron 5 champs), plusieurs horaires par jour dans une planification, fréquences en langage simple (jargon cron relégué à un mode avancé replié), sélecteur d'heure intuitif ; s'applique au planificateur serveur **et** aux planifications de sauvegarde (même `CronInput`). Méthode : maquette validée par l'utilisateur avant le code. **Terminé quand** : un débutant crée sans aide « une annonce dans 10 minutes » et « un restart tous les jours à 6h00 et 18h00 », l'expression cron n'apparaît nulle part par défaut, et les planifications existantes (recette + politiques par défaut) restent intactes après migration.
+
+### Chantier 2 — release 1.0.1
+
+`release/1.0.0` ne contient aucun correctif post-tag (course update-result de la session 3 + les 10 commits de la recette). Construire et publier une 1.0.1 locale (`node tools/release/build.mjs --release --panel --key …`, smoke, publication dans le panel de test) quand le Planificateur v2 est livré — ou avant, si l'installation de test doit être remise au propre. Les critères manuels encore ouverts restent inchangés (relais `sudo` interactif, Linux ARM réel, launchd macOS, migration Win→ARM, push Android/iOS réels, accès hors réseau).
+
 ## Règles de conduite du projet
 
 1. **Une phase = une ou plusieurs PR/commits cohérents + docs mis à jour.** Toute dérogation aux docs 03–06 est actée dans le doc concerné au moment où elle se décide.
