@@ -1,6 +1,6 @@
 # Installation
 
-**English** · [Français](fr/installation.md)
+**English** · [Français](fr/installation.md) · [Español](es/installation.md) · [Deutsch](de/installation.md) · [Português](pt/installation.md) · [Русский](ru/installation.md) · [中文](zh/installation.md)
 
 User guide — install the **panel** (a single machine, the one that stays on), then an **agent** on every machine that hosts Minecraft servers (often the same one). Everything ships as self-contained archives: no Node, Java or Python to install beforehand.
 

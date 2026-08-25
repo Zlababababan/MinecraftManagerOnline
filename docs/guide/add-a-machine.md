@@ -1,6 +1,6 @@
 # Add a machine
 
-**English** · [Français](fr/ajouter-une-machine.md)
+**English** · [Français](fr/ajouter-une-machine.md) · [Español](es/add-a-machine.md) · [Deutsch](de/add-a-machine.md) · [Português](pt/add-a-machine.md) · [Русский](ru/add-a-machine.md) · [中文](zh/add-a-machine.md)
 
 A **machine** = a computer that hosts Minecraft servers, driven by an agent. The panel host itself can be one (the most common case: everything runs on the gaming PC).
 

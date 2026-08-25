@@ -1,6 +1,6 @@
 # Network FAQ
 
-**English** · [Français](fr/faq-reseau.md)
+**English** · [Français](fr/faq-reseau.md) · [Español](es/network-faq.md) · [Deutsch](de/network-faq.md) · [Português](pt/network-faq.md) · [Русский](ru/network-faq.md) · [中文](zh/network-faq.md)
 
 The panel listens **only** on `127.0.0.1` (or a specific address via `MMO_HOST`). Three ways to reach it from outside; one is enough.
 

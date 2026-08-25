@@ -4,7 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/Zlababababan/MinecraftManagerOnline)](https://github.com/Zlababababan/MinecraftManagerOnline/releases/latest)
 [![Licence](https://img.shields.io/github/license/Zlababababan/MinecraftManagerOnline)](LICENSE)
 
-[English](README.md) · **Français**
+[English](README.md) · **Français** · [Español](README.es.md) · [Deutsch](README.de.md) · [Português](README.pt.md) · [Русский](README.ru.md) · [中文](README.zh.md)
 
 Pilotez vos serveurs Minecraft auto-hébergés depuis un navigateur — PC ou téléphone — même quand la machine qui les fait tourner est chez vous, derrière une box sans IP publique.
 
@@ -50,7 +50,7 @@ Aucune dépendance à installer : chaque archive embarque son runtime Node épin
 
 ## Documentation
 
-- **Guide utilisateur** : [Installation](docs/guide/fr/installation.md) · [Ajouter une machine](docs/guide/fr/ajouter-une-machine.md) · [FAQ réseau](docs/guide/fr/faq-reseau.md) — aussi disponible [en anglais](docs/guide/installation.md)
+- **Guide utilisateur** : [Installation](docs/guide/fr/installation.md) · [Ajouter une machine](docs/guide/fr/ajouter-une-machine.md) · [FAQ réseau](docs/guide/fr/faq-reseau.md) — aussi disponible en [English](docs/guide/installation.md), [Español](docs/guide/es/installation.md), [Deutsch](docs/guide/de/installation.md), [Português](docs/guide/pt/installation.md), [Русский](docs/guide/ru/installation.md) et [中文](docs/guide/zh/installation.md)
 - Conception : [Présentation](docs/01-presentation.md) · [Fonctionnalités](docs/02-fonctionnalites.md) · [Socle technique](docs/03-socle-technique.md) · [Base de données](docs/04-base-de-donnees.md) · [Protocole panel-agent](docs/05-protocole.md) · [Serveurs Minecraft](docs/06-minecraft.md) · [Plan de développement](docs/07-plan-de-developpement.md)
 - [Pipeline de release](tools/release/README.md) — archives, signature, publication
 - [Contribuer](CONTRIBUTING.fr.md) — prérequis, commandes, conventions

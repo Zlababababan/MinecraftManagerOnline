@@ -4,7 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/Zlababababan/MinecraftManagerOnline)](https://github.com/Zlababababan/MinecraftManagerOnline/releases/latest)
 [![License](https://img.shields.io/github/license/Zlababababan/MinecraftManagerOnline)](LICENSE)
 
-**English** · [Français](README.fr.md)
+**English** · [Français](README.fr.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Português](README.pt.md) · [Русский](README.ru.md) · [中文](README.zh.md)
 
 Control your self-hosted Minecraft servers from a browser — desktop or phone — even when the machine running them sits at home, behind a box with no public IP.
 
@@ -50,7 +50,7 @@ No dependency to install: each archive embeds its pinned Node runtime. Java is p
 
 ## Documentation
 
-- **User guide**: [Installation](docs/guide/installation.md) · [Add a machine](docs/guide/add-a-machine.md) · [Network FAQ](docs/guide/network-faq.md) — also available [in French](docs/guide/fr/installation.md)
+- **User guide**: [Installation](docs/guide/installation.md) · [Add a machine](docs/guide/add-a-machine.md) · [Network FAQ](docs/guide/network-faq.md) — also available in [Français](docs/guide/fr/installation.md), [Español](docs/guide/es/installation.md), [Deutsch](docs/guide/de/installation.md), [Português](docs/guide/pt/installation.md), [Русский](docs/guide/ru/installation.md) and [中文](docs/guide/zh/installation.md)
 - Design documents (in French): [Présentation](docs/01-presentation.md) · [Fonctionnalités](docs/02-fonctionnalites.md) · [Socle technique](docs/03-socle-technique.md) · [Base de données](docs/04-base-de-donnees.md) · [Protocole panel-agent](docs/05-protocole.md) · [Serveurs Minecraft](docs/06-minecraft.md) · [Plan de développement](docs/07-plan-de-developpement.md)
 - [Release pipeline](tools/release/README.md) (in French) — archives, signing, publication
 - [Contributing](CONTRIBUTING.md) — prerequisites, commands, conventions
