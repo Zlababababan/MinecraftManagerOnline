@@ -1,5 +1,7 @@
 # Recette 1.0 — tests de bout en bout (manuel, ~45 min)
 
+> **Document interne de test** : ce parcours est écrit pour l'installation de test du poste de développement (chemins `D:\mmo-test`, identifiants de test) — ce n'est **pas** un guide d'utilisation. Pour installer et utiliser l'application, voir [Installation](installation.md).
+
 But : vérifier que l'application est **utilisable en l'état** sur les parcours essentiels. Rien de compliqué : chaque étape = une action + le résultat attendu. Cochez au fur et à mesure ; notez tout écart (même cosmétique) avec l'étape concernée.
 
 Environnement visé (déjà en place sur le poste de dev) : panel de test `D:\mmo-test\mmo-panel`, agent Windows en service (`mmo-agent`, LocalSystem), serveurs de test sous `D:\mmo-test\servers`. **Ne jamais pointer l'agent sur `E:\Minecraft\Server` directement — copies uniquement.**
@@ -8,7 +10,7 @@ Environnement visé (déjà en place sur le poste de dev) : panel de test `D:\mm
 
 - [ ] Lancer le panel : double-clic sur `D:\mmo-test\start-panel.cmd` (fenêtre qui reste ouverte), puis ouvrir **http://127.0.0.1:3100**.
 - [ ] Connexion : `admin` / `Mmo-Test-2026!`. Attendu : tableau de bord, machine **PC-Windows en ligne**, agent 1.0.0.
-- Pour tester depuis le téléphone (optionnel, §8) : dans `start-panel.cmd`, remplacer `MMO_HOST=127.0.0.1` par `MMO_HOST=0.0.0.0`, relancer, puis ouvrir `http://<IP LAN du PC>:3100` — le panel est alors visible sur tout le réseau local (protégé par mot de passe).
+- Pour tester depuis le téléphone (optionnel, §8) : dans `start-panel.cmd`, remplacer `MMO_HOST=127.0.0.1` par `MMO_HOST=<IP LAN du PC>` (une adresse précise — le panel refuse `0.0.0.0` au démarrage), relancer, puis ouvrir `http://<IP LAN du PC>:3100` — le panel est alors visible sur le réseau local (protégé par mot de passe).
 
 ## 1. Machine et tableau de bord
 
