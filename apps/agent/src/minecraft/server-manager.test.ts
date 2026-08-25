@@ -227,7 +227,7 @@ describe('gestionnaire de serveurs (garde-fous doc 05 §6, provisionnement doc 0
     await m2.stop('srv_1', { timeoutMs: 5000 });
     expect(proc.state).toBe('stopped');
     expect(m2.store.getServer('srv_1')?.runtime).toBeUndefined();
-  });
+  }, 90_000); // première requête CIM à froid : jusqu'à ~20 s sur les runners CI
 
   it('runtime obsolète (processus mort) nettoyé à l’init ; restoreOnBoot relance les desired_state', async () => {
     const m1 = await makeManager();

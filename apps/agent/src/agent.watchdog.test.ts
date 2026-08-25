@@ -304,7 +304,7 @@ describe('phase 7 : watchdog et métriques de bout en bout', () => {
     }
     // Aucune alerte : pas de crash, pas de freeze
     expect(cap.alerts).toEqual([]);
-  }, 40_000);
+  }, 90_000); // premier échantillon RSS : jusqu'à ~30 s de démarrage du sidecar sur les runners CI
 
   it('port de jeu pris après les garde-fous (« FAILED TO BIND ») → port.conflict + crash', async () => {
     const { dir } = await prepareServer('Bind');

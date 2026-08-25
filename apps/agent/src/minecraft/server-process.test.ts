@@ -219,7 +219,7 @@ describe('processus serveur géré (doc 06 §3–4)', () => {
     expect(result).toEqual({ alreadyStopped: false, forced: false });
     await waitFor(() => adopted.state === 'stopped');
     expect(states(events2)).toEqual(['starting', 'running', 'stopping', 'stopped']);
-  });
+  }, 90_000); // première requête CIM à froid : jusqu'à ~20 s sur les runners CI
 
   it('ré-adoption refusée si le PID est mort ou réutilisé', async () => {
     proc = makeProcess(dir, events);
@@ -246,7 +246,7 @@ describe('processus serveur géré (doc 06 §3–4)', () => {
       ).toBe(false);
     }
     expect(proc.state).toBe('stopped');
-  });
+  }, 90_000); // première requête CIM à froid : jusqu'à ~20 s sur les runners CI
 
   it('décode l’UTF-8 des pipes et filtre les séquences ANSI', async () => {
     proc = makeProcess(dir, events);

@@ -51,7 +51,16 @@ function run(file: string, args: string[], timeoutMs = 10_000): Promise<string> 
   });
 }
 
+/**
+ * Disjoncteur CIM : sur une machine où WMI est cassé ou gelé, chaque requête coûterait son plein
+ * timeout — après un échec, on répond « rien de vérifiable » sans requête pendant `CIM_RETRY_MS`
+ * (l'adoption reste bienveillante, `verified: false`).
+ */
+const CIM_RETRY_MS = 5 * 60_000;
+let cimBrokenUntil = 0;
+
 async function windowsInfo(pid: number): Promise<ProcessInfo> {
+  if (Date.now() < cimBrokenUntil) return { pid, startedAt: undefined, cmdline: undefined };
   const script = [
     "$ErrorActionPreference='Stop'",
     `$p = Get-CimInstance Win32_Process -Filter 'ProcessId=${String(pid)}'`,
@@ -59,12 +68,21 @@ async function windowsInfo(pid: number): Promise<ProcessInfo> {
     '$ms = [DateTimeOffset]::new($p.CreationDate.ToUniversalTime()).ToUnixTimeMilliseconds()',
     '[Console]::Out.Write("$ms`n$($p.CommandLine)")',
   ].join('; ');
-  // 30 s : la première requête CIM d'une machine fraîche (WMI à froid) peut dépasser 10 s.
-  const out = await run(
-    'powershell.exe',
-    ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
-    30_000,
-  );
+  // 20 s : la première requête CIM d'une machine fraîche (WMI + PowerShell à froid) peut dépasser
+  // 10 s ; les suivantes sont rapides, ou coupées par le disjoncteur si l'échec persiste.
+  let out: string;
+  try {
+    out = await run(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
+      20_000,
+    );
+    cimBrokenUntil = 0;
+  } catch (error) {
+    // exit 2 = PID absent de Win32_Process : WMI fonctionne, ne pas ouvrir le disjoncteur.
+    if ((error as { code?: unknown }).code !== 2) cimBrokenUntil = Date.now() + CIM_RETRY_MS;
+    throw error instanceof Error ? error : new Error('process query failed');
+  }
   const nl = out.indexOf('\n');
   const first = (nl === -1 ? out : out.slice(0, nl)).trim();
   const rest = nl === -1 ? '' : out.slice(nl + 1).trim();
