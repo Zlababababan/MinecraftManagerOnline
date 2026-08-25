@@ -55,7 +55,7 @@ Un **panel** web central (la machine qui reste allumée) + un **agent** léger s
 | macOS Apple Silicon             | ✅ (archive fournie)          | ✅                  |
 | Windows ARM64                   | via l'archive x64 (émulation) | via x64 (émulation) |
 
-Aucune dépendance à installer : chaque archive embarque son runtime Node épinglé. Java est provisionné automatiquement par l'agent (Temurin → Zulu) selon la version Minecraft.
+Aucune dépendance à installer : chaque archive embarque son runtime Node épinglé. Les archives Linux fonctionnent avec glibc ≥ 2.31 (Ubuntu 20.04+, Debian 11+). Java est provisionné automatiquement par l'agent (Temurin → Zulu) selon la version Minecraft.
 
 ## Documentation
 

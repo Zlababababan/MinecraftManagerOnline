@@ -55,7 +55,7 @@ A central web **panel** (the machine that stays on) + a lightweight **agent** on
 | macOS Apple Silicon              | ✅ (archive provided)       | ✅                  |
 | Windows ARM64                    | via the x64 archive (emulation) | via x64 (emulation) |
 
-No dependency to install: each archive embeds its pinned Node runtime. Java is provisioned automatically by the agent (Temurin → Zulu) to match the Minecraft version.
+No dependency to install: each archive embeds its pinned Node runtime. Linux archives run on glibc ≥ 2.31 (Ubuntu 20.04+, Debian 11+). Java is provisioned automatically by the agent (Temurin → Zulu) to match the Minecraft version.
 
 ## Documentation
 

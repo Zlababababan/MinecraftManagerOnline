@@ -17,16 +17,37 @@ jobs:
   build:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    # Jobs Linux : construits dans un conteneur ubuntu:20.04 (glibc 2.31) pour que les modules
+    # natifs du panel (better-sqlite3) tournent sur toutes les distributions courantes
+    # (Ubuntu 20.04+, Debian 11+). Compilé directement sur le runner 24.04, le binaire exigeait
+    # GLIBC_2.33 — constaté en réel sur une VM Ubuntu 20.04 ARM (v1.0.2).
+    container: ${{ matrix.container }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
           - { name: windows, os: windows-latest, panel: win-x64 }
-          - { name: ubuntu, os: ubuntu-latest, panel: linux-x64, agents: true }
-          - { name: ubuntu-arm, os: ubuntu-24.04-arm, panel: linux-arm64 }
+          - {
+              name: ubuntu,
+              os: ubuntu-latest,
+              panel: linux-x64,
+              agents: true,
+              container: 'ubuntu:20.04',
+            }
+          - {
+              name: ubuntu-arm,
+              os: ubuntu-24.04-arm,
+              panel: linux-arm64,
+              container: 'ubuntu:20.04',
+            }
           - { name: macos, os: macos-latest, panel: darwin-arm64 }
     steps:
+      - name: Prérequis du conteneur (compilateur, git, curl)
+        if: matrix.container != ''
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git curl ca-certificates build-essential python3 xz-utils
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4

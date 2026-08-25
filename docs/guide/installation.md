@@ -4,7 +4,7 @@
 
 User guide — install the **panel** (a single machine, the one that stays on), then an **agent** on every machine that hosts Minecraft servers (often the same one). Everything ships as self-contained archives: no Node, Java or Python to install beforehand.
 
-Packaged platforms: **Windows x64**, **Linux x64**, **Linux ARM64** (Raspberry Pi 4/5, ARM servers), **macOS Apple Silicon**. Windows ARM64 works with the x64 archive (emulation). Intel macOS is not packaged.
+Packaged platforms: **Windows x64**, **Linux x64**, **Linux ARM64** (Raspberry Pi 4/5, ARM servers), **macOS Apple Silicon**. Windows ARM64 works with the x64 archive (emulation). Intel macOS is not packaged. Linux archives run on glibc ≥ 2.31 (Ubuntu 20.04+, Debian 11+).
 
 ## 1. The panel
 
