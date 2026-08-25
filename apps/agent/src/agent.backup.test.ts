@@ -481,7 +481,8 @@ describe('phase 8 : tasks, backups, transferts de bout en bout', () => {
       sha256: sha256(data),
     });
     expect(Buffer.concat(received).equals(data)).toBe(true);
-    expect(agent!.transfers.activeCount).toBe(0);
+    // Le nettoyage du transfert suit le `done` de façon asynchrone : attendre, pas asserter à sec.
+    await waitFor(() => agent!.transfers.activeCount === 0, 5000);
   });
 
   it('upload avec coupure, reprise depuis la taille du .part, vérification et renommage', async () => {

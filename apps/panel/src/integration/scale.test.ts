@@ -176,14 +176,15 @@ describe('phase 12 — échelle', () => {
       () => four.every((id) => panel.ctx.servers.require(id).runState === 'running'),
       20_000,
     );
-    // Métriques temps réel pour les 4 (RSS/CPU par serveur) et la machine.
+    // Métriques temps réel pour les 4 (RSS/CPU par serveur) et la machine. 60 s : le premier RSS
+    // attend le démarrage du sidecar Windows, lent sur les runners CI chargés (4 serveurs, 2 cœurs).
     await waitFor(() => {
       const now = Date.now();
       return four.every((id) => {
         const q = panel.ctx.metricsService.queryServer(id, { from: now - 60_000 });
         return q.latest !== null && q.latest.ram !== null;
       });
-    }, 20_000);
+    }, 60_000);
     const machineNow = panel.ctx.metricsService.queryMachine(machine.id, {
       from: Date.now() - 60_000,
     });
