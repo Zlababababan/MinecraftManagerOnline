@@ -419,7 +419,9 @@ describe('phase 8 : tasks, backups, transferts de bout en bout', () => {
   it('download avec coupure puis reprise par offset ; sha256 vérifié de bout en bout', async () => {
     const peer = await bootAgent();
     await configure(peer);
-    const data = randomBytes(5 * 256 * 1024 + 123);
+    // Assez gros pour que la coupure (après 2 chunks) laisse toujours des chunks en route : sur un
+    // runner rapide, 5 chunks arrivaient entièrement avant que la fermeture des sockets prenne effet.
+    const data = randomBytes(40 * 256 * 1024 + 123);
     await writeFile(path.join(serverDir, 'world', 'big.bin'), data);
     const transferId = transferIdFromBytes(randomBytes(16));
     const received: Uint8Array[] = [];

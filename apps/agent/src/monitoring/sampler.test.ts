@@ -66,8 +66,9 @@ describe('échantillonneurs CPU/RSS (spike n°2)', () => {
   );
 
   // Test « burner » du spike n°2 : un process qui sature un cœur doit être mesuré > 80 % par cycles,
-  // là où la comptabilité par ticks donne ~2 % sous Hyper-V.
-  it.runIf(process.platform === 'win32')(
+  // là où la comptabilité par ticks donne ~2 % sous Hyper-V. Pas sur les runners CI partagés : la
+  // saturation d'un cœur n'y est pas garantie (contention), la mesure devient non déterministe.
+  it.runIf(process.platform === 'win32' && process.env.CI === undefined)(
     'WindowsCyclesSampler : burner mesuré > 80 % d’un cœur, RSS > 0, PID inconnu ignoré',
     async () => {
       const sampler = new WindowsCyclesSampler({ logger });

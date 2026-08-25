@@ -59,14 +59,12 @@ async function windowsInfo(pid: number): Promise<ProcessInfo> {
     '$ms = [DateTimeOffset]::new($p.CreationDate.ToUniversalTime()).ToUnixTimeMilliseconds()',
     '[Console]::Out.Write("$ms`n$($p.CommandLine)")',
   ].join('; ');
-  const out = await run('powershell.exe', [
-    '-NoProfile',
-    '-NonInteractive',
-    '-ExecutionPolicy',
-    'Bypass',
-    '-Command',
-    script,
-  ]);
+  // 30 s : la première requête CIM d'une machine fraîche (WMI à froid) peut dépasser 10 s.
+  const out = await run(
+    'powershell.exe',
+    ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
+    30_000,
+  );
   const nl = out.indexOf('\n');
   const first = (nl === -1 ? out : out.slice(0, nl)).trim();
   const rest = nl === -1 ? '' : out.slice(nl + 1).trim();

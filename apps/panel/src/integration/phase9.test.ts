@@ -484,10 +484,21 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
     });
     agents[1] = restarted;
     await restarted.start();
-    await waitFor(
-      () => panel.ctx.events.list({ type: 'agent.updateRolledBack', limit: 5 }).length > 0,
-      30_000, // reconnexion + relectures updateResult (0/1/5 s) : large pour les runners CI lents
-    );
+    try {
+      await waitFor(
+        () => panel.ctx.events.list({ type: 'agent.updateRolledBack', limit: 5 }).length > 0,
+        30_000, // reconnexion + relectures updateResult (0/1/5 s) : large pour les runners CI lents
+      );
+    } catch (cause) {
+      // Diagnostic CI (échec observé sur ubuntu-arm) : état de la connexion et derniers événements.
+      const recent = panel.ctx.events
+        .list({ limit: 15 })
+        .map((e) => `${e.type}=${JSON.stringify(e.payload).slice(0, 100)}`);
+      throw new Error(
+        `agent.updateRolledBack jamais reçu — machineB connectée=${String(panel.ctx.registry.isConnected(machineB))} ; derniers événements : ${recent.join(' | ')}`,
+        { cause },
+      );
+    }
     const ev = panel.ctx.events.list({ type: 'agent.updateRolledBack', limit: 5 })[0]!;
     expect(ev.payload).toMatchObject({
       version: '0.10.0',

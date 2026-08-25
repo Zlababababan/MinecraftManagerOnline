@@ -267,7 +267,7 @@ describe('phase 7 : watchdog et métriques de bout en bout', () => {
             s.servers[0].players === 1 &&
             s.servers[0].rssMb !== undefined,
         ),
-      15_000,
+      30_000, // premier échantillon RSS : démarrage du sidecar Windows lent sur les runners CI
     );
     const full = cap.samples.find(
       (s) => s.servers[0]?.tps !== undefined && s.servers[0].players === 1,
