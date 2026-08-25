@@ -27,13 +27,13 @@ jobs:
           - { name: ubuntu-arm, os: ubuntu-24.04-arm }
           - { name: macos, os: macos-latest }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: pnpm (version lue dans package.json › packageManager)
         uses: pnpm/action-setup@v4
 
       - name: Node (version lue dans .node-version)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
           cache: pnpm
@@ -71,9 +71,9 @@ jobs:
     timeout-minutes: 20
     needs: check
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
           cache: pnpm
@@ -83,7 +83,7 @@ jobs:
         run: |
           node tools/release/build.mjs --skip-build
           node tools/release/smoke.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: mmo-agent-archives
           path: release/

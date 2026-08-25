@@ -48,9 +48,9 @@ jobs:
         run: |
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git curl ca-certificates build-essential gcc-10 g++-10 python3 xz-utils
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
           cache: pnpm
@@ -69,14 +69,14 @@ jobs:
           rm -f "$RUNNER_TEMP/release.pem"
           node tools/release/smoke.mjs
       - name: Artefact panel
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: panel-${{ matrix.panel }}
           path: release/*/mmo-panel-*
           if-no-files-found: error
       - name: Artefacts agents (hôte ubuntu uniquement — identiques sur tous les hôtes)
         if: matrix.agents == true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: agents
           path: |
@@ -90,7 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           path: dist
           merge-multiple: true
