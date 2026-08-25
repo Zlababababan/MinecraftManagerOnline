@@ -6,7 +6,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
-import { deflateRawSync } from 'node:zlib';
+import { deflateRawSync, gzipSync } from 'node:zlib';
 import { WebSocketServer, type WebSocket } from 'ws';
 
 import { createRpcPeer, type RpcPeer, type RpcTransport } from '@mmo/protocol';
@@ -174,6 +174,39 @@ export async function createFakePanel(
         });
       }),
   };
+}
+
+/**
+ * tar.gz minimal (mêmes entrées que `buildZip` : nom finissant par `/` = dossier) pour les tests
+ * d'archives sur les plateformes où `archiveFor(os)` vaut `tar.gz` (Linux, macOS).
+ */
+export function buildTarGz(entries: { name: string; data: Buffer; deflate?: boolean }[]): Buffer {
+  const blocks: Buffer[] = [];
+  for (const e of entries) {
+    const dir = e.name.endsWith('/');
+    const header = Buffer.alloc(512);
+    header.write(e.name, 0, 100, 'utf8');
+    header.write('0000755', 100, 8, 'ascii'); // mode (bin/java doit être exécutable)
+    header.write('0000000', 108, 8, 'ascii'); // uid
+    header.write('0000000', 116, 8, 'ascii'); // gid
+    header.write(e.data.length.toString(8).padStart(11, '0'), 124, 12, 'ascii');
+    header.write('00000000000', 136, 12, 'ascii'); // mtime
+    header.write(dir ? '5' : '0', 156, 1, 'ascii'); // typeflag
+    header.write('ustar', 257, 6, 'ascii');
+    header.write('00', 263, 2, 'ascii');
+    header.fill(' ', 148, 156); // checksum : espaces pendant le calcul
+    let sum = 0;
+    for (const b of header) sum += b;
+    header.write(`${sum.toString(8).padStart(6, '0')}\0 `, 148, 8, 'ascii');
+    blocks.push(header);
+    if (!dir && e.data.length > 0) {
+      blocks.push(e.data);
+      const pad = 512 - (e.data.length % 512);
+      if (pad < 512) blocks.push(Buffer.alloc(pad));
+    }
+  }
+  blocks.push(Buffer.alloc(1024));
+  return gzipSync(Buffer.concat(blocks));
 }
 
 /** Zip minimal (entrées `store` ou `deflate`) pour les tests d'archives. */

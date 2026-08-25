@@ -21,7 +21,7 @@ import type { JavaRuntimeDto, MigrationDto, ServerDto, TaskDto } from '@mmo/prot
 import { Agent, AGENT_VERSION } from '../../../agent/src/agent.js';
 import { Logger } from '../../../agent/src/log.js';
 import { probeJavaVersion } from '../../../agent/src/platform/java.js';
-import { buildZip } from '../../../agent/src/test/helpers.js';
+import { buildTarGz, buildZip } from '../../../agent/src/test/helpers.js';
 import {
   connectClient,
   createTestPanel,
@@ -322,7 +322,9 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
   }, 120_000);
 
   it('java.install : chaîne Temurin (404) → Zulu, puis relais panel avec Range', async () => {
-    const zip = buildZip([
+    // L'agent extrait selon `archiveFor(os)` : zip sous Windows, tar.gz ailleurs (CI Linux/macOS).
+    const buildArchive = process.platform === 'win32' ? buildZip : buildTarGz;
+    const zip = buildArchive([
       { name: 'zulu17-jre/', data: Buffer.alloc(0) },
       { name: `zulu17-jre/bin/${EXE}`, data: Buffer.from('#!fake major=17'), deflate: true },
       { name: 'zulu17-jre/lib/modules', data: Buffer.alloc(20_000, 3), deflate: true },
@@ -347,10 +349,19 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
 
     let res = await api('POST', `/api/machines/${machineB}/java/install`, { majorVersion: 17 });
     expect(res.statusCode).toBe(202);
-    const first = res.json<{ task: TaskDto; sources: { vendor: string; relay: boolean }[] }>();
-    expect(first.sources).toEqual([
-      { vendor: 'zulu', emulated: false, relay: false, fullVersion: '17.0.12' },
-    ]);
+    const first = res.json<{
+      task: TaskDto;
+      sources: { vendor: string; relay: boolean; emulated: boolean }[];
+    }>();
+    // Sur hôte ARM, le mock (aveugle à l'arch) répond aussi au candidat « x64 émulé » : il s'ajoute
+    // en dernier recours derrière la source native, conformément à la chaîne de doc 03.
+    expect(first.sources[0]).toEqual({
+      vendor: 'zulu',
+      emulated: false,
+      relay: false,
+      fullVersion: '17.0.12',
+    });
+    for (const s of first.sources.slice(1)) expect(s.emulated).toBe(true);
     expect(vendorHits.some((h) => h.startsWith('/vendor/v3/assets/latest/17/hotspot'))).toBe(true);
     await waitFor(() => panel.ctx.tasks.require(first.task.id).status === 'done', 30_000);
     const result = panel.ctx.tasks.toDto(panel.ctx.tasks.require(first.task.id)).result!;
@@ -474,7 +485,7 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
     await restarted.start();
     await waitFor(
       () => panel.ctx.events.list({ type: 'agent.updateRolledBack', limit: 5 }).length > 0,
-      10_000,
+      30_000, // reconnexion + relectures updateResult (0/1/5 s) : large pour les runners CI lents
     );
     const ev = panel.ctx.events.list({ type: 'agent.updateRolledBack', limit: 5 })[0]!;
     expect(ev.payload).toMatchObject({

@@ -196,45 +196,50 @@ describe('App', () => {
     expect(screen.getByText('Bienvenue')).toBeInTheDocument();
   });
 
-  it('sans session : redirection vers /login avec retour, puis login → dashboard → start', async () => {
-    const user = userEvent.setup();
-    const { history } = renderApp('/servers/s1?tab=players');
-    expect(await screen.findByTestId('login')).toBeInTheDocument();
-    expect(history.location.pathname).toBe('/login');
-    expect(history.location.search).toContain('redirect=');
+  // Long parcours jsdom multi-étapes : 5 s trop court sur les runners CI lents (Windows surtout).
+  it(
+    'sans session : redirection vers /login avec retour, puis login → dashboard → start',
+    { timeout: 20_000 },
+    async () => {
+      const user = userEvent.setup();
+      const { history } = renderApp('/servers/s1?tab=players');
+      expect(await screen.findByTestId('login')).toBeInTheDocument();
+      expect(history.location.pathname).toBe('/login');
+      expect(history.location.search).toContain('redirect=');
 
-    await user.type(screen.getByTestId('login-username'), 'admin');
-    await user.type(screen.getByTestId('login-password'), 'wrong');
-    await user.click(screen.getByTestId('login-submit'));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Échec de l’authentification.');
+      await user.type(screen.getByTestId('login-username'), 'admin');
+      await user.type(screen.getByTestId('login-password'), 'wrong');
+      await user.click(screen.getByTestId('login-submit'));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Échec de l’authentification.');
 
-    await user.clear(screen.getByTestId('login-password'));
-    await user.type(screen.getByTestId('login-password'), 'correct horse battery');
-    await user.click(screen.getByTestId('login-submit'));
-    // Retour vers la page demandée (page serveur), puis dashboard via la navigation.
-    await waitFor(() => {
-      expect(history.location.pathname).toBe('/servers/s1');
-    });
-    expect(await screen.findByTestId('server-page')).toBeInTheDocument();
-    expect(history.location.search).toContain('tab=players');
-    expect(screen.getByTestId('server-name')).toHaveTextContent('Vanilla');
-    expect(screen.getByTestId('run-state')).toHaveAttribute('data-state', 'stopped');
+      await user.clear(screen.getByTestId('login-password'));
+      await user.type(screen.getByTestId('login-password'), 'correct horse battery');
+      await user.click(screen.getByTestId('login-submit'));
+      // Retour vers la page demandée (page serveur), puis dashboard via la navigation.
+      await waitFor(() => {
+        expect(history.location.pathname).toBe('/servers/s1');
+      });
+      expect(await screen.findByTestId('server-page')).toBeInTheDocument();
+      expect(history.location.search).toContain('tab=players');
+      expect(screen.getByTestId('server-name')).toHaveTextContent('Vanilla');
+      expect(screen.getByTestId('run-state')).toHaveAttribute('data-state', 'stopped');
 
-    await user.click(screen.getByTestId('nav-dashboard'));
-    expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
-    expect(screen.getByTestId('stat-machines')).toHaveTextContent('1');
-    expect(screen.getByTestId('machine-link')).toHaveTextContent('Tour');
-    // Fraîcheur du heartbeat affichée (ts=1 → ancien, donc « il y a … »).
-    expect(screen.getByTestId('machine-updated')).toHaveTextContent(/^Mis à jour il y a /);
-    const card = screen.getByTestId('server-card');
-    expect(card).toHaveTextContent('Vanilla');
+      await user.click(screen.getByTestId('nav-dashboard'));
+      expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
+      expect(screen.getByTestId('stat-machines')).toHaveTextContent('1');
+      expect(screen.getByTestId('machine-link')).toHaveTextContent('Tour');
+      // Fraîcheur du heartbeat affichée (ts=1 → ancien, donc « il y a … »).
+      expect(screen.getByTestId('machine-updated')).toHaveTextContent(/^Mis à jour il y a /);
+      const card = screen.getByTestId('server-card');
+      expect(card).toHaveTextContent('Vanilla');
 
-    await user.click(screen.getByTestId('action-start'));
-    await waitFor(() => {
-      expect(state.calls).toContain('POST /api/servers/s1/start');
-    });
-    expect(await screen.findByText('Démarrage')).toBeInTheDocument();
-  });
+      await user.click(screen.getByTestId('action-start'));
+      await waitFor(() => {
+        expect(state.calls).toContain('POST /api/servers/s1/start');
+      });
+      expect(await screen.findByText('Démarrage')).toBeInTheDocument();
+    },
+  );
 
   it('bascule de langue : l’interface passe en anglais', async () => {
     state.session = true;
