@@ -283,9 +283,10 @@ if (withPanel) {
   if (process.platform === 'linux') {
     console.log('[release] better-sqlite3 : recompilation contre la glibc locale');
     const bsDir = path.join(deployDir, 'node_modules', 'better-sqlite3');
-    // node-gyp direct (via npx) : `npm rebuild` ne déclenche pas la compilation implicite ici
-    // (pas de script install explicite dans better-sqlite3 13) — constaté au run v1.0.4 raté.
-    execFileSync('npx', ['--yes', 'node-gyp', 'rebuild', '--release'], {
+    // node-gyp direct (via npx) avec --force_build=1 : le binding.gyp de better-sqlite3 ne
+    // compile RÉELLEMENT que si force_build==1 ou si aucun prebuild n'existe pour l'hôte —
+    // sans ce flag, make ne touche que des stamps (constaté aux deux runs v1.0.4 ratés).
+    execFileSync('npx', ['--yes', 'node-gyp', 'rebuild', '--release', '--force_build=1'], {
       cwd: bsDir,
       stdio: 'inherit',
     });
