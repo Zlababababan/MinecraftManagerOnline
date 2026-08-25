@@ -192,7 +192,7 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
             managed: false,
           }),
         totalRamMb: () => 16_384,
-        rconPortRange: [rconFrom, 65000],
+        rconPortRange: [Math.min(rconFrom, 64_000), 65_000],
         rconProbeIntervalMs: 200,
         exitPollMs: 100,
       },
