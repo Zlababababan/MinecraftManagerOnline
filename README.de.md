@@ -41,9 +41,9 @@ Ein zentrales Web-**Panel** (die Maschine, die durchläuft) + ein leichtgewichti
 |                                 | Panel                           | Agent                |
 | ------------------------------- | ------------------------------- | -------------------- |
 | Windows x64                     | ✅ (Archiv bereitgestellt)      | ✅                   |
-| Linux x64                       | ✅ (selbst bauen)               | ✅                   |
-| Linux ARM64 (Raspberry Pi 4/5…) | ✅ (selbst bauen)               | ✅                   |
-| macOS Apple Silicon             | ✅ (selbst bauen)               | ✅                   |
+| Linux x64                       | ✅ (Archiv bereitgestellt)      | ✅                   |
+| Linux ARM64 (Raspberry Pi 4/5…) | ✅ (Archiv bereitgestellt)      | ✅                   |
+| macOS Apple Silicon             | ✅ (Archiv bereitgestellt)      | ✅                   |
 | Windows ARM64                   | über das x64-Archiv (Emulation) | über x64 (Emulation) |
 
 Keine Abhängigkeiten zu installieren: Jedes Archiv enthält seine festgepinnte Node-Laufzeitumgebung. Java wird vom Agent automatisch passend zur Minecraft-Version bereitgestellt (Temurin → Zulu).

@@ -41,9 +41,9 @@ Um **painel** web central (a máquina que fica ligada) + um **agente** leve em c
 |                                 | Painel                       | Agente             |
 | ------------------------------- | ---------------------------- | ------------------ |
 | Windows x64                     | ✅ (arquivo fornecido)       | ✅                 |
-| Linux x64                       | ✅ (compile você mesmo)      | ✅                 |
-| Linux ARM64 (Raspberry Pi 4/5…) | ✅ (compile você mesmo)      | ✅                 |
-| macOS Apple Silicon             | ✅ (compile você mesmo)      | ✅                 |
+| Linux x64                       | ✅ (arquivo fornecido)       | ✅                 |
+| Linux ARM64 (Raspberry Pi 4/5…) | ✅ (arquivo fornecido)       | ✅                 |
+| macOS Apple Silicon             | ✅ (arquivo fornecido)       | ✅                 |
 | Windows ARM64                   | via o arquivo x64 (emulação) | via x64 (emulação) |
 
 Nenhuma dependência para instalar: cada arquivo embute seu runtime Node fixado. O Java é provisionado automaticamente pelo agente (Temurin → Zulu) conforme a versão do Minecraft.

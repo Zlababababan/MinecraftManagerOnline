@@ -41,9 +41,9 @@
 |                                  | 面板                        | 代理                 |
 | -------------------------------- | --------------------------- | -------------------- |
 | Windows x64                      | ✅（提供压缩包）            | ✅                   |
-| Linux x64                        | ✅（自行构建）              | ✅                   |
-| Linux ARM64（Raspberry Pi 4/5…） | ✅（自行构建）              | ✅                   |
-| macOS Apple Silicon              | ✅（自行构建）              | ✅                   |
+| Linux x64                        | ✅（提供压缩包）            | ✅                   |
+| Linux ARM64（Raspberry Pi 4/5…） | ✅（提供压缩包）            | ✅                   |
+| macOS Apple Silicon              | ✅（提供压缩包）            | ✅                   |
 | Windows ARM64                    | 通过 x64 压缩包（模拟运行） | 通过 x64（模拟运行） |
 
 无需安装任何依赖：每个压缩包都内置了固定版本的 Node 运行时。Java 由代理根据 Minecraft 版本自动配备（Temurin → Zulu）。

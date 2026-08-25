@@ -41,9 +41,9 @@ Un **panel** web central (la máquina que permanece encendida) + un **agente** l
 |                                 | Panel                               | Agente                   |
 | ------------------------------- | ----------------------------------- | ------------------------ |
 | Windows x64                     | ✅ (archivo proporcionado)          | ✅                       |
-| Linux x64                       | ✅ (compílelo usted mismo)          | ✅                       |
-| Linux ARM64 (Raspberry Pi 4/5…) | ✅ (compílelo usted mismo)          | ✅                       |
-| macOS Apple Silicon             | ✅ (compílelo usted mismo)          | ✅                       |
+| Linux x64                       | ✅ (archivo proporcionado)          | ✅                       |
+| Linux ARM64 (Raspberry Pi 4/5…) | ✅ (archivo proporcionado)          | ✅                       |
+| macOS Apple Silicon             | ✅ (archivo proporcionado)          | ✅                       |
 | Windows ARM64                   | mediante el archivo x64 (emulación) | mediante x64 (emulación) |
 
 Ninguna dependencia que instalar: cada archivo incluye su runtime de Node fijado. El agente aprovisiona Java automáticamente (Temurin → Zulu) según la versión de Minecraft.
