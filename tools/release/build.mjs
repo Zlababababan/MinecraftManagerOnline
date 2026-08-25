@@ -18,7 +18,16 @@
  */
 import { execFileSync } from 'node:child_process';
 import { createPrivateKey, createPublicKey, sign } from 'node:crypto';
-import { mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -265,6 +274,28 @@ if (withPanel) {
     '--config.node-linker=hoisted',
     deployDir,
   );
+  // better-sqlite3 (13.x) embarque des prebuilds amont liés à une glibc récente (≥ 2.33, constaté
+  // en réel sur Ubuntu 20.04 ARM avec les releases 1.0.2/1.0.3) : sur Linux, recompilation depuis
+  // les sources contre la glibc de l'hôte de build (conteneur ubuntu:20.04 en CI → plancher 2.31,
+  // doc 03 §3), écrasement du prebuild de la plateforme, purge du dossier de compilation (sinon
+  // archivé), puis VÉRIFICATION par un require() réel — une archive Linux inchargeable sur l'hôte
+  // de build ne peut plus sortir.
+  if (process.platform === 'linux') {
+    console.log('[release] better-sqlite3 : recompilation contre la glibc locale');
+    execFileSync('npm', ['rebuild', 'better-sqlite3', '--build-from-source'], {
+      cwd: deployDir,
+      stdio: 'inherit',
+    });
+    const bsDir = path.join(deployDir, 'node_modules', 'better-sqlite3');
+    const built = path.join(bsDir, 'build', 'Release', 'better_sqlite3.node');
+    if (!existsSync(built)) throw new Error('better-sqlite3 : binaire recompilé introuvable');
+    copyFileSync(built, path.join(bsDir, 'prebuilds', `linux-${process.arch}.node`));
+    rmSync(path.join(bsDir, 'build'), { recursive: true, force: true });
+    execFileSync(process.execPath, ['-e', "require('better-sqlite3')"], {
+      cwd: deployDir,
+      stdio: 'inherit',
+    });
+  }
   const entries = [];
   const keep = new Set(['dist', 'node_modules', 'drizzle', 'install', 'package.json']);
   entries.push(
