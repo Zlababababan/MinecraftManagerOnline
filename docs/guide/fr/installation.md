@@ -33,7 +33,7 @@ Le panel écoute sur `http://127.0.0.1:3000` (jamais sur toutes les interfaces �
 
 ### 1.3 Premier démarrage
 
-Ouvrez `http://127.0.0.1:3000` : le wizard se déroule en deux étapes — **Compte administrateur** (identifiant, mot de passe, langue), puis **Accès** : l'**URL publique du panel** (optionnelle à ce stade), le **mode d'accès** (voir §3) et la **destination de backups par défaut**. L'URL publique se change à tout moment dans Réglages → Général : c'est elle qui est injectée dans les commandes d'installation des agents et dans les notifications push — renseignez-la dès que votre accès distant est en place.
+Ouvrez `http://127.0.0.1:3000`. Sur une machine sans navigateur (serveur, VM) : mettez d'abord l'accès distant en place (§3 — installer Tailscale, exécuter la commande `tailscale serve`, puis ouvrir `https://<machine>.<tailnet>.ts.net` depuis un autre appareil) ou passez par un tunnel SSH (`ssh -L 3000:127.0.0.1:3000 utilisateur@machine` puis ouvrez `http://127.0.0.1:3000` en local). Le wizard se déroule en deux étapes — **Compte administrateur** (identifiant, mot de passe, langue), puis **Accès** : l'**URL publique du panel** (optionnelle à ce stade), le **mode d'accès** (voir §3) et la **destination de backups par défaut**. L'URL publique se change à tout moment dans Réglages → Général : c'est elle qui est injectée dans les commandes d'installation des agents et dans les notifications push — renseignez-la dès que votre accès distant est en place.
 
 ### 1.4 Démarrer au boot (service)
 

@@ -33,7 +33,7 @@ The panel listens on `http://127.0.0.1:3000` (never on all interfaces — the ac
 
 ### 1.3 First start
 
-Open `http://127.0.0.1:3000`: the wizard runs in two steps — **Administrator account** (username, password, language), then **Access**: the **public panel URL** (optional at this stage), the **access mode** (see §3) and the **default backup destination**. The public URL can be changed at any time in Settings → General: it is what gets injected into the agent install commands and into push notifications — set it as soon as your remote access is in place.
+Open `http://127.0.0.1:3000`. On a headless machine (server, VM): either set up remote access first (§3 — install Tailscale, run the `tailscale serve` command, then open `https://<machine>.<tailnet>.ts.net` from another device) or use an SSH tunnel (`ssh -L 3000:127.0.0.1:3000 user@machine` then open `http://127.0.0.1:3000` locally). The wizard runs in two steps — **Administrator account** (username, password, language), then **Access**: the **public panel URL** (optional at this stage), the **access mode** (see §3) and the **default backup destination**. The public URL can be changed at any time in Settings → General: it is what gets injected into the agent install commands and into push notifications — set it as soon as your remote access is in place.
 
 ### 1.4 Start at boot (service)
 
