@@ -1,6 +1,9 @@
-# Phase 11 — release signée sur tag `v*` (doc 03 §3) : archives des 4 plateformes + bundle + manifeste,
-# signés avec la clé Ed25519 du mainteneur (secret `MMO_SIGNING_KEY_PEM` = contenu PEM de la clé privée ;
-# la clé publique correspondante doit être dans apps/agent/src/update/keys.ts, sinon le build refuse).
+# Release signée sur tag `v*` (doc 03 §3) : matrice 4 OS — chaque hôte produit l'archive du PANEL
+# de sa plateforme (elle suit l'hôte de build), l'hôte ubuntu publie en plus les archives d'AGENTS
+# des 4 plateformes (bundle universel, reproductible : identique sur tous les hôtes), le bundle
+# signé et le manifeste. Signature : secret `MMO_SIGNING_KEY_PEM` (contenu PEM de la clé privée du
+# mainteneur ; la clé publique correspondante doit être dans apps/agent/src/update/keys.ts, sinon
+# le build refuse). Un job final rassemble les artefacts et crée la release GitHub.
 name: Release
 
 on:
@@ -11,9 +14,18 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: windows, os: windows-latest, panel: win-x64 }
+          - { name: ubuntu, os: ubuntu-latest, panel: linux-x64, agents: true }
+          - { name: ubuntu-arm, os: ubuntu-24.04-arm, panel: linux-arm64 }
+          - { name: macos, os: macos-latest, panel: darwin-arm64 }
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -23,20 +35,44 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - name: Build signé
+      - name: Build signé (panel ${{ matrix.panel }})
+        shell: bash
         env:
           PEM: ${{ secrets.MMO_SIGNING_KEY_PEM }}
         run: |
           test -n "$PEM" || { echo "secret MMO_SIGNING_KEY_PEM absent"; exit 1; }
           printf '%s' "$PEM" > "$RUNNER_TEMP/release.pem"
-          SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) node tools/release/build.mjs --skip-build --release --key "$RUNNER_TEMP/release.pem"
+          SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) node tools/release/build.mjs --skip-build --release --panel --key "$RUNNER_TEMP/release.pem"
           rm -f "$RUNNER_TEMP/release.pem"
           node tools/release/smoke.mjs
+      - name: Artefact panel
+        uses: actions/upload-artifact@v4
+        with:
+          name: panel-${{ matrix.panel }}
+          path: release/*/mmo-panel-*
+          if-no-files-found: error
+      - name: Artefacts agents (hôte ubuntu uniquement — identiques sur tous les hôtes)
+        if: matrix.agents == true
+        uses: actions/upload-artifact@v4
+        with:
+          name: agents
+          path: |
+            release/*/mmo-agent-*
+            release/*/agent-*.js
+            release/*/manifest.json
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
       - name: Publication GitHub
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            release/*/mmo-agent-*.zip
-            release/*/mmo-agent-*.tar.gz
-            release/*/agent-*.js
-            release/*/manifest.json
+          generate_release_notes: true
+          files: dist/**/*
