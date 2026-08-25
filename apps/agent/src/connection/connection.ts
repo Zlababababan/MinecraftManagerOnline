@@ -171,12 +171,21 @@ export class AgentConnection {
 
   /**
    * Phase 11 : appairage seul (installeurs) — une connexion, `pair.request`, état écrit, fermeture.
-   * Lève si le code est refusé ou le panel injoignable ; `alreadyPaired` si un secret existe déjà.
+   * Lève si le code est refusé ou le panel injoignable. `alreadyPaired` seulement si l'identité
+   * stockée est ACCEPTÉE par ce panel (sonde `auth.hello`) : un état hérité d'un autre panel, ou
+   * une machine retirée côté panel, est ré-appairé avec le code fourni au lieu d'être conservé
+   * (sinon l'agent serait rejeté en boucle « unknown, unpaired or disabled agent » après coup).
    */
   async pairOnly(): Promise<{ agentId: string; alreadyPaired: boolean }> {
     const state = this.options.store.get();
     if (state.agentId !== undefined && state.agentSecret !== undefined) {
-      return { agentId: state.agentId, alreadyPaired: true };
+      // Seul E_AUTH déclenche le ré-appairage : une erreur réseau reste visible et ne brûle pas
+      // le code (relancer la même commande d'installation reste inoffensif si tout va bien).
+      const accepted = await this.probeIdentity(state.agentId, state.agentSecret);
+      if (accepted) return { agentId: state.agentId, alreadyPaired: true };
+      this.options.logger.warn('stored identity rejected by this panel — pairing again', {
+        agentId: state.agentId,
+      });
     }
     const ws = await openWebSocket(
       this.options.panelUrl,
@@ -199,6 +208,32 @@ export class AgentConnection {
     const agentId = this.options.store.get().agentId;
     if (agentId === undefined) throw new Error('pairing did not persist an agent id');
     return { agentId, alreadyPaired: false };
+  }
+
+  /** Sonde `auth.hello` sur une connexion dédiée : `true` si le panel accepte l'identité stockée. */
+  private async probeIdentity(agentId: string, agentSecret: string): Promise<boolean> {
+    const ws = await openWebSocket(
+      this.options.panelUrl,
+      this.options.webSocketFactory,
+      this.options.connectTimeoutMs,
+    );
+    const transport = createWsTransport(ws);
+    const peer = createRpcPeer({
+      role: 'agent',
+      transport,
+      logger: this.options.logger,
+      now: () => this.now(),
+    });
+    this.options.registerHandlers(peer);
+    try {
+      await this.authenticate(peer, agentId, agentSecret);
+      return true;
+    } catch (error) {
+      if (isProtocolError(error) && error.code === 'E_AUTH') return false;
+      throw error;
+    } finally {
+      transport.close(1000, 'identity probe');
+    }
   }
 
   /** Force une reconnexion immédiate (ex. après rotation de secret). */
@@ -370,6 +405,9 @@ export class AgentConnection {
       protoMax: PROTOCOL_VERSION,
     });
     await this.options.store.update((s) => {
+      // Changement d'identité (ré-appairage vers un autre panel) : le journal d'événements en
+      // attente appartient à l'ancienne identité, il n'a aucun sens pour le nouveau panel.
+      if (s.agentId !== undefined && s.agentId !== res.agentId) s.pendingEvents = [];
       s.agentId = res.agentId;
       s.agentSecret = res.secret;
       s.panelUrl = this.options.panelUrl;

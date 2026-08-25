@@ -166,10 +166,41 @@ describe('session panel↔agent (doc 05 §3–5, §10)', () => {
     expect(r).toEqual({ agentId: 'agt_1', alreadyPaired: false });
     expect(store.get().agentSecret).toBe(SECRET);
     expect(log.hellos).toHaveLength(0);
-    // Déjà appairé : aucune connexion, aucune nouvelle demande.
+    // Déjà appairé ET identité acceptée par ce panel (sonde auth.hello) : pas de ré-appairage.
     const again = await makeConnection(store, { pairCode: 'MMOP-OTHER' }).pairOnly();
     expect(again).toEqual({ agentId: 'agt_1', alreadyPaired: true });
     expect(log.pairs).toHaveLength(2);
+    expect(log.hellos).toHaveLength(1);
+  });
+
+  it('pairOnly() : identité héritée d’un autre panel (E_AUTH) → ré-appairage avec le code fourni', async () => {
+    panel = await createFakePanel(panelBehaviour(log));
+    const store = new StateStore(stateDir, { restrictPermissions: false });
+    await store.load();
+    // Réinstallation par-dessus l'état d'un ancien panel : identité inconnue de celui-ci,
+    // événements critiques encore journalisés pour l'ancienne identité.
+    await store.update((s) => {
+      s.agentId = 'agt_old';
+      s.agentSecret = 'b'.repeat(64);
+      s.pendingEvents.push({ id: '01OLD', type: 'server.stateChanged', payload: {}, ts: 1 });
+    });
+    const r = await makeConnection(store, { pairCode: 'MMOP-OK' }).pairOnly();
+    expect(r).toEqual({ agentId: 'agt_1', alreadyPaired: false });
+    expect(store.get().agentSecret).toBe(SECRET);
+    expect(store.get().panelUrl).toBe(panel.url);
+    // Le journal de l'ancienne identité est purgé : il n'a aucun sens pour le nouveau panel.
+    expect(store.get().pendingEvents).toEqual([]);
+    expect(log.hellos).toHaveLength(1);
+    expect(log.pairs).toHaveLength(1);
+
+    // Identité refusée ET code invalide : échec immédiat et visible, comme un premier appairage raté.
+    await store.update((s) => {
+      s.agentId = 'agt_old';
+      s.agentSecret = 'b'.repeat(64);
+    });
+    await expect(makeConnection(store, { pairCode: 'MMOP-BAD' }).pairOnly()).rejects.toThrow(
+      'bad code',
+    );
   });
 
   it('reconnexion après coupure, avec rejeu des événements critiques jusqu’à event.ack', async () => {

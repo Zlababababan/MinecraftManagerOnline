@@ -48,7 +48,7 @@ Enter the public URL and run the reachability test: the "Seen via" line of the r
 
 ## Frequently asked questions
 
-**The agent stays `offline` after installation.** On the machine, check the logs — Windows: `launcher.log` at the root of `%LOCALAPPDATA%\Programs\mmo-agent` and the service logs in its `logs\` subfolder; Linux: `journalctl -u mmo-agent -f` (`--user` if installed with `--user-service`); macOS: `/var/lib/mmo-agent/agent.log`. Usual causes: panel URL unreachable from that machine (Tailscale not installed/connected, firewall), certificate not trusted (manual mode with a private CA: add it to the system store), expired pairing code (the `pairing failed` message is shown during installation).
+**The agent stays `offline` after installation.** On the machine, check the logs — Windows: `launcher.log` at the root of `%LOCALAPPDATA%\Programs\mmo-agent` and the service logs in its `logs\` subfolder; Linux: `journalctl -u mmo-agent -f` (`--user` if installed with `--user-service`); macOS: `/var/lib/mmo-agent/agent.log`. Usual causes: panel URL unreachable from that machine (Tailscale not installed/connected, firewall), certificate not trusted (manual mode with a private CA: add it to the system store), expired pairing code (the `pairing failed` message is shown during installation), or agent state inherited from another panel (`unknown, unpaired or disabled agent` in the logs — the installer re-pairs automatically; as a last resort, uninstall with `-Purge` / `--purge` then run the install command again).
 
 **The panel is reachable but WebSocket fails.** A proxy without `Upgrade`, or with a short idle timeout. The reachability test shows which step fails (HTTP, WebSocket, Binary frames, TLS certificate).
 
