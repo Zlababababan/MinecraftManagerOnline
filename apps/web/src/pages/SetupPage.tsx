@@ -24,6 +24,7 @@ import { useSetup } from '../api/queries.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { LanguageMenu, ThemeMenu } from '../components/Shell.js';
 import { currentLocale, setLocale } from '../i18n/index.js';
+import { coerceOriginInput, isValidOriginInput } from '../lib/origin.js';
 
 interface SetupForm {
   username: string;
@@ -55,8 +56,7 @@ export function SetupPage() {
       password: (v) => (passwordSchema.safeParse(v).success ? null : t('web:setup.passwordHint')),
       passwordConfirm: (v, values) =>
         v === values.password ? null : t('web:setup.passwordMismatch'),
-      publicUrl: (v) =>
-        v === '' || /^https?:\/\/[^\s/]+/.test(v) ? null : t('web:errors.validation'),
+      publicUrl: (v) => (isValidOriginInput(v) ? null : t('web:errors.origin')),
     },
   });
 
@@ -75,7 +75,9 @@ export function SetupPage() {
         password: values.password,
         locale: values.locale,
         accessMode: values.accessMode,
-        ...(values.publicUrl === '' ? {} : { publicUrl: values.publicUrl.replace(/\/+$/, '') }),
+        ...(coerceOriginInput(values.publicUrl) === ''
+          ? {}
+          : { publicUrl: coerceOriginInput(values.publicUrl) }),
         ...(values.backupDestination === '' ? {} : { backupDestination: values.backupDestination }),
       },
       {

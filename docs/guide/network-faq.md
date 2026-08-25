@@ -18,7 +18,7 @@ The panel listens **only** on `127.0.0.1` (or a specific address via `MMO_HOST`)
 
 Agents: the install command uses the `https://…ts.net` URL; the agent machine therefore needs Tailscale too. Minecraft servers: **Tailnet** exposure, address `100.x.y.z:25565`.
 
-Troubleshooting: `tailscale status` on the host; `tailscale serve status` must list the proxy; if the WebSocket test fails while HTTP passes, check that you do not have another proxy in front (nginx) without `Upgrade`.
+Troubleshooting: `tailscale status` on the host; `tailscale serve status` must list the proxy (`No serve config` = the serve command was never run — the reachability test then fails with a refused connection on port 443); if the WebSocket test fails while HTTP passes, check that you do not have another proxy in front (nginx) without `Upgrade`. If PowerShell answers that `tailscale` is not recognized (Windows), the CLI is not in your PATH: call it with its full path, e.g. `& 'C:\Program Files\Tailscale\tailscale.exe' serve …` (adjust to your install folder).
 
 ## Direct (IPv6 + your own domain)
 

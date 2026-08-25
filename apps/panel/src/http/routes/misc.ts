@@ -14,7 +14,7 @@ import { PROJECT_NAME } from '@mmo/shared';
 
 import type { AppContext } from '../../context.js';
 import { AppError } from '../../errors.js';
-import { normalizeOrigin } from '../../util/origin.js';
+import { coerceOrigin } from '../../util/origin.js';
 import { PANEL_VERSION } from '../../version.js';
 import { auditMeta } from './setup-auth.js';
 
@@ -71,7 +71,7 @@ export function registerMiscRoutes(app: FastifyInstance, ctx: AppContext): void 
       for (const [key, value] of Object.entries(request.body)) {
         if (key === 'panel.publicUrl') {
           // Origine stricte (injectée dans les scripts d'installation et les push) ; vide = effacer.
-          const origin = value.trim() === '' ? '' : normalizeOrigin(value);
+          const origin = value.trim() === '' ? '' : coerceOrigin(value);
           if (origin === undefined) {
             throw new AppError('E_VALIDATION', 'panel.publicUrl must be an http(s) origin', {
               details: { key },

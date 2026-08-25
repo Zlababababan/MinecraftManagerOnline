@@ -13,7 +13,7 @@ import {
 } from '@mmo/protocol/client';
 
 import type { AppContext } from '../../context.js';
-import { normalizeOrigin } from '../../util/origin.js';
+import { coerceOrigin } from '../../util/origin.js';
 import { AppError } from '../../errors.js';
 import { SETTING_KEYS } from '../../services/settings.js';
 import { toUserDto } from '../../services/users.js';
@@ -94,6 +94,12 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
     client: { ip: string; userAgent: string | undefined },
     reply: FastifyReply,
   ): Promise<unknown> {
+    // Tout valider AVANT la première écriture : un rejet après users.create laisserait un setup
+    // à moitié fait (compte créé, setupCompletedAt absent → retentative en conflit d'identifiant).
+    const origin = body.publicUrl === undefined ? undefined : coerceOrigin(body.publicUrl);
+    if (body.publicUrl !== undefined && origin === undefined) {
+      throw new AppError('E_VALIDATION', 'publicUrl must be an http(s) origin');
+    }
     const admin = await ctx.users.create({
       username: body.username,
       password: body.password,
@@ -103,13 +109,7 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
     const vapid = generateVapidKeys();
     ctx.settings.set(SETTING_KEYS.vapidPublicKey, vapid.publicKey);
     ctx.settings.set(SETTING_KEYS.vapidPrivateKey, vapid.privateKey);
-    if (body.publicUrl !== undefined) {
-      const origin = normalizeOrigin(body.publicUrl);
-      if (origin === undefined) {
-        throw new AppError('E_VALIDATION', 'publicUrl must be an http(s) origin');
-      }
-      ctx.settings.set(SETTING_KEYS.publicUrl, origin);
-    }
+    if (origin !== undefined) ctx.settings.set(SETTING_KEYS.publicUrl, origin);
     if (body.accessMode !== undefined) ctx.settings.set(SETTING_KEYS.accessMode, body.accessMode);
     if (body.backupDestination !== undefined) {
       ctx.settings.set(SETTING_KEYS.backupDestination, body.backupDestination);

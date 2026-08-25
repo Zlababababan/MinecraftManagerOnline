@@ -16,3 +16,15 @@ export function normalizeOrigin(value: string | undefined): string | undefined {
   const v = value.trim().replace(/\/+$/, '');
   return isStrictOrigin(v) ? v : undefined;
 }
+
+/**
+ * Tolérance de saisie (URL publique tapée par l'utilisateur) : sans schéma, `https://` est
+ * supposé — `panel.tailnet.ts.net` devient `https://panel.tailnet.ts.net`. Réservé aux champs
+ * de formulaire ; les origines lues des requêtes ou du stockage restent validées strictement.
+ */
+export function coerceOrigin(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  const v = value.trim();
+  if (v === '') return undefined;
+  return normalizeOrigin(/^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(v) ? v : `https://${v}`);
+}

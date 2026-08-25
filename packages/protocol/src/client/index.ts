@@ -102,8 +102,12 @@ export const setupRequestSchema = z.object({
   username: usernameSchema,
   password: passwordSchema,
   locale: localeSchema.optional(),
-  /** URL publique du panel (base du one-liner d'installation et de l'URL WS des agents). */
-  publicUrl: z.url().optional(),
+  /**
+   * URL publique du panel (base du one-liner d'installation et de l'URL WS des agents).
+   * Saisie tolérée sans schéma (« panel.tailnet.ts.net ») : le panel normalise et revalide
+   * strictement (`coerceOrigin`) — c'est lui l'autorité, pas ce schéma.
+   */
+  publicUrl: z.string().max(300).optional(),
   backupDestination: z.string().optional(),
   accessMode: z.enum(['tailscale', 'direct', 'manual']).optional(),
 });

@@ -88,7 +88,7 @@ export const webFr = {
     locale: 'Langue',
     publicUrl: 'URL publique du panel',
     publicUrlHint:
-      'Adresse utilisée par les agents et les navigateurs (ex. https://panel.tailnet.ts.net). Nécessaire aux commandes d’installation en une ligne. Modifiable plus tard.',
+      'Adresse utilisée par les agents et les navigateurs (ex. panel.tailnet.ts.net — https:// est ajouté automatiquement). Nécessaire aux commandes d’installation en une ligne. Modifiable plus tard, puis vérifiable avec le test de joignabilité (Réglages → Accès distant).',
     accessMode: 'Mode d’accès',
     accessModes: {
       tailscale: 'Tailscale (recommandé)',
@@ -918,7 +918,7 @@ export const webFr = {
       title: 'Général',
       publicUrl: 'URL publique du panel',
       publicUrlHint:
-        'Utilisée par les agents, les one-liners d’installation, le push et le test de joignabilité.',
+        'Utilisée par les agents, les one-liners d’installation, le push et le test de joignabilité. https:// est ajouté automatiquement si absent — après enregistrement, lancez le Test de joignabilité (carte Accès distant ci-dessous).',
       backupDestination: 'Destination de sauvegarde par défaut',
       eventsRetention: 'Rétention des événements (jours)',
       auditRetention: 'Rétention de l’audit (jours)',
@@ -1099,5 +1099,6 @@ export const webFr = {
     network: 'Erreur réseau — vérifiez votre connexion.',
     unknown: 'Erreur inattendue.',
     validation: 'Certains champs sont invalides.',
+    origin: 'Adresse invalide — attendu par ex. https://panel.example.ts.net (sans chemin).',
   },
 } as const satisfies WebResources;

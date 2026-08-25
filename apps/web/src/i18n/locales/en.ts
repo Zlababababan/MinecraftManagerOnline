@@ -90,7 +90,7 @@ export const webEn = {
     locale: 'Language',
     publicUrl: 'Public panel URL',
     publicUrlHint:
-      'Address your agents and browsers use (e.g. https://panel.tailnet.ts.net). Needed for the one-line install commands. Can be set later.',
+      'Address your agents and browsers use (e.g. panel.tailnet.ts.net — https:// is assumed). Needed for the one-line install commands. Can be set later, then verified with the reachability test (Settings → Remote access).',
     accessMode: 'Access mode',
     accessModes: {
       tailscale: 'Tailscale (recommended)',
@@ -907,7 +907,8 @@ export const webEn = {
     general: {
       title: 'General',
       publicUrl: 'Public URL of the panel',
-      publicUrlHint: 'Used by agents, install one-liners, push and the reachability test.',
+      publicUrlHint:
+        'Used by agents, install one-liners, push and the reachability test. https:// is assumed if omitted — after saving, run the Reachability test (Remote access card below).',
       backupDestination: 'Default backup destination',
       eventsRetention: 'Events retention (days)',
       auditRetention: 'Audit retention (days)',
@@ -1082,6 +1083,7 @@ export const webEn = {
     network: 'Network error — check your connection.',
     unknown: 'Unexpected error.',
     validation: 'Some fields are invalid.',
+    origin: 'Invalid address — expected e.g. https://panel.example.ts.net (no path).',
   },
 } as const;
 

@@ -48,6 +48,7 @@ import { useT } from '../../i18n/hooks.js';
 import { tDynamic } from '../../i18n/index.js';
 import { describeError } from '../../lib/errors.js';
 import { formatDateTime } from '../../lib/format.js';
+import { coerceOriginInput } from '../../lib/origin.js';
 
 const LE_STAGING = 'https://acme-staging-v02.api.letsencrypt.org/directory';
 
@@ -511,7 +512,7 @@ export function AccessCard() {
               loading={test.isPending}
               disabled={!publicUrl}
               onClick={() => {
-                const url = (publicUrl ?? '').trim().replace(/\/+$/, '');
+                const url = coerceOriginInput(publicUrl ?? '');
                 if (url === '') return;
                 const run = (): void => {
                   test.mutate(url, {

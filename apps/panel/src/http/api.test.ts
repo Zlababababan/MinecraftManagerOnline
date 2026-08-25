@@ -98,6 +98,7 @@ describe('panel — API, auth, RBAC, migrations', () => {
     expect(res.statusCode).toBe(400);
     expect(res.json<{ code: string }>().code).toBe('E_VALIDATION');
 
+    // URL publique invalide : rejet AVANT toute écriture (le compte ne doit pas être créé).
     res = await panel.app.inject({
       method: 'POST',
       url: '/api/setup',
@@ -105,7 +106,25 @@ describe('panel — API, auth, RBAC, migrations', () => {
         username: 'Admin',
         password: 'correct horse battery',
         locale: 'en',
-        publicUrl: 'https://panel.example/',
+        publicUrl: 'https://panel.example/un/chemin',
+        accessMode: 'tailscale',
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json<{ code: string }>().code).toBe('E_VALIDATION');
+    expect((await panel.app.inject({ method: 'GET', url: '/api/setup/status' })).json()).toEqual({
+      needsSetup: true,
+    });
+
+    // Même identifiant, URL sans schéma : https:// est supposé (tolérance de saisie).
+    res = await panel.app.inject({
+      method: 'POST',
+      url: '/api/setup',
+      payload: {
+        username: 'Admin',
+        password: 'correct horse battery',
+        locale: 'en',
+        publicUrl: 'panel.example/',
         accessMode: 'tailscale',
       },
     });

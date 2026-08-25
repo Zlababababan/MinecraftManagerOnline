@@ -28,6 +28,7 @@ import { PanelBackupsCard } from '../components/admin/PanelBackupsCard.js';
 import { UsersCard } from '../components/admin/UsersCard.js';
 import { useT } from '../i18n/hooks.js';
 import { describeError } from '../lib/errors.js';
+import { coerceOriginInput, isValidOriginInput } from '../lib/origin.js';
 
 function GeneralCard({ settings }: { settings: Record<string, string> }) {
   const { t, i18n } = useT();
@@ -42,6 +43,9 @@ function GeneralCard({ settings }: { settings: Record<string, string> }) {
       restoreOnBoot: settings['agents.restoreOnBoot'] === 'true',
       autoUpdate: settings['agents.autoUpdate'] === 'true' || settings['agents.autoUpdate'] === '1',
     },
+    validate: {
+      publicUrl: (v) => (isValidOriginInput(v) ? null : t('web:errors.origin')),
+    },
   });
   return (
     <Card withBorder radius="md" padding="md" data-testid="settings-general">
@@ -49,7 +53,7 @@ function GeneralCard({ settings }: { settings: Record<string, string> }) {
         onSubmit={form.onSubmit((v) => {
           update.mutate(
             {
-              'panel.publicUrl': v.publicUrl.trim(),
+              'panel.publicUrl': coerceOriginInput(v.publicUrl),
               'backups.defaultDestination': v.backupDestination.trim(),
               'retention.eventsDays': String(v.eventsRetention),
               'retention.auditDays': String(v.auditRetention),
