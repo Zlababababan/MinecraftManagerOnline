@@ -60,5 +60,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['src/test/setup.ts'],
     css: false,
+    // jsdom + userEvent : les 5 s par défaut débordent sur les runners CI lents et sous turbo
+    // parallèle local (piège 64) — les tests rapides restent rapides.
+    testTimeout: 20_000,
   },
 });

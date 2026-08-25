@@ -389,9 +389,10 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
     const relayed = res.json<{ task: TaskDto; sources: { relay: boolean }[] }>();
     expect(relayed.sources[0]?.relay).toBe(true);
     await waitFor(() => panel.ctx.tasks.require(relayed.task.id).status === 'done', 30_000);
-    expect((await readdir(panel.ctx.javaRuntimes.cacheDir)).some((f) => f.endsWith('.zip'))).toBe(
-      true,
-    );
+    // L'extension du cache suit archiveFor(os) : .zip sous Windows, .tar.gz ailleurs.
+    expect(
+      (await readdir(panel.ctx.javaRuntimes.cacheDir)).some((f) => /\.(zip|tar\.gz)$/.test(f)),
+    ).toBe(true);
     // Le jeton relais répond aux requêtes partielles (reprise).
     const token = [
       ...(panel.ctx.relayTokens as unknown as { entries: Map<string, unknown> }).entries.keys(),
