@@ -1,19 +1,40 @@
 /** Machines : liste + ajout (code d'appairage affiché une seule fois) + conflits de marqueur. */
-import { Button, Card, Group, Modal, Stack, Text, TextInput, Title } from '@mantine/core';
+import {
+  ActionIcon,
+  Button,
+  Card,
+  Group,
+  Modal,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+  Tooltip,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { IconPlus } from '@tabler/icons-react';
+import { modals } from '@mantine/modals';
+import { notifications } from '@mantine/notifications';
+import { IconPlus, IconTrash } from '@tabler/icons-react';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useT } from '../i18n/hooks.js';
 
-import type { PairingCodeDto } from '@mmo/protocol/client';
+import type { MachineDto, PairingCodeDto } from '@mmo/protocol/client';
 
-import { useConflicts, useCreateMachine, useMachines, useMe, useServers } from '../api/queries.js';
+import {
+  useConflicts,
+  useCreateMachine,
+  useDeleteMachine,
+  useMachines,
+  useMe,
+  useServers,
+} from '../api/queries.js';
 import { ConflictsPanel } from '../components/ConflictsPanel.js';
 import { ReleasesCard } from '../components/admin/ReleasesCard.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { MachineHeader } from '../components/MachineHeader.js';
 import { PairingCodeCard } from '../components/PairingCodeCard.js';
+import { describeError } from '../lib/errors.js';
 import { hasRole } from '../lib/format.js';
 import { useNow } from '../lib/hooks.js';
 
@@ -77,16 +98,32 @@ export function AddMachineModal({ opened, onClose }: { opened: boolean; onClose:
 }
 
 export function MachinesPage({ openAdd }: { openAdd: boolean }) {
-  const { t } = useT();
+  const { t, i18n } = useT();
   const navigate = useNavigate();
   const me = useMe();
   const machines = useMachines();
   const servers = useServers();
   const conflicts = useConflicts();
   const now = useNow(10_000);
+  const removeMachine = useDeleteMachine();
   const isAdmin = me.data !== undefined && hasRole(me.data.user.role, 'admin');
   const setOpen = (open: boolean): void => {
     void navigate({ to: '/machines', search: open ? { add: true } : {}, replace: true });
+  };
+  const confirmRemove = (machine: MachineDto): void => {
+    modals.openConfirmModal({
+      title: t('web:machine.remove'),
+      children: <Text size="sm">{t('web:machine.removeConfirm', { name: machine.name })}</Text>,
+      labels: { confirm: t('web:common.delete'), cancel: t('web:common.cancel') },
+      confirmProps: { color: 'red' },
+      onConfirm: () => {
+        removeMachine.mutate(machine.id, {
+          onError: (error) => {
+            notifications.show({ color: 'red', message: describeError(i18n, error) });
+          },
+        });
+      },
+    });
   };
 
   return (
@@ -123,7 +160,26 @@ export function MachinesPage({ openAdd }: { openAdd: boolean }) {
             data-machine-id={machine.id}
           >
             <Stack gap="xs">
-              <MachineHeader machine={machine} now={now} />
+              <Group align="flex-start" wrap="nowrap" gap="xs">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <MachineHeader machine={machine} now={now} />
+                </div>
+                {isAdmin && (
+                  <Tooltip label={t('web:machine.remove')} withArrow>
+                    <ActionIcon
+                      variant="subtle"
+                      color="red"
+                      aria-label={t('web:machine.remove')}
+                      onClick={() => {
+                        confirmRemove(machine);
+                      }}
+                      data-testid="machine-remove"
+                    >
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </Group>
               <Text size="xs" c="dimmed">
                 {t('web:machine.servers')} : {count ?? '…'} · {t('web:machine.directories')} :{' '}
                 {machine.watchedDirectories.length}
