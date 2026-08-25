@@ -83,7 +83,7 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 |---|---|
 | Démarrage / arrêt / redémarrage programmés | V1 |
 | Messages d'annonce en jeu avant un arrêt | V1 |
-| Tâches personnalisées (commande planifiée) | Futur |
+| Tâches personnalisées (commande planifiée) | V1 (livrée en phase 8 : action `command` du planificateur) |
 | Exécution unique (« le [date] à [heure] », sans récurrence) | V1 (Planificateur v2, 2026-08-24) |
 | Plusieurs horaires par jour dans une même planification | V1 (Planificateur v2, 2026-08-24) |
 | Fréquences en langage simple, expression cron reléguée à un mode avancé replié | V1 (Planificateur v2, 2026-08-24) |

@@ -64,6 +64,8 @@ Application multi-comptes destinée à un cercle privé (le propriétaire et ses
 
 ## Documents du projet
 
+Guide utilisateur (installation et prise en main) : [docs/guide/](guide/installation.md). Documents de conception :
+
 - [02-fonctionnalites.md](02-fonctionnalites.md) — liste complète des fonctionnalités (V1 / futur)
 - [03-socle-technique.md](03-socle-technique.md) — stack, distribution, couche d'accès, sécurité, tests
 - [04-base-de-donnees.md](04-base-de-donnees.md) — schéma SQLite complet et règles d'exploitation

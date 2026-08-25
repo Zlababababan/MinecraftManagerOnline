@@ -4,7 +4,7 @@ Version de protocole décrite : `1`. Schémas définis en Zod dans `packages/pro
 
 ## 1. Principes
 
-- **Transport** : une connexion WebSocket persistante par agent, **toujours initiée par l'agent** (`wss://<panel>/agent/v1`). Frames texte = JSON ; frames binaires = chunks de transfert.
+- **Transport** : une connexion WebSocket persistante par agent, **toujours initiée par l'agent** (`wss://<panel>/ws/agent` — doc 03 §1). Frames texte = JSON ; frames binaires = chunks de transfert.
 - **Trois genres** : `req` (attend une réponse), `res` (corrélée par `re`), `event` (sans réponse). Canal full-duplex : panel et agent émettent tous deux des `req`.
 - **Opérations longues = tasks** (backup, restore, migration, scan, java.install, update) : mécanisme unifié de progression/annulation/reprise (§7). Le `taskId` est fourni par le panel et **persisté en base** (table `tasks`) — le panel survit à son propre redémarrage et réconcilie via `task.list`.
 - **Idempotence** : tout `req` porte un `id` ULID ; l'agent déduplique (cache 10 min / 1000 entrées). Rejouer une requête avec le même `id` est toujours sûr. Idempotence sémantique en plus : `server.start` sur un serveur déjà démarré → `ok:true, {alreadyRunning:true}`.

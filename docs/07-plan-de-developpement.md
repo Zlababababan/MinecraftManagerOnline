@@ -170,13 +170,24 @@ Les trois vérifications listées en doc 03 §10, **avant toute ligne de code de
 
 > **Recette utilisateur (2026-08-24)** : parcours `docs/guide/recette.md` déroulé en direct par l'utilisateur sur l'installation de test (blocs 0–7 validés ; §8 mobile non joué). Chaque écart a été corrigé au fil de l'eau — 10 commits (`3a6e89a` → `8c86a46`), `pnpm check` + `format:check` verts, doc 02 §12 pour la liste des ajouts. Écart le plus notable : les écrans **Utilisateurs** et **Journal d'audit** (fonctions V1 du doc 02 §9) n'existaient que côté API — leçon : le critère « zéro fonctionnalité V1 manquante » de la phase 12 avait été vérifié sur l'API, pas sur l'UI. Nouvel outil de diagnostic né d'une demande utilisateur : le **parcours UI** (`ui_events`, doc 04 §7) — les clics enregistrés ont servi le jour même à localiser un écart (pastille de notifications).
 
-### Chantier 1 — Planificateur v2 (prochain développement)
+### Chantier 1 — Planificateur v2 — **livré (2026-08-24)**
 
-Périmètre : doc 02 §8 (encadré). Exécution unique (« le [date] à [heure] » — nécessite le support du `SchedulerService`, qui n'évalue que du cron 5 champs), plusieurs horaires par jour dans une planification, fréquences en langage simple (jargon cron relégué à un mode avancé replié), sélecteur d'heure intuitif ; s'applique au planificateur serveur **et** aux planifications de sauvegarde (même `CronInput`). Méthode : maquette validée par l'utilisateur avant le code. **Terminé quand** : un débutant crée sans aide « une annonce dans 10 minutes » et « un restart tous les jours à 6h00 et 18h00 », l'expression cron n'apparaît nulle part par défaut, et les planifications existantes (recette + politiques par défaut) restent intactes après migration.
+Périmètre : doc 02 §8 (encadré). Exécution unique (« le [date] à [heure] » — support serveur : colonne `scheduled_tasks.run_at`, migration `0004_scheduler_v2`, doc 04 §5), plusieurs horaires par jour dans une planification, fréquences en langage simple (jargon cron relégué à un mode avancé replié), sélecteur d'heure intuitif ; s'applique au planificateur serveur **et** aux planifications de sauvegarde via le composant commun **`ScheduleInput`** (qui remplace `CronInput` ; les politiques de sauvegarde restent limitées à un horaire, sans exécution unique — cron simple compris par tous les agents). Maquette validée par l'utilisateur avant le code. Critère atteint : recette déroulée sur l'installation de test — validations, multi-horaires (prochaine exécution = min), exécution unique réelle, réarmement, `missed` définitif avec badge et explication.
 
-### Chantier 2 — release 1.0.1
+### Chantier 2 — release 1.0.1 — **fait (2026-08-24)**
 
-`release/1.0.0` ne contient aucun correctif post-tag (course update-result de la session 3 + les 10 commits de la recette). Construire et publier une 1.0.1 locale (`node tools/release/build.mjs --release --panel --key …`, smoke, publication dans le panel de test) quand le Planificateur v2 est livré — ou avant, si l'installation de test doit être remise au propre. Les critères manuels encore ouverts restent inchangés (relais `sudo` interactif, Linux ARM réel, launchd macOS, migration Win→ARM, push Android/iOS réels, accès hors réseau).
+Construite avec les correctifs post-tag (course update-result de la session 3, commits de la recette, Planificateur v2) : `--release --panel` avec la clé mainteneur, smoke vert, tag `v1.0.1`, publication dans le panel de test et **`agent.update` réel 1.0.0 → 1.0.1** vérifié. Les critères manuels encore ouverts restent inchangés (relais `sudo` interactif, Linux ARM réel, launchd macOS, migration Win→ARM, push Android/iOS réels, accès hors réseau).
+
+### Publication du dépôt, licence MIT et CI (2026-08-25)
+
+- **Licence MIT** (titulaire pseudonyme) — décision utilisateur, à partir de la 1.0.1 ; LICENSE, package.json et README alignés.
+- **Dépôt public** : `https://github.com/Zlababababan/MinecraftManagerOnline` — `main` + tags `v1.0.0`/`v1.0.1` poussés, **Release v1.0.1 en ligne** (4 archives d'agents, panel win-x64, bundle signé, manifeste). Le workflow `release.yml` des tags échoue tant que le secret `MMO_SIGNING_KEY_PEM` n'est pas configuré (la clé reste chez le mainteneur) — les artefacts ont été déposés à la main.
+- **CI exécutée pour la première fois** (elle n'avait jamais tourné faute de remote) et stabilisée jusqu'au vert sur les 4 OS — détail des remèdes en doc 03 §9 ; deux tests restent tolérants-CI (`[flaky-ci]`), débogage à prévoir.
+- README refait en vitrine (badges CI/release/licence, fonctionnalités, tableau des plateformes, démarrage rapide).
+
+### Chantier suivant — utilisation en conditions réelles
+
+Passe d'amélioration des docs (guide vérifié contre le code, obsolescences purgées), puis l'utilisateur déroule l'utilisation réelle : panel de production installé depuis l'archive 1.0.1, accès Tailscale, mobile, amis, adoption de copies de vrais serveurs — chaque accroc = vrai bug utilisateur.
 
 ## Règles de conduite du projet
 
