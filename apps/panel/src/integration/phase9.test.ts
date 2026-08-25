@@ -86,6 +86,9 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
     const d = await tmpDir('mmo-p9-data-');
     panel = await createTestPanel({
       now: () => Date.now(),
+      // Warns visibles : un échec intermittent CI (« critical event handler failed ») n'est
+      // diagnosticable que si le panel raconte pourquoi le handler a levé.
+      logger: { level: 'warn' },
       config: { heartbeatIntervalSec: 1, offlineAfterMs: 10_000, dataDir: d.dir },
       schedulerTickMs: 0,
       transferReconnectWaitMs: 3000,
@@ -508,8 +511,12 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
       const pending = (
         JSON.parse(stateRaw) as { pendingEvents?: { type: string; payload?: unknown }[] }
       ).pendingEvents;
+      const updateAudit = panel.ctx.audit
+        .list(50)
+        .filter((a) => a.action.startsWith('agent.update.'))
+        .map((a) => `${a.action}:${a.details ?? ''}`);
       throw new Error(
-        `agent.updateRolledBack jamais reçu — machineB connectée=${String(panel.ctx.registry.isConnected(machineB))} ; update-result.json présent=${String(resultLeft)} ; pendingEvents=${JSON.stringify(pending?.map((p) => p.type) ?? null)} ; derniers événements : ${recent.join(' | ')}`,
+        `agent.updateRolledBack jamais reçu — machineB connectée=${String(panel.ctx.registry.isConnected(machineB))} ; update-result.json présent=${String(resultLeft)} ; pendingEvents=${JSON.stringify(pending?.map((p) => p.type) ?? null)} ; audit=${JSON.stringify(updateAudit)} ; derniers événements : ${recent.join(' | ')}`,
         { cause },
       );
     }
