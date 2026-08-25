@@ -514,7 +514,7 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
       const updateAudit = panel.ctx.audit
         .list(50)
         .filter((a) => a.action.startsWith('agent.update.'))
-        .map((a) => `${a.action}:${a.details ?? ''}`);
+        .map((a) => `${a.action}:${JSON.stringify(a.details)}`);
       throw new Error(
         `agent.updateRolledBack jamais reçu — machineB connectée=${String(panel.ctx.registry.isConnected(machineB))} ; update-result.json présent=${String(resultLeft)} ; pendingEvents=${JSON.stringify(pending?.map((p) => p.type) ?? null)} ; audit=${JSON.stringify(updateAudit)} ; derniers événements : ${recent.join(' | ')}`,
         { cause },
