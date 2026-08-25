@@ -29,7 +29,7 @@ sudo mkdir -p /opt/mmo && sudo tar -xzf mmo-panel-*.tar.gz -C /opt/mmo
 /opt/mmo/mmo-panel/mmo-panel.sh
 ```
 
-The panel listens on `http://127.0.0.1:3000` (never on all interfaces — the access layer, §3, is what exposes it; `0.0.0.0` is refused at startup). Useful variables: `MMO_PORT`, `MMO_HOST` (a specific address), `MMO_DATA_DIR` (default `./data` next to the script — **this is the folder to back up**: SQLite database, metrics, certificates, releases).
+The panel listens on `http://127.0.0.1:3000` (never on all interfaces — the access layer, §3, is what exposes it; `0.0.0.0` is refused at startup). Useful variables: `MMO_PORT`, `MMO_HOST` (a specific address), `MMO_DATA_DIR` (default `./data` next to the script — **this is the folder to back up**: SQLite database, metrics, certificates, releases). Besides the console, the panel writes its log to `data/logs/panel-<date>.log` (14 days kept) — that is where to look when something went wrong after the window was closed.
 
 ### 1.3 First start
 

@@ -211,7 +211,23 @@ export class ServersService {
     } else {
       id = ulid(this.now());
     }
-    const row = await this.insertFromDetection(id, machineId, detected, directoryId);
+    let row: ServerRow;
+    try {
+      row = await this.insertFromDetection(id, machineId, detected, directoryId);
+    } catch (error) {
+      // Course entre deux adoptions du même chemin (scan périodique du répertoire fraîchement
+      // surveillé vs ajout manuel) : le `findByPath` d'entrée précède l'`await java.resolve`
+      // d'`insertFromDetection`, les deux appels peuvent donc le passer avant le premier INSERT.
+      // L'index UNIQUE (machine_id, path) fait autorité — on retombe sur le serveur déjà adopté
+      // au lieu de laisser fuir une erreur SQLite brute (E_INTERNAL vu en utilisation réelle).
+      const existing = isUniquePathViolation(error)
+        ? this.findByPath(machineId, detected.path)
+        : undefined;
+      if (existing === undefined) throw error;
+      this.conflicts.delete(key);
+      const updated = await this.updateDetection(existing, detected, directoryId);
+      return { server: updated, created: false, conflict: undefined };
+    }
     this.deps.events.publish({
       type: 'server.adopted',
       machineId,
@@ -802,6 +818,15 @@ export class ServersService {
 
 function conflictKey(machineId: string, serverPath: string): string {
   return `${machineId}|${normalizePath(serverPath)}`;
+}
+
+/** Violation de l'index UNIQUE (machine_id, path) — signe d'une adoption concurrente du même chemin. */
+function isUniquePathViolation(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error as { code?: string }).code === 'SQLITE_CONSTRAINT_UNIQUE' &&
+    error.message.includes('servers.machine_id')
+  );
 }
 
 function normalizePath(p: string): string {

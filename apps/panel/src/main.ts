@@ -9,6 +9,7 @@
 import { buildApp } from './app.js';
 import { configFromEnv } from './config.js';
 import { restorePanelBackup } from './services/panel-backup.js';
+import { createPanelLogStream } from './util/log-file.js';
 
 const config = configFromEnv();
 
@@ -28,15 +29,23 @@ if (process.argv[2] === 'restore') {
     process.exit(1);
   }
 }
+// Console + fichier `<data>/logs/panel-<date>.log` (14 jours conservés) : les lignes survivent
+// à la fermeture de la fenêtre quand le panel est lancé à la main.
+const logStream = createPanelLogStream(config.dataDir);
 const { app, ctx } = await buildApp({
   config,
-  logger: { level: process.env.MMO_LOG_LEVEL ?? 'info' },
+  logger: { level: process.env.MMO_LOG_LEVEL ?? 'info', stream: logStream },
 });
 
 try {
   await app.listen({ port: config.port, host: config.host });
   app.log.info(
-    { dataDir: config.dataDir, webDir: config.webDir, users: ctx.users.count() },
+    {
+      dataDir: config.dataDir,
+      webDir: config.webDir,
+      users: ctx.users.count(),
+      ...(logStream.file === undefined ? {} : { logFile: logStream.file }),
+    },
     ctx.users.count() === 0
       ? 'first run: open the panel to create the admin account'
       : 'panel ready',

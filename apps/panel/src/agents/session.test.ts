@@ -314,6 +314,23 @@ describe('/ws/agent — appairage, authentification, session', () => {
     expect(reconciled.map((e) => e.serverId).sort()).toEqual([A.id, B.id].sort());
   });
 
+  it('adoption : deux adoptions concurrentes du même chemin → un seul serveur, jamais d’erreur SQLite', async () => {
+    // Course réelle (scan périodique vs « Ajouter un dossier serveur ») : les deux appels passent
+    // le findByPath d'entrée avant le premier INSERT (suspension sur java.resolve), le second
+    // doit retomber sur le serveur adopté par le premier au lieu de fuir en E_INTERNAL.
+    const { machineId, code } = await newMachine();
+    await pair(code);
+    const [a, b] = await Promise.all([
+      panel.ctx.servers.adoptDetected(machineId, detected('/srv/course', 'Course'), undefined),
+      panel.ctx.servers.adoptDetected(machineId, detected('/srv/course', 'Course'), undefined),
+    ]);
+    expect(a.server).toBeDefined();
+    expect(b.server).toBeDefined();
+    expect(a.server!.id).toBe(b.server!.id);
+    expect([a, b].filter((r) => r.created)).toHaveLength(1);
+    expect(panel.ctx.servers.list().filter((s) => s.path === '/srv/course')).toHaveLength(1);
+  });
+
   it('événements critiques : dédup par eventId, event.ack batché, rejeu après redémarrage reconnu', async () => {
     const { machineId, code } = await newMachine();
     const { secret } = await pair(code);

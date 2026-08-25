@@ -27,8 +27,8 @@ import { registerWsRoutes } from './http/routes/ws.js';
 
 export interface AppOptions extends Partial<Omit<ContextOptions, 'config' | 'logger'>> {
   config?: Partial<PanelConfig>;
-  /** `true` = pino vers stdout ; objet = options pino ; défaut `false` (tests). */
-  logger?: boolean | { level: string };
+  /** `true` = pino vers stdout ; objet = options pino (`stream` : destination) ; défaut `false` (tests). */
+  logger?: boolean | { level: string; stream?: { write(chunk: string): void } };
 }
 
 export interface PanelApp {
