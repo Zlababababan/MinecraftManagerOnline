@@ -8,7 +8,7 @@ import type { ServerConfig } from '@mmo/protocol';
 
 import { Logger } from '../log.js';
 import { StateStore } from '../state/store.js';
-import { FAKE_SERVER, freePort, sleep, tmpDir, waitFor } from '../test/helpers.js';
+import { FAKE_SERVER, freePort, sleep, tmpDir, waitFor, testBudget } from '../test/helpers.js';
 import { parseProperties } from './properties.js';
 import { ServerManager, type CommandContext } from './server-manager.js';
 import type { ServerProcessEvent } from './server-process.js';
@@ -203,31 +203,35 @@ describe('gestionnaire de serveurs (garde-fous doc 05 §6, provisionnement doc 0
     ]);
   });
 
-  it('ré-adoption par une nouvelle instance (agent redémarré) : detached, puis stop RCON', async () => {
-    const m1 = await makeManager();
-    await m1.applyConfigs([config(dir)]);
-    const { pid } = await m1.start('srv_1');
-    await waitFor(() => m1.require('srv_1').state === 'running', 5000);
-    await sleep(300); // laisse l'heure de démarrage observée se persister
-    m1.dispose(); // l'agent « meurt » : le serveur survit (détaché)
-    managers.length = 0;
+  it(
+    'ré-adoption par une nouvelle instance (agent redémarré) : detached, puis stop RCON',
+    async () => {
+      const m1 = await makeManager();
+      await m1.applyConfigs([config(dir)]);
+      const { pid } = await m1.start('srv_1');
+      await waitFor(() => m1.require('srv_1').state === 'running', 5000);
+      await sleep(300); // laisse l'heure de démarrage observée se persister
+      m1.dispose(); // l'agent « meurt » : le serveur survit (détaché)
+      managers.length = 0;
 
-    const m2 = await makeManager();
-    await m2.init();
-    const proc = m2.require('srv_1');
-    expect(proc.pid).toBe(pid);
-    expect(proc.attachMode).toBe('detached');
-    await waitFor(() => proc.state === 'running', 5000);
-    expect(m2.snapshotServers()[0]).toMatchObject({
-      runState: 'running',
-      attachMode: 'detached',
-      pid,
-    });
-    expect(await m2.command('srv_1', 'say hello')).toBe('rcon');
-    await m2.stop('srv_1', { timeoutMs: 5000 });
-    expect(proc.state).toBe('stopped');
-    expect(m2.store.getServer('srv_1')?.runtime).toBeUndefined();
-  }, 90_000); // première requête CIM à froid : jusqu'à ~20 s sur les runners CI
+      const m2 = await makeManager();
+      await m2.init();
+      const proc = m2.require('srv_1');
+      expect(proc.pid).toBe(pid);
+      expect(proc.attachMode).toBe('detached');
+      await waitFor(() => proc.state === 'running', 5000);
+      expect(m2.snapshotServers()[0]).toMatchObject({
+        runState: 'running',
+        attachMode: 'detached',
+        pid,
+      });
+      expect(await m2.command('srv_1', 'say hello')).toBe('rcon');
+      await m2.stop('srv_1', { timeoutMs: 5000 });
+      expect(proc.state).toBe('stopped');
+      expect(m2.store.getServer('srv_1')?.runtime).toBeUndefined();
+    },
+    testBudget(90_000),
+  ); // première requête CIM à froid : jusqu'à ~20 s sur les runners CI
 
   it('runtime obsolète (processus mort) nettoyé à l’init ; restoreOnBoot relance les desired_state', async () => {
     const m1 = await makeManager();

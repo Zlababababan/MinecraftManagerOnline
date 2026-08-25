@@ -62,7 +62,7 @@ export default defineConfig({
     css: false,
     // jsdom + userEvent : les 5 s par défaut débordent sur les runners CI lents et sous turbo
     // parallèle local (piège 64) — les tests rapides restent rapides.
-    testTimeout: 20_000,
+    testTimeout: process.env.CI === undefined ? 20_000 : 60_000,
     // Deux reprises sur CI : absorbe l'aléa de cadence des runners partagés, zéro en local.
     retry: process.env.CI === undefined ? 0 : 2,
   },

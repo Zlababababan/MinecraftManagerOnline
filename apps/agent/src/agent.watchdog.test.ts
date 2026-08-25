@@ -17,6 +17,7 @@ import {
   FAKE_SERVER,
   createFakePanel,
   freePort,
+  testBudget,
   tmpDir,
   waitFor,
   type FakePanel,
@@ -221,107 +222,115 @@ describe('phase 7 : watchdog et métriques de bout en bout', () => {
     expect(starts).toBe(1);
   });
 
-  it('freeze simulé (RCON muet, processus vivant) → kill_restart, exit « freeze_kill », relance bornée', async () => {
-    const { dir } = await prepareServer('Frozen');
-    const peer = await bootAgent(['--freeze-after', '100']);
-    await configure(peer, dir, {
-      autoRestart: true,
-      crashLoopMax: 1,
-      freezeTimeoutSec: 1,
-      freezeAction: 'kill_restart',
-    });
-    await peer.request('server.start', { serverId: 'srv_1' });
+  it(
+    'freeze simulé (RCON muet, processus vivant) → kill_restart, exit « freeze_kill », relance bornée',
+    async () => {
+      const { dir } = await prepareServer('Frozen');
+      const peer = await bootAgent(['--freeze-after', '100']);
+      await configure(peer, dir, {
+        autoRestart: true,
+        crashLoopMax: 1,
+        freezeTimeoutSec: 1,
+        freezeAction: 'kill_restart',
+      });
+      await peer.request('server.start', { serverId: 'srv_1' });
 
-    await waitFor(() => cap.alerts.some((a) => a.kind === 'crash_loop'), 30_000);
-    expect(cap.alerts.map((a) => [a.kind, a.action, a.attempt])).toEqual([
-      ['freeze', 'kill_restart', 1],
-      ['crash', 'restart', 1],
-      ['freeze', 'kill_restart', 2],
-      ['crash_loop', 'gave_up', 1],
-    ]);
-    expect(cap.alerts[0]?.detail).toMatch(/3 consecutive rcon probe failures/);
-    const crashed = cap.states.filter((s) => s.state === 'crashed');
-    expect(crashed).toHaveLength(2);
-    expect(crashed[0]).toMatchObject({ exitReason: 'freeze_kill' });
-    expect(cap.alerts[1]?.detail).toMatch(/freeze_kill/);
-    expect(starts).toBe(2);
-  }, 40_000);
+      await waitFor(() => cap.alerts.some((a) => a.kind === 'crash_loop'), 30_000);
+      expect(cap.alerts.map((a) => [a.kind, a.action, a.attempt])).toEqual([
+        ['freeze', 'kill_restart', 1],
+        ['crash', 'restart', 1],
+        ['freeze', 'kill_restart', 2],
+        ['crash_loop', 'gave_up', 1],
+      ]);
+      expect(cap.alerts[0]?.detail).toMatch(/3 consecutive rcon probe failures/);
+      const crashed = cap.states.filter((s) => s.state === 'crashed');
+      expect(crashed).toHaveLength(2);
+      expect(crashed[0]).toMatchObject({ exitReason: 'freeze_kill' });
+      expect(cap.alerts[1]?.detail).toMatch(/freeze_kill/);
+      expect(starts).toBe(2);
+    },
+    testBudget(40_000),
+  );
 
-  it('metrics.sample : CPU/RSS/joueurs/TPS (forge) toutes les 300 ms, tampon rejoué après une coupure', async () => {
-    const { dir } = await prepareServer('Metrics');
-    const peer = await bootAgent(['--tps', 'forge', '--tps-value', '18.5', '--join', 'Alice'], {
-      metricsIntervalMs: 300,
-    });
-    await configure(peer, dir, {
-      autoRestart: false,
-      crashLoopMax: 3,
-      freezeTimeoutSec: 120,
-      freezeAction: 'none',
-    });
-    await peer.request('server.start', { serverId: 'srv_1' });
-    try {
-      // Attentes séparées : en cas d'échec, le message nomme la métrique manquante.
-      await waitFor(() => cap.samples.some((s) => s.servers[0]?.tps !== undefined), 30_000);
-      await waitFor(() => cap.samples.some((s) => s.servers[0]?.players === 1), 15_000);
-      // RSS : démarrage du sidecar Windows lent sur les runners CI.
-      await waitFor(() => cap.samples.some((s) => s.servers[0]?.rssMb !== undefined), 30_000);
+  it(
+    'metrics.sample : CPU/RSS/joueurs/TPS (forge) toutes les 300 ms, tampon rejoué après une coupure',
+    async () => {
+      const { dir } = await prepareServer('Metrics');
+      const peer = await bootAgent(['--tps', 'forge', '--tps-value', '18.5', '--join', 'Alice'], {
+        metricsIntervalMs: 300,
+      });
+      await configure(peer, dir, {
+        autoRestart: false,
+        crashLoopMax: 3,
+        freezeTimeoutSec: 120,
+        freezeAction: 'none',
+      });
+      await peer.request('server.start', { serverId: 'srv_1' });
+      try {
+        // Attentes séparées : en cas d'échec, le message nomme la métrique manquante.
+        await waitFor(() => cap.samples.some((s) => s.servers[0]?.tps !== undefined), 30_000);
+        await waitFor(() => cap.samples.some((s) => s.servers[0]?.players === 1), 15_000);
+        // RSS : démarrage du sidecar Windows lent sur les runners CI.
+        await waitFor(() => cap.samples.some((s) => s.servers[0]?.rssMb !== undefined), 30_000);
+        await waitFor(
+          () =>
+            cap.samples.some(
+              (s) =>
+                s.servers[0]?.tps !== undefined &&
+                s.servers[0].players === 1 &&
+                s.servers[0].rssMb !== undefined,
+            ),
+          10_000,
+        );
+      } catch (cause) {
+        // TODO(flaky CI) : sur le runner Windows, le TPS peut ne jamais être échantillonné en 30 s
+        // (contention fake-server/sampler) — jamais observé en local. Sur CI on avertit sans
+        // échouer ; en local le test reste strict. Voir CLAUDE.md (« instabilités CI restantes »).
+        if (process.env.CI !== undefined) {
+          const seen = cap.samples.at(-1)?.servers[0];
+          console.warn(`[flaky-ci] metrics.sample incomplet : ${JSON.stringify(seen ?? null)}`);
+          return;
+        }
+        throw cause;
+      }
+      const full = cap.samples.find(
+        (s) => s.servers[0]?.tps !== undefined && s.servers[0].players === 1,
+      )!;
+      expect(full.servers[0]).toMatchObject({
+        serverId: 'srv_1',
+        tps: 18.5,
+        mspt: 54.05,
+        tpsSource: 'forge',
+        players: 1,
+      });
+      expect(full.machine.ramTotalMb).toBeGreaterThan(0);
+      expect(['cycles', 'proc', 'ticks']).toContain(full.cpuSource);
+      // Le CPU par processus arrive dès le second relevé
+      await waitFor(() => cap.samples.some((s) => s.servers[0]?.cpuPct !== undefined), 15_000);
+      // Le heartbeat reprend la charge machine et sa source
+      await waitFor(() => cap.heartbeats.some((h) => h.cpuSource !== undefined), 10_000);
+
+      // Coupure : les échantillons sont tamponnés puis rejoués (timestamps d'origine) à la reconnexion
+      panel.pause();
+      await waitFor(() => !(agent?.isConnected ?? true), 5000);
+      const before = cap.samples.length;
+      await waitFor(() => (agent?.metrics.buffered ?? 0) >= 3, 5000);
+      expect(cap.samples.length).toBe(before);
+      panel.resume();
       await waitFor(
-        () =>
-          cap.samples.some(
-            (s) =>
-              s.servers[0]?.tps !== undefined &&
-              s.servers[0].players === 1 &&
-              s.servers[0].rssMb !== undefined,
-          ),
+        () => (agent?.isConnected ?? false) && (agent?.metrics.buffered ?? 1) === 0,
         10_000,
       );
-    } catch (cause) {
-      // TODO(flaky CI) : sur le runner Windows, le TPS peut ne jamais être échantillonné en 30 s
-      // (contention fake-server/sampler) — jamais observé en local. Sur CI on avertit sans
-      // échouer ; en local le test reste strict. Voir CLAUDE.md (« instabilités CI restantes »).
-      if (process.env.CI !== undefined) {
-        const seen = cap.samples.at(-1)?.servers[0];
-        console.warn(`[flaky-ci] metrics.sample incomplet : ${JSON.stringify(seen ?? null)}`);
-        return;
+      await waitFor(() => cap.samples.length >= before + 3, 5000);
+      const replayed = cap.samples.slice(before);
+      for (let i = 1; i < replayed.length; i++) {
+        expect(replayed[i]!.ts).toBeGreaterThan(replayed[i - 1]!.ts);
       }
-      throw cause;
-    }
-    const full = cap.samples.find(
-      (s) => s.servers[0]?.tps !== undefined && s.servers[0].players === 1,
-    )!;
-    expect(full.servers[0]).toMatchObject({
-      serverId: 'srv_1',
-      tps: 18.5,
-      mspt: 54.05,
-      tpsSource: 'forge',
-      players: 1,
-    });
-    expect(full.machine.ramTotalMb).toBeGreaterThan(0);
-    expect(['cycles', 'proc', 'ticks']).toContain(full.cpuSource);
-    // Le CPU par processus arrive dès le second relevé
-    await waitFor(() => cap.samples.some((s) => s.servers[0]?.cpuPct !== undefined), 15_000);
-    // Le heartbeat reprend la charge machine et sa source
-    await waitFor(() => cap.heartbeats.some((h) => h.cpuSource !== undefined), 10_000);
-
-    // Coupure : les échantillons sont tamponnés puis rejoués (timestamps d'origine) à la reconnexion
-    panel.pause();
-    await waitFor(() => !(agent?.isConnected ?? true), 5000);
-    const before = cap.samples.length;
-    await waitFor(() => (agent?.metrics.buffered ?? 0) >= 3, 5000);
-    expect(cap.samples.length).toBe(before);
-    panel.resume();
-    await waitFor(
-      () => (agent?.isConnected ?? false) && (agent?.metrics.buffered ?? 1) === 0,
-      10_000,
-    );
-    await waitFor(() => cap.samples.length >= before + 3, 5000);
-    const replayed = cap.samples.slice(before);
-    for (let i = 1; i < replayed.length; i++) {
-      expect(replayed[i]!.ts).toBeGreaterThan(replayed[i - 1]!.ts);
-    }
-    // Aucune alerte : pas de crash, pas de freeze
-    expect(cap.alerts).toEqual([]);
-  }, 90_000); // premier échantillon RSS : jusqu'à ~30 s de démarrage du sidecar sur les runners CI
+      // Aucune alerte : pas de crash, pas de freeze
+      expect(cap.alerts).toEqual([]);
+    },
+    testBudget(90_000),
+  ); // premier échantillon RSS : jusqu'à ~30 s de démarrage du sidecar sur les runners CI
 
   it('port de jeu pris après les garde-fous (« FAILED TO BIND ») → port.conflict + crash', async () => {
     const { dir } = await prepareServer('Bind');

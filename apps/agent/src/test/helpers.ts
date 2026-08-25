@@ -52,17 +52,26 @@ export function fakeServerCommand(cwd: string, args: string[] = []): LaunchComma
   };
 }
 
+/** Sur les runners CI partagés (2 cœurs), toutes les cadences dérapent : délais ×3, en un point. */
+const WAIT_FACTOR = process.env.CI === undefined ? 1 : 3;
+
+/** Budget explicite d'un test : suit le même facteur CI que les attentes. */
+export function testBudget(ms: number): number {
+  return ms * WAIT_FACTOR;
+}
+
 export async function waitFor(
   predicate: () => boolean | Promise<boolean>,
   timeoutMs = 10_000,
   intervalMs = 25,
 ): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
+  const effective = timeoutMs * WAIT_FACTOR;
+  const deadline = Date.now() + effective;
   while (Date.now() < deadline) {
     if (await predicate()) return;
     await sleep(intervalMs);
   }
-  throw new Error(`waitFor: condition not met within ${String(timeoutMs)} ms`);
+  throw new Error(`waitFor: condition not met within ${String(effective)} ms`);
 }
 
 export function sleep(ms: number): Promise<void> {

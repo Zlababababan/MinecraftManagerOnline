@@ -4,7 +4,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { Logger } from '../log.js';
 import { getProcessInfo } from '../platform/process-info.js';
-import { fakeServerCommand, freePort, sleep, tmpDir, waitFor } from '../test/helpers.js';
+import {
+  fakeServerCommand,
+  freePort,
+  sleep,
+  tmpDir,
+  waitFor,
+  testBudget,
+} from '../test/helpers.js';
 import { ServerProcess, type ServerProcessEvent } from './server-process.js';
 
 const logger = new Logger('test', { stderr: false });
@@ -168,85 +175,94 @@ describe('processus serveur géré (doc 06 §3–4)', () => {
     await proc.stop({ timeoutMs: 3000 });
   });
 
-  it('ré-adoption détachée : survie à l’agent, tail de latest.log, stop via RCON', async () => {
-    const port = await freePort();
-    proc = makeProcess(dir, events);
-    proc.setRcon({ port, password: 'pw' });
-    await proc.start(
-      fakeServerCommand(dir, [
-        '--done-after',
-        '50',
-        '--rcon-port',
-        String(port),
-        '--rcon-password',
-        'pw',
-        '--log-dir',
-        dir,
-      ]),
-    );
-    await waitFor(() => proc!.state === 'running');
-    const runtime = {
-      pid: proc.pid!,
-      startedAt: proc.startedAt!,
-      cmdlineKey: proc.cmdlineKey,
-      rconPort: port,
-      rconPassword: 'pw',
-      attachMode: 'attached' as const,
-    };
-    // « Mort » de l'agent : on détache sans tuer (EOF stdin, pipes fermés)
-    proc.dispose();
-    proc = undefined;
-    await sleep(300);
+  it(
+    'ré-adoption détachée : survie à l’agent, tail de latest.log, stop via RCON',
+    async () => {
+      const port = await freePort();
+      proc = makeProcess(dir, events);
+      proc.setRcon({ port, password: 'pw' });
+      await proc.start(
+        fakeServerCommand(dir, [
+          '--done-after',
+          '50',
+          '--rcon-port',
+          String(port),
+          '--rcon-password',
+          'pw',
+          '--log-dir',
+          dir,
+        ]),
+      );
+      await waitFor(() => proc!.state === 'running');
+      const runtime = {
+        pid: proc.pid!,
+        startedAt: proc.startedAt!,
+        cmdlineKey: proc.cmdlineKey,
+        rconPort: port,
+        rconPassword: 'pw',
+        attachMode: 'attached' as const,
+      };
+      // « Mort » de l'agent : on détache sans tuer (EOF stdin, pipes fermés)
+      proc.dispose();
+      proc = undefined;
+      await sleep(300);
 
-    const events2: ServerProcessEvent[] = [];
-    const adopted = makeProcess(dir, events2);
-    proc = adopted;
-    expect(await adopted.adopt(runtime)).toBe(true);
-    expect(adopted.attachMode).toBe('detached');
-    expect(adopted.pid).toBe(runtime.pid);
-    await waitFor(() => adopted.state === 'running', 5000);
-    // La console passe par le fichier de log
-    expect(await adopted.sendCommand('say via-rcon')).toBe('rcon');
-    await waitFor(
-      () => adopted.buffer.since(undefined).lines.some((l) => l.text.includes('[Server] via-rcon')),
-      5000,
-    );
-    // Joueur rejoint après ré-adoption : détecté par le tail
-    await adopted.rconExec('join Bob');
-    await waitFor(() => adopted.onlinePlayers.some((p) => p.name === 'Bob'), 5000);
+      const events2: ServerProcessEvent[] = [];
+      const adopted = makeProcess(dir, events2);
+      proc = adopted;
+      expect(await adopted.adopt(runtime)).toBe(true);
+      expect(adopted.attachMode).toBe('detached');
+      expect(adopted.pid).toBe(runtime.pid);
+      await waitFor(() => adopted.state === 'running', 5000);
+      // La console passe par le fichier de log
+      expect(await adopted.sendCommand('say via-rcon')).toBe('rcon');
+      await waitFor(
+        () =>
+          adopted.buffer.since(undefined).lines.some((l) => l.text.includes('[Server] via-rcon')),
+        5000,
+      );
+      // Joueur rejoint après ré-adoption : détecté par le tail
+      await adopted.rconExec('join Bob');
+      await waitFor(() => adopted.onlinePlayers.some((p) => p.name === 'Bob'), 5000);
 
-    const result = await adopted.stop({ timeoutMs: 5000 });
-    expect(result).toEqual({ alreadyStopped: false, forced: false });
-    await waitFor(() => adopted.state === 'stopped');
-    expect(states(events2)).toEqual(['starting', 'running', 'stopping', 'stopped']);
-  }, 90_000); // première requête CIM à froid : jusqu'à ~20 s sur les runners CI
+      const result = await adopted.stop({ timeoutMs: 5000 });
+      expect(result).toEqual({ alreadyStopped: false, forced: false });
+      await waitFor(() => adopted.state === 'stopped');
+      expect(states(events2)).toEqual(['starting', 'running', 'stopping', 'stopped']);
+    },
+    testBudget(90_000),
+  ); // première requête CIM à froid : jusqu'à ~20 s sur les runners CI
 
-  it('ré-adoption refusée si le PID est mort ou réutilisé', async () => {
-    proc = makeProcess(dir, events);
-    expect(
-      await proc.adopt({
-        pid: 2_147_483_645,
-        startedAt: Date.now(),
-        cmdlineKey: 'x',
-        attachMode: 'attached',
-      }),
-    ).toBe(false);
-    // PID vivant (nous-mêmes) mais autre programme / autre heure — refus vérifiable seulement si
-    // l'hôte fournit l'introspection (sur certains runners CI Windows, CIM échoue : l'adoption
-    // devient bienveillante par conception, `verified: false`).
-    const selfInfo = await getProcessInfo(process.pid);
-    if (selfInfo?.startedAt !== undefined && selfInfo.cmdline !== undefined) {
+  it(
+    'ré-adoption refusée si le PID est mort ou réutilisé',
+    async () => {
+      proc = makeProcess(dir, events);
       expect(
         await proc.adopt({
-          pid: process.pid,
-          startedAt: Date.now() - 86_400_000,
-          cmdlineKey: 'not-this-program.jar',
+          pid: 2_147_483_645,
+          startedAt: Date.now(),
+          cmdlineKey: 'x',
           attachMode: 'attached',
         }),
       ).toBe(false);
-    }
-    expect(proc.state).toBe('stopped');
-  }, 90_000); // première requête CIM à froid : jusqu'à ~20 s sur les runners CI
+      // PID vivant (nous-mêmes) mais autre programme / autre heure — refus vérifiable seulement si
+      // l'hôte fournit l'introspection (sur certains runners CI Windows, CIM échoue : l'adoption
+      // devient bienveillante par conception, `verified: false`).
+      const selfInfo = await getProcessInfo(process.pid);
+      if (selfInfo?.startedAt !== undefined && selfInfo.cmdline !== undefined) {
+        expect(
+          await proc.adopt({
+            pid: process.pid,
+            startedAt: Date.now() - 86_400_000,
+            cmdlineKey: 'not-this-program.jar',
+            attachMode: 'attached',
+          }),
+        ).toBe(false);
+      }
+      expect(proc.state).toBe('stopped');
+    },
+    testBudget(90_000),
+  ); // première requête CIM à froid : jusqu'à ~20 s sur les runners CI
 
   it('décode l’UTF-8 des pipes et filtre les séquences ANSI', async () => {
     proc = makeProcess(dir, events);
