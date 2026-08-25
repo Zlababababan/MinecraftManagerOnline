@@ -282,11 +282,13 @@ if (withPanel) {
   // de build ne peut plus sortir.
   if (process.platform === 'linux') {
     console.log('[release] better-sqlite3 : recompilation contre la glibc locale');
-    execFileSync('npm', ['rebuild', 'better-sqlite3', '--build-from-source'], {
-      cwd: deployDir,
+    const bsDir = path.join(deployDir, 'node_modules', 'better-sqlite3');
+    // node-gyp direct (via npx) : `npm rebuild` ne déclenche pas la compilation implicite ici
+    // (pas de script install explicite dans better-sqlite3 13) — constaté au run v1.0.4 raté.
+    execFileSync('npx', ['--yes', 'node-gyp', 'rebuild', '--release'], {
+      cwd: bsDir,
       stdio: 'inherit',
     });
-    const bsDir = path.join(deployDir, 'node_modules', 'better-sqlite3');
     const built = path.join(bsDir, 'build', 'Release', 'better_sqlite3.node');
     if (!existsSync(built)) throw new Error('better-sqlite3 : binaire recompilé introuvable');
     copyFileSync(built, path.join(bsDir, 'prebuilds', `linux-${process.arch}.node`));
