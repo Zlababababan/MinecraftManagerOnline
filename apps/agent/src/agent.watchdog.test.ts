@@ -259,6 +259,11 @@ describe('phase 7 : watchdog et métriques de bout en bout', () => {
       freezeAction: 'none',
     });
     await peer.request('server.start', { serverId: 'srv_1' });
+    // Attentes séparées : en cas d'échec CI, le message nomme la métrique manquante.
+    await waitFor(() => cap.samples.some((s) => s.servers[0]?.tps !== undefined), 30_000);
+    await waitFor(() => cap.samples.some((s) => s.servers[0]?.players === 1), 15_000);
+    // RSS : démarrage du sidecar Windows lent sur les runners CI.
+    await waitFor(() => cap.samples.some((s) => s.servers[0]?.rssMb !== undefined), 30_000);
     await waitFor(
       () =>
         cap.samples.some(
@@ -267,7 +272,7 @@ describe('phase 7 : watchdog et métriques de bout en bout', () => {
             s.servers[0].players === 1 &&
             s.servers[0].rssMb !== undefined,
         ),
-      30_000, // premier échantillon RSS : démarrage du sidecar Windows lent sur les runners CI
+      10_000,
     );
     const full = cap.samples.find(
       (s) => s.servers[0]?.tps !== undefined && s.servers[0].players === 1,

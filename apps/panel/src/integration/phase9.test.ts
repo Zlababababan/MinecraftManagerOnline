@@ -473,7 +473,9 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
     const restarted = new Agent({
       stateDir: path.dirname(homeB),
       panelUrl: `${panel.wsUrl}/ws/agent`,
-      logger: new Logger('agent', { stderr: false }),
+      // stderr visible : sur un échec CI intermittent (rollback jamais signalé), les warns de
+      // l'agent (persist, consume, connexion) sont la seule trace exploitable.
+      logger: new Logger('agent', { stderr: true }),
       scanIntervalMs: 0,
       trashPurgeIntervalMs: 0,
       metricsIntervalMs: 0,
@@ -490,12 +492,24 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
         30_000, // reconnexion + relectures updateResult (0/1/5 s) : large pour les runners CI lents
       );
     } catch (cause) {
-      // Diagnostic CI (échec observé sur ubuntu-arm) : état de la connexion et derniers événements.
+      // Diagnostic CI (échec intermittent observé sur les runners Linux) : connexion, derniers
+      // événements, fichier update-result restant, et file pendingEvents de l'agent.
       const recent = panel.ctx.events
         .list({ limit: 15 })
         .map((e) => `${e.type}=${JSON.stringify(e.payload).slice(0, 100)}`);
+      const resultLeft = await stat(path.join(homeB, 'update-result.json')).then(
+        () => true,
+        () => false,
+      );
+      const stateRaw = await readFile(
+        path.join(path.dirname(homeB), 'agent-state.json'),
+        'utf8',
+      ).catch(() => '{}');
+      const pending = (
+        JSON.parse(stateRaw) as { pendingEvents?: { type: string; payload?: unknown }[] }
+      ).pendingEvents;
       throw new Error(
-        `agent.updateRolledBack jamais reçu — machineB connectée=${String(panel.ctx.registry.isConnected(machineB))} ; derniers événements : ${recent.join(' | ')}`,
+        `agent.updateRolledBack jamais reçu — machineB connectée=${String(panel.ctx.registry.isConnected(machineB))} ; update-result.json présent=${String(resultLeft)} ; pendingEvents=${JSON.stringify(pending?.map((p) => p.type) ?? null)} ; derniers événements : ${recent.join(' | ')}`,
         { cause },
       );
     }
