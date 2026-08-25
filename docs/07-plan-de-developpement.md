@@ -168,7 +168,7 @@ Les trois vérifications listées en doc 03 §10, **avant toute ligne de code de
 
 ## Post-1.0 — recette utilisateur et suite du plan
 
-> **Recette utilisateur (2026-08-24)** : parcours `docs/guide/recette.md` déroulé en direct par l'utilisateur sur l'installation de test (blocs 0–7 validés ; §8 mobile non joué). Chaque écart a été corrigé au fil de l'eau — 10 commits (`3a6e89a` → `8c86a46`), `pnpm check` + `format:check` verts, doc 02 §12 pour la liste des ajouts. Écart le plus notable : les écrans **Utilisateurs** et **Journal d'audit** (fonctions V1 du doc 02 §9) n'existaient que côté API — leçon : le critère « zéro fonctionnalité V1 manquante » de la phase 12 avait été vérifié sur l'API, pas sur l'UI. Nouvel outil de diagnostic né d'une demande utilisateur : le **parcours UI** (`ui_events`, doc 04 §7) — les clics enregistrés ont servi le jour même à localiser un écart (pastille de notifications).
+> **Recette utilisateur (2026-08-24)** : parcours `docs/guide/fr/recette.md` déroulé en direct par l'utilisateur sur l'installation de test (blocs 0–7 validés ; §8 mobile non joué). Chaque écart a été corrigé au fil de l'eau — 10 commits (`3a6e89a` → `8c86a46`), `pnpm check` + `format:check` verts, doc 02 §12 pour la liste des ajouts. Écart le plus notable : les écrans **Utilisateurs** et **Journal d'audit** (fonctions V1 du doc 02 §9) n'existaient que côté API — leçon : le critère « zéro fonctionnalité V1 manquante » de la phase 12 avait été vérifié sur l'API, pas sur l'UI. Nouvel outil de diagnostic né d'une demande utilisateur : le **parcours UI** (`ui_events`, doc 04 §7) — les clics enregistrés ont servi le jour même à localiser un écart (pastille de notifications).
 
 ### Chantier 1 — Planificateur v2 — **livré (2026-08-24)**
 

@@ -1,5 +1,7 @@
 # Ajouter une machine
 
+[English](../add-a-machine.md) · **Français**
+
 Une **machine** = un ordinateur qui héberge des serveurs Minecraft, piloté par un agent. Le panel lui-même peut en être une (cas le plus courant : tout tourne sur le PC de jeu).
 
 ## 1. Créer la machine et obtenir la commande

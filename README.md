@@ -2,68 +2,68 @@
 
 [![CI](https://github.com/Zlababababan/MinecraftManagerOnline/actions/workflows/ci.yml/badge.svg)](https://github.com/Zlababababan/MinecraftManagerOnline/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/Zlababababan/MinecraftManagerOnline)](https://github.com/Zlababababan/MinecraftManagerOnline/releases/latest)
-[![Licence](https://img.shields.io/github/license/Zlababababan/MinecraftManagerOnline)](LICENSE)
+[![License](https://img.shields.io/github/license/Zlababababan/MinecraftManagerOnline)](LICENSE)
 
-Pilotez vos serveurs Minecraft auto-hébergés depuis un navigateur — PC ou téléphone — même quand la machine qui les fait tourner est chez vous, derrière une box sans IP publique.
+**English** · [Français](README.fr.md)
 
-Un **panel** web central (la machine qui reste allumée) + un **agent** léger sur chaque machine qui héberge des serveurs. Les agents se connectent en sortie : rien à ouvrir sur les machines de jeu.
+Control your self-hosted Minecraft servers from a browser — desktop or phone — even when the machine running them sits at home, behind a box with no public IP.
 
-_Projet francophone d'abord — l'application elle-même est entièrement bilingue FR/EN. (French-first project; the app itself is fully bilingual.)_
+A central web **panel** (the machine that stays on) + a lightweight **agent** on every machine that hosts servers. Agents connect outbound: nothing to open on the game machines.
 
-## Fonctionnalités
+## Features
 
-- **Console temps réel** (xterm) avec historique, commandes, et détection des événements du serveur ;
-- **Démarrage / arrêt / redémarrage** à distance, y compris au boot de la machine — les serveurs Java sont détachés et **survivent** aux redémarrages et mises à jour de l'agent ;
-- **Détection automatique** des serveurs existants (Vanilla, Forge, NeoForge, Fabric, 1.12 → 1.21 — éprouvée sur une bibliothèque réelle de 56 serveurs hétérogènes) ;
-- **Sauvegardes à chaud** (`save-off`/`save-all`/`save-on`) avec rotation, planification, restauration en un clic et backup de sécurité ;
-- **Planificateur en français simple** : « tous les jours à 8h00, 12h30 et 20h00 », « une seule fois le… », avertissements aux joueurs avant un arrêt — l'expression cron n'apparaît que dans un mode avancé ;
-- **Joueurs** : liste en ligne, whitelist, ops, kick/ban ; **métriques** TPS/MSPT, CPU, RAM par serveur ;
-- **Multi-machines** : agents Windows / Linux / macOS (x64 et ARM64) installés **en un clic** depuis le panel, mis à jour automatiquement (bundles signés Ed25519, rollback automatique en cas d'échec) ;
-- **Accès distant sans IP publique** : Tailscale par défaut (fonctionne derrière CGNAT), ou IPv6 direct avec certificat automatique, ou votre propre reverse-proxy ;
-- **Explorateur de fichiers**, upload/download avec reprise, migration d'un serveur d'une machine à l'autre ;
-- **PWA** installable sur mobile, notifications push, thème sombre, journal d'audit et comptes multi-utilisateurs (admin / opérateur / lecteur).
+- **Real-time console** (xterm) with history, commands, and server event detection;
+- **Start / stop / restart** remotely, including at machine boot — Java servers are detached and **survive** agent restarts and updates;
+- **Automatic detection** of existing servers (Vanilla, Forge, NeoForge, Fabric, 1.12 → 1.21 — proven on a real library of 56 heterogeneous servers);
+- **Hot backups** (`save-off`/`save-all`/`save-on`) with rotation, scheduling, one-click restore and safety backup;
+- **Plain-language scheduler**: "every day at 8:00, 12:30 and 20:00", "one time only on…", player warnings before a stop — the cron expression only appears in an advanced mode;
+- **Players**: online list, whitelist, ops, kick/ban; per-server **metrics**: TPS/MSPT, CPU, RAM;
+- **Multi-machine**: Windows / Linux / macOS agents (x64 and ARM64) installed **in one click** from the panel, updated automatically (Ed25519-signed bundles, automatic rollback on failure);
+- **Remote access without a public IP**: Tailscale by default (works behind CGNAT), or direct IPv6 with automatic certificates, or your own reverse proxy;
+- **File explorer**, resumable upload/download, server migration from one machine to another;
+- **PWA** installable on mobile, push notifications, dark theme, fully bilingual interface (English/French), audit log and multi-user accounts (administrator / operator / viewer).
 
-## Démarrage rapide
+## Quick start
 
-1. **Téléchargez l'archive du panel** `mmo-panel-<version>-<plateforme>.zip` (Windows) ou `.tar.gz` (Linux / macOS) depuis les [releases](https://github.com/Zlababababan/MinecraftManagerOnline/releases). S'il n'y en a pas pour votre plateforme, construisez-la vous-même — Node ≥ 22 et pnpm suffisent :
+1. **Download the panel archive** `mmo-panel-<version>-<platform>.zip` (Windows) or `.tar.gz` (Linux / macOS) from the [releases](https://github.com/Zlababababan/MinecraftManagerOnline/releases). If there is none for your platform, build it yourself — Node ≥ 22 and pnpm are all you need:
 
    ```bash
    pnpm install
    pnpm release:build -- --panel
    ```
 
-   L'archive apparaît dans `release/<version>/`. Deux choses à savoir : l'archive du **panel** est produite pour la plateforme sur laquelle vous buildez (construisez sous Linux pour héberger sous Linux — les archives d'**agents** des 4 plateformes sont, elles, toujours produites) ; sans clé de mainteneur le build est signé avec la clé de développement, ce que le panel affiche — pleinement fonctionnel pour un usage personnel.
+   The archive shows up in `release/<version>/`. Two things to know: the **panel** archive is produced for the platform you build on (build on Linux to host on Linux — the **agent** archives for all 4 platforms are always produced); without a maintainer key the build is signed with the development key, which the panel points out — fully functional for personal use.
 
-2. **Suivez le [guide d'installation](docs/guide/installation.md)** : panel en deux commandes puis wizard du premier démarrage, agents installés en un clic depuis le panel, et accès pour vos amis et votre téléphone.
+2. **Follow the [installation guide](docs/guide/installation.md)**: panel in two commands then the first-start wizard, agents installed in one click from the panel, and access for your friends and your phone.
 
-## Plateformes
+## Platforms
 
-| | Panel | Agent |
-|---|---|---|
-| Windows x64 | ✅ (archive fournie) | ✅ |
-| Linux x64 | ✅ (à construire) | ✅ |
-| Linux ARM64 (Raspberry Pi 4/5…) | ✅ (à construire) | ✅ |
-| macOS Apple Silicon | ✅ (à construire) | ✅ |
-| Windows ARM64 | via l'archive x64 (émulation) | via x64 (émulation) |
+|                                  | Panel                        | Agent               |
+| -------------------------------- | ---------------------------- | ------------------- |
+| Windows x64                      | ✅ (archive provided)        | ✅                  |
+| Linux x64                        | ✅ (build it yourself)       | ✅                  |
+| Linux ARM64 (Raspberry Pi 4/5…)  | ✅ (build it yourself)       | ✅                  |
+| macOS Apple Silicon              | ✅ (build it yourself)       | ✅                  |
+| Windows ARM64                    | via the x64 archive (emulation) | via x64 (emulation) |
 
-Aucune dépendance à installer : chaque archive embarque son runtime Node épinglé. Java est provisionné automatiquement par l'agent (Temurin → Zulu) selon la version Minecraft.
+No dependency to install: each archive embeds its pinned Node runtime. Java is provisioned automatically by the agent (Temurin → Zulu) to match the Minecraft version.
 
 ## Documentation
 
-- **Guide utilisateur** : [Installation](docs/guide/installation.md) · [Ajouter une machine](docs/guide/ajouter-une-machine.md) · [FAQ réseau](docs/guide/faq-reseau.md)
-- Conception : [Présentation](docs/01-presentation.md) · [Fonctionnalités](docs/02-fonctionnalites.md) · [Socle technique](docs/03-socle-technique.md) · [Base de données](docs/04-base-de-donnees.md) · [Protocole panel-agent](docs/05-protocole.md) · [Serveurs Minecraft](docs/06-minecraft.md) · [Plan de développement](docs/07-plan-de-developpement.md)
-- [Pipeline de release](tools/release/README.md) — archives, signature, publication
-- [Contribuer](CONTRIBUTING.md) — prérequis, commandes, conventions
+- **User guide**: [Installation](docs/guide/installation.md) · [Add a machine](docs/guide/add-a-machine.md) · [Network FAQ](docs/guide/network-faq.md) — also available [in French](docs/guide/fr/installation.md)
+- Design documents (in French): [Présentation](docs/01-presentation.md) · [Fonctionnalités](docs/02-fonctionnalites.md) · [Socle technique](docs/03-socle-technique.md) · [Base de données](docs/04-base-de-donnees.md) · [Protocole panel-agent](docs/05-protocole.md) · [Serveurs Minecraft](docs/06-minecraft.md) · [Plan de développement](docs/07-plan-de-developpement.md)
+- [Release pipeline](tools/release/README.md) (in French) — archives, signing, publication
+- [Contributing](CONTRIBUTING.md) — prerequisites, commands, conventions
 
-## Développement
+## Development
 
 ```bash
 pnpm install
 pnpm check   # build + typecheck + lint + test
 ```
 
-Monorepo pnpm + Turborepo : `apps/panel` (API Fastify + SQLite), `apps/web` (PWA React), `apps/agent` (bundle universel esbuild, zéro module natif), `packages/protocol`, `packages/shared`, `packages/config`. Node 24 LTS épinglé (voir `.node-version`). Stack : TypeScript partout, Fastify 5, Zod 4, React 19, Mantine 8, Drizzle.
+pnpm + Turborepo monorepo: `apps/panel` (Fastify API + SQLite), `apps/web` (React PWA), `apps/agent` (universal esbuild bundle, zero native modules), `packages/protocol`, `packages/shared`, `packages/config`. Node 24 LTS pinned (see `.node-version`). Stack: TypeScript everywhere, Fastify 5, Zod 4, React 19, Mantine 8, Drizzle.
 
-## Licence
+## License
 
-Distribué sous licence [MIT](LICENSE).
+Distributed under the [MIT](LICENSE) license.

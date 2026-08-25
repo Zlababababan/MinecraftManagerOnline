@@ -120,7 +120,7 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 
 ## 12. Post-1.0 — ajouts livrés pendant la recette utilisateur (2026-08-24)
 
-Compléments décidés et livrés au fil de la recette (`docs/guide/recette.md`), hors périmètre initial mais actés dans les docs techniques :
+Compléments décidés et livrés au fil de la recette (`docs/guide/fr/recette.md`), hors périmètre initial mais actés dans les docs techniques :
 
 | Ajout | Référence |
 |---|---|

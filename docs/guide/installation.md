@@ -1,41 +1,43 @@
 # Installation
 
-Guide utilisateur — installer le **panel** (une seule machine, celle qui reste allumée), puis un **agent** sur chaque machine qui héberge des serveurs Minecraft (souvent la même). Tout est livré sous forme d'archives autonomes : aucun Node, Java ou Python à installer au préalable.
+**English** · [Français](fr/installation.md)
 
-Plateformes packagées : **Windows x64**, **Linux x64**, **Linux ARM64** (Raspberry Pi 4/5, serveurs ARM), **macOS Apple Silicon**. Windows ARM64 fonctionne avec l'archive x64 (émulation). macOS Intel n'est pas packagé.
+User guide — install the **panel** (a single machine, the one that stays on), then an **agent** on every machine that hosts Minecraft servers (often the same one). Everything ships as self-contained archives: no Node, Java or Python to install beforehand.
 
-## 1. Le panel
+Packaged platforms: **Windows x64**, **Linux x64**, **Linux ARM64** (Raspberry Pi 4/5, ARM servers), **macOS Apple Silicon**. Windows ARM64 works with the x64 archive (emulation). Intel macOS is not packaged.
 
-### 1.1 Télécharger
+## 1. The panel
 
-Récupérez l'archive `mmo-panel-<version>-<plateforme>.zip` (Windows) ou `.tar.gz` (Linux / macOS) depuis les [releases GitHub](https://github.com/Zlababababan/MinecraftManagerOnline/releases). Elle contient le runtime Node épinglé, le panel, l'interface web et les archives d'installation des agents pour les 4 plateformes (`dist-agent/`).
+### 1.1 Download
 
-> Pas d'archive disponible pour votre plateforme ? Construisez-la depuis les sources en deux commandes : voir « Démarrage rapide » dans le [README](../../README.md).
+Grab the `mmo-panel-<version>-<platform>.zip` (Windows) or `.tar.gz` (Linux / macOS) archive from the [GitHub releases](https://github.com/Zlababababan/MinecraftManagerOnline/releases). It contains the pinned Node runtime, the panel, the web interface and the agent install archives for all 4 platforms (`dist-agent/`).
 
-### 1.2 Extraire et lancer
+> No archive for your platform? Build it from source in two commands: see "Quick start" in the [README](../../README.md).
 
-**Windows** — extrayez dans un dossier permanent, par exemple `C:\mmo\panel`, puis :
+### 1.2 Extract and launch
+
+**Windows** — extract into a permanent folder, for example `C:\mmo\panel`, then:
 
 ```powershell
 C:\mmo\panel\mmo-panel.cmd
 ```
 
-**Linux / macOS** :
+**Linux / macOS**:
 
 ```bash
 sudo mkdir -p /opt/mmo && sudo tar -xzf mmo-panel-*.tar.gz -C /opt/mmo
 /opt/mmo/mmo-panel/mmo-panel.sh
 ```
 
-Le panel écoute sur `http://127.0.0.1:3000` (jamais sur toutes les interfaces — c'est la couche d'accès, §3, qui l'expose ; `0.0.0.0` est refusé au démarrage). Variables utiles : `MMO_PORT`, `MMO_HOST` (une adresse précise), `MMO_DATA_DIR` (défaut `./data` à côté du script — **c'est le dossier à sauvegarder** : base SQLite, métriques, certificats, releases).
+The panel listens on `http://127.0.0.1:3000` (never on all interfaces — the access layer, §3, is what exposes it; `0.0.0.0` is refused at startup). Useful variables: `MMO_PORT`, `MMO_HOST` (a specific address), `MMO_DATA_DIR` (default `./data` next to the script — **this is the folder to back up**: SQLite database, metrics, certificates, releases).
 
-### 1.3 Premier démarrage
+### 1.3 First start
 
-Ouvrez `http://127.0.0.1:3000` : le wizard se déroule en deux étapes — **Compte administrateur** (identifiant, mot de passe, langue), puis **Accès** : l'**URL publique du panel** (optionnelle à ce stade), le **mode d'accès** (voir §3) et la **destination de backups par défaut**. L'URL publique se change à tout moment dans Réglages → Général : c'est elle qui est injectée dans les commandes d'installation des agents et dans les notifications push — renseignez-la dès que votre accès distant est en place.
+Open `http://127.0.0.1:3000`: the wizard runs in two steps — **Administrator account** (username, password, language), then **Access**: the **public panel URL** (optional at this stage), the **access mode** (see §3) and the **default backup destination**. The public URL can be changed at any time in Settings → General: it is what gets injected into the agent install commands and into push notifications — set it as soon as your remote access is in place.
 
-### 1.4 Démarrer au boot (service)
+### 1.4 Start at boot (service)
 
-**Windows** (shawl est fourni dans l'archive) — dans un PowerShell **administrateur** :
+**Windows** (shawl ships in the archive) — in an **administrator** PowerShell:
 
 ```powershell
 cd C:\mmo\panel
@@ -44,11 +46,11 @@ sc.exe config mmo-panel start= delayed-auto
 Start-Service mmo-panel
 ```
 
-Le service tourne alors sous `LocalSystem` ; pour le faire tourner sous votre compte (recommandé si les sauvegardes visent un lecteur réseau), passez par `services.msc` → Connexion, ou adaptez la procédure de l'agent (§2.2). Variables d'environnement (`MMO_PORT`…) : `shawl add --env MMO_PORT=3000 …`.
+The service then runs as `LocalSystem`; to run it under your own account (recommended if backups target a network drive), use `services.msc` → Log On, or adapt the agent procedure (§2.2). Environment variables (`MMO_PORT`…): `shawl add --env MMO_PORT=3000 …`.
 
-> Important : `mmo-panel.cmd` pose `MMO_WEB_DIR` et `MMO_DIST_DIR` ; avec shawl, ajoutez-les explicitement : `--env MMO_WEB_DIR=C:\mmo\panel\web --env MMO_DIST_DIR=C:\mmo\panel\dist-agent --env MMO_DATA_DIR=C:\mmo\panel\data`.
+> Important: `mmo-panel.cmd` sets `MMO_WEB_DIR` and `MMO_DIST_DIR`; with shawl, add them explicitly: `--env MMO_WEB_DIR=C:\mmo\panel\web --env MMO_DIST_DIR=C:\mmo\panel\dist-agent --env MMO_DATA_DIR=C:\mmo\panel\data`.
 
-**Linux** (systemd) — `/etc/systemd/system/mmo-panel.service` :
+**Linux** (systemd) — `/etc/systemd/system/mmo-panel.service`:
 
 ```ini
 [Unit]
@@ -73,17 +75,17 @@ sudo chown -R mmo /opt/mmo/mmo-panel
 sudo systemctl daemon-reload && sudo systemctl enable --now mmo-panel
 ```
 
-**macOS** (launchd) — `/Library/LaunchDaemons/com.mmo.panel.plist` avec `ProgramArguments` = `/opt/mmo/mmo-panel/mmo-panel.sh`, `RunAtLoad` et `KeepAlive` à `true`, puis `sudo launchctl bootstrap system /Library/LaunchDaemons/com.mmo.panel.plist`.
+**macOS** (launchd) — `/Library/LaunchDaemons/com.mmo.panel.plist` with `ProgramArguments` = `/opt/mmo/mmo-panel/mmo-panel.sh`, `RunAtLoad` and `KeepAlive` set to `true`, then `sudo launchctl bootstrap system /Library/LaunchDaemons/com.mmo.panel.plist`.
 
-### 1.5 Mettre à jour le panel
+### 1.5 Update the panel
 
-Arrêtez le service, extrayez la nouvelle archive **par-dessus** (le dossier `data/` n'est jamais dans l'archive), redémarrez. Les migrations de base se jouent au démarrage. La nouvelle archive embarque les agents de même version : le panel publie automatiquement la release d'agent et, si « Mettre à jour les agents automatiquement à la connexion » est coché (Réglages → Général — décoché par défaut), chaque agent est mis à jour à sa prochaine connexion, avec rollback automatique en cas d'échec. Sinon, mettez-les à jour un par un depuis la carte Agent de chaque page machine.
+Stop the service, extract the new archive **on top** (the `data/` folder is never inside the archive), restart. Database migrations run at startup. The new archive embeds same-version agents: the panel publishes the agent release automatically and, if "Update agents automatically when they connect" is checked (Settings → General — unchecked by default), each agent is updated at its next connection, with automatic rollback on failure. Otherwise, update them one by one from the Agent card of each machine page.
 
-### 1.6 Sauvegarder et restaurer le panel
+### 1.6 Back up and restore the panel
 
-Le panel se sauvegarde lui-même une fois par jour (copie cohérente `VACUUM INTO` de sa base) dans `data/backups/panel/mmo-<date>.db`, 7 copies conservées ; Réglages → Sauvegardes du panel permet d'en créer une à la demande. Les métriques (`metrics.db`) ne sont pas copiées : elles sont reconstituables et volumineuses. Sauvegardez aussi le dossier `data/` complet si vous voulez garder certificats et archives d'agents.
+The panel backs itself up once a day (consistent `VACUUM INTO` copy of its database) into `data/backups/panel/mmo-<date>.db`, 7 copies kept; Settings → Panel backups lets you create one on demand. Metrics (`metrics.db`) are not copied: they can be rebuilt and are large. Also back up the whole `data/` folder if you want to keep certificates and agent archives.
 
-Pour **restaurer** : arrêtez le panel (service ou Ctrl+C), puis :
+To **restore**: stop the panel (service or Ctrl+C), then:
 
 ```powershell
 C:\mmo\panel\mmo-panel.cmd restore mmo-2026-08-23T01-00-00.db
@@ -93,73 +95,73 @@ C:\mmo\panel\mmo-panel.cmd restore mmo-2026-08-23T01-00-00.db
 /opt/mmo/mmo-panel/mmo-panel.sh restore mmo-2026-08-23T01-00-00.db
 ```
 
-Le nom seul suffit pour une copie du dossier `data/backups/panel/` ; un chemin complet est accepté. La copie est vérifiée (`integrity_check`), la base courante est conservée en `mmo.db.before-restore-<date>`, puis le panel peut être redémarré : les agents se reconnectent avec leur secret d'origine et les serveurs qu'ils portent sont ré-adoptés avec les mêmes identifiants (marqueur `.mmo-server.json`). Ce qui a été créé après la sauvegarde (utilisateurs, machines appairées, réglages) est perdu : une machine appairée après la sauvegarde devra être ré-appairée. La restauration refuse de s'exécuter si `mmo.db-wal` n'est pas vide (panel encore en cours ou arrêt brutal — démarrez-le puis arrêtez-le proprement avant de recommencer).
+A bare file name is enough for a copy sitting in `data/backups/panel/`; a full path is accepted too. The copy is verified (`integrity_check`), the current database is kept as `mmo.db.before-restore-<date>`, then the panel can be restarted: agents reconnect with their original secret and the servers they host are re-adopted with the same identifiers (`.mmo-server.json` marker). Whatever was created after the backup (users, paired machines, settings) is lost: a machine paired after the backup will have to be paired again. The restore refuses to run if `mmo.db-wal` is not empty (panel still running, or killed abruptly — start it then stop it cleanly and try again).
 
-## 2. Les agents
+## 2. The agents
 
-Un agent par machine hébergeant des serveurs. Il se connecte **en sortie** vers le panel (WebSocket) : aucun port à ouvrir sur les machines agents.
+One agent per machine hosting servers. It connects **outbound** to the panel (WebSocket): no port to open on agent machines.
 
-### 2.1 La commande en un clic
+### 2.1 The one-line command
 
-Dans le panel : **Machines → Ajouter une machine**. Le panel génère un code d'appairage (valable 15 minutes) et la commande complète à coller sur la machine cible :
+In the panel: **Machines → Add a machine**. The panel generates a pairing code (valid for 15 minutes) and the full command to paste on the target machine:
 
-- **Windows** (PowerShell, n'importe quelle version) :
+- **Windows** (PowerShell, any version):
   `& ([scriptblock]::Create((irm https://<panel>/install.ps1))) -PairCode MMOP-XXXX-XXXX`
-- **Linux / macOS** :
+- **Linux / macOS**:
   `curl -fsSL https://<panel>/install.sh | sh -s -- --pair-code MMOP-XXXX-XXXX`
 
-Le script télécharge l'archive de la bonne plateforme depuis le panel, vérifie son empreinte SHA-256, installe les fichiers, **appaire** l'agent (l'erreur est immédiate si le code est périmé), puis enregistre et démarre le service. La machine apparaît `online` dans le panel sous quelques secondes.
+The script downloads the right platform archive from the panel, verifies its SHA-256 hash, installs the files, **pairs** the agent (the error is immediate if the code has expired), then registers and starts the service. The machine shows up `online` in the panel within a few seconds.
 
-> Le panel doit être joignable depuis la machine cible (§3). Tant que l'URL publique n'est pas réglée, la commande utilise l'adresse par laquelle vous avez ouvert le panel.
+> The panel must be reachable from the target machine (§3). Until the public URL is set, the command uses the address you opened the panel with.
 
-### 2.2 Ce que fait le script — Windows
+### 2.2 What the script does — Windows
 
-- Fichiers dans `%LOCALAPPDATA%\Programs\mmo-agent` (runtime, `launcher.cjs`, `versions/<v>/agent.js`, `shawl.exe`), état dans `%LOCALAPPDATA%\mmo-agent`.
-- Service `mmo-agent` enregistré avec **shawl**, démarrage automatique ; il tourne **sous votre compte Windows** (mot de passe demandé une fois, dans la fenêtre élevée qui s'ouvre) pour que l'agent voie vos lecteurs mappés et vos dossiers. Précisément : le compte de la fenêtre élevée — si l'UAC vous fait saisir les identifiants d'un autre compte administrateur, c'est sous ce compte-là que le service tournera. Le droit « Ouvrir une session en tant que service » est accordé automatiquement (si cela échoue, le script continue et indique comment le faire via `secpol.msc`). Alternative : `-ServiceAccount LocalSystem`.
-- **Compte sans mot de passe** (session ouverte par code PIN ou sans mot de passe) : Windows interdit aux services d'ouvrir une session avec un mot de passe vide. Validez l'invite vide : le script l'indique et enregistre le service sous `LocalSystem` (l'agent ne voit alors pas vos lecteurs réseau mappés). Pour revenir à votre compte : définissez un mot de passe Windows puis relancez la commande.
-- En cas d'échec dans la fenêtre élevée, le message reste affiché (Entrée pour fermer) et le détail est dans `%TEMP%\mmo-install.log`.
-- Redémarrage automatique du service en cas de plantage ; arrêt propre = Ctrl+C transmis à l'agent, **jamais** l'arbre de processus : les serveurs Minecraft survivent à l'arrêt ou à la mise à jour de l'agent, puis sont ré-adoptés.
-- Options : `-NoService` (fichiers seulement), `-InstallDir`, `-StateDir`, `-Panel`, `-Archive <zip>` (hors ligne).
-- Désinstaller : `& ([scriptblock]::Create((irm https://<panel>/install.ps1))) -Uninstall` (ajoutez `-Purge` pour supprimer aussi l'état ; les serveurs Minecraft ne sont jamais touchés).
+- Files in `%LOCALAPPDATA%\Programs\mmo-agent` (runtime, `launcher.cjs`, `versions/<v>/agent.js`, `shawl.exe`), state in `%LOCALAPPDATA%\mmo-agent`.
+- The `mmo-agent` service is registered with **shawl**, automatic start; it runs **under your Windows account** (password asked once, in the elevated window that opens) so the agent can see your mapped drives and folders. To be precise: the account of the elevated window — if UAC makes you enter another administrator's credentials, that is the account the service will run under. The "Log on as a service" right is granted automatically (if that fails, the script continues and explains how to grant it with `secpol.msc`). Alternative: `-ServiceAccount LocalSystem`.
+- **Account without a password** (session opened with a PIN or no password at all): Windows forbids services from logging on with an empty password. Confirm the empty prompt: the script says so and registers the service as `LocalSystem` (the agent then cannot see your mapped network drives). To switch back to your account: set a Windows password and run the command again.
+- If something fails in the elevated window, the message stays on screen (Enter to close) and the details are in `%TEMP%\mmo-install.log`.
+- The service restarts automatically if it crashes; clean stop = Ctrl+C forwarded to the agent, **never** the whole process tree: Minecraft servers survive the agent being stopped or updated, then get re-adopted.
+- Options: `-NoService` (files only), `-InstallDir`, `-StateDir`, `-Panel`, `-Archive <zip>` (offline).
+- Uninstall: `& ([scriptblock]::Create((irm https://<panel>/install.ps1))) -Uninstall` (add `-Purge` to also remove the state; Minecraft servers are never touched).
 
-### 2.3 Ce que fait le script — Linux
+### 2.3 What the script does — Linux
 
-- Fichiers dans `/opt/mmo-agent`, état dans `/var/lib/mmo-agent`, compte système `mmo` créé si besoin (`--user <nom>` pour un autre compte — l'agent doit pouvoir lire/écrire les dossiers des serveurs).
-- Unit systemd `mmo-agent` avec `KillMode=process` (les serveurs détachés survivent) et `Restart=on-failure`. `sudo` est demandé au besoin.
-- **Sans root** : `--user-service` installe dans `~/.local/share/mmo-agent` (fichiers dans `app/`, état à la racine) avec `systemctl --user` et `loginctl enable-linger` (démarre au boot sans session ouverte). Attention : lancé avec `sudo`, `--user-service` est ignoré et c'est l'installation système qui est faite.
-- Options : `--no-service`, `--dir`, `--state-dir`, `--panel`, `--archive <tar.gz>` (hors ligne).
-- Désinstaller : `curl -fsSL https://<panel>/install.sh | sh -s -- --uninstall [--purge]` (ajoutez `--user-service` si installé ainsi). Le compte système `mmo` est conservé (`userdel mmo` si vous n'en voulez plus).
-- Sous **WSL**, la VM s'arrête quelques secondes après la fermeture du dernier terminal : le service (et les serveurs) s'arrêtent avec elle — WSL convient pour essayer, pas pour héberger.
+- Files in `/opt/mmo-agent`, state in `/var/lib/mmo-agent`, system account `mmo` created if needed (`--user <name>` for another account — the agent must be able to read/write the server folders).
+- `mmo-agent` systemd unit with `KillMode=process` (detached servers survive) and `Restart=on-failure`. `sudo` is requested when needed.
+- **Without root**: `--user-service` installs into `~/.local/share/mmo-agent` (files in `app/`, state at the root) with `systemctl --user` and `loginctl enable-linger` (starts at boot without an open session). Careful: when run with `sudo`, `--user-service` is ignored and the system-wide install is performed.
+- Options: `--no-service`, `--dir`, `--state-dir`, `--panel`, `--archive <tar.gz>` (offline).
+- Uninstall: `curl -fsSL https://<panel>/install.sh | sh -s -- --uninstall [--purge]` (add `--user-service` if installed that way). The `mmo` system account is kept (`userdel mmo` if you no longer want it).
+- Under **WSL**, the VM stops a few seconds after the last terminal closes: the service (and the servers) stop with it — WSL is fine for trying things out, not for hosting.
 
-### 2.4 Ce que fait le script — macOS
+### 2.4 What the script does — macOS
 
-Même logique : `/opt/mmo-agent`, LaunchDaemon `com.mmo.agent` (`KeepAlive`, `AbandonProcessGroup` : les serveurs survivent), compte = l'utilisateur qui lance `sudo`. `--user-service` crée un LaunchAgent (démarre à l'ouverture de session seulement). Journal : `/var/lib/mmo-agent/agent.log`.
+Same logic: `/opt/mmo-agent`, `com.mmo.agent` LaunchDaemon (`KeepAlive`, `AbandonProcessGroup`: servers survive), account = the user running `sudo`. `--user-service` creates a LaunchAgent instead (starts at session login only). Log: `/var/lib/mmo-agent/agent.log`.
 
-### 2.5 Après un redémarrage de la machine
+### 2.5 After the machine reboots
 
-Le service relance l'agent ; l'agent ré-adopte les serveurs encore en vie (PID + heure de démarrage + ligne de commande) et, si « Restaurer l'état souhaité au démarrage d'un agent » est activé (Réglages → Général), redémarre ceux qui étaient marqués `running`.
+The service relaunches the agent; the agent re-adopts the servers still alive (PID + start time + command line) and, if "Restore desired state when an agent boots" is enabled (Settings → General), restarts the ones that were marked `running`.
 
-### 2.6 Installation hors ligne
+### 2.6 Offline install
 
-Téléchargez l'archive de la plateforme depuis le panel (Réglages → Distribution de l'agent) ou la release, copiez-la avec le script (`install.ps1` / `install.sh` sont aussi dans l'archive) et lancez `install.ps1 -Archive <zip> -Panel https://<panel> -PairCode …` ou `sh install.sh --archive <tar.gz> --panel https://<panel> --pair-code …` (l'empreinte SHA-256 n'est vérifiée que pour une archive téléchargée depuis le panel — une archive locale est prise telle quelle).
+Download the platform archive from the panel (Settings → Agent distribution) or from the release, copy it along with the script (`install.ps1` / `install.sh` are also inside the archive) and run `install.ps1 -Archive <zip> -Panel https://<panel> -PairCode …` or `sh install.sh --archive <tar.gz> --panel https://<panel> --pair-code …` (the SHA-256 hash is only verified for an archive downloaded from the panel — a local archive is taken as-is).
 
-## 3. Accès distant (résumé)
+## 3. Remote access (summary)
 
-Le panel n'écoute que sur `127.0.0.1`. Pour l'atteindre depuis vos agents sur d'autres machines, vos amis et votre téléphone, choisissez un mode (Réglages → Accès distant) :
+The panel only listens on `127.0.0.1`. To reach it from agents on other machines, from your friends and from your phone, pick a mode (Settings → Remote access):
 
-| Mode                   | Pour qui                                                         | À faire                                                                                                                     |
-| ---------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Tailscale** (défaut) | Tout le monde, y compris derrière CGNAT/4G                       | Installer Tailscale sur l'hôte du panel et sur chaque appareil client, puis exécuter la commande `tailscale serve` affichée |
-| **Direct**             | Vous avez une IPv6 publique et un domaine (DuckDNS, Cloudflare…) | Renseigner domaine + fournisseur DNS, émettre le certificat (DNS-01), ouvrir le port 443 (pinhole IPv6 sur la box)          |
-| **Manuel**             | Vous avez déjà un reverse-proxy                                  | Le faire pointer sur `127.0.0.1:3000` avec support WebSocket                                                                |
+| Mode                    | Who it is for                                              | What to do                                                                                                   |
+| ----------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Tailscale** (default) | Everyone, including behind CGNAT/4G                        | Install Tailscale on the panel host and on every client device, then run the `tailscale serve` command shown |
+| **Direct**              | You have a public IPv6 and a domain (DuckDNS, Cloudflare…) | Enter domain + DNS provider, request the certificate (DNS-01), open port 443 (IPv6 pinhole on your box)      |
+| **Manual**              | You already run a reverse proxy                            | Point it at `127.0.0.1:3000` with WebSocket support                                                          |
 
-Dans tous les cas, la carte **Test de joignabilité** (bouton **Lancer le test**, dans Réglages → Accès distant) vérifie HTTP, WebSocket, frames binaires (64 KiB) et certificat TLS par l'URL publique. Détails et dépannage : [FAQ réseau](faq-reseau.md). Ajout de machines et adresses à donner aux joueurs : [Ajouter une machine](ajouter-une-machine.md).
+In every case, the **Reachability test** card (**Run the test** button, in Settings → Remote access) checks HTTP, WebSocket, binary frames (64 KiB) and the TLS certificate through the public URL. Details and troubleshooting: [Network FAQ](network-faq.md). Adding machines and addresses to give to players: [Add a machine](add-a-machine.md).
 
-## 4. Sur le téléphone : installer la PWA
+## 4. On your phone: install the PWA
 
-Le panel est une application web installable (PWA) : une fois l'accès distant en place (§3 — l'installation exige HTTPS), ouvrez l'URL publique dans le navigateur du téléphone et ajoutez l'application à l'écran d'accueil :
+The panel is an installable web app (PWA): once remote access is in place (§3 — installation requires HTTPS), open the public URL in your phone's browser and add the app to the home screen:
 
-- **Android (Chrome)** : menu ⋮ → « Ajouter à l'écran d'accueil » (ou « Installer l'application » si proposé).
-- **iOS (Safari)** : bouton Partager → « Sur l'écran d'accueil ». Sur iOS c'est **obligatoire** pour recevoir les notifications push : elles ne fonctionnent que depuis la PWA installée, pas depuis Safari.
+- **Android (Chrome)**: ⋮ menu → "Add to Home screen" (or "Install app" when offered).
+- **iOS (Safari)**: Share button → "Add to Home Screen". On iOS this is **mandatory** to receive push notifications: they only work from the installed PWA, not from Safari.
 
-L'application s'ouvre alors en plein écran, avec la navigation en bas de l'écran. Pour les notifications (crash d'un serveur, sauvegarde échouée, agent hors ligne…) : page Compte → Notifications push — activez-les, choisissez les catégories, et vérifiez avec le bouton « Envoyer un test ». En mode Tailscale, le téléphone doit avoir l'application Tailscale installée et connectée au tailnet pour joindre le panel.
+The app then opens full screen, with the navigation at the bottom of the screen. For notifications (server crash, failed backup, agent offline…): Account page → Push notifications — enable them, pick the categories, and verify with the "Send a test" button. In Tailscale mode, the phone must have the Tailscale app installed and connected to the tailnet to reach the panel.
