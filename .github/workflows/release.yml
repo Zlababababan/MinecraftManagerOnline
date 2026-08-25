@@ -47,7 +47,7 @@ jobs:
         if: matrix.container != ''
         run: |
           apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git curl ca-certificates build-essential python3 xz-utils
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git curl ca-certificates build-essential gcc-10 g++-10 python3 xz-utils
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -62,6 +62,8 @@ jobs:
           PEM: ${{ secrets.MMO_SIGNING_KEY_PEM }}
         run: |
           test -n "$PEM" || { echo "secret MMO_SIGNING_KEY_PEM absent"; exit 1; }
+          # Conteneur ubuntu:20.04 : g++ 9 par défaut ignore -std=c++20 (requis par better-sqlite3) — gcc-10.
+          if [ -n "${{ matrix.container }}" ]; then export CC=gcc-10 CXX=g++-10; fi
           printf '%s' "$PEM" > "$RUNNER_TEMP/release.pem"
           SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) node tools/release/build.mjs --skip-build --release --panel --key "$RUNNER_TEMP/release.pem"
           rm -f "$RUNNER_TEMP/release.pem"
