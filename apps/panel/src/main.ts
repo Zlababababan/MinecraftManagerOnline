@@ -35,6 +35,18 @@ const logStream = createPanelLogStream(config.dataDir);
 const { app, ctx } = await buildApp({
   config,
   logger: { level: process.env.MMO_LOG_LEVEL ?? 'info', stream: logStream },
+}).catch((error: unknown) => {
+  // Écueil réel (archive extraite avec sudo, panel lancé par un autre utilisateur) : le
+  // SQLITE_CANTOPEN brut avec sa stack est incompréhensible — on explique le problème de droits.
+  if ((error as { code?: string }).code === 'SQLITE_CANTOPEN') {
+    console.error(
+      `cannot open the database in ${config.dataDir} — make sure this folder exists and is ` +
+        'writable by the current user (e.g. sudo chown -R "$USER" <panel folder>), or point ' +
+        'MMO_DATA_DIR at a writable location.',
+    );
+    process.exit(1);
+  }
+  throw error;
 });
 
 try {

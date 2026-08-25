@@ -26,6 +26,7 @@ C:\mmo\panel\mmo-panel.cmd
 
 ```bash
 sudo mkdir -p /opt/mmo && sudo tar -xzf mmo-panel-*.tar.gz -C /opt/mmo
+sudo chown -R "$USER" /opt/mmo/mmo-panel   # extracted as root — hand it to the user who launches it (§1.4 hands it to the mmo service user)
 /opt/mmo/mmo-panel/mmo-panel.sh
 ```
 
