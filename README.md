@@ -28,6 +28,7 @@ A central web **panel** (the machine that stays on) + a lightweight **agent** on
 1. **Download the panel archive** `mmo-panel-<version>-<platform>.zip` (Windows) or `.tar.gz` (Linux / macOS) from the [releases](https://github.com/Zlababababan/MinecraftManagerOnline/releases). If there is none for your platform, build it yourself — Node ≥ 22 and pnpm are all you need. On a fresh machine (e.g. a Linux ARM VM), install them first — standalone pnpm, then Node through it — and clone this repository:
 
    ```bash
+   sudo apt install -y git curl build-essential       # Debian/Ubuntu — the compiler is needed when no prebuilt SQLite binary exists for your platform (e.g. Linux ARM)
    curl -fsSL https://get.pnpm.io/install.sh | sh -   # then open a new shell
    pnpm env use --global 24
    git clone https://github.com/Zlababababan/MinecraftManagerOnline.git && cd MinecraftManagerOnline
