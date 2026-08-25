@@ -8,6 +8,8 @@ coverage/
 .env.*
 !.env.example
 *.log
+# … sauf les fixtures de logs anonymisées (les tests en dépendent : logs.test.ts « présents »)
+!packages/shared/test/fixtures/servers/**/*.log
 .DS_Store
 Thumbs.db
 # spikes : résultats bruts volumineux

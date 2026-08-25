@@ -1,0 +1,261 @@
+[30sept.2023 22:22:15.988] [main/INFO] [cpw.mods.modlauncher.Launcher/MODLAUNCHER]: ModLauncher running: args [--launchTarget, forgeserver, --fml.forgeVersion, 43.2.21, --fml.mcVersion, 1.19.2, --fml.forgeGroup, net.minecraftforge, --fml.mcpVersion, 20220805.130853]
+[30sept.2023 22:22:15.993] [main/INFO] [cpw.mods.modlauncher.Launcher/MODLAUNCHER]: ModLauncher 10.0.8+10.0.8+main.0ef7e830 starting: java version 17.0.5 by Oracle Corporation; OS Windows 11 arch amd64 version 10.0
+[30sept.2023 22:22:17.343] [main/INFO] [mixin/]: SpongePowered MIXIN Subsystem Version=0.8.5 Source=union:/D:/Minecraft/Server/Create2Mekanism_v1.2/libraries/org/spongepowered/mixin/0.8.5/mixin-0.8.5.jar%2363!/ Service=ModLauncher Env=SERVER
+[30sept.2023 22:22:18.227] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\Create2Mekanism_v1.2\libraries\net\minecraftforge\fmlcore\1.19.2-43.2.21\fmlcore-1.19.2-43.2.21.jar is missing mods.toml file
+[30sept.2023 22:22:18.232] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\Create2Mekanism_v1.2\libraries\net\minecraftforge\javafmllanguage\1.19.2-43.2.21\javafmllanguage-1.19.2-43.2.21.jar is missing mods.toml file
+[30sept.2023 22:22:18.237] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\Create2Mekanism_v1.2\libraries\net\minecraftforge\lowcodelanguage\1.19.2-43.2.21\lowcodelanguage-1.19.2-43.2.21.jar is missing mods.toml file
+[30sept.2023 22:22:18.242] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\Create2Mekanism_v1.2\libraries\net\minecraftforge\mclanguage\1.19.2-43.2.21\mclanguage-1.19.2-43.2.21.jar is missing mods.toml file
+[30sept.2023 22:22:18.521] [main/INFO] [net.minecraftforge.fml.loading.moddiscovery.JarInJarDependencyLocator/]: Found 13 dependencies adding them to mods collection
+[30sept.2023 22:22:21.732] [main/INFO] [mixin/]: Compatibility level set to JAVA_17
+[30sept.2023 22:22:21.811] [main/ERROR] [mixin/]: Mixin config enderitemod-common.mixins.json does not specify "minVersion" property
+[30sept.2023 22:22:21.813] [main/ERROR] [mixin/]: Mixin config enderitemod.mixins.json does not specify "minVersion" property
+[30sept.2023 22:22:22.035] [main/INFO] [mixin/]: Successfully loaded Mixin Connector [com.sonicether.soundphysics.MixinConnector]
+[30sept.2023 22:22:22.036] [main/INFO] [cpw.mods.modlauncher.LaunchServiceHandler/MODLAUNCHER]: Launching target 'forgeserver' with arguments []
+[30sept.2023 22:22:22.049] [main/WARN] [mixin/]: Reference map 'v_slab_compat-common-refmap.json' for v_slab_compat-common.mixins.json could not be read. If this is a development environment you can ignore this message
+[30sept.2023 22:22:22.092] [main/WARN] [mixin/]: Reference map 'enderitemod-forge-refmap.json' for enderitemod.mixins.json could not be read. If this is a development environment you can ignore this message
+[30sept.2023 22:22:22.102] [main/WARN] [mixin/]: Reference map 'yungsextras.refmap.json' for yungsextras.mixins.json could not be read. If this is a development environment you can ignore this message
+[30sept.2023 22:22:22.103] [main/WARN] [mixin/]: Reference map 'yungsextras.refmap.json' for yungsextras_forge.mixins.json could not be read. If this is a development environment you can ignore this message
+[30sept.2023 22:22:22.114] [main/WARN] [mixin/]: Reference map 'polylib-forge-refmap.json' for polylib-forge.mixins.json could not be read. If this is a development environment you can ignore this message
+[30sept.2023 22:22:22.155] [main/WARN] [mixin/]: Reference map 'modid.refmap.json' for createtweaker.mixin.json could not be read. If this is a development environment you can ignore this message
+[30sept.2023 22:22:22.461] [main/INFO] [net.minecraftforge.coremod.CoreMod.placebo/COREMODLOG]: Patching IForgeItemStack#getEnchantmentLevel
+[30sept.2023 22:22:22.509] [main/INFO] [net.minecraftforge.coremod.CoreMod.placebo/COREMODLOG]: Patching IForgeItemStack#getEnchantmentLevel
+[30sept.2023 22:22:22.865] [main/WARN] [mixin/]: Error loading class: me/desht/pneumaticcraft/common/util/upgrade/ApplicableUpgradesDB (java.lang.ClassNotFoundException: me.desht.pneumaticcraft.common.util.upgrade.ApplicableUpgradesDB)
+[30sept.2023 22:22:22.865] [main/WARN] [mixin/]: @Mixin target me.desht.pneumaticcraft.common.util.upgrade.ApplicableUpgradesDB was not found ad_astra_giselle_addon.mixin.forge.common.json:pneumaticcraft.ApplicableUpgradesDBInject
+[30sept.2023 22:22:23.160] [main/WARN] [mixin/]: Error loading class: com/simibubi/create/content/contraptions/fluids/FluidReactions (java.lang.ClassNotFoundException: com.simibubi.create.content.contraptions.fluids.FluidReactions)
+[30sept.2023 22:22:23.690] [main/WARN] [mixin/]: Error loading class: com/simibubi/create/content/contraptions/fluids/FluidReactions (java.lang.ClassNotFoundException: com.simibubi.create.content.contraptions.fluids.FluidReactions)
+[30sept.2023 22:22:23.691] [main/WARN] [mixin/]: Error loading class: com/simibubi/create/content/contraptions/fluids/FluidReactions (java.lang.ClassNotFoundException: com.simibubi.create.content.contraptions.fluids.FluidReactions)
+[30sept.2023 22:22:27.326] [main/INFO] [net.minecraftforge.coremod.CoreMod.placebo/COREMODLOG]: Patching IForgeItemStack#getEnchantmentLevel
+[30sept.2023 22:22:27.326] [main/INFO] [net.minecraftforge.coremod.CoreMod.placebo/COREMODLOG]: Patching IForgeItemStack#getEnchantmentLevel
+[30sept.2023 22:22:29.003] [main/INFO] [Diagonal Fences/]: Constructing shapes for nodeWith 2.0, extensionWidth 2.0, nodeHeight 24.0, extensionBottom 0.0, extensionHeight 24.0 took 142 milliseconds
+[30sept.2023 22:22:29.120] [main/INFO] [Diagonal Fences/]: Constructing shapes for nodeWith 2.0, extensionWidth 2.0, nodeHeight 16.0, extensionBottom 0.0, extensionHeight 16.0 took 116 milliseconds
+[30sept.2023 22:22:29.265] [main/INFO] [Diagonal Fences/]: Constructing shapes for nodeWith 2.0, extensionWidth 1.0, nodeHeight 16.0, extensionBottom 6.0, extensionHeight 15.0 took 141 milliseconds
+[30sept.2023 22:22:29.445] [main/INFO] [net.minecraftforge.coremod.CoreMod.placebo/COREMODLOG]: Patching IForgeItemStack#getEnchantmentLevel
+[30sept.2023 22:22:29.446] [main/INFO] [net.minecraftforge.coremod.CoreMod.placebo/COREMODLOG]: Patching IForgeItemStack#getEnchantmentLevel
+[30sept.2023 22:22:30.868] [main/INFO] [net.minecraft.util.datafix.DataFixers/]: Building unoptimized datafixer
+[30sept.2023 22:22:34.052] [modloading-worker-0/INFO] [plus.dragons.createdragonlib.DragonLib/]: Create: Dragon Lib 1.2.2 has initialized, ready to support your Create add-ons!
+[30sept.2023 22:22:34.138] [modloading-worker-0/INFO] [de.keksuccino.konkrete.Konkrete/]: [KONKRETE] Successfully initialized!
+[30sept.2023 22:22:34.139] [modloading-worker-0/INFO] [de.keksuccino.konkrete.Konkrete/]: [KONKRETE] Server-side libs ready to use!
+[30sept.2023 22:22:34.147] [modloading-worker-0/INFO] [dev.wuffs.bcc.BCC/]: Better Compatibility Checker loading
+[30sept.2023 22:22:34.154] [modloading-worker-0/INFO] [me.dinnerbeef.compressium.Compressium/]: Loading compressible blocks from data store config/compressiumblocks.json
+[30sept.2023 22:22:34.173] [modloading-worker-0/INFO] [Bookshelf/]: Fixing MC-151457. Crafting remainder for minecraft:pufferfish_bucket is now minecraft:bucket.
+[30sept.2023 22:22:34.173] [modloading-worker-0/INFO] [Bookshelf/]: Fixing MC-151457. Crafting remainder for minecraft:salmon_bucket is now minecraft:bucket.
+[30sept.2023 22:22:34.174] [modloading-worker-0/INFO] [Bookshelf/]: Fixing MC-151457. Crafting remainder for minecraft:cod_bucket is now minecraft:bucket.
+[30sept.2023 22:22:34.174] [modloading-worker-0/INFO] [Bookshelf/]: Fixing MC-151457. Crafting remainder for minecraft:tropical_fish_bucket is now minecraft:bucket.
+[30sept.2023 22:22:34.174] [modloading-worker-0/INFO] [Bookshelf/]: Fixing MC-151457. Crafting remainder for minecraft:axolotl_bucket is now minecraft:bucket.
+[30sept.2023 22:22:34.174] [modloading-worker-0/INFO] [Bookshelf/]: Fixing MC-151457. Crafting remainder for minecraft:powder_snow_bucket is now minecraft:bucket.
+[30sept.2023 22:22:34.174] [modloading-worker-0/INFO] [Bookshelf/]: Fixing MC-151457. Crafting remainder for minecraft:tadpole_bucket is now minecraft:bucket.
+[30sept.2023 22:22:34.202] [modloading-worker-0/INFO] [Collective/]: Loading Collective version 6.65.
+[30sept.2023 22:22:34.224] [modloading-worker-0/INFO] [Puzzles Lib/]: Constructing common components for mod pickupnotifier
+[30sept.2023 22:22:34.370] [modloading-worker-0/INFO] [Puzzles Lib/]: Constructing common components for mod betteranimationscollection
+[30sept.2023 22:22:34.442] [modloading-worker-0/INFO] [dev.architectury.networking.forge.NetworkManagerImpl/]: Registering C2S receiver with id architectury:sync_ids
+[30sept.2023 22:22:34.590] [modloading-worker-0/WARN] [net.blay09.mods.balm.forge.config.ForgeBalmConfig/]: Config field without expected type, will not validate list content (merchantNames in net.blay09.mods.farmingforblockheads.FarmingForBlockheadsConfigData)
+[30sept.2023 22:22:34.625] [modloading-worker-0/ERROR] [toastcontrol/]: Running on a dedicated server, disabling mod.
+[30sept.2023 22:22:55.874] [main/ERROR] [net.minecraftforge.network.NetworkRegistry/NETREGISTRY]: NetworkDirection channel createendertransmission:main already registered.
+[30sept.2023 22:22:56.002] [main/WARN] [nonamecrackers2.witherstormmod.WitherStormMod/]: Found outdated Flywheel 0.6.9-18. Flywheel compatibility will NOT be activated!
+[30sept.2023 22:23:04.599] [main/WARN] [net.minecraft.server.packs.VanillaPackResources/]: Assets URL 'union:/D:/Minecraft/Server/Create2Mekanism_v1.2/libraries/net/minecraft/server/1.19.2-20220805.130853/server-1.19.2-20220805.130853-srg.jar%23403!/assets/.mcassetsroot' uses unexpected schema
+[30sept.2023 22:23:04.599] [main/WARN] [net.minecraft.server.packs.VanillaPackResources/]: Assets URL 'union:/D:/Minecraft/Server/Create2Mekanism_v1.2/libraries/net/minecraft/server/1.19.2-20220805.130853/server-1.19.2-20220805.130853-srg.jar%23403!/data/.mcassetsroot' uses unexpected schema
+[30Sep2023 22:23:09.255] [Worker-Main-7/ERROR] [net.minecraft.tags.TagLoader/]: Couldn't load tag [createaddition:iron_spool (from createaddition-1.19.2-1.0.0.jar)] as it is missing following references: createaddition:iron_spool (from createaddition-1.19.2-1.0.0.jar)
+[30sept.2023 22:23:10.608] [main/WARN] [KubeJS Server/]: Failed to parse recipe 'architects_palette:vertslabs/myonite_vertical_slab[minecraft:crafting_shaped]'! Falling back to vanilla: ItemStack 'result' can't be empty!
+[30sept.2023 22:23:10.624] [main/WARN] [KubeJS Server/]: Failed to parse recipe 'architects_palette:vertslabs/mushy_myonite_brick_vertical_slab[minecraft:crafting_shaped]'! Falling back to vanilla: ItemStack 'result' can't be empty!
+[30sept.2023 22:23:10.652] [main/WARN] [KubeJS Server/]: Failed to parse recipe 'architects_palette:vertslabs/stonecutting/mushy_myonite_brick_vslab_from_mushy_myonite_bricks_stonecutting[minecraft:stonecutting]'! Falling back to vanilla: com.google.gson.JsonSyntaxException: Unknown item 'architects_palette:mushy_myonite_bricks_bricks'
+[30sept.2023 22:23:10.674] [main/WARN] [KubeJS Server/]: Failed to parse recipe 'architects_palette:vertslabs/stonecutting/myonite_vslab_from_myonite_stonecutting[minecraft:stonecutting]'! Falling back to vanilla: ItemStack 'result' can't be empty!
+[30sept.2023 22:23:10.691] [main/WARN] [KubeJS Server/]: Failed to parse recipe 'architects_palette:vertslabs/stonecutting/myonite_brick_vslab_from_myonite_and_myonite_bricks_stonecutting[minecraft:stonecutting]'! Falling back to vanilla: ItemStack 'result' can't be empty!
+[30sept.2023 22:23:10.697] [main/WARN] [KubeJS Server/]: Failed to parse recipe 'architects_palette:vertslabs/myonite_brick_vertical_slab[minecraft:crafting_shaped]'! Falling back to vanilla: ItemStack 'result' can't be empty!
+[30sept.2023 22:23:10.712] [main/WARN] [KubeJS Server/]: Failed to parse recipe 'architects_palette:vertslabs/myonite_vertical_slab_revert[minecraft:crafting_shapeless]'! Falling back to vanilla: ItemStack 'result' can't be empty!
+[30sept.2023 22:23:10.719] [main/WARN] [KubeJS Server/]: Failed to parse recipe 'architects_palette:vertslabs/myonite_brick_vertical_slab_revert[minecraft:crafting_shapeless]'! Falling back to vanilla: ItemStack 'result' can't be empty!
+[30sept.2023 22:23:10.749] [main/WARN] [KubeJS Server/]: Failed to parse recipe 'architects_palette:vertslabs/mushy_myonite_brick_vertical_slab_revert[minecraft:crafting_shapeless]'! Falling back to vanilla: ItemStack 'result' can't be empty!
+[30Sep2023 22:23:11.375] [KubeJS Recipe Event Worker 0/WARN] [compactcrafting/]: Error: no catalyst type defined; falling back to the itemstack handler.
+[30Sep2023 22:23:11.375] [KubeJS Recipe Event Worker 0/WARN] [compactcrafting/]: Error: no catalyst type defined; falling back to the itemstack handler.
+[30Sep2023 22:23:11.377] [KubeJS Recipe Event Worker 0/WARN] [compactcrafting/]: Error: no catalyst type defined; falling back to the itemstack handler.
+[30Sep2023 22:23:11.381] [KubeJS Recipe Event Worker 0/WARN] [compactcrafting/]: Error: no catalyst type defined; falling back to the itemstack handler.
+[30sept.2023 22:23:12.481] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcoffeebeancrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.481] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamspiceleafcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.481] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamjutecrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.481] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pambokchoycrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.481] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pambroccolicrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.482] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamchiacrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.482] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamrhubarbcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.482] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamraspberrycrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.482] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamguaranacrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.482] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamleekcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.482] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamokracrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.482] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamaloecrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.482] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pambarrelcactuscrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.482] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcandleberrycrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.482] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamjicamacrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.482] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamflaxcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.482] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamsoybeancrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.483] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamwolfberrycrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.483] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamryecrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.483] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamonioncrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.483] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamgingercrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.483] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pammulberrycrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.483] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcalabashcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.483] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pammilletcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.483] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamkiwicrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.483] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamlotuscrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.483] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamsorghumcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.483] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pammustardseedscrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.483] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcorncrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.483] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamelderberrycrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pambarleycrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcottoncrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamyuccacrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamtomatillocrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamamaranthcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamalfalfacrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamkenafcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcauliflowercrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamlettucecrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pambellpeppercrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamsweetpotatocrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamsesameseedscrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamchickpeacrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamwhitemushroomcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcelerycrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.484] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamhuckleberrycrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamartichokecrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pampeascrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamlentilcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pambeancrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamnopalescrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pampeanutcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamasparaguscrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamradishcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamparsnipcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamscallioncrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcloudberrycrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamsisalcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamzucchinicrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcranberrycrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamjuniperberrycrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.485] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamoatscrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamgreengrapecrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamgrapecrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamkohlrabicrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcucumbercrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcassavacrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamtealeafcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamnettlescrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcanolacrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamwaterchestnutcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pameggplantcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamblueberrycrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcabbagecrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamtarocrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamgarliccrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamrutabagacrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcactusfruitcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.486] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamblackberrycrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.487] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamchilipeppercrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.487] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamarrowrootcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.487] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pambrusselsproutcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.487] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamagavecrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.487] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamquinoacrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.487] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamspinachcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.487] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamricecrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.487] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamkalecrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.487] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamstrawberrycrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.487] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamwintersquashcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.487] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamturnipcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.487] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pampineapplecrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.487] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamtomatocrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.488] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcantaloupecrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.488] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamtrufflecrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.488] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Found validation problem in {pamhc2crops:blocks/pamcattailcrop}.pools[0].entries[0]: Unreachable entry!
+[30sept.2023 22:23:12.950] [main/WARN] [net.minecraftforge.common.loot.LootModifierManager/]: Could not decode GlobalLootModifier with json id pamhc2crops:fern_drops - error: Not a JSON object: null
+[30sept.2023 22:23:12.950] [main/WARN] [net.minecraftforge.common.loot.LootModifierManager/]: Could not decode GlobalLootModifier with json id pamhc2crops:grass_drops - error: Not a JSON object: null
+[30sept.2023 22:23:12.950] [main/WARN] [net.minecraftforge.common.loot.LootModifierManager/]: Could not decode GlobalLootModifier with json id pamhc2crops:tall_grass_drops - error: Not a JSON object: null
+[30sept.2023 22:23:13.997] [main/WARN] [net.minecraft.core.MappedRegistry/]: Not all defined tags for registry ResourceKey[minecraft:root / minecraft:worldgen/biome] are present in data pack: forge:is_savanna
+[30sept.2023 22:23:14.007] [main/WARN] [net.minecraftforge.registries.NamespacedHolderHelper/]: Not all defined tags for registry ResourceKey[minecraft:root / minecraft:block] are present in data pack: 1_splatus:spellbound/hot
+[30Sep2023 22:23:20.515] [Server thread/WARN] [CobbleGen/]: [CobbleGen] Something went wrong while loading plugin provided by [cobblegen]
+[30Sep2023 22:23:20.583] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Starting minecraft server version 1.19.2
+[30Sep2023 22:23:20.662] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Starting Minecraft server on *:25565
+[30Sep2023 22:23:20.925] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file .\world\serverconfig\sophisticatedcore-server.toml is not correct. Correcting
+[30Sep2023 22:23:20.926] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.927] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.enabledItems was corrected from null to its default, []. 
+[30Sep2023 22:23:20.962] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file .\world\serverconfig\sophisticatedbackpacks-server.toml is not correct. Correcting
+[30Sep2023 22:23:20.962] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.962] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.disallowedItems was corrected from null to its default, []. 
+[30Sep2023 22:23:20.962] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.containerItemsDisallowed was corrected from null to its default, false. 
+[30Sep2023 22:23:20.963] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.noInteractionBlocks was corrected from null to its default, []. 
+[30Sep2023 22:23:20.963] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.noConnectionBlocks was corrected from null to its default, []. 
+[30Sep2023 22:23:20.970] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.leatherBackpack was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.970] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.leatherBackpack.inventorySlotCount was corrected from null to its default, 27. 
+[30Sep2023 22:23:20.970] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.leatherBackpack.upgradeSlotCount was corrected from null to its default, 1. 
+[30Sep2023 22:23:20.970] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.ironBackpack was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.970] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.ironBackpack.inventorySlotCount was corrected from null to its default, 54. 
+[30Sep2023 22:23:20.970] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.ironBackpack.upgradeSlotCount was corrected from null to its default, 2. 
+[30Sep2023 22:23:20.970] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.goldBackpack was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.971] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.goldBackpack.inventorySlotCount was corrected from null to its default, 81. 
+[30Sep2023 22:23:20.971] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.goldBackpack.upgradeSlotCount was corrected from null to its default, 3. 
+[30Sep2023 22:23:20.971] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.diamondBackpack was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.971] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.diamondBackpack.inventorySlotCount was corrected from null to its default, 108. 
+[30Sep2023 22:23:20.971] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.diamondBackpack.upgradeSlotCount was corrected from null to its default, 5. 
+[30Sep2023 22:23:20.971] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.netheriteBackpack was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.971] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.netheriteBackpack.inventorySlotCount was corrected from null to its default, 120. 
+[30Sep2023 22:23:20.971] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.netheriteBackpack.upgradeSlotCount was corrected from null to its default, 7. 
+[30Sep2023 22:23:20.971] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.compactingUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.971] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.compactingUpgrade.filterSlots was corrected from null to its default, 9. 
+[30Sep2023 22:23:20.972] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.compactingUpgrade.slotsInRow was corrected from null to its default, 3. 
+[30Sep2023 22:23:20.972] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedCompactingUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.972] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedCompactingUpgrade.filterSlots was corrected from null to its default, 16. 
+[30Sep2023 22:23:20.972] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedCompactingUpgrade.slotsInRow was corrected from null to its default, 4. 
+[30Sep2023 22:23:20.972] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.depositUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.972] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.depositUpgrade.filterSlots was corrected from null to its default, 9. 
+[30Sep2023 22:23:20.972] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.depositUpgrade.slotsInRow was corrected from null to its default, 3. 
+[30Sep2023 22:23:20.972] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedDepositUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.972] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedDepositUpgrade.filterSlots was corrected from null to its default, 16. 
+[30Sep2023 22:23:20.972] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedDepositUpgrade.slotsInRow was corrected from null to its default, 4. 
+[30Sep2023 22:23:20.973] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.feedingUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.973] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.feedingUpgrade.filterSlots was corrected from null to its default, 9. 
+[30Sep2023 22:23:20.973] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.feedingUpgrade.slotsInRow was corrected from null to its default, 3. 
+[30Sep2023 22:23:20.973] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedFeedingUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.973] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedFeedingUpgrade.filterSlots was corrected from null to its default, 16. 
+[30Sep2023 22:23:20.973] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedFeedingUpgrade.slotsInRow was corrected from null to its default, 4. 
+[30Sep2023 22:23:20.973] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.filterUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.973] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.filterUpgrade.filterSlots was corrected from null to its default, 9. 
+[30Sep2023 22:23:20.973] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.filterUpgrade.slotsInRow was corrected from null to its default, 3. 
+[30Sep2023 22:23:20.974] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedFilterUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.974] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedFilterUpgrade.filterSlots was corrected from null to its default, 16. 
+[30Sep2023 22:23:20.974] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedFilterUpgrade.slotsInRow was corrected from null to its default, 4. 
+[30Sep2023 22:23:20.974] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.magnetUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.974] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.magnetUpgrade.filterSlots was corrected from null to its default, 9. 
+[30Sep2023 22:23:20.974] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.magnetUpgrade.slotsInRow was corrected from null to its default, 3. 
+[30Sep2023 22:23:20.974] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.magnetUpgrade.magnetRange was corrected from null to its default, 3. 
+[30Sep2023 22:23:20.974] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedMagnetUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.974] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedMagnetUpgrade.filterSlots was corrected from null to its default, 16. 
+[30Sep2023 22:23:20.974] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedMagnetUpgrade.slotsInRow was corrected from null to its default, 4. 
+[30Sep2023 22:23:20.974] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedMagnetUpgrade.magnetRange was corrected from null to its default, 5. 
+[30Sep2023 22:23:20.975] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.pickupUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.975] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.pickupUpgrade.filterSlots was corrected from null to its default, 9. 
+[30Sep2023 22:23:20.975] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.pickupUpgrade.slotsInRow was corrected from null to its default, 3. 
+[30Sep2023 22:23:20.975] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedPickupUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.975] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedPickupUpgrade.filterSlots was corrected from null to its default, 16. 
+[30Sep2023 22:23:20.975] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedPickupUpgrade.slotsInRow was corrected from null to its default, 4. 
+[30Sep2023 22:23:20.975] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.refillUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.975] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.refillUpgrade.filterSlots was corrected from null to its default, 6. 
+[30Sep2023 22:23:20.975] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.refillUpgrade.slotsInRow was corrected from null to its default, 3. 
+[30Sep2023 22:23:20.975] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedRefillUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.976] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedRefillUpgrade.filterSlots was corrected from null to its default, 12. 
+[30Sep2023 22:23:20.976] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedRefillUpgrade.slotsInRow was corrected from null to its default, 4. 
+[30Sep2023 22:23:20.976] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.restockUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.976] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.restockUpgrade.filterSlots was corrected from null to its default, 9. 
+[30Sep2023 22:23:20.976] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.restockUpgrade.slotsInRow was corrected from null to its default, 3. 
+[30Sep2023 22:23:20.976] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedRestockUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.976] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedRestockUpgrade.filterSlots was corrected from null to its default, 16. 
+[30Sep2023 22:23:20.976] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedRestockUpgrade.slotsInRow was corrected from null to its default, 4. 
+[30Sep2023 22:23:20.976] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.voidUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.977] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.voidUpgrade.filterSlots was corrected from null to its default, 9. 
+[30Sep2023 22:23:20.977] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.voidUpgrade.slotsInRow was corrected from null to its default, 3. 
+[30Sep2023 22:23:20.977] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.voidUpgrade.voidAnythingEnabled was corrected from null to its default, true. 
+[30Sep2023 22:23:20.977] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedVoidUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.977] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedVoidUpgrade.filterSlots was corrected from null to its default, 16. 
+[30Sep2023 22:23:20.977] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedVoidUpgrade.slotsInRow was corrected from null to its default, 4. 
+[30Sep2023 22:23:20.977] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.advancedVoidUpgrade.voidAnythingEnabled was corrected from null to its default, true. 
+[30Sep2023 22:23:20.977] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.stackUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.977] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.stackUpgrade.nonStackableItems was corrected from null to its default, [minecraft:bundle, minecraft:shulker_box, minecraft:white_shulker_box, minecraft:orange_shulker_box, minecraft:magenta_shulker_box, minecraft:light_blue_shulker_box, minecraft:yellow_shulker_box, minecraft:lime_shulker_box, minecraft:pink_shulker_box, minecraft:gray_shulker_box, minecraft:light_gray_shulker_box, minecraft:cyan_shulker_box, minecraft:purple_shulker_box, minecraft:blue_shulker_box, minecraft:brown_shulker_box, minecraft:green_shulker_box, minecraft:red_shulker_box, minecraft:black_shulker_box]. 
+[30Sep2023 22:23:20.978] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.smeltingUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 
+[30Sep2023 22:23:20.978] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.smeltingUpgrade.smeltingSpeedMultiplier was corrected from null to its default, 1.0. 
+[30Sep2023 22:23:20.978] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.smeltingUpgrade.fuelEfficiencyMultiplier was corrected from null to its default, 1.0. 
+[30Sep2023 22:23:20.978] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key server.smokingUpgrade was corrected from null to its default, SimpleCommentedConfig:{}. 

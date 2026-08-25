@@ -1,0 +1,45 @@
+[18:27:04] [ServerMain/INFO]: Environment: authHost='https://authserver.mojang.com', accountsHost='https://api.mojang.com', sessionHost='https://sessionserver.mojang.com', servicesHost='https://api.minecraftservices.com', name='PROD'
+[18:27:05] [ServerMain/INFO]: Loaded 7 recipes
+[18:27:05] [ServerMain/INFO]: Loaded 1271 advancements
+[18:27:06] [Server thread/INFO]: Starting minecraft server version 1.20.1
+[18:27:06] [Server thread/INFO]: Loading properties
+[18:27:06] [Server thread/INFO]: Default game type: SURVIVAL
+[18:27:06] [Server thread/INFO]: Generating keypair
+[18:27:06] [Server thread/INFO]: Starting Minecraft server on *:25565
+[18:27:06] [Server thread/INFO]: Using default channel type
+[18:27:06] [Server thread/INFO]: Preparing level "world"
+[18:27:07] [Server thread/INFO]: Preparing start region for dimension minecraft:overworld
+[18:27:10] [Worker-Main-3/INFO]: Preparing spawn area: 0%
+[18:27:10] [Worker-Main-3/INFO]: Preparing spawn area: 0%
+[18:27:10] [Worker-Main-3/INFO]: Preparing spawn area: 0%
+[18:27:10] [Worker-Main-3/INFO]: Preparing spawn area: 0%
+[18:27:10] [Worker-Main-3/INFO]: Preparing spawn area: 0%
+[18:27:10] [Worker-Main-5/INFO]: Preparing spawn area: 3%
+[18:27:10] [Worker-Main-6/INFO]: Preparing spawn area: 91%
+[18:27:10] [Server thread/INFO]: Time elapsed: 3033 ms
+[18:27:10] [Server thread/INFO]: Done (4.214s)! For help, type "help"
+[18:27:22] [User Authenticator #1/INFO]: UUID of player Player1 is 00000000-0000-4000-8000-000000000001
+[18:27:22] [Server thread/INFO]: Player1[/127.0.0.1:38283] logged in with entity id 209 at (26.5, 72.0, 20.5)
+[18:27:22] [Server thread/INFO]: Player1 joined the game
+[18:30:43] [Server thread/INFO]: Player1 lost connection: Disconnected
+[18:30:43] [Server thread/INFO]: Player1 left the game
+[18:33:09] [User Authenticator #2/INFO]: UUID of player Player2 is 00000000-0000-4000-8000-000000000002
+[18:33:09] [Server thread/INFO]: Player2[/[2001:db8::3]:49895] logged in with entity id 654 at (8.5, 78.0, 14.5)
+[18:33:09] [Server thread/INFO]: Player2 joined the game
+[18:33:11] [User Authenticator #3/INFO]: UUID of player Player1 is 00000000-0000-4000-8000-000000000001
+[18:33:11] [Server thread/INFO]: Player1[/[2001:db8::4]:38561] logged in with entity id 701 at (37.76068853118967, 70.0, 26.180589093818412)
+[18:33:11] [Server thread/INFO]: Player1 joined the game
+[18:34:16] [Server thread/INFO]: Player1 lost connection: Disconnected
+[18:34:16] [Server thread/INFO]: Player1 left the game
+[18:34:51] [Server thread/INFO]: Stopping the server
+[18:34:51] [Server thread/INFO]: Stopping server
+[18:34:51] [Server thread/INFO]: Saving players
+[18:34:51] [Server thread/INFO]: Saving worlds
+[18:34:52] [Server thread/INFO]: Saving chunks for level 'ServerLevel[world]'/minecraft:overworld
+[18:34:52] [Server thread/INFO]: Saving chunks for level 'ServerLevel[world]'/minecraft:the_nether
+[18:34:52] [Server thread/INFO]: Saving chunks for level 'ServerLevel[world]'/minecraft:the_end
+[18:34:52] [Server thread/INFO]: ThreadedAnvilChunkStorage (world): All chunks are saved
+[18:34:52] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[18:34:52] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[18:34:52] [Server thread/INFO]: ThreadedAnvilChunkStorage: All dimensions are saved
+

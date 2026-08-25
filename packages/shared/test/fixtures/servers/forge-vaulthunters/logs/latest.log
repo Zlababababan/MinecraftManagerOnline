@@ -1,0 +1,261 @@
+[15oct.2023 15:03:51.931] [main/INFO] [cpw.mods.modlauncher.Launcher/MODLAUNCHER]: ModLauncher running: args [--launchTarget, forgeserver, --fml.forgeVersion, 40.2.9, --fml.mcVersion, 1.18.2, --fml.forgeGroup, net.minecraftforge, --fml.mcpVersion, 20220404.173914]
+[15oct.2023 15:03:51.936] [main/INFO] [cpw.mods.modlauncher.Launcher/MODLAUNCHER]: ModLauncher 9.1.3+9.1.3+main.9b69c82a starting: java version 17.0.5 by Oracle Corporation
+[15oct.2023 15:03:59.625] [main/INFO] [mixin/]: SpongePowered MIXIN Subsystem Version=0.8.5 Source=union:/D:/Minecraft/Server/Vault-Hunters-3rd-Edition-3.11.5-server-files/libraries/org/spongepowered/mixin/0.8.5/mixin-0.8.5.jar%2314!/ Service=ModLauncher Env=SERVER
+[15oct.2023 15:04:01.429] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\Vault-Hunters-3rd-Edition-3.11.5-server-files\libraries\net\minecraftforge\fmlcore\1.18.2-40.2.9\fmlcore-1.18.2-40.2.9.jar is missing mods.toml file
+[15oct.2023 15:04:01.472] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\Vault-Hunters-3rd-Edition-3.11.5-server-files\libraries\net\minecraftforge\javafmllanguage\1.18.2-40.2.9\javafmllanguage-1.18.2-40.2.9.jar is missing mods.toml file
+[15oct.2023 15:04:01.478] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\Vault-Hunters-3rd-Edition-3.11.5-server-files\libraries\net\minecraftforge\lowcodelanguage\1.18.2-40.2.9\lowcodelanguage-1.18.2-40.2.9.jar is missing mods.toml file
+[15oct.2023 15:04:01.483] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\Vault-Hunters-3rd-Edition-3.11.5-server-files\libraries\net\minecraftforge\mclanguage\1.18.2-40.2.9\mclanguage-1.18.2-40.2.9.jar is missing mods.toml file
+[15oct.2023 15:04:01.682] [main/WARN] [net.minecraftforge.jarjar.selection.JarSelector/]: Attempted to select a dependency jar for JarJar which was passed in as source: flywheel. Using Mod File: E:\srv\Vault-Hunters-3rd-Edition-3.11.5-server-files\mods\flywheel-forge-1.18.2-0.6.8.a.jar
+[15oct.2023 15:04:01.682] [main/INFO] [net.minecraftforge.fml.loading.moddiscovery.JarInJarDependencyLocator/]: Found 1 dependencies adding them to mods collection
+[15oct.2023 15:04:05.816] [main/INFO] [mixin/]: Compatibility level set to JAVA_17
+[15oct.2023 15:04:06.000] [main/ERROR] [mixin/]: Mixin config polylib.mixins.json does not specify "minVersion" property
+[15oct.2023 15:04:06.093] [main/ERROR] [mixin/]: Mixin config rottencreatures-common.mixins.json does not specify "minVersion" property
+[15oct.2023 15:04:06.095] [main/ERROR] [mixin/]: Mixin config rottencreatures.mixins.json does not specify "minVersion" property
+[15oct.2023 15:04:06.235] [main/INFO] [mixin/]: Successfully loaded Mixin Connector [iskallia.auxiliaryblocks.MixinConnector]
+[15oct.2023 15:04:06.236] [main/INFO] [mixin/]: Successfully loaded Mixin Connector [shetiphian.core.mixins.MixinConnector]
+[15oct.2023 15:04:06.236] [main/INFO] [mixin/]: Successfully loaded Mixin Connector [iskallia.vaultintegrations.mixin.MixinConnector]
+[15oct.2023 15:04:06.250] [main/INFO] [mixin/]: Successfully loaded Mixin Connector [de.maxhenkel.camera.MixinConnector]
+[15oct.2023 15:04:06.266] [main/INFO] [mixin/]: Successfully loaded Mixin Connector [iskallia.vault.MixinConnector]
+[15oct.2023 15:04:06.296] [main/INFO] [cpw.mods.modlauncher.LaunchServiceHandler/MODLAUNCHER]: Launching target 'forgeserver' with arguments []
+[15oct.2023 15:04:06.362] [main/INFO] [Rubidium/]: Loaded configuration file for Rubidium: 28 options available, 0 override(s) found
+[15oct.2023 15:04:06.368] [main/WARN] [mixin/]: Reference map 'shulkerplus-forge-refmap.json' for shulkerplus-forge.mixins.json could not be read. If this is a development environment you can ignore this message
+[15oct.2023 15:04:06.526] [main/WARN] [mixin/]: Reference map 'polylib-common-refmap.json' for polylib.mixins.json could not be read. If this is a development environment you can ignore this message
+[15oct.2023 15:04:06.571] [main/WARN] [mixin/]: Reference map 'everycomp.refmap.json' for everycomp.mixins.json could not be read. If this is a development environment you can ignore this message
+[15oct.2023 15:04:06.580] [main/WARN] [mixin/]: Reference map 'rottencreatures-forge-refmap.json' for rottencreatures.mixins.json could not be read. If this is a development environment you can ignore this message
+[15oct.2023 15:04:08.370] [main/WARN] [mixin/]: Error loading class: mezz/jei/common/transfer/RecipeTransferUtil (java.lang.ClassNotFoundException: mezz.jei.common.transfer.RecipeTransferUtil)
+[15oct.2023 15:04:08.370] [main/WARN] [mixin/]: @Mixin target mezz.jei.common.transfer.RecipeTransferUtil was not found polymorph_integrations.mixins.json:jei.MixinRecipeTransferUtil
+[15oct.2023 15:04:08.435] [main/INFO] [iskallia.auxiliaryblocks.AuxiliaryBlocks/]: Enabled mixin for IForgeBlock to enable piston actions with gelatin.
+[15oct.2023 15:04:09.055] [main/FATAL] [net.minecraftforge.fml.loading.RuntimeDistCleaner/DISTXFORM]: Attempted to load class net/minecraft/client/renderer/block/model/ItemTransforms$TransformType for invalid dist DEDICATED_SERVER
+[15oct.2023 15:04:09.055] [main/WARN] [mixin/]: Error loading class: net/minecraft/client/renderer/block/model/ItemTransforms$TransformType (java.lang.RuntimeException: Attempted to load class net/minecraft/client/renderer/block/model/ItemTransforms$TransformType for invalid dist DEDICATED_SERVER)
+[15oct.2023 15:04:16.140] [main/WARN] [mixin/]: Mixin ispawner-common.mixins.json:MixinItemPlacementContext has multiple constructors, (Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)V was selected
+
+[15oct.2023 15:04:20.827] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `merequester` for name `requester`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:20.918] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `inscriber`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:20.923] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `wireless_access_point`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:20.937] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `charger`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:20.964] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `security_station`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:20.971] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `quantum_ring`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:20.989] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `spatial_pylon`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:21.005] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `spatial_io_port`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:21.021] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `spatial_anchor`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:21.036] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `cable_bus`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:21.039] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `controller`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:21.056] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `drive`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:21.072] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `chest`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:21.079] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `interface`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:21.097] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `cell_workbench`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:21.106] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `io_port`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:21.110] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `condenser`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:21.119] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `energy_acceptor`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:21.160] [main/INFO] [net.minecraftforge.registries.GameData/]: Potentially Dangerous alternative prefix `ae2` for name `vibration_chamber`, expected `minecraft`. This could be a intended override, but in most cases indicates a broken mod.
+[15oct.2023 15:04:25.544] [modloading-worker-0/WARN] [auudio/Auudio/]: WARNING: Auudio is a client mod and has no effect when loaded on a server!
+[15oct.2023 15:04:25.784] [modloading-worker-0/WARN] [ReAuth/]: ###############################
+[15oct.2023 15:04:25.804] [modloading-worker-0/WARN] [ReAuth/]: # ReAuth was loaded on Server #
+[15oct.2023 15:04:25.813] [modloading-worker-0/WARN] [ReAuth/]: #     Consider removing it    #
+[15oct.2023 15:04:25.856] [modloading-worker-0/WARN] [ReAuth/]: ###############################
+[15oct.2023 15:04:26.415] [modloading-worker-0/ERROR] [packmenu/]: Running on a dedicated server, disabling mod.
+[15oct.2023 15:04:27.590] [modloading-worker-0/WARN] [de.keksuccino.drippyloadingscreen.DrippyLoadingScreen/]: WARNING: 'Drippy Loading Screen' is a client mod and has no effect when loaded on a server!
+[15oct.2023 15:04:27.602] [modloading-worker-0/WARN] [net.blay09.mods.balm.forge.config.ForgeBalmConfig/]: Config field without expected type, will not validate list content (compressBlacklist in net.blay09.mods.craftingtweaks.config.CraftingTweaksConfigData$Common)
+[15oct.2023 15:04:27.623] [modloading-worker-0/WARN] [net.blay09.mods.balm.forge.config.ForgeBalmConfig/]: Config field without expected type, will not validate list content (disabledAddons in net.blay09.mods.craftingtweaks.config.CraftingTweaksConfigData$Client)
+[15oct.2023 15:04:43.074] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file E:\srv\Vault-Hunters-3rd-Edition-3.11.5-server-files\config\everycomp-registry.toml is not correct. Correcting
+[15oct.2023 15:04:43.085] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wood_type.the_vault.wooden was corrected from null to its default, true. 
+[15oct.2023 15:04:43.113] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wood_type.the_vault.overgrown_wooden was corrected from null to its default, true. 
+[15oct.2023 15:04:47.913] [main/WARN] [net.minecraft.network.syncher.SynchedEntityData/]: defineId called for: class iskallia.vault.entity.entity.DollMiniMeEntity from interface iskallia.vault.entity.IPlayerSkinHolder
+[15oct.2023 15:04:49.312] [main/WARN] [net.minecraft.network.syncher.SynchedEntityData/]: defineId called for: class com.github.alexthe666.alexsmobs.entity.EntityLeafcutterAnt from class com.github.alexthe666.alexsmobs.entity.EntityDevilsHolePupfish
+[15oct.2023 15:04:49.313] [main/WARN] [net.minecraft.network.syncher.SynchedEntityData/]: defineId called for: class com.github.alexthe666.alexsmobs.entity.EntityMantisShrimp from class com.github.alexthe666.alexsmobs.entity.EntitySkelewag
+[15oct.2023 15:04:49.458] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file E:\srv\Vault-Hunters-3rd-Edition-3.11.5-server-files\config\alexsmobs.toml is not correct. Correcting
+[15oct.2023 15:04:49.460] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key general.spawning.elephantTraderSpawnChance was corrected from 0 to its default, null. 
+[15oct.2023 15:04:50.757] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file E:\srv\Vault-Hunters-3rd-Edition-3.11.5-server-files\config\rottencreatures-common.toml is not correct. Correcting
+[15oct.2023 15:04:50.757] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Mob Spawns.Immortal Chance was corrected from 0.025 to its default, 0.025. 
+[15oct.2023 15:04:51.125] [modloading-worker-0/WARN] [FluxNetworks/]: Use FML network channel (low performance)
+[15oct.2023 15:05:59.629] [main/WARN] [net.minecraft.server.packs.VanillaPackResources/]: Assets URL 'union:/D:/Minecraft/Server/Vault-Hunters-3rd-Edition-3.11.5-server-files/libraries/net/minecraft/server/1.18.2-20220404.173914/server-1.18.2-20220404.173914-srg.jar%23184!/assets/.mcassetsroot' uses unexpected schema
+[15oct.2023 15:05:59.629] [main/WARN] [net.minecraft.server.packs.VanillaPackResources/]: Assets URL 'union:/D:/Minecraft/Server/Vault-Hunters-3rd-Edition-3.11.5-server-files/libraries/net/minecraft/server/1.18.2-20220404.173914/server-1.18.2-20220404.173914-srg.jar%23184!/data/.mcassetsroot' uses unexpected schema
+[15oct.2023 15:06:05.315] [main/WARN] [net.minecraft.commands.Commands/]: Ambiguity between arguments [teleport, location] and [teleport, destination] with inputs: [0.1 -0.5 .9, 0 0 0]
+[15oct.2023 15:06:05.317] [main/WARN] [net.minecraft.commands.Commands/]: Ambiguity between arguments [teleport, location] and [teleport, targets] with inputs: [0.1 -0.5 .9, 0 0 0]
+[15oct.2023 15:06:05.321] [main/WARN] [net.minecraft.commands.Commands/]: Ambiguity between arguments [teleport, destination] and [teleport, targets] with inputs: [Player, 0123, @e, 00000000-0000-4000-8000-000000000001]
+[15oct.2023 15:06:05.323] [main/WARN] [net.minecraft.commands.Commands/]: Ambiguity between arguments [teleport, targets] and [teleport, destination] with inputs: [Player, 0123, 00000000-0000-4000-8000-000000000001]
+[15oct.2023 15:06:05.327] [main/WARN] [net.minecraft.commands.Commands/]: Ambiguity between arguments [teleport, targets, location] and [teleport, targets, destination] with inputs: [0.1 -0.5 .9, 0 0 0]
+[15oct.2023 15:06:05.330] [main/WARN] [net.minecraft.commands.Commands/]: Ambiguity between arguments [cofh, ignite, duration] and [cofh, ignite, targets] with inputs: [0, -123, 123]
+[15oct.2023 15:06:05.333] [main/WARN] [net.minecraft.commands.Commands/]: Ambiguity between arguments [cofh, ignite, targets] and [cofh, ignite, duration] with inputs: [0123]
+[15oct.2023 15:06:05.335] [main/WARN] [net.minecraft.commands.Commands/]: Ambiguity between arguments [cofh, invis, flag] and [cofh, invis, targets] with inputs: [true, false]
+[15oct.2023 15:06:05.337] [main/WARN] [net.minecraft.commands.Commands/]: Ambiguity between arguments [cofh, invuln, flag] and [cofh, invuln, targets] with inputs: [true, false]
+[15oct.2023 15:06:05.345] [main/WARN] [net.minecraft.commands.Commands/]: Ambiguity between arguments [create, coupling, add, cart1] and [create, coupling, add, carts] with inputs: [Player, 0123, @e, 00000000-0000-4000-8000-000000000001]
+[15oct.2023 15:06:05.347] [main/WARN] [net.minecraft.commands.Commands/]: Ambiguity between arguments [create, coupling, add, carts] and [create, coupling, add, cart1] with inputs: [Player, 0123, 00000000-0000-4000-8000-000000000001]
+[15oct.2023 15:06:05.350] [main/WARN] [net.minecraft.commands.Commands/]: Ambiguity between arguments [create, coupling, add, cart1] and [create, coupling, add, carts] with inputs: [Player, 0123, @e, 00000000-0000-4000-8000-000000000001]
+[15oct.2023 15:06:05.352] [main/WARN] [net.minecraft.commands.Commands/]: Ambiguity between arguments [create, coupling, add, carts] and [create, coupling, add, cart1] with inputs: [Player, 0123, 00000000-0000-4000-8000-000000000001]
+[15oct.2023 15:06:05.355] [main/WARN] [net.minecraft.commands.Commands/]: Ambiguity between arguments [deathhistory, player] and [deathhistory, player_uuid] with inputs: [00000000-0000-4000-8000-000000000001]
+[15oct.2023 15:06:17.333] [main/WARN] [net.minecraft.core.MappedRegistry/]: Not all defined tags for registry ResourceKey[minecraft:root / minecraft:worldgen/biome] are present in data pack: the_vault:empty
+[15oct.2023 15:06:31.053] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Starting minecraft server version 1.18.2
+[15oct.2023 15:06:31.133] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Starting Minecraft server on *:25565
+[15oct.2023 15:06:31.364] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file .\world\serverconfig\buildinggadgets-server.toml is not correct. Correcting
+[15oct.2023 15:06:31.365] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key general was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.365] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key general.Allow Absolute Coords was corrected from null to its default, true. 
+[15oct.2023 15:06:31.365] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key general.MaxBuildDistance was corrected from null to its default, 32.0. 
+[15oct.2023 15:06:31.365] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key general.Allow non-Air-Block-Overwrite was corrected from null to its default, true. 
+[15oct.2023 15:06:31.366] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.366] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Maximum allowed Range was corrected from null to its default, 15. 
+[15oct.2023 15:06:31.366] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Max Placement/Tick was corrected from null to its default, 1024. 
+[15oct.2023 15:06:31.366] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Building Gadget was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.368] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Building Gadget.Maximum Energy was corrected from null to its default, 500000. 
+[15oct.2023 15:06:31.368] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Building Gadget.Energy Cost was corrected from null to its default, 50. 
+[15oct.2023 15:06:31.368] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Building Gadget.Max Undo History Size was corrected from null to its default, 10. 
+[15oct.2023 15:06:31.368] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Exchanging Gadget was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.368] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Exchanging Gadget.Maximum Energy was corrected from null to its default, 500000. 
+[15oct.2023 15:06:31.368] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Exchanging Gadget.Energy Cost was corrected from null to its default, 100. 
+[15oct.2023 15:06:31.369] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Exchanging Gadget.Max Undo History Size was corrected from null to its default, 10. 
+[15oct.2023 15:06:31.369] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Destruction Gadget was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.369] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Destruction Gadget.Maximum Energy was corrected from null to its default, 1000000. 
+[15oct.2023 15:06:31.369] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Destruction Gadget.Energy Cost was corrected from null to its default, 200. 
+[15oct.2023 15:06:31.369] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Destruction Gadget.Max Undo History Size was corrected from null to its default, 1. 
+[15oct.2023 15:06:31.369] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Destruction Gadget.Destroy Dimensions was corrected from null to its default, 16. 
+[15oct.2023 15:06:31.370] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Destruction Gadget.Non-Fuzzy Mode Multiplier was corrected from null to its default, 2.0. 
+[15oct.2023 15:06:31.370] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Destruction Gadget.Non-Fuzzy Mode Enabled was corrected from null to its default, false. 
+[15oct.2023 15:06:31.370] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Copy-Paste Gadget was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.370] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Copy-Paste Gadget.Maximum Energy was corrected from null to its default, 500000. 
+[15oct.2023 15:06:31.370] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Copy-Paste Gadget.Energy Cost was corrected from null to its default, 50. 
+[15oct.2023 15:06:31.370] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Copy-Paste Gadget.Max Undo History Size was corrected from null to its default, 1. 
+[15oct.2023 15:06:31.371] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Copy-Paste Gadget.Max Copy/Tick was corrected from null to its default, 32768. 
+[15oct.2023 15:06:31.371] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Copy-Paste Gadget.Max Copy Dimensions was corrected from null to its default, 256. 
+[15oct.2023 15:06:31.371] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Gadgets.Copy-Paste Gadget.Max Build Dimensions was corrected from null to its default, 256. 
+[15oct.2023 15:06:31.372] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Paste Containers was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.372] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Paste Containers.T1 Container Capacity was corrected from null to its default, 512. 
+[15oct.2023 15:06:31.373] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Paste Containers.T2 Container Capacity was corrected from null to its default, 2048. 
+[15oct.2023 15:06:31.373] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Paste Containers.T3 Container Capacity was corrected from null to its default, 8192. 
+[15oct.2023 15:06:31.386] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file .\world\serverconfig\corpse-server.toml is not correct. Correcting
+[15oct.2023 15:06:31.388] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key corpse was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.388] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key corpse.access was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.388] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key corpse.access.only_owner was corrected from null to its default, false. 
+[15oct.2023 15:06:31.388] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key corpse.access.skeleton was corrected from null to its default, false. 
+[15oct.2023 15:06:31.389] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key corpse.despawn was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.389] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key corpse.despawn.time was corrected from null to its default, 600. 
+[15oct.2023 15:06:31.389] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key corpse.despawn.force_time was corrected from null to its default, -1. 
+[15oct.2023 15:06:31.389] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key corpse.skeleton_time was corrected from null to its default, 72000. 
+[15oct.2023 15:06:31.389] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key corpse.lie_on_face was corrected from null to its default, false. 
+[15oct.2023 15:06:31.390] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key corpse.show_equipment was corrected from null to its default, true. 
+[15oct.2023 15:06:31.390] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key corpse.fall_into_void was corrected from null to its default, false. 
+[15oct.2023 15:06:31.390] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key corpse.lava_damage was corrected from null to its default, false. 
+[15oct.2023 15:06:31.391] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key death_storage_duration was corrected from null to its default, -1. 
+[15oct.2023 15:06:31.393] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file .\world\serverconfig\easy_piglins-server.toml is not correct. Correcting
+[15oct.2023 15:06:31.394] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key piglin was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.394] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key piglin.inventory_sounds was corrected from null to its default, true. 
+[15oct.2023 15:06:31.434] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file .\world\serverconfig\refinedstorage-server.toml is not correct. Correcting
+[15oct.2023 15:06:31.435] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key upgrades was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.435] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key upgrades.rangeUpgradeUsage was corrected from null to its default, 8. 
+[15oct.2023 15:06:31.435] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key upgrades.speedUpgradeUsage was corrected from null to its default, 2. 
+[15oct.2023 15:06:31.435] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key upgrades.craftingUpgradeUsage was corrected from null to its default, 5. 
+[15oct.2023 15:06:31.435] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key upgrades.stackUpgradeUsage was corrected from null to its default, 12. 
+[15oct.2023 15:06:31.435] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key upgrades.silkTouchUpgradeUsage was corrected from null to its default, 15. 
+[15oct.2023 15:06:31.435] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key upgrades.fortune1UpgradeUsage was corrected from null to its default, 10. 
+[15oct.2023 15:06:31.435] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key upgrades.fortune2UpgradeUsage was corrected from null to its default, 12. 
+[15oct.2023 15:06:31.436] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key upgrades.fortune3UpgradeUsage was corrected from null to its default, 14. 
+[15oct.2023 15:06:31.436] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key upgrades.regulatorUpgradeUsage was corrected from null to its default, 15. 
+[15oct.2023 15:06:31.436] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key controller was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.436] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key controller.useEnergy was corrected from null to its default, true. 
+[15oct.2023 15:06:31.436] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key controller.capacity was corrected from null to its default, 32000. 
+[15oct.2023 15:06:31.436] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key controller.baseUsage was corrected from null to its default, 0. 
+[15oct.2023 15:06:31.436] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key controller.maxTransfer was corrected from null to its default, 2147483647. 
+[15oct.2023 15:06:31.438] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key cable was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.438] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key cable.usage was corrected from null to its default, 0. 
+[15oct.2023 15:06:31.439] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key grid was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.439] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key grid.gridUsage was corrected from null to its default, 2. 
+[15oct.2023 15:06:31.439] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key grid.craftingGridUsage was corrected from null to its default, 4. 
+[15oct.2023 15:06:31.439] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key grid.patternGridUsage was corrected from null to its default, 4. 
+[15oct.2023 15:06:31.439] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key grid.fluidGridUsage was corrected from null to its default, 2. 
+[15oct.2023 15:06:31.440] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key diskDrive was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.440] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key diskDrive.usage was corrected from null to its default, 0. 
+[15oct.2023 15:06:31.440] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key diskDrive.diskUsage was corrected from null to its default, 1. 
+[15oct.2023 15:06:31.441] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key storageBlock was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.441] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key storageBlock.oneKUsage was corrected from null to its default, 2. 
+[15oct.2023 15:06:31.441] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key storageBlock.fourKUsage was corrected from null to its default, 4. 
+[15oct.2023 15:06:31.441] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key storageBlock.sixteenKUsage was corrected from null to its default, 6. 
+[15oct.2023 15:06:31.441] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key storageBlock.sixtyFourKUsage was corrected from null to its default, 8. 
+[15oct.2023 15:06:31.442] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key storageBlock.creativeUsage was corrected from null to its default, 10. 
+[15oct.2023 15:06:31.442] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key fluidStorageBlock was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.443] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key fluidStorageBlock.sixtyFourKUsage was corrected from null to its default, 2. 
+[15oct.2023 15:06:31.443] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key fluidStorageBlock.twoHundredFiftySixKUsage was corrected from null to its default, 4. 
+[15oct.2023 15:06:31.443] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key fluidStorageBlock.thousandTwentyFourKUsage was corrected from null to its default, 6. 
+[15oct.2023 15:06:31.443] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key fluidStorageBlock.fourThousandNinetySixKUsage was corrected from null to its default, 8. 
+[15oct.2023 15:06:31.443] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key fluidStorageBlock.creativeUsage was corrected from null to its default, 10. 
+[15oct.2023 15:06:31.444] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key externalStorage was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.444] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key externalStorage.usage was corrected from null to its default, 6. 
+[15oct.2023 15:06:31.445] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key importer was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.445] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key importer.usage was corrected from null to its default, 1. 
+[15oct.2023 15:06:31.445] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key exporter was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.445] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key exporter.usage was corrected from null to its default, 1. 
+[15oct.2023 15:06:31.445] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key networkReceiver was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.446] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key networkReceiver.usage was corrected from null to its default, 0. 
+[15oct.2023 15:06:31.446] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key networkTransmitter was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.446] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key networkTransmitter.usage was corrected from null to its default, 64. 
+[15oct.2023 15:06:31.446] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key relay was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.446] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key relay.usage was corrected from null to its default, 1. 
+[15oct.2023 15:06:31.448] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key detector was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.448] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key detector.usage was corrected from null to its default, 2. 
+[15oct.2023 15:06:31.449] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key securityManager was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.449] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key securityManager.usage was corrected from null to its default, 4. 
+[15oct.2023 15:06:31.449] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key securityManager.usagePerCard was corrected from null to its default, 10. 
+[15oct.2023 15:06:31.450] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key interface was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.450] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key interface.usage was corrected from null to its default, 2. 
+[15oct.2023 15:06:31.451] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key fluidInterface was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.451] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key fluidInterface.usage was corrected from null to its default, 2. 
+[15oct.2023 15:06:31.451] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessTransmitter was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.452] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessTransmitter.usage was corrected from null to its default, 8. 
+[15oct.2023 15:06:31.452] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessTransmitter.baseRange was corrected from null to its default, 16. 
+[15oct.2023 15:06:31.452] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessTransmitter.rangePerUpgrade was corrected from null to its default, 8. 
+[15oct.2023 15:06:31.452] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key storageMonitor was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.453] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key storageMonitor.usage was corrected from null to its default, 3. 
+[15oct.2023 15:06:31.453] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessGrid was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.453] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessGrid.useEnergy was corrected from null to its default, true. 
+[15oct.2023 15:06:31.453] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessGrid.capacity was corrected from null to its default, 3200. 
+[15oct.2023 15:06:31.453] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessGrid.openUsage was corrected from null to its default, 30. 
+[15oct.2023 15:06:31.454] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessGrid.extractUsage was corrected from null to its default, 5. 
+[15oct.2023 15:06:31.454] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessGrid.insertUsage was corrected from null to its default, 5. 
+[15oct.2023 15:06:31.454] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessFluidGrid was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.454] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessFluidGrid.useEnergy was corrected from null to its default, true. 
+[15oct.2023 15:06:31.455] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessFluidGrid.capacity was corrected from null to its default, 3200. 
+[15oct.2023 15:06:31.455] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessFluidGrid.openUsage was corrected from null to its default, 30. 
+[15oct.2023 15:06:31.455] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessFluidGrid.extractUsage was corrected from null to its default, 5. 
+[15oct.2023 15:06:31.455] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessFluidGrid.insertUsage was corrected from null to its default, 5. 
+[15oct.2023 15:06:31.455] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key constructor was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.455] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key constructor.usage was corrected from null to its default, 3. 
+[15oct.2023 15:06:31.456] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key destructor was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.456] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key destructor.usage was corrected from null to its default, 3. 
+[15oct.2023 15:06:31.458] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key diskManipulator was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.458] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key diskManipulator.usage was corrected from null to its default, 4. 
+[15oct.2023 15:06:31.459] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key portableGrid was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.459] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key portableGrid.useEnergy was corrected from null to its default, true. 
+[15oct.2023 15:06:31.459] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key portableGrid.capacity was corrected from null to its default, 3200. 
+[15oct.2023 15:06:31.459] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key portableGrid.openUsage was corrected from null to its default, 30. 
+[15oct.2023 15:06:31.459] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key portableGrid.extractUsage was corrected from null to its default, 5. 
+[15oct.2023 15:06:31.459] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key portableGrid.insertUsage was corrected from null to its default, 5. 
+[15oct.2023 15:06:31.460] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key crafter was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.460] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key crafter.usage was corrected from null to its default, 4. 
+[15oct.2023 15:06:31.460] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key crafter.patternUsage was corrected from null to its default, 1. 
+[15oct.2023 15:06:31.461] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key crafterManager was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.461] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key crafterManager.usage was corrected from null to its default, 8. 
+[15oct.2023 15:06:31.462] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key craftingMonitor was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.462] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key craftingMonitor.usage was corrected from null to its default, 8. 
+[15oct.2023 15:06:31.462] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessCraftingMonitor was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.462] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessCraftingMonitor.useEnergy was corrected from null to its default, true. 
+[15oct.2023 15:06:31.463] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessCraftingMonitor.capacity was corrected from null to its default, 3200. 
+[15oct.2023 15:06:31.463] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessCraftingMonitor.openUsage was corrected from null to its default, 30. 
+[15oct.2023 15:06:31.463] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessCraftingMonitor.cancelUsage was corrected from null to its default, 5. 
+[15oct.2023 15:06:31.463] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key wirelessCraftingMonitor.cancelAllUsage was corrected from null to its default, 10. 
+[15oct.2023 15:06:31.464] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key autocrafting was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.464] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key autocrafting.calculationTimeoutMs was corrected from null to its default, 5000. 
+[15oct.2023 15:06:31.483] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file .\world\serverconfig\curios-server.toml is not correct. Correcting
+[15oct.2023 15:06:31.492] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file .\world\serverconfig\camera-server.toml is not correct. Correcting
+[15oct.2023 15:06:31.493] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key camera was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.493] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key camera.cooldown was corrected from null to its default, 5000. 
+[15oct.2023 15:06:31.493] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key camera.consumed_item was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.493] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key camera.consumed_item.amount was corrected from null to its default, 1. 
+[15oct.2023 15:06:31.494] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key image was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.494] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key image.max_size was corrected from null to its default, 200000. 
+[15oct.2023 15:06:31.494] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key image.compression was corrected from null to its default, 0.5. 
+[15oct.2023 15:06:31.494] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key image.allow_upload was corrected from null to its default, true. 
+[15oct.2023 15:06:31.495] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key image_frame was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.495] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key image_frame.only_owner_modify was corrected from null to its default, false. 
+[15oct.2023 15:06:31.495] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key advanced_data was corrected from null to its default, SimpleCommentedConfig:{}. 
+[15oct.2023 15:06:31.495] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key advanced_data.enable was corrected from null to its default, false. 
+[15oct.2023 15:06:31.495] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key advanced_data.max_entities was corrected from null to its default, 16. 
+[15oct.2023 15:06:31.496] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file .\world\serverconfig\elevatorid-server.toml is not correct. Correcting
+[15oct.2023 15:06:31.498] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key General was corrected from null to its default, SimpleCommentedConfig:{}. 

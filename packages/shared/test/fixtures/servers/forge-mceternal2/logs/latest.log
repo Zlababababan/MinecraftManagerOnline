@@ -1,0 +1,262 @@
+[15Nov2025 22:36:20.067] [main/INFO] [cpw.mods.modlauncher.Launcher/MODLAUNCHER]: ModLauncher running: args [--launchTarget, forgeserver, --fml.forgeVersion, 47.4.2, --fml.mcVersion, 1.20.1, --fml.forgeGroup, net.minecraftforge, --fml.mcpVersion, 20230612.114412]
+[15Nov2025 22:36:20.072] [main/INFO] [cpw.mods.modlauncher.Launcher/MODLAUNCHER]: ModLauncher 10.0.9+10.0.9+main.dcd20f30 starting: java version 21.0.3 by Oracle Corporation; OS Windows 11 arch amd64 version 10.0
+[15Nov2025 22:36:23.096] [main/INFO] [net.minecraftforge.fml.loading.ImmediateWindowHandler/]: ImmediateWindowProvider not loading because launch target is forgeserver
+[15Nov2025 22:36:23.136] [main/INFO] [mixin/]: SpongePowered MIXIN Subsystem Version=0.8.5 Source=union:/E:/Minecraft/Server/MCEternal2_1.2/libraries/org/spongepowered/mixin/0.8.5/mixin-0.8.5.jar%2365!/ Service=ModLauncher Env=SERVER
+[15Nov2025 22:36:24.405] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\MCEternal2_1.2\libraries\net\minecraftforge\fmlcore\1.20.1-47.4.2\fmlcore-1.20.1-47.4.2.jar is missing mods.toml file
+[15Nov2025 22:36:24.407] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\MCEternal2_1.2\libraries\net\minecraftforge\javafmllanguage\1.20.1-47.4.2\javafmllanguage-1.20.1-47.4.2.jar is missing mods.toml file
+[15Nov2025 22:36:24.409] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\MCEternal2_1.2\libraries\net\minecraftforge\lowcodelanguage\1.20.1-47.4.2\lowcodelanguage-1.20.1-47.4.2.jar is missing mods.toml file
+[15Nov2025 22:36:24.411] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\MCEternal2_1.2\libraries\net\minecraftforge\mclanguage\1.20.1-47.4.2\mclanguage-1.20.1-47.4.2.jar is missing mods.toml file
+[15Nov2025 22:36:25.398] [main/WARN] [net.minecraftforge.jarjar.selection.JarSelector/]: Attempted to select two dependency jars from JarJar which have the same identification: Mod File:  and Mod File: . Using Mod File: 
+[15Nov2025 22:36:25.402] [main/WARN] [net.minecraftforge.jarjar.selection.JarSelector/]: Attempted to select a dependency jar for JarJar which was passed in as source: geckolib. Using Mod File: E:\srv\MCEternal2_1.2\mods\geckolib-forge-1.20.1-4.8.2.jar
+[15Nov2025 22:36:25.402] [main/WARN] [net.minecraftforge.jarjar.selection.JarSelector/]: Attempted to select a dependency jar for JarJar which was passed in as source: playeranimator. Using Mod File: E:\srv\MCEternal2_1.2\mods\player-animation-lib-forge-1.0.2-rc1+1.20.jar
+[15Nov2025 22:36:25.403] [main/WARN] [net.minecraftforge.jarjar.selection.JarSelector/]: Attempted to select a dependency jar for JarJar which was passed in as source: ldlib. Using Mod File: E:\srv\MCEternal2_1.2\mods\ldlib-forge-1.20.1-1.0.33.b.jar
+[15Nov2025 22:36:25.403] [main/WARN] [net.minecraftforge.jarjar.selection.JarSelector/]: Attempted to select a dependency jar for JarJar which was passed in as source: athena. Using Mod File: E:\srv\MCEternal2_1.2\mods\athena-forge-1.20.1-3.1.2.jar
+[15Nov2025 22:36:25.403] [main/WARN] [net.minecraftforge.jarjar.selection.JarSelector/]: Attempted to select a dependency jar for JarJar which was passed in as source: resourcefullib. Using Mod File: E:\srv\MCEternal2_1.2\mods\resourcefullib-forge-1.20.1-2.1.29.jar
+[15Nov2025 22:36:25.403] [main/WARN] [net.minecraftforge.jarjar.selection.JarSelector/]: Attempted to select a dependency jar for JarJar which was passed in as source: expandability. Using Mod File: E:\srv\MCEternal2_1.2\mods\expandability-9.0.4.jar
+[15Nov2025 22:36:25.403] [main/INFO] [net.minecraftforge.fml.loading.moddiscovery.JarInJarDependencyLocator/]: Found 50 dependencies adding them to mods collection
+[15Nov2025 22:36:41.253] [main/INFO] [mixin/]: Compatibility level set to JAVA_17
+[15Nov2025 22:36:41.318] [main/ERROR] [mixin/]: Mixin config uniqueaccessories.mixins.json does not specify "minVersion" property
+[15Nov2025 22:36:41.364] [main/ERROR] [mixin/]: Mixin config mixins.skillcloaks.json does not specify "minVersion" property
+[15Nov2025 22:36:41.884] [main/ERROR] [mixin/]: Mixin config palladiumcore-common.mixins.json does not specify "minVersion" property
+[15Nov2025 22:36:41.885] [main/ERROR] [mixin/]: Mixin config palladiumcore.mixins.json does not specify "minVersion" property
+[15Nov2025 22:36:41.887] [main/ERROR] [mixin/]: Mixin config vc_gliders-common.mixins.json does not specify "minVersion" property
+[15Nov2025 22:36:41.888] [main/ERROR] [mixin/]: Mixin config vc_gliders.mixins.json does not specify "minVersion" property
+[15Nov2025 22:36:41.925] [main/ERROR] [mixin/]: Mixin config crashexploitfixer.mixins.json does not specify "minVersion" property
+[15Nov2025 22:36:42.041] [main/ERROR] [mixin/]: Mixin config yacl.mixins.json does not specify "minVersion" property
+[15Nov2025 22:36:42.093] [main/INFO] [mixin/]: Successfully loaded Mixin Connector [shetiphian.core.mixins.MixinConnector]
+[15Nov2025 22:36:42.094] [main/INFO] [cpw.mods.modlauncher.LaunchServiceHandler/MODLAUNCHER]: Launching target 'forgeserver' with arguments []
+[15Nov2025 22:36:42.249] [main/INFO] [ModernFix/]: Loaded configuration file for ModernFix 5.22.0+mc1.20.1: 94 options available, 1 override(s) found
+[15Nov2025 22:36:42.249] [main/WARN] [ModernFix/]: Option 'mixin.feature.warn_missing_perf_mods' overriden (by user configuration) to 'false'
+[15Nov2025 22:36:42.249] [main/INFO] [ModernFix/]: Applying Nashorn fix
+[15Nov2025 22:36:42.265] [main/INFO] [ModernFix/]: Applied Forge config corruption patch
+[15Nov2025 22:36:42.298] [main/INFO] [Embeddium/]: Loaded configuration file for Embeddium: 580 options available, 0 override(s) found
+[15Nov2025 22:36:42.346] [main/WARN] [mixin/]: Reference map 'EpheroLib-refmap.json' for epherolib.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:42.371] [main/WARN] [mixin/]: Reference map 'farmersrespite.refmap.json' for farmersrespite.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:42.406] [main/WARN] [mixin/]: Reference map 'cobweb.refmap.json' for cobweb.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:42.407] [main/WARN] [mixin/]: Reference map 'cobweb.refmap.json' for cobweb.forge.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:42.413] [main/WARN] [mixin/]: Reference map 'CapeJS-forge-refmap.json' for capejs.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:42.441] [main/WARN] [mixin/]: Reference map 'integrated_cataclysm.refmap.json' for integrated_cataclysm.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:42.515] [main/WARN] [mixin/]: Reference map 'dialog.refmap.json' for dialog.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:42.592] [main/WARN] [mixin/]: Reference map 'advancementframes-common-refmap.json' for advancementframes-common.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:42.774] [main/WARN] [mixin/]: Reference map 'mysticaloaktree-common-refmap.json' for mysticaloaktree-common.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:42.776] [main/WARN] [mixin/]: Reference map 'mysticaloaktree-forge-refmap.json' for mysticaloaktree.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:42.848] [main/WARN] [mixin/]: Reference map 'mixins.biofactory.refmap.json' for mixins.biofactory.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:42.900] [main/INFO] [Puzzles Lib/]: Loading 531 mods:
+	- ad_astra 1.15.20
+	- ad_astra_giselle_addon 6.20
+	- addonslib 1.20.1-1.2
+	- adlods 203.0.113.1
+	- advancementframes 1.20-2.2.8
+	- ae2 15.3.2-beta
+[15Nov2025 22:36:42.912] [main/WARN] [mixin/]: Reference map 'Aquamirae.refmap.json' for aquamirae.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:42.918] [main/WARN] [mixin/]: Reference map 'cristellib-forge-refmap.json' for cristellib.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:42.984] [main/WARN] [mixin/]: Reference map 'cookingforblockheads.refmap.json' for cookingforblockheads.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:43.011] [main/WARN] [mixin/]: Reference map 'catburger.refmap.json' for catburger.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:43.038] [main/WARN] [mixin/]: Reference map 'dynamictrim-forge-refmap.json' for dynamictrim.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:43.052] [main/WARN] [mixin/]: Reference map 'carrasconlib-common-common-refmap.json' for carrasconlib.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:43.074] [main/WARN] [mixin/]: Reference map 'limitedchunks.refmap.json' for limitedchunks.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:43.086] [main/WARN] [mixin/]: Reference map 'cgs.mixin-refmap.json' for cgs.mixin.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:43.088] [main/WARN] [mixin/]: Reference map 'ars_creo.refmap.json' for ars_creo.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:43.109] [main/WARN] [mixin/]: Reference map 'incubation.refmap.json' for incubation.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:43.156] [main/WARN] [mixin/]: Reference map 'modonomicon.refmap.json' for modonomicon.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:43.157] [main/WARN] [mixin/]: Reference map 'modonomicon.refmap.json' for modonomicon.forge.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:43.159] [main/WARN] [mixin/]: Reference map 'coroutil.refmap.json' for coroutil.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:43.177] [main/WARN] [mixin/]: Reference map 'packetfixer-forge-forge-refmap.json' for packetfixer-forge.mixins.json could not be read. If this is a development environment you can ignore this message
+[15Nov2025 22:36:43.876] [main/WARN] [mixin/]: Error loading class: sekelsta/horse_colors/entity/AbstractHorseGenetic (java.lang.ClassNotFoundException: sekelsta.horse_colors.entity.AbstractHorseGenetic)
+[15Nov2025 22:36:43.876] [main/WARN] [mixin/]: @Mixin target sekelsta.horse_colors.entity.AbstractHorseGenetic was not found horseman.mixins.json:realistic_horse_genetics.creative_taming.AbstractHorseGeneticMixin
+[15Nov2025 22:36:44.696] [main/WARN] [mixin/]: Error loading class: net/minecraft/client/player/AbstractClientPlayer (java.lang.RuntimeException: Attempted to load class net/minecraft/client/player/AbstractClientPlayer for invalid dist DEDICATED_SERVER)
+[15Nov2025 22:36:44.696] [main/WARN] [mixin/]: @Mixin target net.minecraft.client.player.AbstractClientPlayer was not found mixins.skillcloaks.json:AbstractClientPlayerMixin
+[15Nov2025 22:36:44.753] [main/WARN] [mixin/]: Error loading class: de/teamlapen/vampirism/client/renderer/RenderHandler (java.lang.RuntimeException: Attempted to load class de/teamlapen/vampirism/client/renderer/RenderHandler for invalid dist DEDICATED_SERVER)
+[15Nov2025 22:36:44.753] [main/WARN] [mixin/]: @Mixin target de.teamlapen.vampirism.client.renderer.RenderHandler was not found vampiresdelight.mixins.json:MixinRenderHandler
+[15Nov2025 22:36:44.841] [main/WARN] [mixin/]: Error loading class: com/github/L_Ender/cataclysm/client/event/ClientEvent (java.lang.RuntimeException: Attempted to load class com/github/L_Ender/cataclysm/client/event/ClientEvent for invalid dist DEDICATED_SERVER)
+[15Nov2025 22:36:44.841] [main/WARN] [mixin/]: @Mixin target com.github.L_Ender.cataclysm.client.event.ClientEvent was not found incineratorstryhard.mixins.json:ClientEventMixin
+[15Nov2025 22:36:45.001] [main/WARN] [mixin/]: Error loading class: net/fabricmc/fabric/api/entity/event/v1/FabricElytraItem (java.lang.ClassNotFoundException: net.fabricmc.fabric.api.entity.event.v1.FabricElytraItem)
+[15Nov2025 22:36:45.034] [main/WARN] [mixin/]: Error loading class: com/dsvv/cbcat/cannon/twin_autocannon/contraption/MountedTwinAutocannonContraption (java.lang.ClassNotFoundException: com.dsvv.cbcat.cannon.twin_autocannon.contraption.MountedTwinAutocannonContraption)
+[15Nov2025 22:36:45.034] [main/WARN] [mixin/]: @Mixin target com.dsvv.cbcat.cannon.twin_autocannon.contraption.MountedTwinAutocannonContraption was not found create_radar.mixins.json:AutoCannonAccessor
+[15Nov2025 22:36:45.037] [main/WARN] [mixin/]: Error loading class: com/dsvv/cbcat/cannon/heavy_autocannon/contraption/MountedHeavyAutocannonContraption (java.lang.ClassNotFoundException: com.dsvv.cbcat.cannon.heavy_autocannon.contraption.MountedHeavyAutocannonContraption)
+[15Nov2025 22:36:45.038] [main/WARN] [mixin/]: @Mixin target com.dsvv.cbcat.cannon.heavy_autocannon.contraption.MountedHeavyAutocannonContraption was not found create_radar.mixins.json:AutoCannonAccessor
+[15Nov2025 22:36:45.084] [main/WARN] [mixin/]: Error loading class: me/shedaniel/rei/plugin/common/displays/crafting/DefaultCraftingDisplay (java.lang.ClassNotFoundException: me.shedaniel.rei.plugin.common.displays.crafting.DefaultCraftingDisplay)
+[15Nov2025 22:36:45.084] [main/WARN] [mixin/]: @Mixin target me.shedaniel.rei.plugin.common.displays.crafting.DefaultCraftingDisplay was not found lychee.mixins.json:rei.DefaultCraftingDisplayMixin
+[15Nov2025 22:36:45.131] [main/WARN] [mixin/]: Error loading class: noppes/npcs/client/model/animation/AnimationHandler (java.lang.ClassNotFoundException: noppes.npcs.client.model.animation.AnimationHandler)
+[15Nov2025 22:36:45.280] [main/WARN] [mixin/]: Error loading class: forge/net/mca/entity/ai/brain/tasks/ExtendedMeleeAttackTask (java.lang.ClassNotFoundException: forge.net.mca.entity.ai.brain.tasks.ExtendedMeleeAttackTask)
+[15Nov2025 22:36:45.283] [main/WARN] [mixin/]: Error loading class: fabric/net/mca/entity/ai/brain/tasks/ExtendedMeleeAttackTask (java.lang.ClassNotFoundException: fabric.net.mca.entity.ai.brain.tasks.ExtendedMeleeAttackTask)
+[15Nov2025 22:36:45.294] [main/WARN] [mixin/]: Error loading class: noppes/npcs/ai/EntityAIAttackTarget (java.lang.ClassNotFoundException: noppes.npcs.ai.EntityAIAttackTarget)
+[15Nov2025 22:36:45.305] [main/WARN] [mixin/]: Error loading class: dev/xkmc/modulargolems/content/entity/goals/GolemMeleeGoal (java.lang.ClassNotFoundException: dev.xkmc.modulargolems.content.entity.goals.GolemMeleeGoal)
+[15Nov2025 22:36:45.307] [main/WARN] [mixin/]: Error loading class: com/talhanation/recruits/entities/AbstractRecruitEntity (java.lang.ClassNotFoundException: com.talhanation.recruits.entities.AbstractRecruitEntity)
+[15Nov2025 22:36:45.310] [main/WARN] [mixin/]: Error loading class: com/talhanation/recruits/util/AttackUtil (java.lang.ClassNotFoundException: com.talhanation.recruits.util.AttackUtil)
+[15Nov2025 22:36:45.313] [main/WARN] [mixin/]: Error loading class: com/talhanation/recruits/entities/ai/HorsemanAttackAI (java.lang.ClassNotFoundException: com.talhanation.recruits.entities.ai.HorsemanAttackAI)
+[15Nov2025 22:36:45.316] [main/WARN] [mixin/]: Error loading class: com/talhanation/recruits/entities/ai/pillager/PillagerMeleeAttackGoal (java.lang.ClassNotFoundException: com.talhanation.recruits.entities.ai.pillager.PillagerMeleeAttackGoal)
+[15Nov2025 22:36:45.320] [main/WARN] [mixin/]: Error loading class: com/talhanation/recruits/entities/ai/RecruitEatGoal (java.lang.ClassNotFoundException: com.talhanation.recruits.entities.ai.RecruitEatGoal)
+[15Nov2025 22:36:45.324] [main/WARN] [mixin/]: Error loading class: com/talhanation/recruits/entities/ai/RecruitMeleeAttackGoal (java.lang.ClassNotFoundException: com.talhanation.recruits.entities.ai.RecruitMeleeAttackGoal)
+[15Nov2025 22:36:45.331] [main/WARN] [mixin/]: Error loading class: com/talhanation/recruits/entities/ai/UseShield (java.lang.ClassNotFoundException: com.talhanation.recruits.entities.ai.UseShield)
+[15Nov2025 22:36:45.414] [main/WARN] [mixin/]: Error loading class: xfacthd/framedblocks/common/blockentity/doubled/FramedAdjustableDoubleBlockEntity (java.lang.ClassNotFoundException: xfacthd.framedblocks.common.blockentity.doubled.FramedAdjustableDoubleBlockEntity)
+[15Nov2025 22:36:45.414] [main/WARN] [mixin/]: @Mixin target xfacthd.framedblocks.common.blockentity.doubled.FramedAdjustableDoubleBlockEntity was not found createbigcannons.mixins.json:compat.FramedAdjustableDoubleBlockEntityAccessor
+[15Nov2025 22:36:45.649] [main/WARN] [mixin/]: Error loading class: com/scouter/netherdepthsupgrade/entity/entities/LavaFishingBobberEntity (java.lang.ClassNotFoundException: com.scouter.netherdepthsupgrade.entity.entities.LavaFishingBobberEntity)
+[15Nov2025 22:36:45.654] [main/WARN] [mixin/]: Error loading class: net/minecraft/client/gui/screens/Screen (java.lang.RuntimeException: Attempted to load class net/minecraft/client/gui/screens/Screen for invalid dist DEDICATED_SERVER)
+[15Nov2025 22:36:45.654] [main/WARN] [mixin/]: @Mixin target net.minecraft.client.gui.screens.Screen was not found relics.mixins.json:ScreenMixin
+[15Nov2025 22:36:45.679] [main/WARN] [mixin/]: Error loading class: net/minecraft/client/gui/screens/inventory/AbstractContainerScreen (java.lang.RuntimeException: Attempted to load class net/minecraft/client/gui/screens/inventory/AbstractContainerScreen for invalid dist DEDICATED_SERVER)
+[15Nov2025 22:36:45.679] [main/WARN] [mixin/]: @Mixin target net.minecraft.client.gui.screens.inventory.AbstractContainerScreen was not found findme-common.mixins.json:MixinSlotRenderer
+[15Nov2025 22:36:45.680] [main/WARN] [mixin/]: Error loading class: net/minecraft/client/particle/ParticleEngine (java.lang.RuntimeException: Attempted to load class net/minecraft/client/particle/ParticleEngine for invalid dist DEDICATED_SERVER)
+[15Nov2025 22:36:45.680] [main/WARN] [mixin/]: @Mixin target net.minecraft.client.particle.ParticleEngine was not found findme-common.mixins.json:ParticleEngineAccessor
+[15Nov2025 22:36:45.689] [main/WARN] [mixin/]: Error loading class: net/fabricmc/fabric/impl/datagen/FabricDataGenHelper (java.lang.ClassNotFoundException: net.fabricmc.fabric.impl.datagen.FabricDataGenHelper)
+[15Nov2025 22:36:45.759] [main/WARN] [mixin/]: Error loading class: net/minecraft/client/multiplayer/MultiPlayerGameMode (java.lang.RuntimeException: Attempted to load class net/minecraft/client/multiplayer/MultiPlayerGameMode for invalid dist DEDICATED_SERVER)
+[15Nov2025 22:36:45.759] [main/WARN] [mixin/]: @Mixin target net.minecraft.client.multiplayer.MultiPlayerGameMode was not found mixins.cofhcore.json:MultiPlayerGameModeMixin
+[15Nov2025 22:36:45.893] [main/WARN] [dev.tonimatas.packetfixer.mixins.MixinConfigPlugin/]: You are using connectivity for fix "Badly compressed packet - size of " + X + " is larger than protocol maximum of 8388608" if you have and issue with that delete connectivity.
+[15Nov2025 22:36:46.093] [main/WARN] [mixin/]: Error loading class: com/dsvv/cbcat/cannon/twin_autocannon/contraption/MountedTwinAutocannonContraption (java.lang.ClassNotFoundException: com.dsvv.cbcat.cannon.twin_autocannon.contraption.MountedTwinAutocannonContraption)
+[15Nov2025 22:36:46.096] [main/WARN] [mixin/]: Error loading class: com/dsvv/cbcat/cannon/heavy_autocannon/contraption/MountedHeavyAutocannonContraption (java.lang.ClassNotFoundException: com.dsvv.cbcat.cannon.heavy_autocannon.contraption.MountedHeavyAutocannonContraption)
+[15Nov2025 22:36:46.098] [main/WARN] [mixin/]: Error loading class: com/dsvv/cbcat/cannon/twin_autocannon/contraption/MountedTwinAutocannonContraption (java.lang.ClassNotFoundException: com.dsvv.cbcat.cannon.twin_autocannon.contraption.MountedTwinAutocannonContraption)
+[15Nov2025 22:36:46.100] [main/WARN] [mixin/]: Error loading class: com/dsvv/cbcat/cannon/heavy_autocannon/contraption/MountedHeavyAutocannonContraption (java.lang.ClassNotFoundException: com.dsvv.cbcat.cannon.heavy_autocannon.contraption.MountedHeavyAutocannonContraption)
+[15Nov2025 22:36:46.833] [main/WARN] [mixin/]: Static binding violation: PRIVATE @Overwrite method m_216202_ in modernfix-forge.mixins.json:perf.tag_id_caching.TagOrElementLocationMixin cannot reduce visibiliy of PUBLIC target method, visibility will be upgraded.
+[15Nov2025 22:36:48.141] [main/WARN] [mixin/]: @Final field delegatesByName:Ljava/util/Map; in modernfix-forge.mixins.json:perf.forge_registry_alloc.ForgeRegistryMixin should be final
+[15Nov2025 22:36:48.141] [main/WARN] [mixin/]: @Final field delegatesByValue:Ljava/util/Map; in modernfix-forge.mixins.json:perf.forge_registry_alloc.ForgeRegistryMixin should be final
+[15Nov2025 22:36:49.589] [main/WARN] [mixin/]: @Inject(@At("INVOKE")) Shift.BY=2 on allurement.mixins.json:ItemEntityMixin::handler$fkk000$getItemEnchantability exceeds the maximum allowed value: 0. Increase the value of maxShiftBy to suppress this warning.
+[15Nov2025 22:36:50.646] [main/WARN] [mixin/]: @ModifyConstant conflict. Skipping connectivity.mixins.json:ClientBoundCustomPayloadPacketLMixin->@ModifyConstant::modifyLimit(I)I with priority 1, already redirected by packetfixer-common.mixins.json:ClientboundCustomPayloadPacketMixin->@ModifyConstant::newSize(I)I with priority 9999
+[15Nov2025 22:36:50.646] [main/WARN] [mixin/]: @ModifyConstant conflict. Skipping connectivity.mixins.json:ClientBoundCustomPayloadPacketLMixin->@ModifyConstant::modifyLimit(I)I with priority 1, already redirected by packetfixer-common.mixins.json:ClientboundCustomPayloadPacketMixin->@ModifyConstant::newSize(I)I with priority 9999
+[15Nov2025 22:36:51.522] [main/WARN] [mixin/]: Method overwrite conflict for setBlockState in the_bumblezone-common.mixins.json:blocks.FallingBlockEntityAccessor, previously written by com.github.alexmodguy.alexscaves.mixin.FallingBlockEntityMixin. Skipping method.
+[15Nov2025 22:36:52.637] [main/WARN] [mixin/]: @Inject(@At("INVOKE_ASSIGN")) Shift.BY=1 on palladiumcore-common.mixins.json:LightningBoltMixin::handler$eko000$tick exceeds the maximum allowed value: 0. Increase the value of maxShiftBy to suppress this warning.
+[15Nov2025 22:36:53.731] [main/WARN] [mixin/]: Mixin goety.mixins.json:BlockPlaceContextMixin has multiple constructors, (Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)V was selected
+
+[15Nov2025 22:36:53.869] [main/WARN] [mixin/]: @Final field f_26027_:Lnet/minecraft/world/entity/ai/targeting/TargetingConditions; in guardvillagers.mixins.json:DefendVillageGoalGolemMixin should be final
+[15Nov2025 22:36:54.226] [main/WARN] [mixin/]: Method overwrite conflict for scheduleRandomTick in ohthetreesyoullgrow.mixins.json:chunk.MixinChunkAccess, previously written by corgitaco.corgilib.mixin.chunk.MixinChunkAccess. Skipping method.
+[15Nov2025 22:36:54.226] [main/WARN] [mixin/]: Method overwrite conflict for getScheduledRandomTicks in ohthetreesyoullgrow.mixins.json:chunk.MixinChunkAccess, previously written by corgitaco.corgilib.mixin.chunk.MixinChunkAccess. Skipping method.
+[15Nov2025 22:36:55.315] [main/WARN] [mixin/]: Mixin alexscaves.mixins.json:SwampHutPieceMixin has multiple constructors, (Lnet/minecraft/world/level/levelgen/structure/pieces/StructurePieceType;IIIIIILnet/minecraft/core/Direction;)V was selected
+
+[15Nov2025 22:36:55.494] [main/WARN] [mixin/]: Static binding violation: PRIVATE @Overwrite method m_47505_ in modernfix-common.mixins.json:perf.remove_biome_temperature_cache.BiomeMixin cannot reduce visibiliy of PUBLIC target method, visibility will be upgraded.
+[15Nov2025 22:36:59.424] [modloading-worker-0/WARN] [mixin/]: Method overwrite conflict for getPools in platform.mixins.json:LootTableMixin, previously written by andrews.table_top_craft.mixins.LootTableMixin. Skipping method.
+[15Nov2025 22:36:59.425] [modloading-worker-0/WARN] [mixin/]: @Inject(@At("INVOKE")) Shift.BY=2 on pufferfish_unofficial_additions.mixins.json:LootTableMixin::handler$ehc000$pufferfish_unofficial_additions$applyExperienceSource exceeds the maximum allowed value: 0. Increase the value of maxShiftBy to suppress this warning.
+[15Nov2025 22:36:59.426] [modloading-worker-0/WARN] [mixin/]: Method overwrite conflict for getPools in majruszsdifficulty-forge.mixins.json:IMixinLootTable, previously written by andrews.table_top_craft.mixins.LootTableMixin. Skipping method.
+[15Nov2025 22:36:59.426] [modloading-worker-0/WARN] [mixin/]: Method overwrite conflict for getPools in tombstone.mixins.json:accessor.LootTableAccessor, previously written by andrews.table_top_craft.mixins.LootTableMixin. Skipping method.
+[15Nov2025 22:36:59.426] [modloading-worker-0/WARN] [mixin/]: Method overwrite conflict for getPools in vampirism.mixins.json:LootTableAccessor, previously written by andrews.table_top_craft.mixins.LootTableMixin. Skipping method.
+[15Nov2025 22:37:02.247] [modloading-worker-0/WARN] [mixin/]: @Redirect conflict. Skipping recipeessentials.mixins.json:RecipeManagerMixin->@Redirect::logErrorOnce(Lorg/slf4j/Logger;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)V with priority 200, already redirected by modernfix-forge.mixins.json:perf.datapack_reload_exceptions.RecipeManagerMixin->@Redirect::silenceException(Lorg/slf4j/Logger;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)V with priority 2000
+[15Nov2025 22:37:02.642] [Structurize IO Worker #0/WARN] [structurize/]: Missing Mod: twilightforest for Pack: FairyTale
+[15Nov2025 22:37:02.643] [Structurize IO Worker #0/WARN] [structurize/]: Missing Mod: byg for Pack: Corrupted
+[15Nov2025 22:37:02.646] [Structurize IO Worker #0/WARN] [structurize/]: Failed loading packs from main folder path: .
+[15Nov2025 22:37:02.646] [Structurize IO Worker #0/WARN] [structurize/]: Failed loading client packs from main folder path: .
+[15Nov2025 22:37:02.646] [Structurize IO Worker #0/WARN] [structurize/]: Finished discovering Server Structure packs
+[15Nov2025 22:37:06.120] [modloading-worker-0/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file E:\srv\MCEternal2_1.2\config\guardvillagers-common.toml is not correct. Correcting
+[15Nov2025 22:37:06.528] [modloading-worker-0/WARN] [mixin/]: Static binding violation: PRIVATE @Overwrite method m_215924_ in modernfix-forge.mixins.json:perf.tag_id_caching.TagEntryMixin cannot reduce visibiliy of PUBLIC target method, visibility will be upgraded.
+[15Nov2025 22:37:08.867] [modloading-worker-0/WARN] [mixin/]: Method overwrite conflict for getEntries in majruszsdifficulty-common.mixins.json:IMixinLootPool, previously written by com.blackgear.platform.core.mixin.forge.LootPoolMixin. Skipping method.
+[15Nov2025 22:37:13.265] [modloading-worker-0/WARN] [KubeJS/]: Plugin dev.latvian.mods.kubejs.forge.BuiltinKubeJSForgeClientPlugin does not load on server side, skipping
+[15Nov2025 22:37:13.274] [modloading-worker-0/WARN] [KubeJS/]: Plugin dev.ftb.mods.ftbxmodcompat.ftbchunks.kubejs.FTBChunksKubeJSPlugin does not have required mod ftbchunks loaded, skipping
+[15Nov2025 22:37:13.275] [modloading-worker-0/WARN] [KubeJS/]: Plugin dev.ftb.mods.ftbxmodcompat.ftbfiltersystem.kubejs.FFSKubeJSPlugin does not have required mod ftbfiltersystem loaded, skipping
+[15Nov2025 22:37:14.076] [modloading-worker-0/WARN] [KubeJS Startup/]: custom_block_registry.js#7: blockBuilder.material(string) is no longer supported! Use .soundType(SoundType) and .mapColor(MapColor) instead!
+[15Nov2025 22:37:14.077] [modloading-worker-0/WARN] [KubeJS Startup/]: custom_block_registry.js#15: blockBuilder.material(string) is no longer supported! Use .soundType(SoundType) and .mapColor(MapColor) instead!
+[15Nov2025 22:37:14.077] [modloading-worker-0/WARN] [KubeJS Startup/]: custom_block_registry.js#41: blockBuilder.material(string) is no longer supported! Use .soundType(SoundType) and .mapColor(MapColor) instead!
+[15Nov2025 22:37:16.017] [modloading-worker-0/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file E:\srv\MCEternal2_1.2\config\quark-common.toml is not correct. Correcting
+[15Nov2025 22:37:16.018] [modloading-worker-0/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key management.hotbar_changer was corrected from SimpleCommentedConfig:{Animation Time=7.0} to its default, null. 
+[15Nov2025 22:37:20.292] [main/WARN] [mixin/]: Error loading class: com/dsvv/cbcat/cannon/twin_autocannon/contraption/MountedTwinAutocannonContraption (java.lang.ClassNotFoundException: com.dsvv.cbcat.cannon.twin_autocannon.contraption.MountedTwinAutocannonContraption)
+[15Nov2025 22:37:20.293] [main/WARN] [mixin/]: Error loading class: com/dsvv/cbcat/cannon/heavy_autocannon/contraption/MountedHeavyAutocannonContraption (java.lang.ClassNotFoundException: com.dsvv.cbcat.cannon.heavy_autocannon.contraption.MountedHeavyAutocannonContraption)
+[15Nov2025 22:37:20.366] [main/WARN] [net.minecraftforge.registries.ForgeRegistry/REGISTRIES]: Registry minecraft:sound_event: The object net.minecraft.sounds.SoundEvent@7a6a7aa8 has been registered twice for the same name treechop:chop_wood.
+[15Nov2025 22:37:28.512] [main/WARN] [net.minecraftforge.registries.ForgeRegistry/REGISTRIES]: Registry minecraft:menu: The object net.minecraft.world.inventory.MenuType@cff2b81 has been registered twice for the same name ae2:export_card.
+[15Nov2025 22:37:28.513] [main/WARN] [net.minecraftforge.registries.ForgeRegistry/REGISTRIES]: Registry minecraft:menu: The object net.minecraft.world.inventory.MenuType@3ac62497 has been registered twice for the same name ae2:insert_card.
+[15Nov2025 22:37:31.897] [main/WARN] [dev.architectury.registry.registries.forge.RegistrarManagerImpl/]: Registry entry listened Registry Entry [minecraft:entity_type / artifacts:mimic] was not realized!
+[15Nov2025 22:37:41.825] [main/WARN] [net.minecraft.network.syncher.SynchedEntityData/]: defineId called for: class com.klikli_dev.occultism.common.entity.spirit.DjinniEntity from class com.klikli_dev.occultism.common.entity.spirit.FoliotEntity
+[15Nov2025 22:37:41.871] [main/WARN] [net.minecraft.network.syncher.SynchedEntityData/]: defineId called for: class net.minecraft.world.entity.monster.Creeper from class blueduck.blighted_beasts.entity.Bloater
+[15Nov2025 22:37:41.871] [main/WARN] [net.minecraft.network.syncher.SynchedEntityData/]: defineId called for: class net.minecraft.world.entity.monster.Creeper from class blueduck.blighted_beasts.entity.Bloater
+[15Nov2025 22:37:41.871] [main/WARN] [net.minecraft.network.syncher.SynchedEntityData/]: defineId called for: class net.minecraft.world.entity.monster.Creeper from class blueduck.blighted_beasts.entity.Bloater
+[15Nov2025 22:37:41.975] [main/WARN] [net.minecraft.network.syncher.SynchedEntityData/]: defineId called for: class com.github.alexmodguy.alexscaves.server.entity.living.TremorzillaEntity from class com.github.alexmodguy.alexscaves.server.entity.living.LicowitchEntity
+[15Nov2025 22:37:42.351] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file E:\srv\MCEternal2_1.2\config\clockwork.toml is not correct. Correcting
+[15Nov2025 22:37:42.506] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file E:\srv\MCEternal2_1.2\config\guardvillagers-common.toml is not correct. Correcting
+[15Nov2025 22:37:42.708] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file E:\srv\MCEternal2_1.2\config\petcapturetool-common.toml is not correct. Correcting
+[15Nov2025 22:37:42.710] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file E:\srv\MCEternal2_1.2\config\knightlib.toml is not correct. Correcting
+[15Nov2025 22:37:46.220] [Forge Version Check/WARN] [net.minecraftforge.fml.VersionChecker/]: Failed to process update information
+com.google.gson.JsonSyntaxException: java.lang.IllegalStateException: Expected BEGIN_OBJECT but was STRING at line 1 column 1 path $
+	at com.google.gson.Gson.fromJson(Gson.java:1226) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:1124) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:1034) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:969) ~[gson-2.10.jar%2372!/:?]
+	at net.minecraftforge.fml.VersionChecker$1.process(VersionChecker.java:186) ~[fmlcore-1.20.1-47.4.2.jar%231138!/:?]
+	at java.lang.Iterable.forEach(Iterable.java:75) ~[?:?]
+	at net.minecraftforge.fml.VersionChecker$1.run(VersionChecker.java:117) ~[fmlcore-1.20.1-47.4.2.jar%231138!/:?]
+Caused by: java.lang.IllegalStateException: Expected BEGIN_OBJECT but was STRING at line 1 column 1 path $
+	at com.google.gson.stream.JsonReader.beginObject(JsonReader.java:393) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.internal.bind.MapTypeAdapterFactory$Adapter.read(MapTypeAdapterFactory.java:182) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.internal.bind.MapTypeAdapterFactory$Adapter.read(MapTypeAdapterFactory.java:144) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:1214) ~[gson-2.10.jar%2372!/:?]
+	... 6 more
+[15Nov2025 22:37:46.227] [Forge Version Check/WARN] [net.minecraftforge.fml.VersionChecker/]: Failed to process update information
+java.net.ConnectException: null
+	at jdk.internal.net.http.HttpClientImpl.send(HttpClientImpl.java:951) ~[java.net.http:?]
+	at jdk.internal.net.http.HttpClientFacade.send(HttpClientFacade.java:133) ~[java.net.http:?]
+	at net.minecraftforge.fml.VersionChecker$1.openUrlString(VersionChecker.java:142) ~[fmlcore-1.20.1-47.4.2.jar%231138!/:?]
+	at net.minecraftforge.fml.VersionChecker$1.process(VersionChecker.java:180) ~[fmlcore-1.20.1-47.4.2.jar%231138!/:?]
+	at java.lang.Iterable.forEach(Iterable.java:75) ~[?:?]
+	at net.minecraftforge.fml.VersionChecker$1.run(VersionChecker.java:117) ~[fmlcore-1.20.1-47.4.2.jar%231138!/:?]
+Caused by: java.net.ConnectException
+	at jdk.internal.net.http.common.Utils.toConnectException(Utils.java:1028) ~[java.net.http:?]
+	at jdk.internal.net.http.PlainHttpConnection.connectAsync(PlainHttpConnection.java:227) ~[java.net.http:?]
+	at jdk.internal.net.http.AsyncSSLConnection.connectAsync(AsyncSSLConnection.java:56) ~[java.net.http:?]
+	at jdk.internal.net.http.Http2Connection.createAsync(Http2Connection.java:468) ~[java.net.http:?]
+	at jdk.internal.net.http.Http2ClientImpl.getConnectionFor(Http2ClientImpl.java:134) ~[java.net.http:?]
+	at jdk.internal.net.http.ExchangeImpl.get(ExchangeImpl.java:94) ~[java.net.http:?]
+	at jdk.internal.net.http.Exchange.establishExchange(Exchange.java:386) ~[java.net.http:?]
+	at jdk.internal.net.http.Exchange.responseAsyncImpl0(Exchange.java:570) ~[java.net.http:?]
+	at jdk.internal.net.http.Exchange.responseAsyncImpl(Exchange.java:423) ~[java.net.http:?]
+	at jdk.internal.net.http.Exchange.responseAsync(Exchange.java:415) ~[java.net.http:?]
+	at jdk.internal.net.http.MultiExchange.responseAsyncImpl(MultiExchange.java:413) ~[java.net.http:?]
+[15Nov2025 22:37:46.825] [Forge Version Check/WARN] [net.minecraftforge.fml.VersionChecker/]: Failed to process update information
+javax.net.ssl.SSLHandshakeException: PKIX path validation failed: java.security.cert.CertPathValidatorException: validity check failed
+	at jdk.internal.net.http.HttpClientImpl.send(HttpClientImpl.java:956) ~[java.net.http:?]
+	at jdk.internal.net.http.HttpClientFacade.send(HttpClientFacade.java:133) ~[java.net.http:?]
+	at net.minecraftforge.fml.VersionChecker$1.openUrlString(VersionChecker.java:142) ~[fmlcore-1.20.1-47.4.2.jar%231138!/:?]
+	at net.minecraftforge.fml.VersionChecker$1.process(VersionChecker.java:180) ~[fmlcore-1.20.1-47.4.2.jar%231138!/:?]
+	at java.lang.Iterable.forEach(Iterable.java:75) ~[?:?]
+	at net.minecraftforge.fml.VersionChecker$1.run(VersionChecker.java:117) ~[fmlcore-1.20.1-47.4.2.jar%231138!/:?]
+Caused by: javax.net.ssl.SSLHandshakeException: PKIX path validation failed: java.security.cert.CertPathValidatorException: validity check failed
+	at sun.security.ssl.Alert.createSSLException(Alert.java:130) ~[?:?]
+	at sun.security.ssl.TransportContext.fatal(TransportContext.java:378) ~[?:?]
+	at sun.security.ssl.TransportContext.fatal(TransportContext.java:321) ~[?:?]
+	at sun.security.ssl.TransportContext.fatal(TransportContext.java:316) ~[?:?]
+	at sun.security.ssl.CertificateMessage$T12CertificateConsumer.checkServerCerts(CertificateMessage.java:647) ~[?:?]
+	at sun.security.ssl.CertificateMessage$T12CertificateConsumer.onCertificate(CertificateMessage.java:467) ~[?:?]
+	at sun.security.ssl.CertificateMessage$T12CertificateConsumer.consume(CertificateMessage.java:363) ~[?:?]
+	at sun.security.ssl.SSLHandshake.consume(SSLHandshake.java:393) ~[?:?]
+	at sun.security.ssl.HandshakeContext.dispatch(HandshakeContext.java:476) ~[?:?]
+	at sun.security.ssl.SSLEngineImpl$DelegatedTask$DelegatedAction.run(SSLEngineImpl.java:1273) ~[?:?]
+	at sun.security.ssl.SSLEngineImpl$DelegatedTask$DelegatedAction.run(SSLEngineImpl.java:1260) ~[?:?]
+[15Nov2025 22:37:46.832] [main/WARN] [net.mehvahdjukaar.smarterfarmers.SmarterFarmers/]: Failed to add custom foods to villagers
+[15Nov2025 22:37:47.257] [Forge Version Check/WARN] [net.minecraftforge.fml.VersionChecker/]: Failed to process update information
+com.google.gson.JsonSyntaxException: java.lang.IllegalStateException: Expected BEGIN_OBJECT but was STRING at line 1 column 1 path $
+	at com.google.gson.Gson.fromJson(Gson.java:1226) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:1124) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:1034) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:969) ~[gson-2.10.jar%2372!/:?]
+	at net.minecraftforge.fml.VersionChecker$1.process(VersionChecker.java:186) ~[fmlcore-1.20.1-47.4.2.jar%231138!/:?]
+	at java.lang.Iterable.forEach(Iterable.java:75) ~[?:?]
+	at net.minecraftforge.fml.VersionChecker$1.run(VersionChecker.java:117) ~[fmlcore-1.20.1-47.4.2.jar%231138!/:?]
+Caused by: java.lang.IllegalStateException: Expected BEGIN_OBJECT but was STRING at line 1 column 1 path $
+	at com.google.gson.stream.JsonReader.beginObject(JsonReader.java:393) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.internal.bind.MapTypeAdapterFactory$Adapter.read(MapTypeAdapterFactory.java:182) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.internal.bind.MapTypeAdapterFactory$Adapter.read(MapTypeAdapterFactory.java:144) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:1214) ~[gson-2.10.jar%2372!/:?]
+	... 6 more
+[15Nov2025 22:37:47.313] [Forge Version Check/WARN] [net.minecraftforge.fml.VersionChecker/]: Failed to process update information
+com.google.gson.JsonSyntaxException: java.lang.IllegalStateException: Expected BEGIN_OBJECT but was NUMBER at line 1 column 4 path $
+	at com.google.gson.Gson.fromJson(Gson.java:1226) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:1124) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:1034) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:969) ~[gson-2.10.jar%2372!/:?]
+	at net.minecraftforge.fml.VersionChecker$1.process(VersionChecker.java:186) ~[fmlcore-1.20.1-47.4.2.jar%231138!/:?]
+	at java.lang.Iterable.forEach(Iterable.java:75) ~[?:?]
+	at net.minecraftforge.fml.VersionChecker$1.run(VersionChecker.java:117) ~[fmlcore-1.20.1-47.4.2.jar%231138!/:?]
+Caused by: java.lang.IllegalStateException: Expected BEGIN_OBJECT but was NUMBER at line 1 column 4 path $
+	at com.google.gson.stream.JsonReader.beginObject(JsonReader.java:393) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.internal.bind.MapTypeAdapterFactory$Adapter.read(MapTypeAdapterFactory.java:182) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.internal.bind.MapTypeAdapterFactory$Adapter.read(MapTypeAdapterFactory.java:144) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:1214) ~[gson-2.10.jar%2372!/:?]
+	... 6 more
+[15Nov2025 22:37:49.190] [Forge Version Check/WARN] [net.minecraftforge.fml.VersionChecker/]: Failed to process update information
+com.google.gson.JsonSyntaxException: java.lang.IllegalStateException: Expected BEGIN_OBJECT but was NUMBER at line 1 column 4 path $
+	at com.google.gson.Gson.fromJson(Gson.java:1226) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:1124) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:1034) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:969) ~[gson-2.10.jar%2372!/:?]
+	at net.minecraftforge.fml.VersionChecker$1.process(VersionChecker.java:186) ~[fmlcore-1.20.1-47.4.2.jar%231138!/:?]
+	at java.lang.Iterable.forEach(Iterable.java:75) ~[?:?]
+	at net.minecraftforge.fml.VersionChecker$1.run(VersionChecker.java:117) ~[fmlcore-1.20.1-47.4.2.jar%231138!/:?]
+Caused by: java.lang.IllegalStateException: Expected BEGIN_OBJECT but was NUMBER at line 1 column 4 path $
+	at com.google.gson.stream.JsonReader.beginObject(JsonReader.java:393) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.internal.bind.MapTypeAdapterFactory$Adapter.read(MapTypeAdapterFactory.java:182) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.internal.bind.MapTypeAdapterFactory$Adapter.read(MapTypeAdapterFactory.java:144) ~[gson-2.10.jar%2372!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:1214) ~[gson-2.10.jar%2372!/:?]
+	... 6 more

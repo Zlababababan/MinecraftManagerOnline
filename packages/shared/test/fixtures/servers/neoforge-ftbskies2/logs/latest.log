@@ -1,0 +1,80 @@
+[29Jun2025 00:03:17.764] [Worker-Main-10/WARN] [net.minecraft.world.level.levelgen.structure.pools.JigsawPlacement/]: Empty or non-existent pool: ftb:ftb_bridges
+[29Jun2025 00:03:17.836] [Server thread/INFO] [KubeJS/]: Added bindings for script type STARTUP from mod 'almostunified': [AlmostUnified]
+[29Jun2025 00:03:17.837] [Server thread/INFO] [KubeJS Startup/]: Spawning Eye of Ender at BlockPos{x=254, y=88, z=258} towards structure at BlockPos{x=-240, y=0, z=-768}
+[29Jun2025 00:03:31.900] [Server thread/INFO] [KubeJS Startup/]: Spawning Eye of Ender at BlockPos{x=219, y=227, z=192} towards structure at BlockPos{x=-240, y=0, z=-768}
+[29Jun2025 00:04:43.515] [Worker-Main-16/WARN] [net.minecraft.world.level.levelgen.structure.pools.JigsawPlacement/]: Empty or non-existent pool: ftb:ftb_bridges
+[29Jun2025 00:05:39.952] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-237, y=133, z=-798}
+[29Jun2025 00:05:39.953] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-236, y=133, z=-793}
+[29Jun2025 00:05:39.954] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-230, y=133, z=-793}
+[29Jun2025 00:05:39.954] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-229, y=133, z=-798}
+[29Jun2025 00:05:39.954] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-237, y=134, z=-798}
+[29Jun2025 00:05:39.955] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-236, y=134, z=-793}
+[29Jun2025 00:05:39.955] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-230, y=134, z=-793}
+[29Jun2025 00:05:39.955] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-229, y=134, z=-798}
+[29Jun2025 00:05:39.955] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-237, y=135, z=-798}
+[29Jun2025 00:05:39.955] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-236, y=135, z=-793}
+[29Jun2025 00:05:39.955] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-230, y=135, z=-793}
+[29Jun2025 00:05:39.955] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-229, y=135, z=-798}
+[29Jun2025 00:05:39.955] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-237, y=136, z=-798}
+[29Jun2025 00:05:39.955] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-229, y=136, z=-798}
+[29Jun2025 00:05:39.957] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-237, y=133, z=-798}
+[29Jun2025 00:05:39.957] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-236, y=133, z=-793}
+[29Jun2025 00:05:39.957] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-230, y=133, z=-793}
+[29Jun2025 00:05:39.957] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-229, y=133, z=-798}
+[29Jun2025 00:05:39.957] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-237, y=134, z=-798}
+[29Jun2025 00:05:39.957] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-236, y=134, z=-793}
+[29Jun2025 00:05:39.957] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-230, y=134, z=-793}
+[29Jun2025 00:05:39.957] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-229, y=134, z=-798}
+[29Jun2025 00:05:39.957] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-237, y=135, z=-798}
+[29Jun2025 00:05:39.957] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-236, y=135, z=-793}
+[29Jun2025 00:05:39.957] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-230, y=135, z=-793}
+[29Jun2025 00:05:39.958] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-229, y=135, z=-798}
+[29Jun2025 00:05:39.958] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-237, y=136, z=-798}
+[29Jun2025 00:05:39.958] [Worker-Main-8/WARN] [net.minecraft.server.level.WorldGenRegion/]: Tried to access a block entity before it was created. BlockPos{x=-229, y=136, z=-798}
+[29Jun2025 00:07:17.465] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Player1 has made the advancement [It's Chargin' Time !]
+[29Jun2025 00:07:17.894] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Player2 has made the advancement [Hunt and Gather]
+[29Jun2025 00:07:20.964] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Player3 has made the advancement [Hunt and Gather]
+[29Jun2025 00:08:38.909] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Player1 has made the advancement [Hunt and Gather]
+[29Jun2025 00:08:50.348] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Player1 has made the advancement [Barrel Booty]
+[29Jun2025 00:09:09.250] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Player3 has made the advancement [Sweet Dreams]
+[29Jun2025 00:09:23.015] [Server thread/INFO] [KubeJS Server/]: Event ftb:creeper triggered for player Player1 in 0ms
+[29Jun2025 00:11:03.115] [Server thread/INFO] [KubeJS Server/]: Event ftb:creeper triggered for player Player1 in 0ms
+[29Jun2025 00:12:19.817] [Server thread/INFO] [Ash API/]: Loaded com.diontryban.ash_api.modloader.ModLoaderNeoForge@2a2c022 for service class com.diontryban.ash_api.modloader.ModLoader
+[29Jun2025 00:12:36.216] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Server Backup started!
+[29Jun2025 00:12:36.216] [Server thread/INFO] [dev.ftb.mods.ftbbackups.Backups/]: backup starting: Server
+[29Jun2025 00:12:36.392] [ForkJoinPool.commonPool-worker-19/INFO] [dev.ftb.mods.ftbbackups.Backups/]: Backing up 277 files...
+[29Jun2025 00:12:36.394] [ForkJoinPool.commonPool-worker-19/INFO] [dev.ftb.mods.ftbbackups.Backups/]: Zipping 277 files...
+[29Jun2025 00:12:40.727] [ForkJoinPool.commonPool-worker-19/INFO] [dev.ftb.mods.ftbbackups.Backups/]: Created archive E:\srv\FTBSkies2_1.0.1\ftbbackups3\2025-06-29-00-12-36.zip from E:\srv\FTBSkies2_1.0.1\.\world\. in 4334 ms (79.2MB)!
+[29Jun2025 00:12:40.730] [ForkJoinPool.commonPool-worker-19/INFO] [net.minecraft.server.MinecraftServer/]: Server backup done in 4.490s! (79.2MB | 148.6MB)
+[29Jun2025 00:16:29.666] [Server thread/ERROR] [net.neoforged.fml.common.asm.RuntimeDistCleaner/DISTXFORM]: Attempted to load class com/mojang/blaze3d/vertex/PoseStack for invalid dist DEDICATED_SERVER
+[29Jun2025 00:16:29.669] [Server thread/INFO] [STDERR/]: [dev.latvian.mods.rhino.CachedClassInfo:getDeclaredMethods:194]: [Rhino] Failed to get declared methods for it.hurts.octostudios.octolib.modules.particles.trail.TrailProvider: java.lang.RuntimeException: Attempted to load class com/mojang/blaze3d/vertex/PoseStack for invalid dist DEDICATED_SERVER
+[29Jun2025 00:16:29.670] [Server thread/ERROR] [net.neoforged.fml.common.asm.RuntimeDistCleaner/DISTXFORM]: Attempted to load class com/mojang/blaze3d/vertex/PoseStack for invalid dist DEDICATED_SERVER
+[29Jun2025 00:16:29.671] [Server thread/ERROR] [net.neoforged.fml.common.asm.RuntimeDistCleaner/DISTXFORM]: Attempted to load class com/mojang/blaze3d/vertex/PoseStack for invalid dist DEDICATED_SERVER
+[29Jun2025 00:16:29.672] [Server thread/ERROR] [net.neoforged.fml.common.asm.RuntimeDistCleaner/DISTXFORM]: Attempted to load class com/mojang/blaze3d/vertex/PoseStack for invalid dist DEDICATED_SERVER
+[29Jun2025 00:16:47.007] [Worker-Main-16/WARN] [net.minecraft.world.level.levelgen.heightproviders.UniformHeight/]: Empty height range: [0 above bottom--8 absolute]
+[29Jun2025 01:27:53.359] [Server thread/WARN] [net.minecraft.server.MinecraftServer/]: Can't keep up! Is the server overloaded? Running 2199ms or 43 ticks behind
+[29Jun2025 01:27:53.693] [Worker-Main-6/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:27:53.694] [Worker-Main-6/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:27:53.947] [Worker-Main-22/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:27:53.948] [Worker-Main-22/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:27:53.952] [Worker-Main-22/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:27:53.970] [Worker-Main-22/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:27:53.971] [Worker-Main-22/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:27:53.971] [Worker-Main-22/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:27:54.175] [Worker-Main-20/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:27:54.198] [Worker-Main-20/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:27:54.480] [Worker-Main-6/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:27:54.480] [Worker-Main-6/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:27:54.623] [Worker-Main-13/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:27:55.452] [Worker-Main-17/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:27:55.453] [Worker-Main-17/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:27:55.523] [Worker-Main-16/WARN] [net.minecraft.world.entity.ai.attributes.AttributeMap/]: Ignoring unknown attribute 'forge:entity_gravity'
+[29Jun2025 01:29:36.763] [Worker-Main-10/WARN] [net.minecraft.world.level.levelgen.structure.pools.JigsawPlacement/]: Empty or non-existent pool: ftb:ftb_bridges
+[29Jun2025 02:11:05.016] [Server thread/INFO] [net.minecraft.server.network.ServerGamePacketListenerImpl/]: Player1 lost connection: Disconnected
+[29Jun2025 02:11:05.017] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Player1 left the game
+[29Jun2025 02:14:04.113] [Server thread/INFO] [net.minecraft.server.network.ServerGamePacketListenerImpl/]: Player2 lost connection: Disconnected
+[29Jun2025 02:14:04.113] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Player2 left the game
+[29Jun2025 02:14:07.162] [Server thread/INFO] [net.minecraft.server.network.ServerGamePacketListenerImpl/]: Player3 lost connection: Disconnected
+[29Jun2025 02:14:07.162] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Player3 left the game
+[29Jun2025 11:28:07.516] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Stopping the server
+[29Jun2025 11:28:07.613] [Server thread/ERROR] [net.unfamily.repae2bridge.block.entity.RepAE2BridgeBlockEntity/]: GLOBAL WORLD UNLOADING FLAG SET TO: true - All bridges will now shutdown

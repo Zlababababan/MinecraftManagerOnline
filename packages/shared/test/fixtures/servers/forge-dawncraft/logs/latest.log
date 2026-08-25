@@ -1,0 +1,141 @@
+[14sept.2023 00:00:09.914] [Server thread/INFO] [APTweaks(Core)/]: [APTweaks:Core] ↑ Server load changed from VERY_LOW (avg. 17.31499671936035) to LOW (avg. 21.965072631835938)
+[14sept.2023 00:00:24.915] [Server thread/INFO] [APTweaks(Core)/]: [APTweaks:Core] ↓ Server load changed from LOW (avg. 21.965072631835938) to VERY_LOW (avg. 12.68859577178955)
+[14sept.2023 00:01:09.404] [Server thread/INFO] [antiqueatlas/]: Saving local markers data to NBT
+[14sept.2023 00:01:09.914] [Server thread/INFO] [APTweaks(Core)/]: [APTweaks:Core] ↑ Server load changed from VERY_LOW (avg. 14.65541934967041) to LOW (avg. 21.415510177612305)
+[14sept.2023 00:01:24.916] [Server thread/INFO] [APTweaks(Core)/]: [APTweaks:Core] ↓ Server load changed from LOW (avg. 21.415510177612305) to VERY_LOW (avg. 13.716249465942383)
+[14sept.2023 00:01:57.728] [Server thread/ERROR] [net.minecraft.Util/]: Invalid entity rotation: NaN, discarding.
+[14sept.2023 00:02:24.915] [Server thread/INFO] [APTweaks(Core)/]: [APTweaks:Core] ↑ Server load changed from VERY_LOW (avg. 15.36162281036377) to LOW (avg. 22.2716064453125)
+[14sept.2023 00:02:32.415] [Server thread/INFO] [APTweaks(Core)/]: [APTweaks:Core] ↓ Server load changed from LOW (avg. 22.2716064453125) to VERY_LOW (avg. 19.3222713470459)
+[14sept.2023 00:02:43.724] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Player3 has completed the challenge [Free Willy]
+[14sept.2023 00:02:54.915] [Server thread/INFO] [APTweaks(Core)/]: [APTweaks:Core] ↑ Server load changed from VERY_LOW (avg. 17.11802101135254) to LOW (avg. 22.041275024414062)
+[14sept.2023 00:03:14.479] [Server thread/INFO] [antiqueatlas/]: Created new marker #39"Here lies Player1"@(125, 77)
+[14sept.2023 00:03:14.493] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Player1 was slain by Anglerfish
+[14sept.2023 00:03:15.433] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/50578, l='ServerLevel[DawnCraftWorld]', x=124.35, y=62.29, z=76.85, removed=KILLED]
+[14sept.2023 00:03:15.435] [Server thread/ERROR] [net.minecraft.network.protocol.PacketUtils/]: Failed to handle packet net.minecraft.network.protocol.game.ServerboundMovePlayerPacket$Pos@abac813, suppressing error
+java.lang.NullPointerException: null
+[14sept.2023 00:03:15.483] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/50578, l='ServerLevel[DawnCraftWorld]', x=124.35, y=62.29, z=76.85, removed=KILLED]
+[14sept.2023 00:03:15.484] [Server thread/ERROR] [net.minecraft.network.protocol.PacketUtils/]: Failed to handle packet net.minecraft.network.protocol.game.ServerboundMovePlayerPacket$Pos@48fbf986, suppressing error
+java.lang.NullPointerException: null
+[14sept.2023 00:03:15.846] [Server thread/INFO] [Reputation/]: Syncing 3 factions to the client
+[14sept.2023 00:03:29.180] [Server thread/INFO] [antiqueatlas/]: Created new marker #40"Here lies Player1"@(131, 80)
+[14sept.2023 00:03:29.199] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Player1 was slain by Anglerfish
+[14sept.2023 00:03:30.143] [Server thread/ERROR] [net.minecraft.network.protocol.PacketUtils/]: Failed to handle packet net.minecraft.network.protocol.game.ServerboundMovePlayerPacket$Pos@5c273412, suppressing error
+java.lang.NullPointerException: null
+[14sept.2023 00:03:30.195] [Server thread/ERROR] [net.minecraft.network.protocol.PacketUtils/]: Failed to handle packet net.minecraft.network.protocol.game.ServerboundMovePlayerPacket$Pos@510a861b, suppressing error
+java.lang.NullPointerException: null
+[14sept.2023 00:03:30.251] [Server thread/INFO] [Reputation/]: Syncing 3 factions to the client
+[14sept.2023 00:04:32.939] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Player3 has made the advancement [Voluntary Exile]
+[14sept.2023 00:04:57.634] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Player3 has made the advancement [Almost Like a Fan]
+[14sept.2023 00:05:24.915] [Server thread/INFO] [APTweaks(Core)/]: [APTweaks:Core] ↓ Server load changed from LOW (avg. 23.433313369750977) to VERY_LOW (avg. 18.110929489135742)
+[14sept.2023 00:05:39.915] [Server thread/INFO] [APTweaks(Core)/]: [APTweaks:Core] ↑ Server load changed from VERY_LOW (avg. 18.110929489135742) to LOW (avg. 20.244468688964844)
+[14sept.2023 00:06:02.414] [Server thread/INFO] [APTweaks(Core)/]: [APTweaks:Core] ↓ Server load changed from LOW (avg. 21.438213348388672) to VERY_LOW (avg. 19.162851333618164)
+[14sept.2023 00:06:09.412] [Server thread/INFO] [antiqueatlas/]: Saving local markers data to NBT
+[14sept.2023 00:06:09.914] [Server thread/INFO] [APTweaks(Core)/]: [APTweaks:Core] ↑ Server load changed from VERY_LOW (avg. 19.162851333618164) to LOW (avg. 25.663028717041016)
+[14sept.2023 00:06:13.379] [Server thread/INFO] [antiqueatlas/]: Created new marker #41"Here lies Player1"@(59, 160)
+[14sept.2023 00:06:13.392] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Player1 was slain by Zombie
+[14sept.2023 00:06:14.783] [Server thread/INFO] [Reputation/]: Syncing 3 factions to the client
+[14sept.2023 00:06:24.915] [Server thread/INFO] [APTweaks(Core)/]: [APTweaks:Core] ↓ Server load changed from LOW (avg. 25.663028717041016) to VERY_LOW (avg. 12.471973419189453)
+[14sept.2023 00:06:26.928] [Server thread/INFO] [sereneseasons/]: Season time skipped by 6662 in minecraft:the_nether
+[14sept.2023 00:06:26.928] [Server thread/INFO] [sereneseasons/]: Season time skipped by 6662 in simple_mobs:distant_land
+[14sept.2023 00:06:26.928] [Server thread/INFO] [sereneseasons/]: Season time skipped by 6662 in blue_skies:everdawn
+[14sept.2023 00:06:26.928] [Server thread/INFO] [sereneseasons/]: Season time skipped by 6662 in minecraft:the_end
+[14sept.2023 00:06:26.928] [Server thread/INFO] [sereneseasons/]: Season time skipped by 6662 in blue_skies:everbright
+[14sept.2023 00:06:26.965] [Server thread/INFO] [sereneseasons/]: Season time skipped by 6662 in minecraft:overworld
+[14sept.2023 00:06:36.675] [Server thread/WARN] [net.minecraft.world.level.entity.PersistentEntitySectionManager/]: UUID of added entity already exists: FallingBlockEntity['Falling Block'/71407, l='ServerLevel[DawnCraftWorld]', x=440.50, y=73.00, z=-90.50]
+[14sept.2023 00:08:37.083] [Server thread/INFO] [net.minecraft.world.entity.LivingEntity/]: Named entity Stray['Mister Ismael the Mighty'/70375, l='ServerLevel[DawnCraftWorld]', x=512.31, y=68.00, z=-67.75] died: Mister Ismael the Mighty was slain by Player3
+[14sept.2023 00:08:37.630] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Player3 has made the advancement [Not Quite Common]
+[14sept.2023 00:08:37.631] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Player3 has completed the challenge [He Wasn't So Strong]
+[14sept.2023 00:08:39.914] [Server thread/INFO] [APTweaks(Core)/]: [APTweaks:Core] ↑ Server load changed from VERY_LOW (avg. 17.843353271484375) to LOW (avg. 20.896371841430664)
+[14sept.2023 00:08:47.414] [Server thread/INFO] [APTweaks(Core)/]: [APTweaks:Core] ↓ Server load changed from LOW (avg. 20.896371841430664) to VERY_LOW (avg. 18.767047882080078)
+[14sept.2023 00:09:21.782] [Server thread/INFO] [net.minecraft.server.network.ServerGamePacketListenerImpl/]: Player1 lost connection: Disconnected
+[14sept.2023 00:09:21.782] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Player1 left the game
+[14sept.2023 00:09:24.576] [User Authenticator #7/INFO] [net.minecraft.server.network.ServerLoginPacketListenerImpl/]: UUID of player Player1 is 00000000-0000-4000-8000-000000000001
+[14sept.2023 00:09:27.231] [Server thread/INFO] [net.minecraft.server.players.PlayerList/]: Player1[/[2001:db8::2]:61230] logged in with entity id 72621 at (542.2363365918789, 69.0, -73.81681084698556)
+[14sept.2023 00:09:27.246] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Player1 joined the game
+[14sept.2023 00:16:58.195] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.241] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.241] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.284] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.284] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.336] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.336] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.384] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.385] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.435] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.435] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.490] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.490] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.534] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.534] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.587] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.588] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.637] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.638] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.701] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.710] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.738] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.738] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.792] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.792] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.835] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:16:58.835] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=745.93, y=81.00, z=17.70, removed=KILLED]
+[14sept.2023 00:17:24.684] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=744.40, y=81.00, z=16.05, removed=KILLED]
+[14sept.2023 00:17:24.733] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=744.40, y=81.00, z=16.05, removed=KILLED]
+[14sept.2023 00:19:44.921] [Server thread/WARN] [net.minecraft.world.level.entity.PersistentEntitySectionManager/]: UUID of added entity already exists: Drowned['Drowned'/77578, l='ServerLevel[DawnCraftWorld]', x=96.50, y=54.00, z=5.50]
+[14sept.2023 00:19:59.924] [Server thread/WARN] [net.minecraft.world.level.entity.PersistentEntitySectionManager/]: UUID of added entity already exists: Drowned['Drowned'/77760, l='ServerLevel[DawnCraftWorld]', x=99.50, y=51.00, z=0.50]
+[14sept.2023 00:51:52.545] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.612] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.612] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.677] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.677] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.719] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.719] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.777] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.777] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.819] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.820] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.856] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.857] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.876] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.876] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.925] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.926] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.974] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:52.975] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.023] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.023] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.074] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.074] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.131] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.131] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.173] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.173] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.223] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.223] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.272] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.273] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.326] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.327] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.374] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.375] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.425] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.426] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.473] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.473] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.522] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.523] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.574] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.574] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.622] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.622] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.673] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.674] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.724] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 00:51:53.725] [Server thread/WARN] [quest_giver/]: Quest Data capability not present on player: ServerPlayer['Player1'/72621, l='ServerLevel[DawnCraftWorld]', x=676.05, y=81.00, z=65.67, removed=KILLED]
+[14sept.2023 01:01:30.985] [Server thread/INFO] [net.minecraft.server.network.ServerGamePacketListenerImpl/]: Player1 lost connection: Disconnected
+[14sept.2023 01:01:30.985] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Player1 left the game
+[14sept.2023 01:02:45.986] [Server thread/INFO] [net.minecraft.server.network.ServerGamePacketListenerImpl/]: Player2 lost connection: Disconnected
+[14sept.2023 01:02:45.986] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Player2 left the game
+[14sept.2023 01:17:04.720] [Server thread/INFO] [net.minecraft.server.network.ServerGamePacketListenerImpl/]: Player3 lost connection: Disconnected
+[14sept.2023 01:17:04.720] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Player3 left the game
+[14sept.2023 01:17:10.971] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Stopping the server

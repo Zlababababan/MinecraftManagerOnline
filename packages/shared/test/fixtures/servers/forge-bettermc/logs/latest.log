@@ -1,0 +1,150 @@
+[07janv.2023 04:49:42.136] [main/INFO] [cpw.mods.modlauncher.Launcher/MODLAUNCHER]: ModLauncher running: args [--launchTarget, forgeserver, --fml.forgeVersion, 43.1.57, --fml.mcVersion, 1.19.2, --fml.forgeGroup, net.minecraftforge, --fml.mcpVersion, 20220805.130853, nogui]
+[07janv.2023 04:49:42.141] [main/INFO] [cpw.mods.modlauncher.Launcher/MODLAUNCHER]: ModLauncher 10.0.8+10.0.8+main.0ef7e830 starting: java version 17.0.5 by Oracle Corporation; OS Windows 11 arch amd64 version 10.0
+[07janv.2023 04:49:42.335] [main/INFO] [mixin/]: SpongePowered MIXIN Subsystem Version=0.8.5 Source=union:/C:/Games(C)/Minecraft/Server/BetterMC/libraries/org/spongepowered/mixin/0.8.5/mixin-0.8.5.jar%2363!/ Service=ModLauncher Env=SERVER
+[07janv.2023 04:49:43.233] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file C:\Games(C)\Minecraft\Server\BetterMC\libraries\net\minecraftforge\fmlcore\1.19.2-43.1.57\fmlcore-1.19.2-43.1.57.jar is missing mods.toml file
+[07janv.2023 04:49:43.236] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file C:\Games(C)\Minecraft\Server\BetterMC\libraries\net\minecraftforge\javafmllanguage\1.19.2-43.1.57\javafmllanguage-1.19.2-43.1.57.jar is missing mods.toml file
+[07janv.2023 04:49:43.238] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file C:\Games(C)\Minecraft\Server\BetterMC\libraries\net\minecraftforge\lowcodelanguage\1.19.2-43.1.57\lowcodelanguage-1.19.2-43.1.57.jar is missing mods.toml file
+[07janv.2023 04:49:43.241] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file C:\Games(C)\Minecraft\Server\BetterMC\libraries\net\minecraftforge\mclanguage\1.19.2-43.1.57\mclanguage-1.19.2-43.1.57.jar is missing mods.toml file
+[07janv.2023 04:49:43.460] [main/INFO] [net.minecraftforge.fml.loading.moddiscovery.JarInJarDependencyLocator/]: Found 12 dependencies adding them to mods collection
+[07janv.2023 04:49:47.364] [main/INFO] [mixin/]: Compatibility level set to JAVA_17
+[07janv.2023 04:49:47.509] [main/ERROR] [mixin/]: Mixin config forge-mavapi.mixins.json does not specify "minVersion" property
+[07janv.2023 04:49:47.583] [main/ERROR] [mixin/]: Mixin config forge-mavm.mixins.json does not specify "minVersion" property
+[07janv.2023 04:49:47.656] [main/ERROR] [mixin/]: Mixin config rottencreatures-common.mixins.json does not specify "minVersion" property
+[07janv.2023 04:49:47.658] [main/ERROR] [mixin/]: Mixin config rottencreatures.mixins.json does not specify "minVersion" property
+[07janv.2023 04:49:47.808] [main/INFO] [mixin/]: Successfully loaded Mixin Connector [com.aizistral.nochatreports.MixinConnector]
+[07janv.2023 04:49:47.808] [main/INFO] [cpw.mods.modlauncher.LaunchServiceHandler/MODLAUNCHER]: Launching target 'forgeserver' with arguments [nogui]
+[07janv.2023 04:49:47.880] [main/WARN] [mixin/]: Reference map 'yungsextras.refmap.json' for yungsextras.mixins.json could not be read. If this is a development environment you can ignore this message
+[07janv.2023 04:49:47.880] [main/WARN] [mixin/]: Reference map 'yungsextras.refmap.json' for yungsextras_forge.mixins.json could not be read. If this is a development environment you can ignore this message
+[07janv.2023 04:49:47.980] [main/WARN] [CanaryConfig/]: Option 'mixin.world.block_entity_ticking.world_border' requires 'mixin.util.world_border_listener=true' but found 'false'. Setting 'mixin.world.block_entity_ticking.world_border=false'.
+[07janv.2023 04:49:47.981] [main/INFO] [Canary/]: Loaded configuration file for Canary: 104 options available, 4 override(s) found
+[07janv.2023 04:49:48.008] [main/WARN] [mixin/]: Reference map 'v_slab_compat-common-refmap.json' for v_slab_compat-common.mixins.json could not be read. If this is a development environment you can ignore this message
+[07janv.2023 04:49:48.069] [main/WARN] [mixin/]: Reference map 'everycomp-common-refmap.json' for everycomp-common.mixins.json could not be read. If this is a development environment you can ignore this message
+[07janv.2023 04:49:48.071] [main/WARN] [mixin/]: Reference map 'everycomp.refmap.json' for everycomp.mixins.json could not be read. If this is a development environment you can ignore this message
+[07janv.2023 04:49:48.133] [main/WARN] [mixin/]: Reference map 'rottencreatures-forge-refmap.json' for rottencreatures.mixins.json could not be read. If this is a development environment you can ignore this message
+[07janv.2023 04:49:49.413] [main/WARN] [Canary/]: Force-disabling mixin 'ai.nearby_entity_tracking.EntityMixin' as rule 'mixin.ai.nearby_entity_tracking' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.414] [main/WARN] [Canary/]: Force-disabling mixin 'ai.nearby_entity_tracking.EntitySectionMixin' as rule 'mixin.ai.nearby_entity_tracking' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.414] [main/WARN] [Canary/]: Force-disabling mixin 'ai.nearby_entity_tracking.EntitySectionStorageMixin' as rule 'mixin.ai.nearby_entity_tracking' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.414] [main/WARN] [Canary/]: Force-disabling mixin 'ai.nearby_entity_tracking.PersistentEntitySectionManagerAccessor' as rule 'mixin.ai.nearby_entity_tracking' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.415] [main/WARN] [Canary/]: Force-disabling mixin 'ai.nearby_entity_tracking.PersistentEntitySectionManagerCallbackMixin' as rule 'mixin.ai.nearby_entity_tracking' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.415] [main/WARN] [Canary/]: Force-disabling mixin 'ai.nearby_entity_tracking.PersistentEntitySectionManagerMixin' as rule 'mixin.ai.nearby_entity_tracking' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.416] [main/WARN] [Canary/]: Force-disabling mixin 'ai.nearby_entity_tracking.ServerLevelAccessor' as rule 'mixin.ai.nearby_entity_tracking' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.416] [main/WARN] [Canary/]: Force-disabling mixin 'ai.nearby_entity_tracking.goals.AvoidEntityGoalMixin' as rule 'mixin.ai.nearby_entity_tracking' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.425] [main/WARN] [Canary/]: Force-disabling mixin 'ai.nearby_entity_tracking.goals.LookAtPlayerGoalMixin' as rule 'mixin.ai.nearby_entity_tracking' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.427] [main/WARN] [Canary/]: Force-disabling mixin 'ai.poi.PoiManagerMixin' as rule 'mixin.ai.poi' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.428] [main/WARN] [Canary/]: Force-disabling mixin 'ai.poi.PoiSectionMixin' as rule 'mixin.ai.poi' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.429] [main/WARN] [Canary/]: Force-disabling mixin 'ai.poi.PoiTypesMixin' as rule 'mixin.ai.poi' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.429] [main/WARN] [Canary/]: Force-disabling mixin 'ai.poi.SectionStorageMixin' as rule 'mixin.ai.poi' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.430] [main/WARN] [Canary/]: Force-disabling mixin 'ai.poi.fast_portals.PortalForcerMixin' as rule 'mixin.ai.poi' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.430] [main/WARN] [Canary/]: Force-disabling mixin 'ai.poi.tasks.LocateHidingPlaceMixin' as rule 'mixin.ai.poi' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.431] [main/WARN] [Canary/]: Force-disabling mixin 'ai.poi.tasks.RaiderMoveThroughVillageGoalMixin' as rule 'mixin.ai.poi' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.436] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.AbstractMinecartMixin' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.437] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.ChestBoatMixin' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.437] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.ClassInstanceMultiMapMixin' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.437] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.ComposterBlockInputContainerMixin' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.438] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.CompoundContainerAccessor' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.438] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.EntityAccessor' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.439] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.EntityDataAccessorMixin' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.439] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.EntitySectionAccessor' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.441] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.HopperBlockEntityMixin' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.441] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.HopperBlockMixin' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.441] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.InventoryAccessors$InventoryAccessorAbstractFurnaceBlockEntity' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.442] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.InventoryAccessors$InventoryAccessorBrewingStandBlockEntity' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.443] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.InventoryAccessors$InventoryAccessorRandomizableContainerBlockEntity' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.443] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.InventoryAccessors$InventoryAccessorStorageMinecartEntity' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.444] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.ItemStackMixin' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.445] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.NonNullListAccessor' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.445] [main/WARN] [Canary/]: Force-disabling mixin 'block.hopper.ScreenHandlerMixin' as rule 'mixin.block.hopper' (added by user configuration) disables it and children
+[07janv.2023 04:49:49.473] [main/WARN] [Canary/]: Force-disabling mixin 'world.player_chunk_tick.ChunkMapMixin' as rule 'mixin.world.player_chunk_tick' (added by mods [pluto]) disables it and children
+[07janv.2023 04:49:56.138] [main/WARN] [mixin/]: @ModifyConstant conflict. Skipping repurposed_structures.mixins.json:structures.StructurePoolMixin->@ModifyConstant::repurposedstructures_increaseWeightLimitDev(I)I with priority 1000, already redirected by yungsapi_forge.mixins.json:IncreaseStructureWeightLimitMixinForge->@ModifyConstant::yungsapi_increaseWeightLimit(I)I with priority 1000
+[07janv.2023 04:50:03.962] [main/WARN] [net.mehvahdjukaar.moonlight.core.Moonlight/]: Found block type with duplicate id (minecraft:stone), skipping
+[07janv.2023 04:50:03.965] [main/WARN] [net.mehvahdjukaar.moonlight.core.Moonlight/]: Failed to find custom wood type byg:embur
+[07janv.2023 04:50:03.972] [main/WARN] [net.mehvahdjukaar.moonlight.core.Moonlight/]: Found block type with duplicate id (minecraft:oak), skipping
+[07janv.2023 04:50:03.972] [main/WARN] [net.mehvahdjukaar.moonlight.core.Moonlight/]: Found block type with duplicate id (gardens_of_the_dead:soulblight), skipping
+[07janv.2023 04:50:03.972] [main/WARN] [net.mehvahdjukaar.moonlight.core.Moonlight/]: Found block type with duplicate id (ecologics:azalea), skipping
+[07janv.2023 04:50:03.972] [main/WARN] [net.mehvahdjukaar.moonlight.core.Moonlight/]: Found block type with duplicate id (ecologics:flowering_azalea), skipping
+[07janv.2023 04:50:03.972] [main/WARN] [net.mehvahdjukaar.moonlight.core.Moonlight/]: Found block type with duplicate id (quark:azalea), skipping
+[07janv.2023 04:50:03.977] [main/WARN] [net.mehvahdjukaar.moonlight.core.Moonlight/]: Found block type with duplicate id (minecraft:oak), skipping
+[07janv.2023 04:50:06.483] [main/WARN] [dev.architectury.registry.registries.forge.RegistriesImpl/]: Registry entry listened Registry Entry [minecraft:item / biomemakeover:dried_peat] was not realized!
+[07janv.2023 04:50:07.549] [main/WARN] [net.minecraft.network.syncher.SynchedEntityData/]: defineId called for: class com.mrbysco.raided.entity.Inquisitor from class com.mrbysco.raided.entity.Necromancer
+[07janv.2023 04:50:07.744] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file C:\Games(C)\Minecraft\Server\BetterMC\config\rottencreatures-common.toml is not correct. Correcting
+[07janv.2023 04:50:07.745] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key Mob Spawns.Immortal Chance was corrected from 0.025 to its default, 0.025. 
+[07janv.2023 04:50:08.354] [main/ERROR] [net.minecraftforge.fml.loading.RuntimeDistCleaner/DISTXFORM]: Attempted to load class net/minecraft/client/multiplayer/ClientLevel for invalid dist DEDICATED_SERVER
+[07janv.2023 04:50:08.355] [main/WARN] [net.mehvahdjukaar.supplementaries.Supplementaries/]: failed to register supplementaries create behaviors: java.lang.RuntimeException: Attempted to load class net/minecraft/client/multiplayer/ClientLevel for invalid dist DEDICATED_SERVER
+[07janv.2023 04:50:09.676] [Forge Version Check/WARN] [net.minecraftforge.fml.VersionChecker/]: Failed to process update information
+com.google.gson.JsonSyntaxException: java.lang.IllegalStateException: Expected BEGIN_OBJECT but was STRING at line 1 column 1 path $
+	at com.google.gson.Gson.fromJson(Gson.java:975) ~[gson-2.8.9.jar%2370!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:928) ~[gson-2.8.9.jar%2370!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:877) ~[gson-2.8.9.jar%2370!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:848) ~[gson-2.8.9.jar%2370!/:?]
+	at net.minecraftforge.fml.VersionChecker$1.process(VersionChecker.java:183) ~[fmlcore-1.19.2-43.1.57.jar%23289!/:?]
+	at java.lang.Iterable.forEach(Iterable.java:75) [?:?]
+	at net.minecraftforge.fml.VersionChecker$1.run(VersionChecker.java:114) [fmlcore-1.19.2-43.1.57.jar%23289!/:?]
+Caused by: java.lang.IllegalStateException: Expected BEGIN_OBJECT but was STRING at line 1 column 1 path $
+	at com.google.gson.stream.JsonReader.beginObject(JsonReader.java:384) ~[gson-2.8.9.jar%2370!/:?]
+	at com.google.gson.internal.bind.MapTypeAdapterFactory$Adapter.read(MapTypeAdapterFactory.java:183) ~[gson-2.8.9.jar%2370!/:?]
+	at com.google.gson.internal.bind.MapTypeAdapterFactory$Adapter.read(MapTypeAdapterFactory.java:145) ~[gson-2.8.9.jar%2370!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:963) ~[gson-2.8.9.jar%2370!/:?]
+	... 6 more
+[07janv.2023 04:50:10.563] [Forge Version Check/WARN] [net.minecraftforge.fml.VersionChecker/]: Failed to process update information
+com.google.gson.JsonSyntaxException: java.lang.IllegalStateException: Expected BEGIN_OBJECT but was STRING at line 1 column 1 path $
+	at com.google.gson.Gson.fromJson(Gson.java:975) ~[gson-2.8.9.jar%2370!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:928) ~[gson-2.8.9.jar%2370!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:877) ~[gson-2.8.9.jar%2370!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:848) ~[gson-2.8.9.jar%2370!/:?]
+	at net.minecraftforge.fml.VersionChecker$1.process(VersionChecker.java:183) ~[fmlcore-1.19.2-43.1.57.jar%23289!/:?]
+	at java.lang.Iterable.forEach(Iterable.java:75) [?:?]
+	at net.minecraftforge.fml.VersionChecker$1.run(VersionChecker.java:114) [fmlcore-1.19.2-43.1.57.jar%23289!/:?]
+Caused by: java.lang.IllegalStateException: Expected BEGIN_OBJECT but was STRING at line 1 column 1 path $
+	at com.google.gson.stream.JsonReader.beginObject(JsonReader.java:384) ~[gson-2.8.9.jar%2370!/:?]
+	at com.google.gson.internal.bind.MapTypeAdapterFactory$Adapter.read(MapTypeAdapterFactory.java:183) ~[gson-2.8.9.jar%2370!/:?]
+	at com.google.gson.internal.bind.MapTypeAdapterFactory$Adapter.read(MapTypeAdapterFactory.java:145) ~[gson-2.8.9.jar%2370!/:?]
+	at com.google.gson.Gson.fromJson(Gson.java:963) ~[gson-2.8.9.jar%2370!/:?]
+	... 6 more
+[07janv.2023 04:50:25.887] [Forge Version Check/WARN] [net.minecraftforge.fml.VersionChecker/]: Failed to process update information
+java.net.http.HttpConnectTimeoutException: HTTP connect timed out
+	at jdk.internal.net.http.HttpClientImpl.send(HttpClientImpl.java:567) ~[java.net.http:?]
+	at jdk.internal.net.http.HttpClientFacade.send(HttpClientFacade.java:123) ~[java.net.http:?]
+	at net.minecraftforge.fml.VersionChecker$1.openUrlString(VersionChecker.java:139) ~[fmlcore-1.19.2-43.1.57.jar%23289!/:?]
+	at net.minecraftforge.fml.VersionChecker$1.process(VersionChecker.java:177) ~[fmlcore-1.19.2-43.1.57.jar%23289!/:?]
+	at java.lang.Iterable.forEach(Iterable.java:75) [?:?]
+	at net.minecraftforge.fml.VersionChecker$1.run(VersionChecker.java:114) [fmlcore-1.19.2-43.1.57.jar%23289!/:?]
+Caused by: java.net.http.HttpConnectTimeoutException: HTTP connect timed out
+	at jdk.internal.net.http.ResponseTimerEvent.handle(ResponseTimerEvent.java:68) ~[java.net.http:?]
+	at jdk.internal.net.http.HttpClientImpl.purgeTimeoutsAndReturnNextDeadline(HttpClientImpl.java:1270) ~[java.net.http:?]
+	at jdk.internal.net.http.HttpClientImpl$SelectorManager.run(HttpClientImpl.java:899) ~[java.net.http:?]
+Caused by: java.net.ConnectException: HTTP connect timed out
+	at jdk.internal.net.http.ResponseTimerEvent.handle(ResponseTimerEvent.java:69) ~[java.net.http:?]
+	at jdk.internal.net.http.HttpClientImpl.purgeTimeoutsAndReturnNextDeadline(HttpClientImpl.java:1270) ~[java.net.http:?]
+	at jdk.internal.net.http.HttpClientImpl$SelectorManager.run(HttpClientImpl.java:899) ~[java.net.http:?]
+[07janv.2023 04:50:33.936] [main/WARN] [net.minecraft.server.packs.VanillaPackResources/]: Assets URL 'union:/C:/Games(C)/Minecraft/Server/BetterMC/libraries/net/minecraft/server/1.19.2-20220805.130853/server-1.19.2-20220805.130853-srg.jar%23288!/assets/.mcassetsroot' uses unexpected schema
+[07janv.2023 04:50:33.936] [main/WARN] [net.minecraft.server.packs.VanillaPackResources/]: Assets URL 'union:/C:/Games(C)/Minecraft/Server/BetterMC/libraries/net/minecraft/server/1.19.2-20220805.130853/server-1.19.2-20220805.130853-srg.jar%23288!/data/.mcassetsroot' uses unexpected schema
+[07janv.2023 04:50:41.663] [main/WARN] [net.minecraft.core.MappedRegistry/]: Not all defined tags for registry ResourceKey[minecraft:root / minecraft:worldgen/biome] are present in data pack: vinery:has_structure/bush
+[07janv.2023 04:50:52.182] [main/WARN] [net.mehvahdjukaar.supplementaries.Supplementaries/]: Error white registering dispenser behavior for item medium_catfish_bucket: java.lang.IllegalArgumentException: value already present: entity.alexsmobs.catfish
+[07janv.2023 04:50:52.182] [main/WARN] [net.mehvahdjukaar.supplementaries.Supplementaries/]: Error white registering dispenser behavior for item large_catfish_bucket: java.lang.IllegalArgumentException: value already present: entity.alexsmobs.catfish
+[07janv.2023 04:50:52.231] [main/WARN] [net.minecraft.server.dedicated.DedicatedServerProperties/]: Failed to parse level-type default, defaulting to minecraft:normal
+[07janv.2023 04:50:52.480] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Starting minecraft server version 1.19.2
+[07janv.2023 04:50:52.539] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Starting Minecraft server on *:25565
+[07janv.2023 04:50:52.673] [Server thread/WARN] [net.minecraft.server.dedicated.DedicatedServer/]: **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[07janv.2023 04:50:52.673] [Server thread/WARN] [net.minecraft.server.dedicated.DedicatedServer/]: The server will make no attempt to authenticate usernames. Beware.
+[07janv.2023 04:50:52.673] [Server thread/WARN] [net.minecraft.server.dedicated.DedicatedServer/]: While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[07janv.2023 04:50:52.674] [Server thread/WARN] [net.minecraft.server.dedicated.DedicatedServer/]: To change this, set "online-mode" to "true" in the server.properties file.
+[07janv.2023 04:51:02.586] [Worker-Main2/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[07janv.2023 04:51:02.586] [Worker-Main2/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[07janv.2023 04:51:02.587] [Worker-Main5/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[07janv.2023 04:51:02.587] [Worker-Main5/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[07janv.2023 04:51:02.588] [Worker-Main6/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[07janv.2023 04:51:02.589] [Worker-Main6/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[07janv.2023 04:51:02.589] [Worker-Main1/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[07janv.2023 04:51:02.590] [Worker-Main5/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[07janv.2023 04:51:02.590] [Worker-Main5/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[07janv.2023 04:51:02.609] [Worker-Main1/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[07janv.2023 04:51:03.109] [Worker-Main5/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 48%
+[07janv.2023 04:51:03.419] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Done (10.735s)! For help, type "help"
+[07janv.2023 04:52:46.638] [Server thread/INFO] [net.minecraft.server.network.ServerLoginPacketListenerImpl/]: com.mojang.authlib.GameProfile@77267a55[id=<null>,name=Player1,properties={},legacy=false] (/203.0.113.1:16718) lost connection: Took too long to log in
+[07janv.2023 04:52:46.686] [Server thread/WARN] [net.minecraft.network.Connection/]: handleDisconnection() called twice
+[07janv.2023 04:53:23.936] [Server thread/INFO] [net.minecraft.server.network.ServerLoginPacketListenerImpl/]: com.mojang.authlib.GameProfile@2d802fb3[id=<null>,name=Player1,properties={},legacy=false] (/[0:0:0:0:0:0:0:1]:16736) lost connection: Took too long to log in
+[07janv.2023 04:53:23.984] [Server thread/WARN] [net.minecraft.network.Connection/]: handleDisconnection() called twice
+[07janv.2023 04:54:19.934] [Server thread/INFO] [net.minecraft.server.network.ServerLoginPacketListenerImpl/]: com.mojang.authlib.GameProfile@7b40a4aa[id=<null>,name=Player1,properties={},legacy=false] (/203.0.113.1:16757) lost connection: Disconnected
+[07janv.2023 04:55:14.684] [Server thread/INFO] [net.minecraft.server.network.ServerLoginPacketListenerImpl/]: com.mojang.authlib.GameProfile@ba0a2fb[id=<null>,name=Player1,properties={},legacy=false] (/203.0.113.1:16861) lost connection: Took too long to log in
+[07janv.2023 04:55:14.735] [Server thread/WARN] [net.minecraft.network.Connection/]: handleDisconnection() called twice
+

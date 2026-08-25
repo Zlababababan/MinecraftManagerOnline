@@ -1,0 +1,138 @@
+[25avr.2023 19:46:28.930] [main/INFO] [cpw.mods.modlauncher.Launcher/MODLAUNCHER]: ModLauncher running: args [--launchTarget, forgeserver, --fml.forgeVersion, 43.2.8, --fml.mcVersion, 1.19.2, --fml.forgeGroup, net.minecraftforge, --fml.mcpVersion, 20220805.130853, nogui]
+[25avr.2023 19:46:28.933] [main/INFO] [cpw.mods.modlauncher.Launcher/MODLAUNCHER]: ModLauncher 10.0.8+10.0.8+main.0ef7e830 starting: java version 19.0.1 by Oracle Corporation; OS Windows 11 arch amd64 version 10.0
+[25avr.2023 19:46:31.576] [main/INFO] [mixin/]: SpongePowered MIXIN Subsystem Version=0.8.5 Source=union:/C:/Minecraft/Server/ATM8_1.0.17/libraries/org/spongepowered/mixin/0.8.5/mixin-0.8.5.jar%2363!/ Service=ModLauncher Env=SERVER
+[25avr.2023 19:46:32.618] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\ATM8_1.0.17\libraries\net\minecraftforge\fmlcore\1.19.2-43.2.8\fmlcore-1.19.2-43.2.8.jar is missing mods.toml file
+[25avr.2023 19:46:32.619] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\ATM8_1.0.17\libraries\net\minecraftforge\javafmllanguage\1.19.2-43.2.8\javafmllanguage-1.19.2-43.2.8.jar is missing mods.toml file
+[25avr.2023 19:46:32.622] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\ATM8_1.0.17\libraries\net\minecraftforge\lowcodelanguage\1.19.2-43.2.8\lowcodelanguage-1.19.2-43.2.8.jar is missing mods.toml file
+[25avr.2023 19:46:32.625] [main/WARN] [net.minecraftforge.fml.loading.moddiscovery.ModFileParser/LOADING]: Mod file E:\srv\ATM8_1.0.17\libraries\net\minecraftforge\mclanguage\1.19.2-43.2.8\mclanguage-1.19.2-43.2.8.jar is missing mods.toml file
+[25avr.2023 19:46:33.201] [main/WARN] [net.minecraftforge.jarjar.selection.JarSelector/]: Attempted to select a dependency jar for JarJar which was passed in as source: resourcefullib. Using Mod File: E:\srv\ATM8_1.0.17\mods\resourcefullib-forge-1.19.2-1.1.24.jar
+[25avr.2023 19:46:33.202] [main/WARN] [net.minecraftforge.jarjar.selection.JarSelector/]: Attempted to select a dependency jar for JarJar which was passed in as source: botarium. Using Mod File: E:\srv\ATM8_1.0.17\mods\botarium-forge-1.19.2-1.8.2.jar
+[25avr.2023 19:46:33.202] [main/INFO] [net.minecraftforge.fml.loading.moddiscovery.JarInJarDependencyLocator/]: Found 19 dependencies adding them to mods collection
+[25avr.2023 19:46:40.045] [main/INFO] [mixin/]: Compatibility level set to JAVA_17
+[25avr.2023 19:46:40.212] [main/ERROR] [mixin/]: Mixin config radon.mixins.json does not specify "minVersion" property
+[25avr.2023 19:46:40.256] [main/ERROR] [mixin/]: Mixin config myrtrees-common.mixins.json does not specify "minVersion" property
+[25avr.2023 19:46:40.604] [main/INFO] [mixin/]: Successfully loaded Mixin Connector [shetiphian.core.mixins.MixinConnector]
+[25avr.2023 19:46:40.605] [main/INFO] [mixin/]: Successfully loaded Mixin Connector [com.aizistral.nochatreports.MixinConnector]
+[25avr.2023 19:46:40.606] [main/INFO] [mixin/]: Successfully loaded Mixin Connector [shetiphian.endertanks.mixins.MixinConnector]
+[25avr.2023 19:46:40.607] [main/INFO] [cpw.mods.modlauncher.LaunchServiceHandler/MODLAUNCHER]: Launching target 'forgeserver' with arguments [nogui]
+[25avr.2023 19:46:40.648] [main/INFO] [ModernFix/]: Loaded configuration file for ModernFix: 33 options available, 0 override(s) found
+[25avr.2023 19:46:40.676] [main/WARN] [mixin/]: Reference map 'universalgrid.refmap.json' for universalgrid.mixins.json could not be read. If this is a development environment you can ignore this message
+[25avr.2023 19:46:40.742] [main/WARN] [mixin/]: Reference map 'yungsextras.refmap.json' for yungsextras.mixins.json could not be read. If this is a development environment you can ignore this message
+[25avr.2023 19:46:40.744] [main/WARN] [mixin/]: Reference map 'yungsextras.refmap.json' for yungsextras_forge.mixins.json could not be read. If this is a development environment you can ignore this message
+[25avr.2023 19:46:40.842] [main/WARN] [mixin/]: Reference map '${refmap_target}refmap.json' for corgilib.forge.mixins.json could not be read. If this is a development environment you can ignore this message
+[25avr.2023 19:46:40.858] [main/WARN] [mixin/]: Reference map 'myrtrees-common-refmap.json' for myrtrees-common.mixins.json could not be read. If this is a development environment you can ignore this message
+[25avr.2023 19:46:40.947] [main/WARN] [mixin/]: Reference map 'naturalist-forge-forge-refmap.json' for naturalist.mixins.json could not be read. If this is a development environment you can ignore this message
+[25avr.2023 19:46:41.000] [main/WARN] [mixin/]: Reference map 'dummmmmmy-forge-refmap.json' for dummmmmmy.mixins.json could not be read. If this is a development environment you can ignore this message
+[25avr.2023 19:46:41.446] [main/INFO] [net.minecraftforge.coremod.CoreMod.placebo/COREMODLOG]: Patching IForgeItemStack#getEnchantmentLevel
+[25avr.2023 19:46:41.456] [main/INFO] [net.minecraftforge.coremod.CoreMod.placebo/COREMODLOG]: Patching IForgeItemStack#getEnchantmentLevel
+[25avr.2023 19:46:41.670] [main/INFO] [net.minecraftforge.coremod.CoreMod.placebo/COREMODLOG]: Patching IForgeItemStack#getEnchantmentLevel
+[25avr.2023 19:46:41.671] [main/INFO] [net.minecraftforge.coremod.CoreMod.placebo/COREMODLOG]: Patching IForgeItemStack#getEnchantmentLevel
+[25avr.2023 19:46:41.767] [main/INFO] [net.minecraftforge.coremod.CoreMod.apotheosis/COREMODLOG]: Replaced 2 calls to Enchantment#getMaxLevel() in net/minecraft/world/inventory/AnvilMenu
+[25avr.2023 19:46:42.303] [main/INFO] [net.minecraftforge.coremod.CoreMod.apotheosis/COREMODLOG]: Patching FishingHook#catchingFish
+[25avr.2023 19:46:42.338] [main/ERROR] [net.minecraftforge.fml.loading.RuntimeDistCleaner/DISTXFORM]: Attempted to load class net/minecraft/client/gui/screens/inventory/AbstractContainerScreen for invalid dist DEDICATED_SERVER
+[25avr.2023 19:46:42.338] [main/WARN] [mixin/]: Error loading class: net/minecraft/client/gui/screens/inventory/AbstractContainerScreen (java.lang.RuntimeException: Attempted to load class net/minecraft/client/gui/screens/inventory/AbstractContainerScreen for invalid dist DEDICATED_SERVER)
+[25avr.2023 19:46:42.339] [main/WARN] [mixin/]: @Mixin target net.minecraft.client.gui.screens.inventory.AbstractContainerScreen was not found findme-common.mixins.json:MixinSlotRenderer
+[25avr.2023 19:46:42.340] [main/ERROR] [net.minecraftforge.fml.loading.RuntimeDistCleaner/DISTXFORM]: Attempted to load class net/minecraft/client/particle/ParticleEngine for invalid dist DEDICATED_SERVER
+[25avr.2023 19:46:42.340] [main/WARN] [mixin/]: Error loading class: net/minecraft/client/particle/ParticleEngine (java.lang.RuntimeException: Attempted to load class net/minecraft/client/particle/ParticleEngine for invalid dist DEDICATED_SERVER)
+[25avr.2023 19:46:42.340] [main/WARN] [mixin/]: @Mixin target net.minecraft.client.particle.ParticleEngine was not found findme-common.mixins.json:ParticleEngineAccessor
+[25avr.2023 19:46:42.466] [main/INFO] [net.minecraftforge.coremod.CoreMod.apotheosis/COREMODLOG]: Replaced 1 calls to Enchantment#getMaxLevel() in net/minecraft/world/entity/npc/VillagerTrades$EnchantBookForEmeralds
+[25avr.2023 19:46:42.466] [main/INFO] [net.minecraftforge.coremod.CoreMod.apotheosis/COREMODLOG]: Replaced 1 calls to Enchantment#isTreasureOnly() in net/minecraft/world/entity/npc/VillagerTrades$EnchantBookForEmeralds
+[25avr.2023 19:46:42.467] [main/INFO] [net.minecraftforge.coremod.CoreMod.apotheosis/COREMODLOG]: Replaced 1 calls to Enchantment#isTradeable() in net/minecraft/world/entity/npc/VillagerTrades$EnchantBookForEmeralds
+[25avr.2023 19:46:42.474] [main/INFO] [net.minecraftforge.coremod.CoreMod.apotheosis/COREMODLOG]: Replaced 2 calls to Enchantment#getMaxLevel() in net/minecraft/world/item/EnchantedBookItem
+[25avr.2023 19:46:42.485] [main/INFO] [net.minecraftforge.coremod.CoreMod.apotheosis/COREMODLOG]: Replaced 1 calls to Enchantment#getMaxLevel() in net/minecraft/world/level/storage/loot/functions/EnchantRandomlyFunction
+[25avr.2023 19:46:42.485] [main/INFO] [net.minecraftforge.coremod.CoreMod.apotheosis/COREMODLOG]: Replaced 1 calls to Enchantment#isDiscoverable() in net/minecraft/world/level/storage/loot/functions/EnchantRandomlyFunction
+[25avr.2023 19:46:43.128] [main/INFO] [mixin/]: Mixing server.MixinDedicatedServer from nochatreports.mixins.json into net.minecraft.server.dedicated.DedicatedServer
+[25avr.2023 19:46:44.411] [main/INFO] [mixin/]: Mixing server.MixinPlayer from nochatreports.mixins.json into net.minecraft.world.entity.player.Player
+[25avr.2023 19:46:45.235] [main/INFO] [net.minecraft.server.Bootstrap/]: Vanilla bootstrap took 1393 milliseconds
+[25avr.2023 19:46:45.597] [main/INFO] [net.minecraftforge.coremod.CoreMod.apotheosis/COREMODLOG]: Replaced 5 calls to Enchantment#getMaxLevel() in vazkii/quark/content/tools/module/AncientTomesModule
+[25avr.2023 19:46:45.615] [main/INFO] [net.minecraftforge.coremod.CoreMod.placebo/COREMODLOG]: Patching IForgeItemStack#getEnchantmentLevel
+[25avr.2023 19:46:45.615] [main/INFO] [net.minecraftforge.coremod.CoreMod.placebo/COREMODLOG]: Patching IForgeItemStack#getEnchantmentLevel
+[25avr.2023 19:46:45.683] [main/INFO] [net.minecraftforge.coremod.CoreMod.apotheosis/COREMODLOG]: Replaced 2 calls to Enchantment#getMaxLevel() in net/minecraft/world/inventory/AnvilMenu
+[25avr.2023 19:46:47.496] [main/WARN] [mixin/]: Method overwrite conflict for m_47505_ in modernfix.mixins.json:perf.remove_biome_temperature_cache.BiomeMixin, previously written by com.abdelaziz.saturn.mixin.world.biome.BiomeMixin. Skipping method.
+[25avr.2023 19:46:49.216] [modloading-worker-0/ERROR] [packmenu/]: Running on a dedicated server, disabling mod.
+[25avr.2023 19:46:49.840] [modloading-worker-0/WARN] [net.blay09.mods.balm.forge.config.ForgeBalmConfig/]: Config field without expected type, will not validate list content (merchantNames in net.blay09.mods.farmingforblockheads.FarmingForBlockheadsConfigData)
+[25avr.2023 19:46:50.511] [Structurize IO Worker #0/WARN] [structurize/]: Failed loading packs from main folder path: .
+[25avr.2023 19:46:50.511] [Structurize IO Worker #0/WARN] [structurize/]: Failed loading client packs from main folder path: .
+[25avr.2023 19:46:50.512] [Structurize IO Worker #0/WARN] [structurize/]: Finished discovering Server Structure packs
+[25avr.2023 19:46:50.912] [modloading-worker-0/WARN] [Advanced Peripherals/]: Successfully loaded integration for botania
+[25avr.2023 19:46:50.936] [modloading-worker-0/WARN] [Advanced Peripherals/]: Successfully loaded integration for create
+[25avr.2023 19:46:50.997] [modloading-worker-0/WARN] [Advanced Peripherals/]: Successfully loaded integration for mekanism
+[25avr.2023 19:46:51.010] [modloading-worker-0/WARN] [Advanced Peripherals/]: Successfully loaded integration for powah
+[25avr.2023 19:46:51.689] [modloading-worker-0/WARN] [KubeJS/]: Plugin dev.latvian.mods.kubejs.integration.forge.gamestages.GameStagesIntegration does not have required mod gamestages loaded, skipping
+[25avr.2023 19:46:52.538] [modloading-worker-0/WARN] [net.blay09.mods.balm.forge.config.ForgeBalmConfig/]: Config field without expected type, will not validate list content (compressBlacklist in net.blay09.mods.craftingtweaks.config.CraftingTweaksConfigData$Common)
+[25avr.2023 19:46:52.539] [modloading-worker-0/WARN] [net.blay09.mods.balm.forge.config.ForgeBalmConfig/]: Config field without expected type, will not validate list content (disabledAddons in net.blay09.mods.craftingtweaks.config.CraftingTweaksConfigData$Client)
+[25avr.2023 19:47:02.622] [main/WARN] [net.minecraftforge.registries.ForgeRegistry/REGISTRIES]: Registry minecraft:menu: The object net.minecraft.world.inventory.MenuType@ef94cc has been registered twice for the same name ae2:portable_mana_cell.
+[25avr.2023 19:47:02.888] [main/WARN] [moonlight/]: Failed to find custom wood type byg:embur
+[25avr.2023 19:47:07.074] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file E:\srv\ATM8_1.0.17\config\silentgear-common.toml is not correct. Correcting
+[25avr.2023 19:47:07.075] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key gear.dummyToolTier was corrected from WOOD to its default, WOOD. 
+[25avr.2023 19:47:07.075] [main/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key gear.dummyArmorMaterial was corrected from LEATHER to its default, LEATHER. 
+[25Apr2023 19:47:07.085] [Thread-0/WARN] [net.minecraftforge.fml.config.ConfigFileTypeHandler/CONFIG]: Configuration file E:\srv\ATM8_1.0.17\config\silentgear-common.toml is not correct. Correcting
+[25avr.2023 19:47:09.215] [modloading-worker-0/WARN] [minecolonies/]: Register mappings
+[25avr.2023 19:47:10.795] [main/WARN] [net.minecraft.server.packs.VanillaPackResources/]: Assets URL 'union:/C:/Minecraft/Server/ATM8_1.0.17/libraries/net/minecraft/server/1.19.2-20220805.130853/server-1.19.2-20220805.130853-srg.jar%23755!/assets/.mcassetsroot' uses unexpected schema
+[25avr.2023 19:47:10.796] [main/WARN] [net.minecraft.server.packs.VanillaPackResources/]: Assets URL 'union:/C:/Minecraft/Server/ATM8_1.0.17/libraries/net/minecraft/server/1.19.2-20220805.130853/server-1.19.2-20220805.130853-srg.jar%23755!/data/.mcassetsroot' uses unexpected schema
+[25avr.2023 19:47:20.036] [main/WARN] [AlmostUnified/]: Recipe count: 44224
+[25avr.2023 19:47:26.825] [main/WARN] [AlmostUnified/]: Recipe count afterwards: 43636 (done in 6.788 s)
+[25avr.2023 19:47:26.989] [main/WARN] [KubeJS Server/]: Failed to parse recipe 'allthemodium:main/allthemodium_pickaxe_smithing[allthemodium:smithing]'! Falling back to vanilla: java.lang.NullPointerException: Unknown recipe type: allthemodium:smithing
+[25avr.2023 19:47:26.989] [main/WARN] [KubeJS Server/]: Failed to parse recipe allthemodium:main/allthemodium_pickaxe_smithing[allthemodium:smithing]: com.google.gson.JsonSyntaxException: Invalid or unsupported recipe type 'allthemodium:smithing'
+[25avr.2023 19:47:27.630] [main/WARN] [Botany Pots/]: Crop farmersdelight:integration/botanypots/crops/cabbages has been disabled by the BotanyPot devs to improve compatibility.
+[25avr.2023 19:47:27.750] [main/WARN] [Botany Pots/]: Crop farmersdelight:integration/botanypots/crops/onions has been disabled by the BotanyPot devs to improve compatibility.
+[25avr.2023 19:47:27.789] [main/WARN] [Botany Pots/]: Crop farmersdelight:integration/botanypots/crops/rice_crop has been disabled by the BotanyPot devs to improve compatibility.
+[25avr.2023 19:47:27.844] [main/WARN] [Botany Pots/]: Soil farmersdelight:integration/botanypots/soil/rich_soil has been disabled by the BotanyPot devs to improve compatibility.
+[25avr.2023 19:47:28.255] [main/WARN] [Botany Pots/]: Crop farmersdelight:integration/botanypots/crops/tomatoes has been disabled by the BotanyPot devs to improve compatibility.
+[25avr.2023 19:47:28.668] [main/WARN] [Botany Pots/]: Soil farmersdelight:integration/botanypots/soil/rich_soil_farmland has been disabled by the BotanyPot devs to improve compatibility.
+[25avr.2023 19:47:33.571] [main/WARN] [net.minecraft.world.level.storage.loot.LootTables/]: Datapack tried to redefine minecraft:empty loot table, ignoring
+[25Apr2023 19:47:37.167] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Starting minecraft server version 1.19.2
+[25Apr2023 19:47:37.240] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Starting Minecraft server on *:25565
+[25Apr2023 19:47:37.391] [Server thread/WARN] [net.minecraft.server.dedicated.DedicatedServer/]: **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[25Apr2023 19:47:37.391] [Server thread/WARN] [net.minecraft.server.dedicated.DedicatedServer/]: The server will make no attempt to authenticate usernames. Beware.
+[25Apr2023 19:47:37.391] [Server thread/WARN] [net.minecraft.server.dedicated.DedicatedServer/]: While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[25Apr2023 19:47:37.391] [Server thread/WARN] [net.minecraft.server.dedicated.DedicatedServer/]: To change this, set "online-mode" to "true" in the server.properties file.
+[25Apr2023 19:47:37.645] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Configuration file .\ATM8-world\serverconfig\dimstorage-server.toml is not correct. Correcting
+[25Apr2023 19:47:37.645] [Server thread/WARN] [net.minecraftforge.common.ForgeConfigSpec/CORE]: Incorrect key DimTablet.allow_list was corrected from [minecraft:dirt, minecraft:gravel, minecraft:cobblestone, minecraft:granite, minecraft:diorite, minecraft:andesite, minecraft:sand, minecraft:sandstone, minecraft:netherrack, minecraft:end_stone] to its default, [minecraft:dirt, minecraft:gravel, minecraft:cobblestone, minecraft:granite, minecraft:diorite, minecraft:andesite, minecraft:sand, minecraft:sandstone, minecraft:netherrack, minecraft:end_stone]. 
+[25Apr2023 19:47:38.336] [Server thread/WARN] [potionstudios.byg.BYG/]: "minecraft:none" is not a registered villager profession, skipping trade entry...
+[25Apr2023 19:47:38.340] [Server thread/WARN] [potionstudios.byg.BYG/]: "minecraft:nitwit" is not a registered villager profession, skipping trade entry...
+[25Apr2023 19:47:39.448] [Server thread/WARN] [net.minecraft.network.syncher.SynchedEntityData/]: defineId called for: class net.minecraft.world.entity.TamableAnimal from interface com.hollingsworth.arsnouveau.common.entity.IFollowingSummon
+[25Apr2023 19:47:39.620] [Server thread/WARN] [net.minecraft.network.syncher.SynchedEntityData/]: defineId called for: class dev.murad.shipping.entity.custom.vessel.tug.AbstractTugEntity from class dev.murad.shipping.entity.custom.vessel.barge.FluidTankBargeEntity
+[25Apr2023 19:47:39.620] [Server thread/WARN] [net.minecraft.network.syncher.SynchedEntityData/]: defineId called for: class dev.murad.shipping.entity.custom.vessel.tug.AbstractTugEntity from class dev.murad.shipping.entity.custom.vessel.barge.FluidTankBargeEntity
+[25Apr2023 19:47:39.621] [Server thread/WARN] [net.minecraft.network.syncher.SynchedEntityData/]: defineId called for: class dev.murad.shipping.entity.custom.vessel.tug.AbstractTugEntity from class dev.murad.shipping.entity.custom.train.wagon.FluidTankCarEntity
+[25Apr2023 19:47:39.621] [Server thread/WARN] [net.minecraft.network.syncher.SynchedEntityData/]: defineId called for: class dev.murad.shipping.entity.custom.vessel.tug.AbstractTugEntity from class dev.murad.shipping.entity.custom.train.wagon.FluidTankCarEntity
+[25Apr2023 19:47:42.449] [Worker-Main-6/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[25Apr2023 19:47:42.458] [Worker-Main-9/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[25Apr2023 19:47:42.464] [Worker-Main-5/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[25Apr2023 19:47:42.470] [Worker-Main-2/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[25Apr2023 19:47:42.474] [Worker-Main-9/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[25Apr2023 19:47:42.546] [Worker-Main-10/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 0%
+[25Apr2023 19:47:43.046] [Worker-Main-8/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 1%
+[25Apr2023 19:47:43.545] [Worker-Main-4/INFO] [net.minecraft.server.level.progress.LoggerChunkProgressListener/]: Preparing spawn area: 59%
+[25Apr2023 19:47:43.912] [Server thread/INFO] [net.minecraft.server.dedicated.DedicatedServer/]: Done (6.513s)! For help, type "help"
+[25Apr2023 19:47:44.365] [Server thread/WARN] [ModernFix/]: Dedicated server took 77.66 seconds to load
+[25Apr2023 19:47:44.436] [Server thread/WARN] [evilcraft/]: Invalid appendix info_book.evilcraft.second_age.tools.broom from mod evilcraft in an infobook: The broom modifier evilcraft:witherer has no valid items
+[25Apr2023 19:47:44.436] [Server thread/WARN] [evilcraft/]: Invalid appendix info_book.evilcraft.second_age.tools.broom from mod evilcraft in an infobook: The broom modifier evilcraft:hungerer has no valid items
+[25Apr2023 19:47:44.436] [Server thread/WARN] [evilcraft/]: Invalid appendix info_book.evilcraft.second_age.tools.broom from mod evilcraft in an infobook: The broom modifier evilcraft:kamikaze has no valid items
+[25Apr2023 19:47:48.043] [Server thread/WARN] [elementalcraft/]: Item blue_skies:raw_falsite has multiple tags matching "^(forge|blue_skies)$:^raw_materials/":
+	forge:raw_materials/falsite, blue_skies:raw_materials/falsite
+[25Apr2023 19:47:48.044] [Server thread/WARN] [elementalcraft/]: Item blue_skies:raw_charoite has multiple tags matching "^(forge|blue_skies)$:^raw_materials/":
+	blue_skies:raw_materials/charoite, forge:raw_materials/charoite
+[25Apr2023 19:47:48.055] [Server thread/WARN] [elementalcraft/]: Item blue_skies:raw_aquite has multiple tags matching "^(forge|blue_skies)$:^raw_materials/":
+	forge:raw_materials/aquite, blue_skies:raw_materials/aquite
+[25Apr2023 19:47:48.058] [Server thread/WARN] [elementalcraft/]: Item blue_skies:raw_ventium has multiple tags matching "^(forge|blue_skies)$:^raw_materials/":
+	forge:raw_materials/ventium, blue_skies:raw_materials/ventium
+[25Apr2023 19:47:48.065] [Server thread/WARN] [elementalcraft/]: Item blue_skies:raw_horizonite has multiple tags matching "^(forge|blue_skies)$:^raw_materials/":
+	forge:raw_materials/horizonite, blue_skies:raw_materials/horizonite
+[25Apr2023 19:47:48.081] [Server thread/WARN] [elementalcraft/]: Item blue_skies:raw_horizonite_block has multiple tags matching "^(forge|blue_skies)$:^storage_blocks/raw_?(?!_?materials)":
+	forge:storage_blocks/raw_horizonite, blue_skies:storage_blocks/raw_horizonite
+[25Apr2023 19:47:48.084] [Server thread/WARN] [elementalcraft/]: Item blue_skies:raw_aquite_block has multiple tags matching "^(forge|blue_skies)$:^storage_blocks/raw_?(?!_?materials)":
+	blue_skies:storage_blocks/raw_aquite, forge:storage_blocks/raw_aquite
+[25Apr2023 19:47:48.092] [Server thread/WARN] [elementalcraft/]: Item blue_skies:raw_ventium_block has multiple tags matching "^(forge|blue_skies)$:^storage_blocks/raw_?(?!_?materials)":
+	forge:storage_blocks/raw_ventium, blue_skies:storage_blocks/raw_ventium
+[25Apr2023 19:47:48.093] [Server thread/WARN] [elementalcraft/]: Item blue_skies:raw_charoite_block has multiple tags matching "^(forge|blue_skies)$:^storage_blocks/raw_?(?!_?materials)":
+	forge:storage_blocks/raw_charoite, blue_skies:storage_blocks/raw_charoite
+[25Apr2023 19:47:48.094] [Server thread/WARN] [elementalcraft/]: Item blue_skies:raw_falsite_block has multiple tags matching "^(forge|blue_skies)$:^storage_blocks/raw_?(?!_?materials)":
+	forge:storage_blocks/raw_falsite, blue_skies:storage_blocks/raw_falsite
+[25Apr2023 19:48:47.671] [Server thread/INFO] [net.minecraft.server.players.PlayerList/]: Player1[/[::1]:31815] logged in with entity id 1077 at (-30.45751151920085, 63.0, 156.31855216640022)
+[25Apr2023 19:48:48.170] [Server thread/WARN] [com.klikli_dev.modonomicon.Modonomicon/]: Recipe minecraft:iron_ingot_from_blasting_iron_ore (of type minecraft:blasting) not found.
+[25Apr2023 19:48:48.171] [Server thread/WARN] [com.klikli_dev.modonomicon.Modonomicon/]: Recipe minecraft:netherite_axe_smithing_does_not_exist (of type minecraft:smithing) not found.
+[25Apr2023 19:48:48.359] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Player1 joined the game
+[25Apr2023 19:55:17.717] [Server thread/INFO] [net.minecraft.server.network.ServerGamePacketListenerImpl/]: Player1 lost connection: Disconnected
+[25Apr2023 19:55:17.717] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Player1 left the game
+[25Apr2023 19:55:22.716] [Server thread/INFO] [net.minecraft.server.MinecraftServer/]: Stopping the server
