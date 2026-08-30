@@ -199,6 +199,7 @@ export function createContext(options: ContextOptions): AppContext {
     events,
     audit,
     logger,
+    settings,
     ...(options.schedulerTickMs === undefined ? {} : { tickMs: options.schedulerTickMs }),
   });
   /**

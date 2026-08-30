@@ -759,6 +759,11 @@ export const webFr = {
     invalidCron: 'Expression cron invalide',
     nextRun: 'prochaine : {{date}}',
     nextRunLong: 'Prochaine exécution : {{date}}',
+    timezone: {
+      same: 'Horaires lus dans {{zone}}.',
+      differs:
+        'Horaires lus dans {{zone}} — votre navigateur est en {{browser}}. L’heure saisie ici est celle du panel.',
+    },
     lastRun: 'dernière : {{date}}',
     executed: 'Exécutée',
     missed: 'Manquée',
@@ -984,6 +989,9 @@ export const webFr = {
       auditRetention: 'Rétention de l’audit (jours)',
       restoreOnBoot: 'Restaurer l’état souhaité au démarrage d’un agent',
       metricsInterval: 'Intervalle des métriques (secondes)',
+      scheduleTimezone: 'Fuseau des planifications',
+      scheduleTimezoneHint:
+        'Toutes les heures de sauvegarde et d’action programmée sont lues dans ce fuseau : {{zone}}',
       autoUpdate: 'Mettre à jour les agents automatiquement à la connexion',
     },
     push: {

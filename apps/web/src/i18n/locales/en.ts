@@ -748,6 +748,11 @@ export const webEn = {
     invalidCron: 'Invalid cron expression',
     nextRun: 'next: {{date}}',
     nextRunLong: 'Next run: {{date}}',
+    timezone: {
+      same: 'Times are read in {{zone}}.',
+      differs:
+        'Times are read in {{zone}} — your browser is in {{browser}}. The time you enter here is the panel’s.',
+    },
     lastRun: 'last: {{date}}',
     executed: 'Executed',
     missed: 'Missed',
@@ -972,6 +977,8 @@ export const webEn = {
       auditRetention: 'Audit retention (days)',
       restoreOnBoot: 'Restore desired state when an agent boots',
       metricsInterval: 'Metrics interval (seconds)',
+      scheduleTimezone: 'Schedule time zone',
+      scheduleTimezoneHint: 'Every backup and scheduled-action time is read in this zone: {{zone}}',
       autoUpdate: 'Update agents automatically when they connect',
     },
     push: {

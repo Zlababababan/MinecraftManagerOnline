@@ -154,8 +154,14 @@ export const watchdogPolicySchema = z.object({
 export const backupScheduleSchema = z.object({
   id: z.string(),
   serverId: serverIdSchema,
-  /** Expression cron 5 champs, évaluée localement par l'agent (heure locale de la machine). */
+  /** Expression cron 5 champs, évaluée par l'agent. */
   cron: z.string(),
+  /**
+   * Fuseau dans lequel lire `cron` (nom IANA). Poussé par le panel : sans lui, un agent en UTC
+   * et un utilisateur à Paris ne parlent pas de la même heure, et une sauvegarde réglée sur 4 h
+   * part à 6 h. Optionnel — un agent N-1 l'ignore et garde son heure locale (doc 05 §1).
+   */
+  timezone: z.string().optional(),
   /** Rotation : garde les N plus récentes de cette politique. */
   keep: z.int().positive().optional(),
   keepDays: z.int().positive().optional(),

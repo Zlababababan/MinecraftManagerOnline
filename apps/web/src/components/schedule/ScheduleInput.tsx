@@ -23,8 +23,10 @@ import { useState } from 'react';
 
 import { CRON_LIST_MAX, isValidCronList, nextCronRunList, splitCronList } from '@mmo/shared';
 
+import { useMe } from '../../api/queries.js';
 import { useT } from '../../i18n/hooks.js';
 import { formatDateTime } from '../../lib/format.js';
+import { ScheduleTimeZoneHint } from '../ScheduleTimeZoneHint.js';
 
 /** Échéancier : récurrent (`cron`, 1 à 10 expressions, une par ligne) OU unique (`runAt`). */
 export interface ScheduleValue {
@@ -160,12 +162,15 @@ export function detectSchedule(value: ScheduleValue): { preset: SchedulePreset }
 export function scheduleStatus(
   value: ScheduleValue,
   now: number,
+  timeZone?: string,
 ): { kind: 'ok'; next: number } | { kind: 'past' } | { kind: 'invalid' } {
   if (value.runAt !== null) {
     return value.runAt > now ? { kind: 'ok', next: value.runAt } : { kind: 'past' };
   }
   if (value.cron === null || !isValidCronList(value.cron)) return { kind: 'invalid' };
-  const next = nextCronRunList(value.cron, now);
+  // Le fuseau du PANEL : l'aperçu doit annoncer l'instant qui se produira réellement, pas celui
+  // que le navigateur aurait calculé chez lui.
+  const next = nextCronRunList(value.cron, now, timeZone);
   return next === undefined ? { kind: 'invalid' } : { kind: 'ok', next };
 }
 
@@ -231,6 +236,7 @@ export function ScheduleInput({
   testId?: string;
 }) {
   const { t, i18n } = useT();
+  const me = useMe();
   const detected = detectSchedule(value);
   // Le préréglage choisi est le seul état local : une même expression peut aussi être éditée en
   // mode avancé.
@@ -281,7 +287,7 @@ export function ScheduleInput({
     }
     emit({ times: [...fields.times, candidate] });
   };
-  const status = scheduleStatus(value, Date.now());
+  const status = scheduleStatus(value, Date.now(), me.data?.scheduleTimezone);
   const withTimes = preset === 'daily' || preset === 'weekdays';
 
   return (
@@ -438,6 +444,7 @@ export function ScheduleInput({
           data-testid={`${testId}-custom`}
         />
       )}
+      <ScheduleTimeZoneHint testId={`${testId}-tz`} />
       <Group gap={6} wrap="nowrap" data-testid={`${testId}-preview`}>
         <IconClockHour4 size={16} style={{ flexShrink: 0 }} />
         {status.kind === 'ok' ? (

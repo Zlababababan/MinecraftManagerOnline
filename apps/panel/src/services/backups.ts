@@ -278,7 +278,10 @@ export class BackupsService {
       onlyIfRunning: row.onlyIfRunning === 1,
       enabled: row.enabled === 1,
       createdAt: row.createdAt,
-      nextRunAt: row.enabled === 1 ? (nextCronRun(row.cron, this.deps.now()) ?? null) : null,
+      nextRunAt:
+        row.enabled === 1
+          ? (nextCronRun(row.cron, this.deps.now(), this.deps.settings.timeZone()) ?? null)
+          : null,
       lastRunAt: row.lastRunAt,
       lastStatus: isPolicyStatus(row.lastStatus) ? row.lastStatus : null,
       lastError: row.lastError,
@@ -330,7 +333,11 @@ export class BackupsService {
       .where(and(eq(backupPolicies.enabled, 1), isNull(backupPolicies.overdueSince)))
       .all()
       .filter((row) => {
-        const expected = nextCronRun(row.cron, row.lastRunAt ?? row.createdAt);
+        const expected = nextCronRun(
+          row.cron,
+          row.lastRunAt ?? row.createdAt,
+          this.deps.settings.timeZone(),
+        );
         return expected !== undefined && now > expected + graceMs;
       });
   }
@@ -415,6 +422,9 @@ export class BackupsService {
   /** Plannings poussés à l'agent d'une machine (`agent.configure.backupSchedules`). */
   schedulesFor(serverIds: string[]) {
     if (serverIds.length === 0) return [];
+    // Le fuseau part AVEC la politique : l'agent ne peut pas le deviner, et le sien est souvent
+    // UTC là où l'utilisateur raisonne en heure locale.
+    const timezone = this.deps.settings.timeZone();
     return this.deps.db
       .select()
       .from(backupPolicies)
@@ -424,6 +434,7 @@ export class BackupsService {
         id: p.id,
         serverId: p.serverId,
         cron: p.cron,
+        timezone,
         ...(p.keepLast === null ? {} : { keep: p.keepLast }),
         ...(p.keepDays === null ? {} : { keepDays: p.keepDays }),
         onlyIfRunning: p.onlyIfRunning === 1,

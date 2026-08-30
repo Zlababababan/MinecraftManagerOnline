@@ -1,6 +1,8 @@
 /** `app_settings` clé/valeur (doc 04 §6). Les clés secrètes ne sortent jamais par l'API. */
 import { eq } from 'drizzle-orm';
 
+import { isValidTimeZone, localTimeZone } from '@mmo/shared';
+
 import type { MmoDatabase } from '../db/client.js';
 import { appSettings } from '../db/schema.js';
 
@@ -10,6 +12,12 @@ export const SETTING_KEYS = {
   backupDestination: 'backups.defaultDestination',
   /** Recette 1.0 : rattrapage unique des politiques de sauvegarde par défaut ('1' = fait). */
   backupDefaultsSeeded: 'backups.defaultsSeeded',
+  /**
+   * Fuseau dans lequel TOUTES les planifications sont lues (sauvegardes et actions programmées).
+   * Sans lui, chaque processus évaluait dans le sien — un agent Linux en UTC faisait partir à 6 h
+   * une sauvegarde réglée sur 4 h par un utilisateur à Paris, sans que rien ne le dise.
+   */
+  scheduleTimezone: 'schedule.timezone',
   eventsRetentionDays: 'retention.eventsDays',
   auditRetentionDays: 'retention.auditDays',
   restoreOnBoot: 'agents.restoreOnBoot',
@@ -77,9 +85,22 @@ export class SettingsService {
       .run();
   }
 
+  /**
+   * Fuseau des planifications : celui réglé, sinon celui de l'hôte du panel. Un nom devenu
+   * invalide (base IANA amputée, réglage bricolé à la main) ne doit pas figer le planificateur :
+   * on retombe sur l'hôte plutôt que de lever.
+   */
+  timeZone(): string {
+    const stored = this.get(SETTING_KEYS.scheduleTimezone);
+    return stored !== undefined && isValidTimeZone(stored) ? stored : localTimeZone();
+  }
+
   /** Toutes les clés non secrètes (défauts inclus). */
   public(): Record<string, string> {
-    const out: Record<string, string> = { ...DEFAULTS };
+    const out: Record<string, string> = {
+      ...DEFAULTS,
+      [SETTING_KEYS.scheduleTimezone]: this.timeZone(),
+    };
     for (const row of this.db.select().from(appSettings).all()) {
       if (!SECRET_KEYS.has(row.key)) out[row.key] = row.value;
       // Un secret n'est jamais renvoyé, mais l'UI doit savoir s'il est renseigné.

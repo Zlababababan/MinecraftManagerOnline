@@ -1,6 +1,7 @@
 /**
  * Plannings de backups **locaux** (doc 05 §5–§6) : poussés par `agent.configure.backupSchedules`,
- * persistés, évalués par l'agent toutes les 30 s en heure locale — un backup nocturne ne dépend pas
+ * persistés, évalués par l'agent toutes les 30 s dans le fuseau de la politique (celui du panel,
+ * poussé avec elle ; l'heure locale de la machine à défaut) — un backup nocturne ne dépend pas
  * du panel. Une occurrence manquée (agent éteint) n'est pas rattrapée ; une occurrence n'est jamais
  * exécutée deux fois (`backupScheduleRuns`). Les résultats partent en `task.completed` (critique,
  * rejoué à la reconnexion).
@@ -66,7 +67,7 @@ export class BackupScheduler {
       const spec = parseCron(schedule.cron);
       const last = this.options.store.get().backupScheduleRuns[schedule.id];
       const base = last === undefined ? this.now() - 60_000 : Math.max(last, this.now() - 60_000);
-      return cronNext(spec, base);
+      return cronNext(spec, base, schedule.timezone);
     } catch {
       return undefined;
     }
@@ -95,7 +96,7 @@ export class BackupScheduler {
         }
         const last = this.options.store.get().backupScheduleRuns[schedule.id];
         // Une occurrence est due si elle est tombée dans la dernière minute et n'a pas déjà tourné.
-        const due = cronNext(spec, t - 60_000);
+        const due = cronNext(spec, t - 60_000, schedule.timezone);
         if (due === undefined || due > t) continue;
         if (last !== undefined && last >= due) continue;
         if (!this.options.store.getServer(schedule.serverId)) continue;

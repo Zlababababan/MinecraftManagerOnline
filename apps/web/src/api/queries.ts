@@ -101,7 +101,8 @@ export type CommandHistoryItem = z.infer<typeof commandHistoryItemSchema>;
 
 export const meQuery = queryOptions({
   queryKey: keys.me,
-  queryFn: ({ signal }) => api.get<{ user: UserDto }>('/api/auth/me', signal),
+  queryFn: ({ signal }) =>
+    api.get<{ user: UserDto; scheduleTimezone?: string }>('/api/auth/me', signal),
   retry: false,
   staleTime: 60_000,
 });

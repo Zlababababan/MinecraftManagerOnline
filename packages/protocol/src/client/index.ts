@@ -812,6 +812,8 @@ export const EDITABLE_SETTINGS = [
   'retention.uiEventsDays',
   'agents.restoreOnBoot',
   'metrics.intervalSec',
+  /** Fuseau dans lequel toutes les planifications sont lues (nom IANA, ex. `Europe/Paris`). */
+  'schedule.timezone',
   /** Phase 9 : mise à jour automatique des agents à la connexion ('1'/'0'). */
   'agents.autoUpdate',
   /** Phase 10 : couche d'accès (doc 03 §5). Les secrets (`access.dns.token`) ne ressortent jamais. */

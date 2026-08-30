@@ -141,9 +141,17 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
 
   r.get(
     '/api/auth/me',
-    { schema: { response: { 200: z.object({ user: userDtoSchema }) } } },
+    {
+      schema: {
+        response: { 200: z.object({ user: userDtoSchema, scheduleTimezone: z.string() }) },
+      },
+    },
     (request) => ({
       user: toUserDto(requireUser(request)),
+      // Le fuseau dans lequel les planifications sont LUES. Il voyage ici parce que tout
+      // utilisateur connecté en a besoin dès qu'il saisit une heure, alors que la route des réglages
+      // est réservée aux administrateurs.
+      scheduleTimezone: ctx.settings.timeZone(),
     }),
   );
 

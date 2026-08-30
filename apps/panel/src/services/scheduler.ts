@@ -27,6 +27,7 @@ import type { AuditService } from './audit.js';
 import type { PartialInput } from './backups.js';
 import type { EventBus } from './events.js';
 import type { ServersService } from './servers.js';
+import type { SettingsService } from './settings.js';
 
 export interface SchedulerServiceDeps {
   db: MmoDatabase;
@@ -35,6 +36,7 @@ export interface SchedulerServiceDeps {
   servers: ServersService;
   events: EventBus;
   audit: AuditService;
+  settings: SettingsService;
   logger: { warn(obj: unknown, msg?: string): void; info(obj: unknown, msg?: string): void };
   /** Période d'évaluation (défaut 30 s ; 0 = pas de timer, `tick()` manuel). */
   tickMs?: number;
@@ -205,7 +207,7 @@ export class SchedulerService {
   /** Prochaine échéance ; une exécution unique déjà passée ne se réarme jamais. */
   private nextDue(when: { cron: string | null; runAt: number | null }): number | null {
     if (when.runAt !== null) return when.runAt > this.deps.now() ? when.runAt : null;
-    return nextCronRunList(when.cron ?? '', this.deps.now()) ?? null;
+    return nextCronRunList(when.cron ?? '', this.deps.now(), this.deps.settings.timeZone()) ?? null;
   }
 
   private validate(action: string, payload: SchedulePayload | null): void {
@@ -229,6 +231,9 @@ export class SchedulerService {
     const ran: string[] = [];
     try {
       const t = this.deps.now();
+      // Un seul fuseau pour tout le tick : le relire par ligne ouvrirait la porte à deux
+      // planifications du même passage calculées dans des fuseaux différents.
+      const zone = this.deps.settings.timeZone();
       for (const row of this.list()) {
         if (row.enabled !== 1) continue;
         let next = row.nextRunAt;
@@ -236,7 +241,7 @@ export class SchedulerService {
           // Exécution unique sans échéance (déjà passée à l'update) : rien à recalculer.
           if (row.runAt !== null) continue;
           // Ligne ancienne sans échéance : on la calcule maintenant.
-          next = nextCronRunList(row.cron, t) ?? null;
+          next = nextCronRunList(row.cron, t, zone) ?? null;
           this.deps.db
             .update(scheduledTasks)
             .set({ nextRunAt: next })
@@ -259,7 +264,7 @@ export class SchedulerService {
           .set({
             lastRunAt: t,
             lastStatus: status,
-            nextRunAt: once ? null : (nextCronRunList(row.cron, t) ?? null),
+            nextRunAt: once ? null : (nextCronRunList(row.cron, t, zone) ?? null),
             ...(once ? { enabled: 0 } : {}),
           })
           .where(eq(scheduledTasks.id, row.id))

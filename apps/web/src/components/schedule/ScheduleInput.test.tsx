@@ -6,6 +6,7 @@
  * composant sur une valeur qui l'implique.
  */
 import { MantineProvider } from '@mantine/core';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -108,15 +109,25 @@ describe('validité et description', () => {
   });
 });
 
+/**
+ * Le composant lit le fuseau des planifications via `/api/auth/me` : sans client de requêtes il
+ * ne peut pas monter. Requête neutralisée (`retry: false`, pas de réseau sous jsdom) — le fuseau
+ * reste indéfini, ce qui est exactement le cas d'un panel N-1 qui ne l'expose pas.
+ */
 function renderInput(value: ScheduleValue, onChange: (v: ScheduleValue) => void, allow = true) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, queryFn: () => Promise.resolve({}) } },
+  });
   return render(
     <MantineProvider>
-      <ScheduleInput
-        value={value}
-        onChange={onChange}
-        allowOnce={allow}
-        allowMultipleTimes={allow}
-      />
+      <QueryClientProvider client={client}>
+        <ScheduleInput
+          value={value}
+          onChange={onChange}
+          allowOnce={allow}
+          allowMultipleTimes={allow}
+        />
+      </QueryClientProvider>
     </MantineProvider>,
   );
 }

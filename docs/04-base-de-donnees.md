@@ -431,6 +431,8 @@ CREATE TABLE app_settings (
 );
 ```
 
+**Amendement (2026-08-30) — `schedule.timezone`.** Nom IANA (`Europe/Paris`) dans lequel **toutes** les planifications sont lues : politiques de sauvegarde et actions programmées. Absent ⇒ fuseau de l'hôte du panel ; valeur devenue invalide ⇒ même repli (un réglage bricolé ne doit pas figer le planificateur). Le panel l'applique à `nextCronRun`/`nextCronRunList`, le pousse à l'agent avec chaque politique (`agent.configure.backupSchedules[].timezone`) et l'expose à tout utilisateur connecté par `GET /api/auth/me` — la route des réglages étant réservée aux administrateurs, alors que n'importe qui saisissant une heure a besoin de savoir dans quel fuseau elle sera lue. Motif : les expressions cron étaient évaluées dans le fuseau du **processus** (agent pour les sauvegardes, panel pour les actions, navigateur pour l'aperçu) ; un agent Linux en UTC faisait partir à 6 h une sauvegarde réglée sur 4 h par un utilisateur à Paris, sans que rien ne le signale.
+
 ```sql
 -- Événements critiques d'agent déjà traités (eventId de server.stateChanged, player.event,
 -- server.detected…) : l'agent rejoue jusqu'à event.ack ; si le panel redémarre entre le traitement

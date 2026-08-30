@@ -10,6 +10,7 @@ import {
   Code,
   Group,
   NumberInput,
+  Select,
   SimpleGrid,
   Stack,
   Switch,
@@ -19,6 +20,8 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
+
+import { describeTimeZone, localTimeZone } from '@mmo/shared';
 
 import { usePushStatus, useSettings, useUpdateSettings } from '../api/phase10.js';
 import { AccessCard } from '../components/admin/AccessCard.js';
@@ -30,6 +33,18 @@ import { useT } from '../i18n/hooks.js';
 import { describeError } from '../lib/errors.js';
 import { coerceOriginInput, isValidOriginInput } from '../lib/origin.js';
 
+/**
+ * Fuseaux proposés : ceux que connaît le navigateur. La liste est longue (~400) mais le champ est
+ * cherchable, et proposer autre chose que la base IANA du moteur reviendrait à offrir des noms que
+ * le panel pourrait refuser.
+ */
+const TIME_ZONES: string[] = (() => {
+  const supported = (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf;
+  const list = supported === undefined ? [] : supported('timeZone');
+  // Le fuseau du navigateur figure toujours dans la liste, même sur un moteur avare.
+  return list.includes(localTimeZone()) ? list : [localTimeZone(), ...list];
+})();
+
 function GeneralCard({ settings }: { settings: Record<string, string> }) {
   const { t, i18n } = useT();
   const update = useUpdateSettings();
@@ -40,6 +55,7 @@ function GeneralCard({ settings }: { settings: Record<string, string> }) {
       eventsRetention: Number(settings['retention.eventsDays'] ?? '90'),
       auditRetention: Number(settings['retention.auditDays'] ?? '365'),
       metricsInterval: Number(settings['metrics.intervalSec'] ?? '15'),
+      scheduleTimezone: settings['schedule.timezone'] ?? localTimeZone(),
       restoreOnBoot: settings['agents.restoreOnBoot'] === 'true',
       autoUpdate: settings['agents.autoUpdate'] === 'true' || settings['agents.autoUpdate'] === '1',
     },
@@ -58,6 +74,7 @@ function GeneralCard({ settings }: { settings: Record<string, string> }) {
               'retention.eventsDays': String(v.eventsRetention),
               'retention.auditDays': String(v.auditRetention),
               'metrics.intervalSec': String(v.metricsInterval),
+              'schedule.timezone': v.scheduleTimezone,
               'agents.restoreOnBoot': v.restoreOnBoot ? 'true' : 'false',
               'agents.autoUpdate': v.autoUpdate ? '1' : '0',
             },
@@ -103,6 +120,17 @@ function GeneralCard({ settings }: { settings: Record<string, string> }) {
               {...form.getInputProps('metricsInterval')}
             />
           </SimpleGrid>
+          <Select
+            label={t('web:settings.general.scheduleTimezone')}
+            description={t('web:settings.general.scheduleTimezoneHint', {
+              zone: describeTimeZone(form.values.scheduleTimezone, Date.now()),
+            })}
+            data={TIME_ZONES}
+            searchable
+            allowDeselect={false}
+            {...form.getInputProps('scheduleTimezone')}
+            data-testid="settings-schedule-timezone"
+          />
           <Switch
             label={t('web:settings.general.restoreOnBoot')}
             {...form.getInputProps('restoreOnBoot', { type: 'checkbox' })}

@@ -1,10 +1,14 @@
 /**
- * Expressions cron à 5 champs (`min heure jour mois jour-semaine`), évaluées en **heure locale**
- * de la machine qui exécute (panel pour les actions programmées, agent pour les backups). Sans
- * dépendance. Sémantique Vixie : `*`, listes `a,b`, plages `a-b`, pas `a-b/n` et `* /n`, noms de mois
+ * Expressions cron à 5 champs (`min heure jour mois jour-semaine`), évaluées dans un **fuseau
+ * explicite** — celui de la planification, pas celui du processus qui exécute. À défaut, le fuseau
+ * du processus, ce qui était l'ancien comportement : c'est précisément lui qui faisait partir à 6 h
+ * une sauvegarde réglée sur 4 h, l'agent étant en UTC et l'utilisateur à Paris (voir
+ * `timezone.ts`). Sans dépendance. Sémantique Vixie : `*`, listes `a,b`, plages `a-b`, pas `a-b/n` et `* /n`, noms de mois
  * (`jan`…) et de jours (`sun`… ; `0` et `7` = dimanche) ; si jour-du-mois **et** jour-de-semaine sont
  * restreints, l'un **ou** l'autre suffit.
  */
+
+import { instantOfWallClock, localTimeZone, wallClockIn, type WallClock } from './timezone.js';
 
 export interface CronSpec {
   minutes: Set<number>;
@@ -139,36 +143,67 @@ export function isValidCron(expression: string): boolean {
   }
 }
 
-/** L'instant (à la minute près, heure locale) correspond-il à l'expression ? */
-export function cronMatches(spec: CronSpec, date: Date): boolean {
-  if (!spec.minutes.has(date.getMinutes())) return false;
-  if (!spec.hours.has(date.getHours())) return false;
-  if (!spec.months.has(date.getMonth() + 1)) return false;
-  const domOk = spec.daysOfMonth.has(date.getDate());
-  const dowOk = spec.daysOfWeek.has(date.getDay());
+/** L'expression correspond-elle à cette heure murale ? */
+function wallMatches(spec: CronSpec, wall: WallClock, weekday: number): boolean {
+  if (!spec.minutes.has(wall.minute)) return false;
+  if (!spec.hours.has(wall.hour)) return false;
+  if (!spec.months.has(wall.month)) return false;
+  const domOk = spec.daysOfMonth.has(wall.day);
+  const dowOk = spec.daysOfWeek.has(weekday);
   if (spec.domRestricted && spec.dowRestricted) return domOk || dowOk;
   if (spec.domRestricted) return domOk;
   if (spec.dowRestricted) return dowOk;
   return true;
 }
 
+/** Jour de la semaine (0 = dimanche) d'une date murale, indépendamment de tout fuseau. */
+function dayOfWeek(wall: WallClock): number {
+  return new Date(Date.UTC(wall.year, wall.month - 1, wall.day)).getUTCDay();
+}
+
 /**
- * Prochaine occurrence **strictement après** `after` (epoch ms), en heure locale ; `undefined` si
- * aucune dans les 5 ans (ex. `31 feb`). Avance minute par minute avec sauts par jour/heure.
+ * L'instant (à la minute près) correspond-il à l'expression ? Dans `timeZone` s'il est fourni,
+ * sinon dans le fuseau du processus.
  */
-export function cronNext(spec: CronSpec, after: number): number | undefined {
-  const d = new Date(after);
-  d.setSeconds(0, 0);
-  d.setMinutes(d.getMinutes() + 1);
-  const limit = after + 5 * 366 * 86_400_000;
-  while (d.getTime() <= limit) {
-    if (!spec.months.has(d.getMonth() + 1)) {
-      d.setMonth(d.getMonth() + 1, 1);
-      d.setHours(0, 0, 0, 0);
+export function cronMatches(spec: CronSpec, date: Date, timeZone?: string): boolean {
+  const wall =
+    timeZone === undefined
+      ? {
+          year: date.getFullYear(),
+          month: date.getMonth() + 1,
+          day: date.getDate(),
+          hour: date.getHours(),
+          minute: date.getMinutes(),
+        }
+      : wallClockIn(date.getTime(), timeZone);
+  return wallMatches(spec, wall, dayOfWeek(wall));
+}
+
+/**
+ * Prochaine occurrence **strictement après** `after` (epoch ms) ; `undefined` si aucune dans les
+ * 5 ans (ex. `31 feb`). Sans `timeZone`, le fuseau du processus — l'ancien comportement.
+ *
+ * La marche se fait en HEURE MURALE (un `Date` en pseudo-UTC sert de calendrier), puis l'heure
+ * trouvée est convertie en instant réel. C'est ce qui rend le résultat identique quel que soit le
+ * processus qui calcule, et ce qui permet de sauter proprement l'heure qui n'existe pas au
+ * passage à l'heure d'été.
+ */
+export function cronNext(spec: CronSpec, after: number, timeZone?: string): number | undefined {
+  const zone = timeZone ?? localTimeZone();
+  const start = wallClockIn(after, zone);
+  const cursor = new Date(
+    Date.UTC(start.year, start.month - 1, start.day, start.hour, start.minute),
+  );
+  cursor.setUTCMinutes(cursor.getUTCMinutes() + 1);
+  const limit = cursor.getTime() + 5 * 366 * 86_400_000;
+  while (cursor.getTime() <= limit) {
+    if (!spec.months.has(cursor.getUTCMonth() + 1)) {
+      cursor.setUTCMonth(cursor.getUTCMonth() + 1, 1);
+      cursor.setUTCHours(0, 0, 0, 0);
       continue;
     }
-    const domOk = spec.daysOfMonth.has(d.getDate());
-    const dowOk = spec.daysOfWeek.has(d.getDay());
+    const domOk = spec.daysOfMonth.has(cursor.getUTCDate());
+    const dowOk = spec.daysOfWeek.has(cursor.getUTCDay());
     const dayOk =
       spec.domRestricted && spec.dowRestricted
         ? domOk || dowOk
@@ -178,27 +213,46 @@ export function cronNext(spec: CronSpec, after: number): number | undefined {
             ? dowOk
             : true;
     if (!dayOk) {
-      d.setDate(d.getDate() + 1);
-      d.setHours(0, 0, 0, 0);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+      cursor.setUTCHours(0, 0, 0, 0);
       continue;
     }
-    if (!spec.hours.has(d.getHours())) {
-      d.setHours(d.getHours() + 1, 0, 0, 0);
+    if (!spec.hours.has(cursor.getUTCHours())) {
+      cursor.setUTCHours(cursor.getUTCHours() + 1, 0, 0, 0);
       continue;
     }
-    if (!spec.minutes.has(d.getMinutes())) {
-      d.setMinutes(d.getMinutes() + 1, 0, 0);
+    if (!spec.minutes.has(cursor.getUTCMinutes())) {
+      cursor.setUTCMinutes(cursor.getUTCMinutes() + 1, 0, 0);
       continue;
     }
-    return d.getTime();
+    const instant = instantOfWallClock(
+      {
+        year: cursor.getUTCFullYear(),
+        month: cursor.getUTCMonth() + 1,
+        day: cursor.getUTCDate(),
+        hour: cursor.getUTCHours(),
+        minute: cursor.getUTCMinutes(),
+      },
+      zone,
+    );
+    // Heure inexistante (passage à l'heure d'été) : la planification saute cette occurrence.
+    if (instant === undefined || instant <= after) {
+      cursor.setUTCMinutes(cursor.getUTCMinutes() + 1, 0, 0);
+      continue;
+    }
+    return instant;
   }
   return undefined;
 }
 
 /** Raccourci : prochaine occurrence d'une expression textuelle (`undefined` si invalide). */
-export function nextCronRun(expression: string, after: number): number | undefined {
+export function nextCronRun(
+  expression: string,
+  after: number,
+  timeZone?: string,
+): number | undefined {
   try {
-    return cronNext(parseCron(expression), after);
+    return cronNext(parseCron(expression), after, timeZone);
   } catch {
     return undefined;
   }
@@ -229,10 +283,14 @@ export function isValidCronList(text: string): boolean {
  * Prochaine occurrence parmi toutes les expressions de la liste (le minimum) ; `undefined` si
  * aucune expression n'a d'occurrence (liste vide, invalide, ou ex. `31 feb`).
  */
-export function nextCronRunList(text: string, after: number): number | undefined {
+export function nextCronRunList(
+  text: string,
+  after: number,
+  timeZone?: string,
+): number | undefined {
   let best: number | undefined;
   for (const expression of splitCronList(text)) {
-    const next = nextCronRun(expression, after);
+    const next = nextCronRun(expression, after, timeZone);
     if (next !== undefined && (best === undefined || next < best)) best = next;
   }
   return best;
