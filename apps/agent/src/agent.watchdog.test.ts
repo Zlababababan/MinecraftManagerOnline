@@ -256,9 +256,15 @@ describe('phase 7 : watchdog et métriques de bout en bout', () => {
     'metrics.sample : CPU/RSS/joueurs/TPS (forge) toutes les 300 ms, tampon rejoué après une coupure',
     async () => {
       const { dir } = await prepareServer('Metrics');
-      const peer = await bootAgent(['--tps', 'forge', '--tps-value', '18.5', '--join', 'Alice'], {
-        metricsIntervalMs: 300,
-      });
+      // `--rcon-delay 4000` : le listener RCON n'ouvre qu'APRÈS la ligne « Done », comme le fait un
+      // vrai serveur Minecraft chargé. Les premières lectures TPS échouent donc en transport.
+      // C'est la course que le runner Windows perdait au hasard ; ici elle est déterministe.
+      // Avant le correctif de la sonde (échec de transport confondu avec « commande inconnue »),
+      // ce seul échec armait un verrou de 10 minutes et le TPS n'arrivait jamais.
+      const peer = await bootAgent(
+        ['--tps', 'forge', '--tps-value', '18.5', '--join', 'Alice', '--rcon-delay', '4000'],
+        { metricsIntervalMs: 300 },
+      );
       await configure(peer, dir, {
         autoRestart: false,
         crashLoopMax: 3,
@@ -266,33 +272,22 @@ describe('phase 7 : watchdog et métriques de bout en bout', () => {
         freezeAction: 'none',
       });
       await peer.request('server.start', { serverId: 'srv_1' });
-      try {
-        // Attentes séparées : en cas d'échec, le message nomme la métrique manquante.
-        await waitFor(() => cap.samples.some((s) => s.servers[0]?.tps !== undefined), 30_000);
-        await waitFor(() => cap.samples.some((s) => s.servers[0]?.players === 1), 15_000);
-        // RSS : démarrage du sidecar Windows lent sur les runners CI.
-        await waitFor(() => cap.samples.some((s) => s.servers[0]?.rssMb !== undefined), 30_000);
-        await waitFor(
-          () =>
-            cap.samples.some(
-              (s) =>
-                s.servers[0]?.tps !== undefined &&
-                s.servers[0].players === 1 &&
-                s.servers[0].rssMb !== undefined,
-            ),
-          10_000,
-        );
-      } catch (cause) {
-        // TODO(flaky CI) : sur le runner Windows, le TPS peut ne jamais être échantillonné en 30 s
-        // (contention fake-server/sampler) — jamais observé en local. Sur CI on avertit sans
-        // échouer ; en local le test reste strict. Voir CLAUDE.md (« instabilités CI restantes »).
-        if (process.env.CI !== undefined) {
-          const seen = cap.samples.at(-1)?.servers[0];
-          console.warn(`[flaky-ci] metrics.sample incomplet : ${JSON.stringify(seen ?? null)}`);
-          return;
-        }
-        throw cause;
-      }
+      // Attentes séparées : en cas d'échec, le message nomme la métrique manquante.
+      // Le TPS demande une lecture RCON réussie après le backoff court de la sonde (5 s).
+      await waitFor(() => cap.samples.some((s) => s.servers[0]?.tps !== undefined), 30_000);
+      await waitFor(() => cap.samples.some((s) => s.servers[0]?.players === 1), 15_000);
+      // RSS : démarrage du sidecar Windows lent sur les runners CI.
+      await waitFor(() => cap.samples.some((s) => s.servers[0]?.rssMb !== undefined), 30_000);
+      await waitFor(
+        () =>
+          cap.samples.some(
+            (s) =>
+              s.servers[0]?.tps !== undefined &&
+              s.servers[0].players === 1 &&
+              s.servers[0].rssMb !== undefined,
+          ),
+        10_000,
+      );
       const full = cap.samples.find(
         (s) => s.servers[0]?.tps !== undefined && s.servers[0].players === 1,
       )!;

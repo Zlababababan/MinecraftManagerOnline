@@ -457,6 +457,9 @@ export class ServerManager {
         loader: record.config.loader,
         mcVersion: record.config.mcVersion,
         exec: (command, timeoutMs) => proc.rconExec(command, timeoutMs),
+        log: (message, data) => {
+          this.options.logger.debug(message, { serverId, ...data });
+        },
         ...(this.options.now === undefined ? {} : { now: this.options.now }),
       });
       this.tpsProbes.set(serverId, probe);
@@ -558,6 +561,13 @@ export class ServerManager {
     if (event.kind === 'state' && event.state === 'starting') {
       // Nouveau démarrage : mods/version ont pu changer, la chaîne TPS est réapprise.
       this.tpsProbes.get(serverId)?.reset();
+    }
+    if (event.kind === 'state' && event.state === 'running') {
+      // Le signal le plus proche de « RCON accepte les connexions » dont dispose l'agent : lève
+      // le verrou d'un échec de transport sans jeter la chaîne apprise. `running` peut être
+      // déclaré par la ligne « Done » alors que le listener RCON n'est pas encore ouvert — d'où
+      // le backoff court côté sonde, que ce déblocage complète sans le remplacer.
+      this.tpsProbes.get(serverId)?.unlock();
     }
     if (event.kind === 'state' && (event.state === 'stopped' || event.state === 'crashed')) {
       this.persist(
