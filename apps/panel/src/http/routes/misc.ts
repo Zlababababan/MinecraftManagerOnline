@@ -28,6 +28,10 @@ export function registerMiscRoutes(app: FastifyInstance, ctx: AppContext): void 
     protocolVersion: PROTOCOL_VERSION,
     time: ctx.now(),
     agentsConnected: ctx.registry.all().length,
+    sqlite: {
+      driver: 'node:sqlite',
+      version: (ctx.sqlite.prepare('SELECT sqlite_version() AS v').get() as { v: string }).v,
+    },
   }));
 
   r.get('/api/events', { schema: { querystring: eventsQuerySchema } }, (request) => ({

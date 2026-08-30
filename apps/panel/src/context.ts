@@ -2,8 +2,6 @@
 import type { FastifyBaseLogger } from 'fastify';
 import path from 'node:path';
 
-import type Database from 'better-sqlite3';
-
 import { ConsoleRelay } from './agents/console.js';
 import { AccessService } from './services/access.js';
 import { NotificationsService } from './services/notifications.js';
@@ -16,6 +14,7 @@ import {
   type MetricsDatabase,
   type MmoDatabase,
 } from './db/client.js';
+import type { SqliteHandle } from './db/sqlite.js';
 import { AuditService } from './services/audit.js';
 import { BackupsService } from './services/backups.js';
 import { EventBus } from './services/events.js';
@@ -43,9 +42,9 @@ export interface AppContext {
   logger: FastifyBaseLogger;
   now: () => number;
   db: MmoDatabase;
-  sqlite: Database.Database;
+  sqlite: SqliteHandle;
   metrics: MetricsDatabase;
-  metricsSqlite: Database.Database;
+  metricsSqlite: SqliteHandle;
   metricsService: MetricsService;
   uiEvents: UiEventsService;
   settings: SettingsService;

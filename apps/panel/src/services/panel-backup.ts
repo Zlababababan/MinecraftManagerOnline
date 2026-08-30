@@ -12,11 +12,12 @@
 import { copyFileSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from 'node:fs';
 import path from 'node:path';
 
-import Database from 'better-sqlite3';
 import type { PanelBackupDto } from '@mmo/protocol/client';
 
+import { openSqliteReadonly, type SqliteHandle } from '../db/sqlite.js';
+
 export interface PanelBackupServiceDeps {
-  sqlite: Database.Database;
+  sqlite: SqliteHandle;
   dataDir: string;
   now: () => number;
   /** Nombre de copies conservées (défaut 7). */
@@ -118,8 +119,9 @@ export function restorePanelBackup(
   if (exists(wal) && statSync(wal).size > 0) {
     throw new Error('mmo.db-wal is not empty: stop the panel cleanly before restoring');
   }
-  // Vérification de la copie avant de toucher à quoi que ce soit.
-  const check = new Database(source, { readonly: true, fileMustExist: true });
+  // Vérification de la copie avant de toucher à quoi que ce soit. L'absence du fichier est déjà
+  // traitée plus haut : `node:sqlite` n'a pas d'équivalent de `fileMustExist`.
+  const check = openSqliteReadonly(source);
   try {
     const integrity = check.pragma('integrity_check', { simple: true }) as string;
     if (integrity !== 'ok') throw new Error(`backup integrity check failed: ${integrity}`);

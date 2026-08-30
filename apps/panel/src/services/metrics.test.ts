@@ -3,10 +3,10 @@
  * downsampling brut → 1 min → 1 h reproduit exactement moyennes/extrema, la purge respecte les
  * rétentions, les rejeux tardifs sont réagrégés, les écritures sont groupées.
  */
-import Database from 'better-sqlite3';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { openMetricsDatabase, type OpenedDatabase, type MetricsDatabase } from '../db/client.js';
@@ -300,10 +300,10 @@ describe('metrics.db — auto_vacuum (doc 04 §7)', () => {
     const file = path.join(dir, 'metrics.db');
     // Reproduit une base d'avant le correctif : schéma en place, auto_vacuum à 0.
     openMetricsDatabase(file).close();
-    const legacy = new Database(file);
-    legacy.pragma('auto_vacuum = NONE');
+    const legacy = new DatabaseSync(file);
+    legacy.exec('PRAGMA auto_vacuum = NONE');
     legacy.exec('VACUUM');
-    expect(legacy.pragma('auto_vacuum', { simple: true })).toBe(0);
+    expect(legacy.prepare('PRAGMA auto_vacuum').get()).toEqual({ auto_vacuum: 0 });
     legacy.close();
 
     const opened = openMetricsDatabase(file);

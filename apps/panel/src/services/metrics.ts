@@ -4,7 +4,6 @@
  * (min/max/avg, moyennes pondérées par `samples`) et purge (brut 48 h, 1 min 14 j, 1 h 2 ans),
  * `incremental_vacuum` occasionnel ; lectures par plage avec résolution automatique.
  */
-import type Database from 'better-sqlite3';
 
 import type { EventPayload } from '@mmo/protocol';
 import type {
@@ -16,6 +15,8 @@ import type {
   ServerMetricsPoint,
   ServerMetricsResult,
 } from '@mmo/protocol/client';
+
+import type { SqliteHandle } from '../db/sqlite.js';
 
 export type MetricsSample = EventPayload<'metrics.sample'>;
 
@@ -37,7 +38,7 @@ export function autoResolution(spanMs: number): MetricsResolution {
 }
 
 export interface MetricsServiceOptions {
-  sqlite: Database.Database;
+  sqlite: SqliteHandle;
   now: () => number;
   /** Délai max entre deux écritures groupées (défaut 5 s) ; 0 = écriture immédiate (tests). */
   flushIntervalMs?: number;

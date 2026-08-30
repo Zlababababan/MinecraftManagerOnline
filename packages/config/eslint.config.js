@@ -43,7 +43,8 @@ export function mmoEslint({ tsconfigRootDir, kind = 'node', extra = [] }) {
     },
     ...(kind === 'protocol' ? [protocolRules] : []),
     ...(kind === 'agent' ? [agentRules] : []),
-    ...(kind === 'node' ? [zstdRules] : []),
+    ...(kind === 'node' || kind === 'panel' ? [zstdRules] : []),
+    ...(kind === 'panel' ? [panelRules] : []),
     ...extra,
     prettier,
   );
@@ -78,6 +79,35 @@ const zstdSelectors = [
 const zstdRules = {
   files: ['src/**/*.ts'],
   rules: { 'no-restricted-syntax': ['error', ...zstdSelectors] },
+};
+
+/**
+ * Panel : plus aucun module natif SQLite. `better-sqlite3` est un `.node` lié à la glibc de la
+ * machine de build — c'est ce qui a rendu le panel ininstallable sur Ubuntu 20.04 ARM64 puis
+ * cassé les archives Linux 1.0.2/1.0.3. Le driver est `node:sqlite` (doc 03 §3).
+ */
+const panelRules = {
+  files: ['src/**/*.ts'],
+  rules: {
+    'no-restricted-imports': [
+      'error',
+      {
+        paths: [
+          {
+            name: 'better-sqlite3',
+            message:
+              'Le panel utilise node:sqlite (src/db/sqlite.ts) : pas de module natif, pas de plancher de glibc (doc 03 §3).',
+          },
+          {
+            name: 'drizzle-orm/better-sqlite3',
+            message:
+              'Ce driver importe better-sqlite3 dès sa première ligne : passer par src/db/client.ts (sous-chemins /session et /migrator).',
+          },
+        ],
+        patterns: [{ group: ['**/*.node'], message: 'Module natif interdit dans le panel.' }],
+      },
+    ],
+  },
 };
 
 /** Agent : aucun module natif (bundle esbuild universel) ; jamais `ZSTD_c_nbWorkers` (spike n°3). */

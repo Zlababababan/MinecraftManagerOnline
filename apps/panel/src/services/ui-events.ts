@@ -3,9 +3,10 @@
  * (`ui_events`). Diagnostic et maintenance uniquement : lecture réservée aux admins, purge par
  * rétention (`retention.uiEventsDays`, défaut 14 j) dans `runMaintenance`.
  */
-import type Database from 'better-sqlite3';
 
 import type { UiEventDto, UiEventInput } from '@mmo/protocol/client';
+
+import type { SqliteHandle } from '../db/sqlite.js';
 
 export interface UiEventUser {
   userId: string | null;
@@ -16,7 +17,7 @@ export class UiEventsService {
   private readonly insert;
   private readonly insertBatch: (user: UiEventUser, events: UiEventInput[]) => void;
 
-  constructor(private readonly sqlite: Database.Database) {
+  constructor(private readonly sqlite: SqliteHandle) {
     this.insert = sqlite.prepare(
       `INSERT INTO ui_events (ts, user_id, username, kind, page, target)
        VALUES (?, ?, ?, ?, ?, ?)`,
