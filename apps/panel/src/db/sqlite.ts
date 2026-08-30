@@ -13,7 +13,7 @@
  */
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { DatabaseSync, type SQLInputValue, type StatementSync } from 'node:sqlite';
+import { DatabaseSync, StatementSync, type SQLInputValue } from 'node:sqlite';
 
 /** Retour de `INSERT`/`UPDATE`/`DELETE`, compatible avec le `RunResult` de better-sqlite3. */
 export interface RunResult {
@@ -240,11 +240,26 @@ class Handle implements SqliteHandle {
 }
 
 /**
+ * Node 22 a bien `node:sqlite`, mais pas `setReturnArrays` — le mode « tableau » dont Drizzle se
+ * sert pour TOUS les `select()`. Sans ce contrôle, l'échec survient beaucoup plus loin, au milieu
+ * d'une migration, sous la forme d'un « setReturnArrays is not a function » incompréhensible.
+ */
+function assertRuntime(): void {
+  if (typeof StatementSync.prototype.setReturnArrays !== 'function') {
+    throw new Error(
+      `node ${process.versions.node} is too old: the panel needs node 24+ (node:sqlite without ` +
+        'setReturnArrays). Use the runtime shipped in the panel archive, or the version pinned in .node-version.',
+    );
+  }
+}
+
+/**
  * Ouvre une base. `autoVacuum` doit être posé AVANT `journal_mode = WAL` : passer en WAL initialise
  * l'en-tête du fichier et fige la valeur (mesuré : 0 dans l'ordre inverse, même sur une base sans
  * aucune table). Sur une base déjà créée, seul un VACUUM complet la change — voir MetricsService.
  */
 export function openSqliteFile(file: string, autoVacuum?: 'INCREMENTAL'): SqliteHandle {
+  assertRuntime();
   if (file !== ':memory:') mkdirSync(path.dirname(file), { recursive: true });
   const handle = new Handle(call(() => new DatabaseSync(file)));
   // SQLite ouvre paresseusement : sur un fichier qui n'est pas une base, c'est le PREMIER PRAGMA
@@ -271,5 +286,6 @@ export function openSqliteFile(file: string, autoVacuum?: 'INCREMENTAL'): Sqlite
  * base en écriture sans le moindre avertissement.
  */
 export function openSqliteReadonly(file: string): SqliteHandle {
+  assertRuntime();
   return new Handle(call(() => new DatabaseSync(file, { readOnly: true })));
 }
