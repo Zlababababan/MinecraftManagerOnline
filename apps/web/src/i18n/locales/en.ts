@@ -292,6 +292,27 @@ export const webEn = {
       live: 'Live',
       historyTooBig:
         'History too large to display here — download logs/latest.log (button above) or use the Logs tab.',
+      moreUsages: '+{{count}} more form(s)',
+      usagePartial: 'This command has sub-commands not detailed here.',
+      sourceStatic: 'generic list',
+      sourceStaticHint:
+        'The forms shown come from a generic list built into the panel. Start the server and the panel will ask it for its real commands, mods included.',
+      args: {
+        player: 'Expects a player name.',
+        targets: 'Expects a player or a selector (@a, @p, @e).',
+        position: 'Expects coordinates (x y z, ~ for relative).',
+        item: 'Expects an item id (minecraft:diamond).',
+        block: 'Expects a block id (minecraft:stone).',
+        entity: 'Expects an entity id (minecraft:zombie).',
+        effect: 'Expects an effect (minecraft:speed).',
+        enchantment: 'Expects an enchantment (minecraft:sharpness).',
+        duration: 'Expects a duration, in seconds or ticks.',
+        amount: 'Expects a number.',
+        message: 'Expects free text, up to the end of the line.',
+        json: 'Expects JSON or NBT.',
+        dimension: 'Expects a dimension (minecraft:overworld).',
+        gamerule: 'Expects a game rule (keepInventory…).',
+      },
       download: 'Download logs/latest.log (attach it when asking for help)',
     },
     players: {

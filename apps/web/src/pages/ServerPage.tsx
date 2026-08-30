@@ -373,6 +373,7 @@ export function ServerPage({ serverId, tab }: { serverId: string; tab: ServerTab
               serverId={s.id}
               canSend={canSend}
               loader={s.loader}
+              runState={s.runState}
               players={players.data?.players.map((p) => p.name) ?? []}
             />
           </Suspense>

@@ -42,6 +42,7 @@ import {
   readServerProperties,
   writeMarker,
 } from './provisioning.js';
+import { CommandHelpProbe } from './command-help.js';
 import { ServerProcess, type ServerProcessEvent, type StopOptions } from './server-process.js';
 
 export interface CommandContext {
@@ -79,6 +80,7 @@ export interface ServerManagerOptions {
 export class ServerManager {
   private readonly processes = new Map<string, ServerProcess>();
   private readonly tpsProbes = new Map<string, TpsProbe>();
+  private readonly helpProbes = new Map<string, CommandHelpProbe>();
   private readonly java: JavaRegistry;
   private readonly detectFs: DetectFs;
   private readonly starting = new Set<string>();
@@ -143,6 +145,7 @@ export class ServerManager {
         s.servers[config.serverId] = existing ? { ...existing, config } : { config };
         // Loader/version ont pu changer : la chaîne TPS sera réapprise.
         this.tpsProbes.delete(config.serverId);
+        this.helpProbes.delete(config.serverId);
       }
       const kept: typeof s.servers = {};
       for (const [id, record] of Object.entries(s.servers)) {
@@ -153,6 +156,7 @@ export class ServerManager {
         this.processes.get(id)?.dispose();
         this.processes.delete(id);
         this.tpsProbes.delete(id);
+        this.helpProbes.delete(id);
       }
       s.servers = kept;
     });
@@ -354,6 +358,33 @@ export class ServerManager {
 
   async rcon(serverId: string, command: string, timeoutMs?: number): Promise<string> {
     return this.require(serverId).rconExec(command, timeoutMs);
+  }
+
+  /**
+   * Arbre des commandes du serveur, lu par `help`. Ne lève pas : un serveur arrêté, sans RCON ou
+   * qui ignore `help` rend simplement « indisponible », et l'interface se rabat sans rien dire.
+   */
+  async commandHelp(
+    serverId: string,
+    name?: string,
+    timeoutMs?: number,
+  ): Promise<{ available: boolean; lines: string[]; truncated: boolean }> {
+    const proc = this.require(serverId);
+    let probe = this.helpProbes.get(serverId);
+    if (!probe) {
+      probe = new CommandHelpProbe({
+        exec: (command, ms) => proc.rconExec(command, ms),
+        state: () => proc.state,
+        startedAt: () => proc.startedAt,
+        log: (message, data) => {
+          this.options.logger.debug(message, { serverId, ...data });
+        },
+        ...(timeoutMs === undefined ? {} : { timeoutMs }),
+        ...(this.options.now === undefined ? {} : { now: this.options.now }),
+      });
+      this.helpProbes.set(serverId, probe);
+    }
+    return probe.fetch(name);
   }
 
   async acceptEula(serverId: string): Promise<void> {
@@ -575,8 +606,10 @@ export class ServerManager {
 
   private onProcessEvent(serverId: string, event: ServerProcessEvent): void {
     if (event.kind === 'state' && event.state === 'starting') {
-      // Nouveau démarrage : mods/version ont pu changer, la chaîne TPS est réapprise.
+      // Nouveau démarrage : mods/version ont pu changer, la chaîne TPS est réapprise — et
+      // l'arbre des commandes aussi, un modpack mis à jour n'expose plus les mêmes.
       this.tpsProbes.get(serverId)?.reset();
+      this.helpProbes.get(serverId)?.reset();
     }
     if (event.kind === 'state' && event.state === 'running') {
       // Le signal le plus proche de « RCON accepte les connexions » dont dispose l'agent : lève

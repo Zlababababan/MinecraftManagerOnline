@@ -702,6 +702,9 @@ export class Agent {
       .handle('server.rcon', async ({ serverId, command, timeoutMs }) => ({
         response: await this.manager.rcon(serverId, command, timeoutMs),
       }))
+      .handle('server.commandHelp', async ({ serverId, name, timeoutMs }) =>
+        this.manager.commandHelp(serverId, name, timeoutMs),
+      )
       .handle('server.eulaAccept', async ({ serverId }) => {
         await this.manager.acceptEula(serverId);
         return {};

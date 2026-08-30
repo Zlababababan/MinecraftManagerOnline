@@ -21,10 +21,23 @@ import type { ConsoleLine } from '@mmo/protocol';
 import { consoleChannel, type ServerMessage } from '@mmo/protocol/client';
 
 import { fileDownloadUrl } from '../../api/phase8.js';
-import { commandHistoryQuery, fileReadQuery, useSendCommand } from '../../api/queries.js';
+import {
+  commandHistoryQuery,
+  fileReadQuery,
+  serverCommandsQuery,
+  useSendCommand,
+} from '../../api/queries.js';
 import { describeError } from '../../lib/errors.js';
 import { realtime, type RealtimeClient } from '../../ws/client.js';
-import { CommandHistory, complete } from './commands.js';
+import { CommandSignature } from './CommandSignature.js';
+import {
+  CommandHistory,
+  complete,
+  recentVerbs,
+  signature,
+  type CompletionContext,
+  type Suggestion,
+} from './commands.js';
 
 import '@xterm/xterm/css/xterm.css';
 import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
@@ -61,6 +74,8 @@ export interface ConsolePanelProps {
   canSend: boolean;
   loader?: string;
   players?: readonly string[];
+  /** État courant : on n'interroge un serveur sur ses commandes que s'il tourne. */
+  runState?: string;
   /** Client temps réel (tests) — défaut : instance de l'application. */
   client?: RealtimeClient;
   /** Hauteur CSS du terminal. */
@@ -72,6 +87,7 @@ export function ConsolePanel({
   canSend,
   loader,
   players,
+  runState,
   client = realtime,
   height = 'min(60vh, 520px)',
 }: ConsolePanelProps) {
@@ -84,8 +100,16 @@ export function ConsolePanel({
   const [truncated, setTruncated] = useState(false);
   const [empty, setEmpty] = useState(true);
   const [input, setInput] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const historyQuery = useQuery({ ...commandHistoryQuery(serverId), enabled: canSend });
+  /**
+   * Commandes réellement acceptées par CE serveur. Interrogé seulement quand ça a un sens : un
+   * serveur arrêté refusera, et un lecteur n'a pas le droit d'envoyer de commande.
+   */
+  const commandsQuery = useQuery({
+    ...serverCommandsQuery(serverId),
+    enabled: canSend && runState === 'running',
+  });
   const send = useSendCommand(serverId);
   const history = useMemo(() => new CommandHistory(), []);
   const seededRef = useRef(false);
@@ -219,10 +243,29 @@ export function ConsolePanel({
     };
   }, [client, serverId, i18n]);
 
-  const completionContext = () => ({
-    ...(loader === undefined ? {} : { loader }),
-    ...(players === undefined ? {} : { players }),
-  });
+  // Reconstruit seulement quand une de ses sources change : la frappe ne doit faire que des
+  // recherches, pas réanalyser un catalogue de plusieurs centaines de commandes.
+  const completionContext = useMemo<CompletionContext>(
+    () => ({
+      ...(loader === undefined ? {} : { loader }),
+      ...(players === undefined ? {} : { players }),
+      ...(commandsQuery.data?.source === 'discovered'
+        ? { discovered: commandsQuery.data.commands }
+        : {}),
+      ...(historyQuery.data === undefined
+        ? {}
+        : { history: recentVerbs([...historyQuery.data.history].reverse().map((h) => h.command)) }),
+    }),
+    [loader, players, commandsQuery.data, historyQuery.data],
+  );
+
+  const signatureView = signature(input, completionContext);
+  const catalogSource =
+    commandsQuery.data?.source === 'discovered'
+      ? 'discovered'
+      : commandsQuery.isFetching
+        ? 'static'
+        : 'static';
 
   const submit = (): void => {
     const command = input.trim();
@@ -254,11 +297,18 @@ export function ConsolePanel({
         setInput(next);
       }
     } else if (event.key === 'Tab') {
-      const options = complete(input, completionContext());
+      const options = complete(input, completionContext);
       if (options.length > 0) {
         event.preventDefault();
-        setInput(options.length === 1 ? `${options[0] ?? ''} ` : (options[0] ?? ''));
-        setSuggestions(options.length === 1 ? [] : options);
+        // Une seule proposition : on la complète et on passe au mot suivant. Plusieurs : on
+        // affiche la liste sans rien écrire — écrire d'office la première fait taper au hasard.
+        const first = options[0];
+        if (options.length === 1 && first) {
+          setInput(`${first.insert} `);
+          setSuggestions([]);
+        } else {
+          setSuggestions(options);
+        }
       }
     } else if (event.key === 'Escape') {
       setSuggestions([]);
@@ -267,7 +317,7 @@ export function ConsolePanel({
 
   const onChange = (value: string): void => {
     setInput(value);
-    setSuggestions(value.trim() === '' ? [] : complete(value, completionContext()));
+    setSuggestions(value.trim() === '' ? [] : complete(value, completionContext));
   };
 
   const clear = (): void => {
@@ -366,12 +416,12 @@ export function ConsolePanel({
         <Group gap={6} data-testid="console-suggestions">
           {suggestions.map((s) => (
             <Text
-              key={s}
+              key={s.insert}
               size="xs"
               component="button"
               type="button"
               onClick={() => {
-                setInput(`${s} `);
+                setInput(`${s.insert} `);
                 setSuggestions([]);
               }}
               style={{
@@ -383,11 +433,12 @@ export function ConsolePanel({
                 padding: '2px 6px',
               }}
             >
-              {s}
+              {s.label}
             </Text>
           ))}
         </Group>
       )}
+      <CommandSignature view={signatureView} source={catalogSource} />
       <div
         data-testid="console-mirror"
         aria-label={t('web:server.console.mirror')}

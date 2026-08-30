@@ -30,6 +30,7 @@ import { PanelBackupService } from './services/panel-backup.js';
 import { ProcessedEventsService } from './services/processed-events.js';
 import { AlertsService, DEFAULT_THRESHOLDS } from './services/alerts.js';
 import { collectConditions } from './services/alert-conditions.js';
+import { CommandCatalogService } from './services/command-catalog.js';
 import { SchedulerService } from './services/scheduler.js';
 import { ServersService } from './services/servers.js';
 import { SessionsService } from './services/sessions.js';
@@ -65,6 +66,8 @@ export interface AppContext {
   tasks: TasksService;
   backups: BackupsService;
   scheduler: SchedulerService;
+  /** Aperçu des commandes de la console : lu chez le serveur, mis en cache court. */
+  commandCatalog: CommandCatalogService;
   alerts: AlertsService;
   transfers: TransferService;
   panelBackup: PanelBackupService;
@@ -191,6 +194,17 @@ export function createContext(options: ContextOptions): AppContext {
     }
     settings.set(SETTING_KEYS.backupDefaultsSeeded, '1');
   }
+  /**
+   * Catalogue des commandes, alimenté par le serveur lui-même. Vidé quand un serveur redémarre :
+   * un modpack mis à jour n'expose plus les mêmes commandes.
+   */
+  const commandCatalog = new CommandCatalogService({ registry, servers, now, logger });
+  events.subscribe((event) => {
+    if (event.type === 'server.stateChanged' && event.serverId !== null) {
+      commandCatalog.invalidate(event.serverId);
+    }
+  });
+
   const scheduler = new SchedulerService({
     db,
     now,
@@ -357,6 +371,7 @@ export function createContext(options: ContextOptions): AppContext {
     tasks,
     backups,
     scheduler,
+    commandCatalog,
     transfers,
     panelBackup,
     relayTokens,

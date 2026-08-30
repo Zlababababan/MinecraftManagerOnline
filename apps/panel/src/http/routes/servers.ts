@@ -401,6 +401,28 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
 
   // --- Console et commandes ------------------------------------------------------------------
 
+  /**
+   * Commandes que CE serveur accepte, lues chez lui. Réservé aux opérateurs, comme l'envoi : un
+   * lecteur ne peut pas exécuter de commande, il n'a pas besoin de l'inventaire des mods.
+   *
+   * Ne passe par aucune des deux routes d'envoi ci-dessous : elles écrivent dans l'historique et
+   * dans l'audit, et `help` réapparaîtrait dans le rappel « flèche haut » de l'utilisateur.
+   */
+  r.get(
+    '/api/servers/:id/commands',
+    {
+      config: { role: 'operator' },
+      schema: {
+        params: idParams,
+        querystring: z.object({ name: z.string().max(64).optional() }),
+      },
+    },
+    async (request) => {
+      const row = ctx.servers.require(request.params.id);
+      return ctx.commandCatalog.get(row.id, request.query.name);
+    },
+  );
+
   r.post(
     '/api/servers/:id/command',
     { config: { role: 'operator' }, schema: { params: idParams, body: commandRequestSchema } },

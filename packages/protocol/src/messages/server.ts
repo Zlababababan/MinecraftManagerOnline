@@ -151,6 +151,25 @@ export const serverRconSchema = z.object({
 });
 export const serverRconResponseSchema = z.object({ response: z.string() });
 
+/**
+ * Introspection des commandes du serveur (phase post-1.0). L'agent exécute `help` en RCON et rend
+ * les lignes BRUTES : c'est le panel qui les analyse. Deux raisons — le parseur pourra être corrigé
+ * sans mettre à jour les agents du parc, qui se mettent à jour bien plus lentement, et l'agent
+ * reste bête. `name` demande le dépliage d'une seule commande (Brigadier abrège en `...`).
+ */
+export const serverCommandHelpSchema = z.object({
+  serverId: serverIdSchema,
+  name: z.string().max(64).optional(),
+  timeoutMs: z.int().positive().optional(),
+});
+export const serverCommandHelpResponseSchema = z.object({
+  /** `false` : serveur arrêté, RCON absent ou `help` inconnu — l'UI se rabat sans rien dire. */
+  available: z.boolean(),
+  lines: z.array(z.string()).max(4000),
+  /** Des lignes ont été coupées : l'aperçu ne doit pas se prétendre exhaustif. */
+  truncated: z.boolean(),
+});
+
 export const serverSetProvisioningSchema = z.object({
   serverId: serverIdSchema,
   provisioning: provisioningSchema,

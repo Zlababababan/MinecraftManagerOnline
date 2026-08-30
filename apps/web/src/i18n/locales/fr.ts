@@ -292,6 +292,27 @@ export const webFr = {
       live: 'Direct',
       historyTooBig:
         'Historique trop volumineux pour être affiché ici — téléchargez logs/latest.log (bouton ci-dessus) ou utilisez l’onglet Journaux.',
+      moreUsages: '+{{count}} autre(s) forme(s)',
+      usagePartial: 'Cette commande a des sous-commandes non détaillées ici.',
+      sourceStatic: 'liste générique',
+      sourceStaticHint:
+        'Les formes affichées viennent d’une liste générique du panel. Démarrez le serveur pour que le panel lui demande ses vraies commandes, mods compris.',
+      args: {
+        player: 'Attend un pseudo de joueur.',
+        targets: 'Attend un joueur ou un sélecteur (@a, @p, @e).',
+        position: 'Attend des coordonnées (x y z, ~ pour relatif).',
+        item: 'Attend un identifiant d’objet (minecraft:diamond).',
+        block: 'Attend un identifiant de bloc (minecraft:stone).',
+        entity: 'Attend un identifiant d’entité (minecraft:zombie).',
+        effect: 'Attend un effet (minecraft:speed).',
+        enchantment: 'Attend un enchantement (minecraft:sharpness).',
+        duration: 'Attend une durée, en secondes ou en ticks.',
+        amount: 'Attend un nombre.',
+        message: 'Attend un texte libre, jusqu’à la fin de la ligne.',
+        json: 'Attend du JSON ou du NBT.',
+        dimension: 'Attend une dimension (minecraft:overworld).',
+        gamerule: 'Attend une règle de jeu (keepInventory…).',
+      },
       download: 'Télécharger logs/latest.log (à joindre pour du support)',
     },
     players: {

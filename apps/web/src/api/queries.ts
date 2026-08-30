@@ -42,6 +42,8 @@ import type {
   updateServerSchema,
 } from '@mmo/protocol/client';
 
+import type { CommandSpec } from '@mmo/shared';
+
 import { api } from './client.js';
 
 export interface EventsFilter {
@@ -60,6 +62,7 @@ export const keys = {
   conflicts: ['conflicts'] as const,
   players: (id: string) => ['servers', id, 'players'] as const,
   commandHistory: (id: string) => ['servers', id, 'command-history'] as const,
+  serverCommands: (id: string) => ['servers', id, 'commands'] as const,
   events: (filter: EventsFilter) => ['events', filter] as const,
   // Phase 6
   config: (id: string, file: ConfigFile) => ['servers', id, 'config', file] as const,
@@ -177,6 +180,28 @@ export const commandHistoryQuery = (id: string) =>
     queryFn: ({ signal }) =>
       api.get<{ history: CommandHistoryItem[] }>(`/api/servers/${id}/command-history`, signal),
     staleTime: 60_000,
+  });
+
+/**
+ * Commandes que le serveur accepte réellement, lues chez lui. Vit dans react-query et non dans un
+ * `useState` du panneau : les onglets serveur ne sont pas gardés montés, un aller-retour d'onglet
+ * relancerait sinon un balayage chez le serveur à chaque fois.
+ */
+export const serverCommandsQuery = (id: string) =>
+  queryOptions({
+    queryKey: keys.serverCommands(id),
+    queryFn: ({ signal }) =>
+      api.get<{
+        source: 'discovered' | 'unavailable';
+        commands: CommandSpec[];
+        truncated: boolean;
+        capturedAt: number;
+      }>(`/api/servers/${id}/commands`, signal),
+    staleTime: 5 * 60_000,
+    // Un serveur arrêté ou un agent trop ancien répondent « indisponible » : insister ne sert à
+    // rien, et l'aperçu se rabat sur la table locale sans rien afficher d'inquiétant.
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
 export const configQuery = <F extends ConfigFile>(id: string, file: F) =>

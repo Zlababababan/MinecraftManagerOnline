@@ -299,6 +299,19 @@
       }
     },
     {
+      "type": "server.commandHelp",
+      "request": {
+        "serverId": "srv_01",
+        "name": "whitelist",
+        "timeoutMs": 10000
+      },
+      "response": {
+        "available": true,
+        "lines": ["/whitelist (on|off|list|reload)", "/whitelist (add|remove) <targets>"],
+        "truncated": false
+      }
+    },
+    {
       "type": "server.eulaAccept",
       "request": {
         "serverId": "srv_01"
