@@ -3,7 +3,9 @@ import { ulid } from '@mmo/protocol';
 import type { Role, UserDto } from '@mmo/protocol/client';
 import { asc, count, eq } from 'drizzle-orm';
 
-import { hashPassword, verifyPassword } from '../auth/password.js';
+import { DEFAULT_LOCALE } from '@mmo/shared';
+
+import { dummyPasswordHash, hashPassword, verifyPassword } from '../auth/password.js';
 import type { MmoDatabase } from '../db/client.js';
 import { users, type UserRow } from '../db/schema.js';
 import { conflict, notFound } from '../errors.js';
@@ -80,7 +82,7 @@ export class UsersService {
       username: input.username,
       passwordHash: await hashPassword(input.password),
       role: input.role ?? 'viewer',
-      locale: input.locale ?? 'fr',
+      locale: input.locale ?? DEFAULT_LOCALE,
       theme: 'dark',
       isActive: 1,
       createdAt: this.now(),
@@ -121,11 +123,15 @@ export class UsersService {
     this.db.delete(users).where(eq(users.id, id)).run();
   }
 
-  /** Vérifie le mot de passe ; `undefined` si inconnu, inactif ou mauvais mot de passe. */
+  /**
+   * Vérifie le mot de passe ; `undefined` si inconnu, inactif ou mauvais mot de passe.
+   * Les trois chemins d'échec coûtent le même temps : un utilisateur inconnu est vérifié contre
+   * un hachage factice, sinon la réponse immédiate révélerait l'existence du compte (doc 03 §6).
+   */
   async authenticate(username: string, password: string): Promise<UserRow | undefined> {
     const row = this.findByUsername(username);
-    if (row?.isActive !== 1) return undefined;
-    if (!(await verifyPassword(row.passwordHash, password))) return undefined;
+    const ok = await verifyPassword(row?.passwordHash ?? (await dummyPasswordHash()), password);
+    if (row?.isActive !== 1 || !ok) return undefined;
     this.db.update(users).set({ lastLoginAt: this.now() }).where(eq(users.id, row.id)).run();
     return row;
   }

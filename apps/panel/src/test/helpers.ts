@@ -73,7 +73,10 @@ export function cookieFrom(res: { headers: Record<string, unknown> }): string {
 /** Exécute le wizard et retourne le cookie admin. */
 export async function setupAdmin(
   panel: TestPanel,
-  credentials = { username: 'admin', password: 'correct horse battery' },
+  credentials: { username: string; password: string; locale?: 'fr' | 'en' } = {
+    username: 'admin',
+    password: 'correct horse battery',
+  },
 ): Promise<string> {
   const res = await panel.app.inject({ method: 'POST', url: '/api/setup', payload: credentials });
   if (res.statusCode !== 201) throw new Error(`setup failed: ${res.body}`);

@@ -9,7 +9,12 @@ import { fr } from './locales/fr.js';
 
 export const LOCALES = ['fr', 'en'] as const;
 export type Locale = (typeof LOCALES)[number];
-export const DEFAULT_LOCALE: Locale = 'fr';
+/**
+ * Anglais par défaut : c'est la langue canonique du dépôt, du README et des guides depuis b5b3d26,
+ * et `createI18n` avait déjà `fallbackLng: 'en'` — l'incohérence faisait qu'un navigateur
+ * allemand obtenait une interface FRANÇAISE.
+ */
+export const DEFAULT_LOCALE: Locale = 'en';
 
 export function isLocale(value: string): value is Locale {
   return (LOCALES as readonly string[]).includes(value);

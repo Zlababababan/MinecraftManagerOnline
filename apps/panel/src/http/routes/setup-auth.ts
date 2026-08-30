@@ -17,7 +17,7 @@ import { coerceOrigin } from '../../util/origin.js';
 import { AppError } from '../../errors.js';
 import { SETTING_KEYS } from '../../services/settings.js';
 import { toUserDto } from '../../services/users.js';
-import { RateLimiter } from '../../util/rate-limit.js';
+import { RateLimiter, clientKey } from '../../util/rate-limit.js';
 import { clearSessionCookie, requireUser, setSessionCookie } from '../auth.js';
 
 export function auditMeta(request: FastifyRequest) {
@@ -42,6 +42,9 @@ export function generateVapidKeys(): { publicKey: string; privateKey: string } {
 export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext): void {
   const r = app.withTypeProvider<ZodTypeProvider>();
   const loginLimiter = new RateLimiter({ max: 10, windowMs: 60_000, now: ctx.now });
+  // Second limiteur par adresse seule : sans lui, 10 tentatives/min PAR NOM D'UTILISATEUR depuis
+  // la même adresse revient à ne pas limiter du tout dès qu'on fait varier le nom.
+  const loginIpLimiter = new RateLimiter({ max: 30, windowMs: 60_000, now: ctx.now });
   // Phase 12 (doc 03 §6) : un seul POST /api/setup à la fois et 5 tentatives/min par adresse.
   const setupLimiter = new RateLimiter({ max: 5, windowMs: 60_000, now: ctx.now });
   let setupInFlight = false;
@@ -63,7 +66,7 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
           done(new AppError('E_SETUP_DONE', 'setup already completed'));
           return;
         }
-        if (!setupLimiter.hit(request.ip)) {
+        if (!setupLimiter.hit(clientKey(request.ip))) {
           done(new AppError('E_RATE_LIMITED', 'too many setup attempts', { retryable: true }));
           return;
         }
@@ -135,8 +138,9 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
     '/api/auth/login',
     { config: { public: true }, schema: { body: loginRequestSchema } },
     async (request, reply) => {
-      const key = `${request.ip}|${request.body.username.toLowerCase()}`;
-      if (!loginLimiter.hit(key)) {
+      const address = clientKey(request.ip);
+      const key = `${address}|${request.body.username.toLowerCase()}`;
+      if (!loginLimiter.hit(key) || !loginIpLimiter.hit(address)) {
         throw new AppError('E_RATE_LIMITED', 'too many login attempts', { retryable: true });
       }
       const user = await ctx.users.authenticate(request.body.username, request.body.password);

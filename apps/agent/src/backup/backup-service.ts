@@ -327,7 +327,7 @@ export class BackupService {
     return true;
   }
 
-  /** Rotation : garde les `keep` plus récentes (même politique) et supprime celles plus vieilles que `keepDays`. */
+  /** Rotation : voir `selectForRotation` pour la règle de sélection. */
   async rotate(
     serverId: string,
     options: { keep?: number; keepDays?: number; policyId?: string; destination?: string },
@@ -339,14 +339,7 @@ export class BackupService {
     const candidates = all.filter((m) =>
       options.policyId === undefined ? m.kind === 'scheduled' : m.policyId === options.policyId,
     );
-    const deleted: { backupId: string; archivePath: string }[] = [];
-    const limitDate =
-      options.keepDays === undefined ? undefined : this.now() - options.keepDays * 86_400_000;
-    candidates.forEach((m, index) => {
-      const tooMany = options.keep !== undefined && index >= options.keep;
-      const tooOld = limitDate !== undefined && m.createdAt < limitDate;
-      if (tooMany || tooOld) deleted.push({ backupId: m.backupId, archivePath: m.archivePath });
-    });
+    const deleted = selectForRotation(candidates, options, this.now());
     for (const d of deleted) {
       const m = candidates.find((c) => c.backupId === d.backupId);
       if (!m) continue;
@@ -496,4 +489,28 @@ function relativeIfInside(outer: string, inner: string): string | undefined {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Sélectionne les sauvegardes à supprimer. `candidates` est trié du plus récent au plus ancien.
+ *
+ * **La plus récente n'est jamais supprimée pour cause d'âge.** Sans cette garde, un serveur
+ * inactif 30 jours avec `keepDays: 14` se retrouvait sans aucune sauvegarde : les anciennes
+ * périmaient et aucune nouvelle n'était produite pour les remplacer. `keep`, lui, reste appliqué
+ * tel quel (un `keep: 0` explicite doit pouvoir tout supprimer).
+ */
+export function selectForRotation(
+  candidates: readonly { backupId: string; archivePath: string; createdAt: number }[],
+  options: { keep?: number; keepDays?: number },
+  now: number,
+): { backupId: string; archivePath: string }[] {
+  const limitDate =
+    options.keepDays === undefined ? undefined : now - options.keepDays * 86_400_000;
+  const deleted: { backupId: string; archivePath: string }[] = [];
+  candidates.forEach((m, index) => {
+    const tooMany = options.keep !== undefined && index >= options.keep;
+    const tooOld = limitDate !== undefined && m.createdAt < limitDate && index > 0;
+    if (tooMany || tooOld) deleted.push({ backupId: m.backupId, archivePath: m.archivePath });
+  });
+  return deleted;
 }

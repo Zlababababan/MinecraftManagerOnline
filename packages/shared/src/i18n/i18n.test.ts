@@ -63,7 +63,8 @@ describe('i18n', () => {
   it('résout une langue navigateur vers une locale supportée', () => {
     expect(resolveLocale('fr-FR')).toBe('fr');
     expect(resolveLocale('en_US')).toBe('en');
-    expect(resolveLocale('de')).toBe('fr');
+    // Langue non supportée ⇒ anglais (langue canonique du projet), pas français.
+    expect(resolveLocale('de')).toBe('en');
     expect(resolveLocale(undefined, 'en')).toBe('en');
   });
 

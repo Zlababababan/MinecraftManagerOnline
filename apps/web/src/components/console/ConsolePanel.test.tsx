@@ -102,6 +102,26 @@ describe('ConsolePanel', () => {
     );
   });
 
+  // Sur iOS, sans ces attributs le clavier met une majuscule au premier mot et autocorrige :
+  // `say bonjour` part en `Say bonjour`, et un pseudo est réécrit. La commande est refusée par
+  // le serveur sans que l'utilisateur comprenne pourquoi.
+  it('le champ de commande désactive majuscule et autocorrection (clavier iOS)', () => {
+    render(
+      <MantineProvider>
+        <QueryClientProvider
+          client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+        >
+          <ConsolePanel serverId="s1" canSend client={fakeClient()} />
+        </QueryClientProvider>
+      </MantineProvider>,
+    );
+    const input = screen.getByTestId('console-input');
+    expect(input).toHaveAttribute('autocapitalize', 'off');
+    expect(input).toHaveAttribute('autocorrect', 'off');
+    expect(input).toHaveAttribute('spellcheck', 'false');
+    expect(input).toHaveAttribute('enterkeyhint', 'send');
+  });
+
   it('historyLines : dernières lignes non vides, bornées', () => {
     expect(historyLines('a\r\nb\n\nc\n', 2)).toEqual(['b', 'c']);
     expect(historyLines('')).toEqual([]);

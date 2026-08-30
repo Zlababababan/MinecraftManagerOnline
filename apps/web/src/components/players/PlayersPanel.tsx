@@ -52,6 +52,7 @@ import { describeError } from '../../lib/errors.js';
 import { formatDateTime, formatDuration, hasRole } from '../../lib/format.js';
 import { ErrorAlert } from '../ErrorAlert.js';
 import { PlayerAvatar } from './PlayerAvatar.js';
+import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 
 export const PLAYER_VIEWS = ['online', 'whitelist', 'ops', 'bans', 'history'] as const;
 export type PlayerView = (typeof PLAYER_VIEWS)[number];
@@ -163,7 +164,8 @@ function AddPlayerForm({
               setName(e.currentTarget.value);
             }}
             maxLength={16}
-            autoComplete="off"
+            {...TECHNICAL_INPUT_PROPS}
+            enterKeyHint="done"
             data-testid={`${testId}-name`}
             style={{ flex: '1 1 160px' }}
           />
@@ -622,6 +624,7 @@ function BansView({ server, canOperate }: { server: ServerDto; canOperate: boole
                   setIp(e.currentTarget.value);
                 }}
                 style={{ flex: '1 1 160px' }}
+                {...TECHNICAL_INPUT_PROPS}
                 data-testid="bans-ip-input"
               />
               <TextInput

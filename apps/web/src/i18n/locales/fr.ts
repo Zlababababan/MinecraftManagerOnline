@@ -201,6 +201,10 @@ export const webFr = {
     eulaHint: 'Le serveur ne démarrera pas tant que l’EULA n’est pas acceptée.',
     unreachable: 'Agent hors ligne — ce serveur ne peut pas être piloté pour le moment.',
     archived: 'Ce serveur est archivé.',
+    installing:
+      'Ce serveur est en cours d’installation — les actions reviendront une fois terminée.',
+    installFailed: 'L’installation de ce serveur a échoué. Vérifiez son dossier, puis réessayez.',
+    migrating: 'Ce serveur est en cours de migration vers une autre machine.',
     fields: {
       machine: 'Machine',
       path: 'Dossier',

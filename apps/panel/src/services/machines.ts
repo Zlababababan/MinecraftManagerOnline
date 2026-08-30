@@ -16,7 +16,7 @@ import {
   type WatchedDirectoryRow,
 } from '../db/schema.js';
 import { conflict, notFound } from '../errors.js';
-import { RateLimiter } from '../util/rate-limit.js';
+import { RateLimiter, clientKey } from '../util/rate-limit.js';
 import {
   generateAgentSecret,
   generatePairingCode,
@@ -164,14 +164,15 @@ export class MachinesService {
    * Consomme un code (doc 05 §3) : hash comparé, TTL, usage unique. Phase 12 : les essais sont
    * limités **par adresse** (`PAIRING_MAX_ATTEMPTS` par `PAIRING_WINDOW_MS`) — un code inconnu ne
    * brûle plus les codes en attente (un anonyme pouvait rendre tout appairage impossible) ;
-   * l'espace 29^8 rend la force brute vaine sous cette limite.
+   * l'espace 29^8 rend la force brute vaine sous cette limite. L'adresse passe par `clientKey()` :
+   * en IPv6, compter par adresse complète laissait 2^64 essais à un même abonné.
    */
   consumePairingCode(
     code: string,
     info: { machine: MachineInfo; agentVersion: string; protocolVersion: number },
     ip = 'unknown',
   ): PairingResult {
-    if (!this.pairLimiter.hit(ip)) {
+    if (!this.pairLimiter.hit(clientKey(ip))) {
       throw new ProtocolError(
         'E_PAIRING_CODE_INVALID',
         'too many pairing attempts from this address — retry later',

@@ -51,6 +51,7 @@ import { ServerCard } from '../components/ServerCard.js';
 import { describeError } from '../lib/errors.js';
 import { formatDateTime, hasRole } from '../lib/format.js';
 import { useNow } from '../lib/hooks.js';
+import { TECHNICAL_INPUT_PROPS } from '../lib/inputs.js';
 
 export function MachinePage({ machineId }: { machineId: string }) {
   const { t, i18n } = useT();
@@ -317,6 +318,7 @@ export function MachinePage({ machineId }: { machineId: string }) {
                   label={t('web:machine.directoryPath')}
                   placeholder={t('web:machine.directoryPlaceholder')}
                   style={{ flex: 1 }}
+                  {...TECHNICAL_INPUT_PROPS}
                   data-testid="directory-path"
                   {...dirForm.getInputProps('path')}
                 />
@@ -422,6 +424,7 @@ export function MachinePage({ machineId }: { machineId: string }) {
               label={t('web:machine.directoryPath')}
               placeholder={t('web:machine.directoryPlaceholder')}
               required
+              {...TECHNICAL_INPUT_PROPS}
               data-testid="server-path"
               {...serverForm.getInputProps('path')}
             />

@@ -49,6 +49,7 @@ import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
 import { formatBytes, formatDateTime, hasRole } from '../../lib/format.js';
 import { ErrorAlert } from '../ErrorAlert.js';
+import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 
 const TEXT_EXTENSIONS =
   /\.(txt|properties|json|json5|yml|yaml|toml|cfg|conf|ini|log|md|sh|bat|cmd|ps1|csv|xml|html?|js|mjs|ts|py|snbt|mcmeta|lang|nbt\.txt)$/i;
@@ -222,6 +223,8 @@ function NameDialog({
             setName(e.currentTarget.value);
           }}
           autoFocus
+          {...TECHNICAL_INPUT_PROPS}
+          enterKeyHint="done"
           data-testid="file-name-input"
         />
         <Group justify="flex-end">

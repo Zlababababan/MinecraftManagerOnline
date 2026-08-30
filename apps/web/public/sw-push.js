@@ -19,7 +19,7 @@ self.addEventListener('push', (event) => {
     body: data.body || '',
     icon: '/pwa-192.png',
     badge: '/pwa-192.png',
-    lang: data.locale || 'fr',
+    lang: data.locale || 'en',
     data: { url: data.url || '/', eventId: data.eventId || null },
   };
   if (data.tag) {

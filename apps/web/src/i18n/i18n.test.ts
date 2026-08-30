@@ -31,8 +31,8 @@ describe('i18n web', () => {
     const storage = (value: string | null) => ({ getItem: () => value });
     expect(initialLocale(storage('en'), 'fr-FR')).toBe('en');
     expect(initialLocale(storage('de'), 'en-US')).toBe('en');
-    expect(initialLocale(storage(null), 'de-DE')).toBe('fr');
-    expect(initialLocale(storage(null), '')).toBe('fr');
+    expect(initialLocale(storage(null), 'de-DE')).toBe('en');
+    expect(initialLocale(storage(null), '')).toBe('en');
   });
 
   it('tDynamic traduit une clé dynamique avec interpolation', () => {

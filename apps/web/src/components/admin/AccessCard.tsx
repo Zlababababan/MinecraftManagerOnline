@@ -49,6 +49,7 @@ import { tDynamic } from '../../i18n/index.js';
 import { describeError } from '../../lib/errors.js';
 import { formatDateTime } from '../../lib/format.js';
 import { coerceOriginInput } from '../../lib/origin.js';
+import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 
 const LE_STAGING = 'https://acme-staging-v02.api.letsencrypt.org/directory';
 
@@ -213,6 +214,8 @@ function DirectSection({
             <TextInput
               label={t('web:access.direct.httpsPort')}
               {...form.getInputProps('httpsPort')}
+              {...TECHNICAL_INPUT_PROPS}
+              inputMode="numeric"
               data-testid="access-https-port"
             />
             <TextInput

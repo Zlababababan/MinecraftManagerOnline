@@ -17,7 +17,7 @@ export default defineConfig({
         name: 'MinecraftManagerOnline',
         short_name: 'MMO',
         description: 'Remote control for self-hosted Minecraft servers',
-        lang: 'fr',
+        lang: 'en',
         start_url: '/',
         scope: '/',
         display: 'standalone',

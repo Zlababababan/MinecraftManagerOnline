@@ -59,6 +59,7 @@ export async function boot(config: PanelConfig): Promise<void> {
   const shutdown = (signal: string): void => {
     app.log.info({ signal }, 'shutting down');
     void app.close().then(() => {
+      logStream.close();
       process.exit(0);
     });
   };

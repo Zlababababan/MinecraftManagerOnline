@@ -59,11 +59,24 @@ export function ServerActions({
   };
 
   if (!canOperate) return null;
-  const disabledReason = !server.reachable
-    ? t('web:server.unreachable')
-    : server.provisioning !== 'ready'
-      ? t('web:server.archived')
-      : undefined;
+  // `provisioning` a cinq valeurs : afficher « archivé » pour toutes revenait à dire à
+  // l'utilisateur que son serveur en cours d'installation ou de migration l'était aussi, sans
+  // jamais nommer l'état réel — impasse observée sur un serveur Forge détecté `needsInstall`.
+  const provisioningReason = (): string | undefined => {
+    switch (server.provisioning) {
+      case 'ready':
+        return undefined;
+      case 'installing':
+        return t('web:server.installing');
+      case 'install_failed':
+        return t('web:server.installFailed');
+      case 'migrating':
+        return t('web:server.migrating');
+      case 'archived':
+        return t('web:server.archived');
+    }
+  };
+  const disabledReason = !server.reachable ? t('web:server.unreachable') : provisioningReason();
 
   const wrap = (node: ReactNode) =>
     disabledReason === undefined ? (

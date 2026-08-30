@@ -27,6 +27,7 @@ import { realtime, type RealtimeClient } from '../../ws/client.js';
 import { CommandHistory, complete } from './commands.js';
 
 import '@xterm/xterm/css/xterm.css';
+import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 
 const MIRROR_LINES = 200;
 const LOG_FILE = 'logs/latest.log';
@@ -341,8 +342,8 @@ export function ConsolePanel({
           }
           disabled={!canSend}
           style={{ flex: 1 }}
-          autoComplete="off"
-          spellCheck={false}
+          {...TECHNICAL_INPUT_PROPS}
+          enterKeyHint="send"
           aria-label={t('web:server.console.placeholder')}
           data-testid="console-input"
           styles={{

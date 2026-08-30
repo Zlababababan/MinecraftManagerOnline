@@ -203,6 +203,9 @@ export const webEn = {
     eulaHint: 'The server will not start until the EULA is accepted.',
     unreachable: 'Agent offline — this server cannot be controlled right now.',
     archived: 'This server is archived.',
+    installing: 'This server is being installed — actions will be available once it is done.',
+    installFailed: 'The installation of this server failed. Check the server folder, then retry.',
+    migrating: 'This server is being migrated to another machine.',
     fields: {
       machine: 'Machine',
       path: 'Folder',

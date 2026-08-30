@@ -71,7 +71,14 @@ describe('NotificationsService', () => {
     statusFor.clear();
     browsers.clear();
     panel = await createTestPanel({ fetch: fakeFetch });
-    admin = await setupAdmin(panel);
+    // Locale explicite : ces tests portent sur la localisation PAR DESTINATAIRE (l'admin en
+    // français, un second compte en anglais), pas sur la langue par défaut du produit — qui est
+    // l'anglais depuis que le repli suit la langue canonique du dépôt.
+    admin = await setupAdmin(panel, {
+      username: 'admin',
+      password: 'correct horse battery',
+      locale: 'fr',
+    });
   });
   afterEach(async () => {
     await panel.close();

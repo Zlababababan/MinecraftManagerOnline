@@ -44,6 +44,7 @@ import {
   type PropertySpec,
 } from '../../lib/properties-catalog.js';
 import { ErrorAlert } from '../ErrorAlert.js';
+import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 
 const KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
@@ -315,6 +316,7 @@ export function PropertiesEditor({ server }: { server: ServerDto }) {
                     value={current[key] ?? ''}
                     disabled={!canEdit}
                     style={{ flex: 1 }}
+                    {...TECHNICAL_INPUT_PROPS}
                     data-testid={`prop-${key}`}
                     onChange={(e) => {
                       set(key, e.currentTarget.value);
@@ -349,6 +351,7 @@ export function PropertiesEditor({ server }: { server: ServerDto }) {
                         ? t('web:properties.errors.key')
                         : undefined
                     }
+                    {...TECHNICAL_INPUT_PROPS}
                     data-testid="properties-new-key"
                   />
                   <Button
