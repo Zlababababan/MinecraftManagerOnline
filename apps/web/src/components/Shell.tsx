@@ -22,6 +22,7 @@ import {
   IconLayoutDashboard,
   IconLogout,
   IconMoon,
+  IconSearch,
   IconServer2,
   IconSettings,
   IconSun,
@@ -29,6 +30,8 @@ import {
   IconWorld,
 } from '@tabler/icons-react';
 import { Outlet, useNavigate } from '@tanstack/react-router';
+
+import { CommandPalette } from './CommandPalette.js';
 import type { ReactNode } from 'react';
 import { useT } from '../i18n/hooks.js';
 
@@ -297,6 +300,7 @@ function BottomNav({ isAdmin }: { isAdmin: boolean }) {
 export function Shell({ user }: { user: UserDto }) {
   const { t } = useT();
   const [opened, { toggle, close }] = useDisclosure(false);
+  const [palette, paletteControls] = useDisclosure(false);
   const navigate = useNavigate();
   const logout = useLogout();
   const updateMe = useUpdateMe();
@@ -311,6 +315,23 @@ export function Shell({ user }: { user: UserDto }) {
       },
     });
   };
+
+  // Ctrl/Cmd+K : raccourci attendu partout. Ignoré quand la frappe vient d'un champ de saisie,
+  // sinon on volerait le raccourci à la console du serveur ou à l'éditeur de propriétés.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'k' || !(e.ctrlKey || e.metaKey)) return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable === true) return;
+      e.preventDefault();
+      paletteControls.toggle();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [paletteControls]);
 
   return (
     <AppShell
@@ -339,6 +360,16 @@ export function Shell({ user }: { user: UserDto }) {
             </Text>
           </Group>
           <Group gap="xs" wrap="nowrap">
+            {/* Sur mobile il n'y a pas de clavier : la loupe est le seul accès à la palette. */}
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              onClick={paletteControls.open}
+              aria-label={t('web:palette.open')}
+              data-testid="palette-open"
+            >
+              <IconSearch size={18} />
+            </ActionIcon>
             <PushResync />
             <TasksIndicator />
             <AccessIndicator isAdmin={isAdmin} />
@@ -403,6 +434,7 @@ export function Shell({ user }: { user: UserDto }) {
       <AppShell.Navbar p="sm">
         <NavItems onNavigate={close} isAdmin={isAdmin} />
       </AppShell.Navbar>
+      <CommandPalette opened={palette} onClose={paletteControls.close} />
       <AppShell.Main>
         <Outlet />
       </AppShell.Main>

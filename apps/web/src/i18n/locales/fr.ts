@@ -8,6 +8,13 @@ export const webFr = {
     short: 'MMO',
     tagline: 'Pilotage à distance de serveurs Minecraft auto-hébergés',
   },
+  palette: {
+    placeholder: 'Chercher un serveur, une machine, une page…',
+    results: 'Résultats',
+    empty: 'Aucun résultat.',
+    navigate: 'se déplacer',
+    open: 'Rechercher',
+  },
   nav: {
     dashboard: 'Tableau de bord',
     servers: 'Serveurs',

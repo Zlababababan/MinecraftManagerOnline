@@ -10,6 +10,13 @@ export const webEn = {
     short: 'MMO',
     tagline: 'Remote control for self-hosted Minecraft servers',
   },
+  palette: {
+    placeholder: 'Search a server, a machine, a page…',
+    results: 'Results',
+    empty: 'Nothing matches.',
+    navigate: 'move',
+    open: 'Search',
+  },
   nav: {
     dashboard: 'Dashboard',
     servers: 'Servers',
