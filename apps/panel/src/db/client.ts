@@ -23,9 +23,13 @@ export interface OpenedDatabase<DB> {
   close(): void;
 }
 
-function openSqlite(file: string): Database.Database {
+function openSqlite(file: string, autoVacuum?: 'INCREMENTAL'): Database.Database {
   if (file !== ':memory:') mkdirSync(path.dirname(file), { recursive: true });
   const sqlite = new Database(file);
+  // `auto_vacuum` doit être posé AVANT `journal_mode = WAL` : passer en WAL initialise l'en-tête
+  // du fichier et fige la valeur (mesuré : 0 dans l'ordre inverse, même sur une base sans aucune
+  // table). Sur une base déjà créée, seul un VACUUM complet la change — voir MetricsService.
+  if (autoVacuum !== undefined) sqlite.pragma(`auto_vacuum = ${autoVacuum}`);
   sqlite.pragma('journal_mode = WAL');
   sqlite.pragma('foreign_keys = ON');
   sqlite.pragma('busy_timeout = 5000');
@@ -47,10 +51,9 @@ export function openMmoDatabase(file: string): OpenedDatabase<MmoDatabase> {
   };
 }
 
-/** `metrics.db` : `auto_vacuum=INCREMENTAL` (doc 04 §7) doit être posé avant la première table. */
+/** `metrics.db` : `auto_vacuum=INCREMENTAL` (doc 04 §7), posé avant le passage en WAL. */
 export function openMetricsDatabase(file: string): OpenedDatabase<MetricsDatabase> {
-  const sqlite = openSqlite(file);
-  sqlite.pragma('auto_vacuum = INCREMENTAL');
+  const sqlite = openSqlite(file, 'INCREMENTAL');
   const db = drizzle({ client: sqlite, schema: metricsSchema });
   migrate(db, { migrationsFolder: path.join(MIGRATIONS_ROOT, 'metrics') });
   return {

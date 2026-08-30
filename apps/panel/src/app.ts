@@ -140,7 +140,15 @@ export function runMaintenance(ctx: AppContext): void {
     ctx.logger.warn({ err: error }, 'panel self-backup failed');
   }
   // Métriques (doc 04 §7) : downsampling brut → 1 min → 1 h, purge, checkpoint du second fichier.
-  ctx.metricsService.maintain(t);
+  const metrics = ctx.metricsService.maintain(t);
+  if (metrics.compactedMs !== undefined) {
+    // Rattrapage unique d'une base d'avant le correctif d'ordre des PRAGMA : `auto_vacuum` valait
+    // 0, le VACUUM complet vient de la basculer en INCREMENTAL.
+    ctx.logger.info(
+      { durationMs: metrics.compactedMs },
+      'metrics database compacted (auto_vacuum)',
+    );
+  }
   ctx.uiEvents.purgeOlderThan(t - ctx.settings.getInt('retention.uiEventsDays', 14) * day);
   ctx.metricsSqlite.pragma('wal_checkpoint(PASSIVE)');
 }

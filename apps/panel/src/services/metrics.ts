@@ -68,6 +68,7 @@ export class MetricsService {
   private readonly latestServer = new Map<string, LatestServer>();
   private readonly latestMachine = new Map<string, LatestMachine>();
   private lastVacuumAt = 0;
+  private autoVacuumChecked = false;
   /** Plus ancien timestamp ingéré depuis la dernière agrégation (rejeux tardifs : tampon agent 1 h). */
   private dirtySince: number | undefined;
   private readonly stmts;
@@ -185,7 +186,13 @@ export class MetricsService {
    * Agrège les tranches **complètes** non encore agrégées (brut → 1 min, 1 min → 1 h) puis purge
    * les tranches expirées. Idempotent ; ré-exécutable à tout moment (`INSERT OR REPLACE`).
    */
-  maintain(now = this.options.now()): { minutes: number; hours: number; purged: number } {
+  maintain(now = this.options.now()): {
+    minutes: number;
+    hours: number;
+    purged: number;
+    /** Durée du VACUUM complet de rattrapage (`auto_vacuum` absent), quand il a eu lieu. */
+    compactedMs?: number;
+  } {
     this.flush();
     const db = this.options.sqlite;
     const minuteEnd = Math.floor(now / MINUTE) * MINUTE;
@@ -219,9 +226,28 @@ export class MetricsService {
     const result = run();
     if (now - this.lastVacuumAt >= DAY) {
       this.lastVacuumAt = now;
+      const compactedMs = this.ensureAutoVacuum();
       db.pragma('incremental_vacuum(200)');
+      if (compactedMs !== undefined) return { ...result, compactedMs };
     }
     return result;
+  }
+
+  /**
+   * Bases créées avant le correctif d'ordre des PRAGMA : `journal_mode = WAL` y avait figé
+   * `auto_vacuum` à 0, donc `incremental_vacuum` n'a jamais rien rendu au système de fichiers.
+   * Seul un VACUUM complet bascule le mode ; il réécrit tout le fichier, d'où **une seule
+   * tentative par démarrage du panel**. Rend la durée quand la compaction a eu lieu.
+   */
+  private ensureAutoVacuum(): number | undefined {
+    if (this.autoVacuumChecked) return undefined;
+    this.autoVacuumChecked = true;
+    const db = this.options.sqlite;
+    if (db.pragma('auto_vacuum', { simple: true }) === 2) return undefined;
+    const started = Date.now();
+    db.pragma('auto_vacuum = INCREMENTAL');
+    db.exec('VACUUM');
+    return Date.now() - started;
   }
 
   private rollupMinutes(end: number, dirty: number | undefined): number {

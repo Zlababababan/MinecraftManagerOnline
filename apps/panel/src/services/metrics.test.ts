@@ -3,6 +3,10 @@
  * downsampling brut → 1 min → 1 h reproduit exactement moyennes/extrema, la purge respecte les
  * rétentions, les rejeux tardifs sont réagrégés, les écritures sont groupées.
  */
+import Database from 'better-sqlite3';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { openMetricsDatabase, type OpenedDatabase, type MetricsDatabase } from '../db/client.js';
@@ -269,5 +273,53 @@ describe('MetricsService — downsampling et purge (doc 04 §7)', () => {
     expect(autoResolution(3 * HOUR)).toBe('raw');
     expect(autoResolution(24 * HOUR)).toBe('1m');
     expect(autoResolution(4 * 24 * HOUR)).toBe('1h');
+  });
+});
+
+describe('metrics.db — auto_vacuum (doc 04 §7)', () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(path.join(tmpdir(), 'mmo-metrics-'));
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  // Régression : `auto_vacuum` était posé APRÈS `journal_mode = WAL`, qui fige la valeur à 0 —
+  // même sur une base sans aucune table. `incremental_vacuum` ne rendait donc jamais un octet.
+  // Le test doit porter sur un vrai fichier : une base `:memory:` ne passe pas en WAL.
+  it('une base neuve est créée en INCREMENTAL, et en WAL', () => {
+    const opened = openMetricsDatabase(path.join(dir, 'metrics.db'));
+    expect(opened.sqlite.pragma('auto_vacuum', { simple: true })).toBe(2);
+    expect(opened.sqlite.pragma('journal_mode', { simple: true })).toBe('wal');
+    opened.close();
+  });
+
+  it('une base existante restée en auto_vacuum=0 est rattrapée une seule fois par maintain()', () => {
+    const file = path.join(dir, 'metrics.db');
+    // Reproduit une base d'avant le correctif : schéma en place, auto_vacuum à 0.
+    openMetricsDatabase(file).close();
+    const legacy = new Database(file);
+    legacy.pragma('auto_vacuum = NONE');
+    legacy.exec('VACUUM');
+    expect(legacy.pragma('auto_vacuum', { simple: true })).toBe(0);
+    legacy.close();
+
+    const opened = openMetricsDatabase(file);
+    const service = new MetricsService({
+      sqlite: opened.sqlite,
+      now: () => T0,
+      flushIntervalMs: 0,
+    });
+    const first = service.maintain(T0);
+    expect(first.compactedMs).toBeGreaterThanOrEqual(0);
+    expect(opened.sqlite.pragma('auto_vacuum', { simple: true })).toBe(2);
+
+    // Une seule tentative par démarrage : le passage suivant ne recompacte pas.
+    const second = service.maintain(T0 + 2 * HOUR);
+    expect(second.compactedMs).toBeUndefined();
+    service.close();
+    opened.close();
   });
 });
