@@ -5,6 +5,7 @@
  * + `runtime-next.json` ; `update-result.json` consommé une seule fois.
  */
 import { createHash, generateKeyPairSync, sign } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
@@ -59,6 +60,14 @@ describe('AgentUpdater', () => {
     };
   }
   const sha = (b: Buffer): string => createHash('sha256').update(b).digest('hex');
+  const plainUpdater = () =>
+    new AgentUpdater({
+      home,
+      currentVersion: '0.10.0',
+      logger,
+      panelOrigin: () => origin,
+      restart: () => undefined,
+    });
 
   it('bundle signé → versions/<v>/agent.js, next.json, sortie 75', async () => {
     const k = keys();
@@ -193,7 +202,46 @@ describe('AgentUpdater', () => {
       status: 'applied',
       version: '24.18.0',
     });
-    expect((await readdir(home)).filter((f) => f.includes('consumed'))).toEqual([]);
+    expect((await readdir(home)).filter((f) => f.includes('claimed'))).toEqual([]);
+  });
+
+  // Régression du bug masqué par la tolérance [flaky-ci] de phase9 : le fichier était supprimé
+  // dans un finally, donc AVANT le parse et avant toute émission. Une mort du processus dans
+  // cette fenêtre perdait l'issue pour toujours — rien ne relisait jamais le fichier revendiqué.
+  it('la revendication ne détruit rien, et une revendication orpheline est reprise', async () => {
+    const updater = plainUpdater();
+    await writeFile(
+      path.join(home, 'update-result.json'),
+      JSON.stringify({ kind: 'agent', status: 'applied', version: '1.0.1', ts: 7 }),
+    );
+
+    const claim = await updater.claimUpdateResult();
+    expect(claim?.payload).toMatchObject({ kind: 'agent', status: 'applied', version: '1.0.1' });
+    // Le fichier revendiqué existe TOUJOURS : c'est ce qui permet de rejouer après un arrêt brutal.
+    expect(existsSync(claim!.claimedPath)).toBe(true);
+    expect(existsSync(path.join(home, 'update-result.json'))).toBe(false);
+
+    // Le processus meurt ici (aucun release). Au redémarrage, l'orpheline est reprise.
+    const again = await updater.claimUpdateResult();
+    expect(again?.payload).toMatchObject({ version: '1.0.1' });
+
+    await updater.releaseUpdateResult(again!.claimedPath);
+    expect(existsSync(again!.claimedPath)).toBe(false);
+    expect(await updater.claimUpdateResult()).toBeUndefined();
+  });
+
+  it('un contenu invalide est écarté tout de suite, pas rejoué indéfiniment', async () => {
+    const updater = plainUpdater();
+    await writeFile(path.join(home, 'update-result.json'), '{ pas du json');
+    expect(await updater.claimUpdateResult()).toBeUndefined();
+    expect((await readdir(home)).filter((f) => f.startsWith('update-result'))).toEqual([]);
+
+    await writeFile(
+      path.join(home, 'update-result.json'),
+      JSON.stringify({ kind: 'agent', status: 'inconnu', version: '1.0.1' }),
+    );
+    expect(await updater.claimUpdateResult()).toBeUndefined();
+    expect((await readdir(home)).filter((f) => f.startsWith('update-result'))).toEqual([]);
   });
 
   it('runtime.update : archive zip vérifiée, extraite, runtime-next.json', async () => {

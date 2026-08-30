@@ -96,6 +96,7 @@ export class StateStore {
   private state: AgentState = emptyState();
   private loaded = false;
   private writing: Promise<void> = Promise.resolve();
+  private tmpSeq = 0;
   private dirty = false;
   private readonly restrict: boolean;
 
@@ -147,8 +148,14 @@ export class StateStore {
     this.dirty = true;
   }
 
+  /**
+   * Attend que l'état soit RÉELLEMENT sur le disque. Sans l'attente de l'écriture en vol dans la
+   * branche « rien à écrire », une sauvegarde déjà lancée n'était pas attendue : la garantie de
+   * durabilité de stop() et du chemin update-result était fictive.
+   */
   async flush(): Promise<void> {
     if (this.dirty) await this.save();
+    else await this.writing;
   }
 
   async save(): Promise<void> {
@@ -181,7 +188,11 @@ export class StateStore {
 
   private async writeNow(): Promise<void> {
     const snapshot = JSON.stringify(this.state, null, 2) + '\n';
-    const tmp = `${this.file}.tmp`;
+    // Chemin temporaire propre à l'instance et à l'écriture : deux StateStore sur le même dossier
+    // (ancien et nouveau processus pendant une bascule, ou deux harnais de test) écrasaient le
+    // même fichier .tmp et pouvaient renommer l'instantané de l'autre.
+    this.tmpSeq += 1;
+    const tmp = `${this.file}.${String(process.pid)}.${String(this.tmpSeq)}.tmp`;
     try {
       await mkdir(this.dir, { recursive: true });
       await writeFile(tmp, snapshot, { mode: 0o600 });

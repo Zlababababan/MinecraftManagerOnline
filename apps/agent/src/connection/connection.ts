@@ -269,6 +269,21 @@ export class AgentConnection {
     return undefined;
   }
 
+  /**
+   * Comme emit(), mais rend la main seulement quand l'événement critique est SUR LE DISQUE.
+   * Nécessaire dès que l'appelant s'apprête à détruire la source de l'événement (le fichier
+   * update-result du launcher) : entre l'émission et la persistance, une mort du processus
+   * perdait l'issue définitivement.
+   */
+  async emitDurable<T extends AgentEventType>(
+    type: T,
+    payloadOrFactory: EventPayload<T> | ((eventId: string) => EventPayload<T>),
+  ): Promise<string | undefined> {
+    const id = this.emit(type, payloadOrFactory);
+    await this.options.store.flush();
+    return id;
+  }
+
   /** Écriture d'état en arrière-plan : une erreur (dossier supprimé à l'arrêt…) est journalisée, jamais fatale. */
   private persist(promise: Promise<void>): void {
     promise.catch((error: unknown) => {
@@ -278,7 +293,15 @@ export class AgentConnection {
 
   private trySend(type: AgentEventType, payload: unknown, id: string | undefined): void {
     const peer = this.peer;
-    if (!peer || peer.isClosed || !this.session) return;
+    if (!peer || peer.isClosed || !this.session) {
+      // Sans cette ligne, une trame disparaissait en silence : c'est ce qui a rendu le diagnostic
+      // du flaky CI aveugle (fichier consommé, aucun audit, aucun avertissement).
+      this.options.logger.debug('event not sent: no session', {
+        type,
+        ...(id === undefined ? {} : { id }),
+      });
+      return;
+    }
     try {
       peer.emit(type, payload as never, id === undefined ? {} : { id });
     } catch (error) {

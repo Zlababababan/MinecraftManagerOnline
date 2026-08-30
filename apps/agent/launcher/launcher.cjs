@@ -230,8 +230,10 @@ function runOnce() {
       if (healthTimer) clearTimeout(healthTimer);
       const t = readJson('trial.json');
       if (t) {
-        remove('trial.json');
+        // Écrire l'issue AVANT d'oublier l'essai : dans l'ordre inverse, une écriture qui échoue
+        // (EPERM antivirus) perdait à la fois l'essai et l'issue, sans possibilité de rejouer.
         reportResult(t.kind, 'applied', t.version, t.previous, undefined);
+        remove('trial.json');
       }
     }
   });

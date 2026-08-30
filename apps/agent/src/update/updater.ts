@@ -16,7 +16,7 @@
 import { createPublicKey, verify, type KeyObject } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { createReadStream } from 'node:fs';
+import { createReadStream, existsSync } from 'node:fs';
 import { createGunzip } from 'node:zlib';
 
 import { ProtocolError, type ParsedRequestPayload, type EventPayload } from '@mmo/protocol';
@@ -223,23 +223,61 @@ export class AgentUpdater {
    * fichier reste en place pour l'appel suivant.
    */
   async consumeUpdateResult(): Promise<UpdateResultPayload | undefined> {
+    const claim = await this.claimUpdateResult();
+    if (!claim) return undefined;
+    await this.releaseUpdateResult(claim.claimedPath);
+    return claim.payload;
+  }
+
+  /**
+   * Revendique l'issue SANS la détruire : le fichier revendiqué n'est supprimé que par
+   * releaseUpdateResult(), après que l'événement est durablement journalisé. Auparavant la
+   * suppression avait lieu dans un finally, donc AVANT le parse et avant toute émission : une
+   * mort du processus dans cette fenêtre (SIGTERM du service, exit 75 d'une mise à jour
+   * enchaînée, SIGKILL au health-timeout) perdait l'issue pour toujours.
+   *
+   * Le nom revendiqué est FIXE : avec le PID dedans, une revendication orpheline devenait
+   * invisible au redémarrage. Elle est ici reprise au démarrage suivant.
+   */
+  async claimUpdateResult(): Promise<
+    { payload: UpdateResultPayload; claimedPath: string } | undefined
+  > {
     const home = this.options.home;
     if (home === undefined) return undefined;
     const file = path.join(home, 'update-result.json');
-    const claimed = path.join(home, `update-result.${String(process.pid)}.consumed.json`);
+    const claimed = path.join(home, 'update-result.claimed.json');
     try {
       await rename(file, claimed);
     } catch {
-      return undefined;
+      // Pas de nouvelle issue : reste-t-il une revendication orpheline d'un processus interrompu ?
+      if (!existsSync(claimed)) return undefined;
+      this.options.logger.info('resuming an orphaned update result');
     }
     let raw: string;
     try {
       raw = await readFile(claimed, 'utf8');
     } catch {
       return undefined;
-    } finally {
-      await rm(claimed, { force: true }).catch(() => undefined);
     }
+    const payload = this.parseUpdateResult(raw);
+    if (payload === undefined) {
+      // Illisible ou invalide : le rejouer ne servirait à rien, on consomme tout de suite.
+      await rm(claimed, { force: true }).catch(() => undefined);
+      return undefined;
+    }
+    return { payload, claimedPath: claimed };
+  }
+
+  /** Consomme définitivement une revendication (événement durablement journalisé). */
+  async releaseUpdateResult(claimedPath: string): Promise<void> {
+    await rm(claimedPath, { force: true }).catch(() => undefined);
+  }
+
+  /** `undefined` si le contenu n'est pas une issue exploitable (l'appelant la supprime alors). */
+  private parseUpdateResult(raw: string): UpdateResultPayload | undefined {
+    const discard = (reason: string): void => {
+      this.options.logger.warn('discarding update-result.json', { reason });
+    };
     try {
       const j = JSON.parse(raw) as Partial<UpdateResultPayload> & { ts?: number };
       if (
@@ -247,6 +285,7 @@ export class AgentUpdater {
         typeof j.version !== 'string' ||
         (j.kind !== 'agent' && j.kind !== 'runtime')
       ) {
+        discard('unexpected shape');
         return undefined;
       }
       return {
@@ -258,7 +297,7 @@ export class AgentUpdater {
         ...(typeof j.reason === 'string' ? { reason: j.reason } : {}),
       };
     } catch (error) {
-      this.options.logger.warn('unreadable update-result.json', { error: errorMessage(error) });
+      discard(errorMessage(error));
       return undefined;
     }
   }

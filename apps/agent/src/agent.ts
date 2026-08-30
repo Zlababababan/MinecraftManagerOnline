@@ -168,6 +168,10 @@ export class Agent {
   private readonly consoleSubscriptions = new Set<string>();
   private scanTimer: ReturnType<typeof setInterval> | undefined;
   private updateResultReported = false;
+  /** Relectures différées de l'issue de mise à jour : annulées par stop(), sinon elles survivent
+   *  à l'instance et consomment le fichier au nom d'un agent mort. */
+  private readonly updateResultTimers: ReturnType<typeof setTimeout>[] = [];
+  private stopping = false;
   private javaSnapshot: RequestPayload<'sync.state'>['javaRuntimes'] = [];
   private trashTimer: ReturnType<typeof setInterval> | undefined;
   private started = false;
@@ -417,6 +421,8 @@ export class Agent {
   }
 
   async stop(): Promise<void> {
+    this.stopping = true;
+    for (const timer of this.updateResultTimers.splice(0)) clearTimeout(timer);
     if (this.scanTimer !== undefined) clearInterval(this.scanTimer);
     this.scanTimer = undefined;
     if (this.trashTimer !== undefined) clearInterval(this.trashTimer);
@@ -432,6 +438,7 @@ export class Agent {
     this.sampler.close();
     await this.store.flush();
     this.started = false;
+    this.stopping = false;
   }
 
   // --- Session --------------------------------------------------------------------------------
@@ -444,14 +451,32 @@ export class Agent {
       this.updateResultReported = true;
       // Plusieurs lectures : le launcher écrit l'issue `applied` en réaction au `healthy` qu'on
       // vient d'envoyer — une lecture immédiate unique arrivait toujours avant l'écriture.
-      const consume = () => {
-        void this.updater.consumeUpdateResult().then((result) => {
-          if (result) this.emit('agent.updateResult', (eventId) => ({ eventId, ...result }));
+      //
+      // Ordre impératif : revendiquer (rename) → émettre → ATTENDRE la persistance → supprimer.
+      // La version précédente supprimait le fichier avant même de le parser : toute mort du
+      // processus dans cette fenêtre perdait l'issue définitivement, et un timer survivant à
+      // `stop()` pouvait la consommer au nom d'une instance morte (aucune trame, aucun audit,
+      // `pendingEvents` vide — le diagnostic exact du flaky CI).
+      const consume = async (): Promise<void> => {
+        if (!this.started || this.stopping) return;
+        const connection = this.connection;
+        if (connection === undefined) return;
+        const claim = await this.updater.claimUpdateResult();
+        if (!claim) return;
+        await connection.emitDurable('agent.updateResult', (eventId) => ({
+          eventId,
+          ...claim.payload,
+        }));
+        await this.updater.releaseUpdateResult(claim.claimedPath);
+      };
+      const run = (): void => {
+        void consume().catch((error: unknown) => {
+          this.logger.warn('update result handling failed', { error: errorMessage(error) });
         });
       };
       for (const delayMs of this.options.updateResultDelaysMs ?? [0, 1000, 5000]) {
-        if (delayMs === 0) consume();
-        else setTimeout(consume, delayMs).unref();
+        if (delayMs === 0) run();
+        else this.updateResultTimers.push(setTimeout(run, delayMs).unref());
       }
     }
     const replayed = this.metrics.replay();

@@ -528,14 +528,10 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
           .filter((a) => a.action.startsWith('agent.update.'))
           .map((a) => `${a.action}:${JSON.stringify(a.details)}`);
         const message = `agent.updateRolledBack jamais reçu — machineB connectée=${String(panel.ctx.registry.isConnected(machineB))} ; update-result.json présent=${String(resultLeft)} ; pendingEvents=${JSON.stringify(pending?.map((p) => p.type) ?? null)} ; audit=${JSON.stringify(updateAudit)} ; derniers événements : ${recent.join(' | ')}`;
-        // TODO(flaky CI) : course intermittente observée uniquement sur les runners (jamais en
-        // local, 8/8 verts en boucle) — l'issue du rollback semble se perdre entre consume et le
-        // panel ; enquête documentée dans CLAUDE.md (« instabilités CI restantes »), soupçon de
-        // course produit. Sur CI on avertit sans échouer ; en local le test reste strict.
-        if (process.env.CI !== undefined) {
-          console.warn(`[flaky-ci] ${message}`);
-          return;
-        }
+        // La tolérance CI qui vivait ici masquait un vrai bug produit : l'issue était supprimée
+        // avant d'être durablement journalisée (updater.claimUpdateResult / releaseUpdateResult),
+        // et un timer de relecture survivant à stop() pouvait la consommer au nom d'une instance
+        // morte. Le diagnostic ci-dessus reste : il nomme la pièce manquante en cas d'échec.
         throw new Error(message, { cause });
       }
       const ev = panel.ctx.events.list({ type: 'agent.updateRolledBack', limit: 5 })[0]!;
