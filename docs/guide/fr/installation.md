@@ -82,7 +82,26 @@ sudo systemctl daemon-reload && sudo systemctl enable --now mmo-panel
 
 Arrêtez le service, extrayez la nouvelle archive **par-dessus** (le dossier `data/` n'est jamais dans l'archive), redémarrez. Les migrations de base se jouent au démarrage. La nouvelle archive embarque les agents de même version : le panel publie automatiquement la release d'agent et, si « Mettre à jour les agents automatiquement à la connexion » est coché (Réglages → Général — décoché par défaut), chaque agent est mis à jour à sa prochaine connexion, avec rollback automatique en cas d'échec. Sinon, mettez-les à jour un par un depuis la carte Agent de chaque page machine.
 
-### 1.6 Sauvegarder et restaurer le panel
+### 1.6 Quand le panel ne démarre pas : `doctor`
+
+Avant de lire une pile d'appels, demandez au panel ce qui ne va pas. Il vérifie le runtime, les
+modules qu'il charge, le dossier de données (écriture **réelle**, et propriétaire comparé à
+l'utilisateur courant), la base, le port et le front.
+
+```powershell
+C:mmopanelmmo-panel.cmd doctor
+```
+
+```bash
+/opt/mmo/mmo-panel/mmo-panel.sh doctor
+```
+
+Chaque ligne porte `ok`, `warn` ou `ERROR`, et chaque erreur dit quoi faire — y compris la
+commande `chown` exacte quand l'archive a été extraite en `sudo` et que le panel tourne sous un
+autre utilisateur. La commande sort en 1 dès qu'un contrôle échoue : elle est utilisable dans un
+script.
+
+### 1.7 Sauvegarder et restaurer le panel
 
 Le panel se sauvegarde lui-même une fois par jour (copie cohérente `VACUUM INTO` de sa base) dans `data/backups/panel/mmo-<date>.db`, 7 copies conservées ; Réglages → Sauvegardes du panel permet d'en créer une à la demande. Les métriques (`metrics.db`) ne sont pas copiées : elles sont reconstituables et volumineuses. Sauvegardez aussi le dossier `data/` complet si vous voulez garder certificats et archives d'agents.
 

@@ -82,7 +82,25 @@ sudo systemctl daemon-reload && sudo systemctl enable --now mmo-panel
 
 Stop the service, extract the new archive **on top** (the `data/` folder is never inside the archive), restart. Database migrations run at startup. The new archive embeds same-version agents: the panel publishes the agent release automatically and, if "Update agents automatically when they connect" is checked (Settings → General — unchecked by default), each agent is updated at its next connection, with automatic rollback on failure. Otherwise, update them one by one from the Agent card of each machine page.
 
-### 1.6 Back up and restore the panel
+### 1.6 When the panel does not start: `doctor`
+
+Before reading a stack trace, ask the panel what is wrong. It checks the runtime, the modules it
+loads, the data directory (a **real** write, plus the owner compared with the current user), the
+database, the port and the front-end.
+
+```powershell
+C:mmopanelmmo-panel.cmd doctor
+```
+
+```bash
+/opt/mmo/mmo-panel/mmo-panel.sh doctor
+```
+
+Every line is prefixed with `ok`, `warn` or `ERROR`, and each error says what to do — including
+the exact `chown` command when the archive was extracted with `sudo` and the panel runs as
+another user. The command exits with 1 as soon as one check fails, so it can be used in a script.
+
+### 1.7 Back up and restore the panel
 
 The panel backs itself up once a day (consistent `VACUUM INTO` copy of its database) into `data/backups/panel/mmo-<date>.db`, 7 copies kept; Settings → Panel backups lets you create one on demand. Metrics (`metrics.db`) are not copied: they can be rebuilt and are large. Also back up the whole `data/` folder if you want to keep certificates and agent archives.
 

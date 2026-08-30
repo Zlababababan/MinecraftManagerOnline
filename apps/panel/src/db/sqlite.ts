@@ -247,13 +247,21 @@ class Handle implements SqliteHandle {
 export function openSqliteFile(file: string, autoVacuum?: 'INCREMENTAL'): SqliteHandle {
   if (file !== ':memory:') mkdirSync(path.dirname(file), { recursive: true });
   const handle = new Handle(call(() => new DatabaseSync(file)));
-  if (autoVacuum !== undefined) handle.exec(`PRAGMA auto_vacuum = ${autoVacuum}`);
-  handle.exec('PRAGMA journal_mode = WAL');
-  // `node:sqlite` active les clés étrangères par défaut, better-sqlite3 non : on les pose
-  // explicitement dans les deux cas (elles sont **par connexion**, doc 04 §1).
-  handle.exec('PRAGMA foreign_keys = ON');
-  handle.exec('PRAGMA busy_timeout = 5000');
-  handle.exec('PRAGMA synchronous = NORMAL');
+  // SQLite ouvre paresseusement : sur un fichier qui n'est pas une base, c'est le PREMIER PRAGMA
+  // qui échoue. Sans ce `catch`, le handle resterait ouvert et le fichier verrouillé — l'appelant
+  // ne peut rien fermer, il n'a jamais reçu l'objet.
+  try {
+    if (autoVacuum !== undefined) handle.exec(`PRAGMA auto_vacuum = ${autoVacuum}`);
+    handle.exec('PRAGMA journal_mode = WAL');
+    // `node:sqlite` active les clés étrangères par défaut, better-sqlite3 non : on les pose
+    // explicitement dans les deux cas (elles sont **par connexion**, doc 04 §1).
+    handle.exec('PRAGMA foreign_keys = ON');
+    handle.exec('PRAGMA busy_timeout = 5000');
+    handle.exec('PRAGMA synchronous = NORMAL');
+  } catch (error) {
+    handle.close();
+    throw error;
+  }
   return handle;
 }
 

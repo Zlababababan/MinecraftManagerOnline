@@ -4,7 +4,7 @@
  * pas d'exception, pas de log, juste un `if` devenu toujours faux ou une transaction qui n'en est
  * plus une.
  */
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -139,6 +139,19 @@ describe('adaptateur node:sqlite', () => {
       tx.immediate();
       expect(count(db)).toBe(1);
     });
+  });
+
+  // SQLite ouvre paresseusement : sur un fichier qui n'est pas une base, c'est le premier PRAGMA
+  // qui échoue. Le handle doit être refermé avant que l'erreur ne remonte, sinon le fichier reste
+  // verrouillé et l'appelant n'a rien à fermer — il n'a jamais reçu l'objet.
+  it('une ouverture qui échoue ne laisse pas le fichier verrouillé', () => {
+    const file = path.join(dir, 'pas-une-base.db');
+    writeFileSync(file, 'ceci est du texte, pas du SQLite');
+    expect(() => openSqliteFile(file)).toThrow();
+    // Sous Windows, un handle resté ouvert ferait échouer la suppression avec EPERM.
+    expect(() => {
+      rmSync(file);
+    }).not.toThrow();
   });
 
   describe('pragma() et lignes', () => {
