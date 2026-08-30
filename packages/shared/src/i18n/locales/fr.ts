@@ -114,6 +114,14 @@ export const fr = {
     E_TIMEOUT: 'L’opération a expiré.',
     E_CANCELLED: 'L’opération a été annulée.',
     E_IO: 'Erreur disque ou réseau.',
+    // Variantes `E_IO_<reason>` : la cause système exacte, avec le geste qui répare.
+    E_IO_EACCES:
+      'Droits insuffisants sur {{path}} — l’agent tourne sous le compte « {{user}} », qui ne peut pas y écrire. Donnez l’accès à ce compte (par exemple : sudo chown -R {{user}} <dossier du serveur>), ou réinstallez l’agent sous le compte propriétaire des serveurs.',
+    E_IO_EPERM:
+      'Opération refusée sur {{path}} — l’agent tourne sous le compte « {{user}} ». Vérifiez le propriétaire et les droits de ce dossier.',
+    E_IO_EROFS: '{{path}} est sur un système de fichiers en lecture seule.',
+    E_IO_ENOSPC: 'Plus d’espace disque sur le volume qui contient {{path}}.',
+    E_IO_ENOTDIR: '{{path}} n’est pas un dossier.',
     E_PORT_IN_USE: 'Le port {{port}} est déjà utilisé.',
     E_RAM_GUARD: 'Mémoire insuffisante : {{needMb}} Mo nécessaires, {{freeMb}} Mo disponibles.',
     E_EULA_REQUIRED: 'L’EULA Minecraft doit être acceptée avant de démarrer le serveur.',

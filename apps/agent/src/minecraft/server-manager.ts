@@ -28,6 +28,7 @@ import { JavaRegistry, totalRamMb } from '../platform/java.js';
 import { findFreePort, isPortFree } from '../platform/ports.js';
 import { getProcessInfo, isProcessAlive } from '../platform/process-info.js';
 import type { ServerRecord, ServerRuntime, StateStore } from '../state/store.js';
+import { assertServerDirWritable, describeFsRefusal, withFsErrors } from '../util/fs-error.js';
 import { ConfigService, type CommandResult } from './config-files.js';
 import { buildLaunchCommand, type LaunchCommand } from './launch.js';
 import { resolvePlayers, type FetchLike } from './players.js';
@@ -161,6 +162,18 @@ export class ServerManager {
           path: config.path,
           error: errorMessage(error),
         });
+        // Un refus de DROITS ne se contente pas d'un warn local : c'est la seule occasion de le
+        // dire à l'utilisateur avant qu'il ne tente un démarrage qui échouera forcément.
+        const refusal = describeFsRefusal(error, config.path);
+        if (refusal) {
+          this.options.onEvent(config.serverId, {
+            kind: 'folder-not-writable',
+            // Le DOSSIER, pas le fichier qui a échoué : c'est lui que l'on corrige.
+            path: config.path,
+            user: refusal.user,
+            reason: refusal.reason,
+          });
+        }
       });
     }
   }
@@ -231,17 +244,20 @@ export class ServerManager {
       });
     }
 
-    // 2. EULA
+    // 2. Dossier inscriptible (RCON, logs, monde : démarrer sans droit d'écriture est perdu d'avance)
+    await assertServerDirWritable(dir);
+
+    // 3. EULA
     if (!(await isEulaAccepted(dir))) {
       throw new ProtocolError('E_EULA_REQUIRED', 'eula.txt not accepted', {
         details: { serverId },
       });
     }
 
-    // 3. Java
+    // 4. Java
     const java = await this.resolveJava(config, mcVersion, loader);
 
-    // 4. RAM
+    // 5. RAM
     const total = this.options.totalRamMb?.() ?? totalRamMb();
     const reserve = this.options.ramReserveMb ?? 1024;
     const committed = this.committedRamMb(serverId);
@@ -257,7 +273,7 @@ export class ServerManager {
       });
     }
 
-    // 5. Port de jeu
+    // 6. Port de jeu
     const { props } = await readServerProperties(dir);
     const gamePort = gamePortFromProperties(props);
     if (!(await isPortFree(gamePort))) {
@@ -266,12 +282,12 @@ export class ServerManager {
       });
     }
 
-    // 6. RCON auto-provisionné
+    // 7. RCON auto-provisionné
     const rcon = await this.ensureRcon(serverId, record);
-    await ensureRconProvisioned(dir, rcon);
+    await withFsErrors(dir, () => ensureRconProvisioned(dir, rcon));
     proc.setRcon(rcon);
 
-    // 7. Commande et lancement
+    // 8. Commande et lancement
     const ctx: CommandContext = { config, launch, java, mcVersion };
     const command = this.options.commandBuilder
       ? this.options.commandBuilder(ctx)

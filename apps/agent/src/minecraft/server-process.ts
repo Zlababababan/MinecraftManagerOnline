@@ -62,7 +62,13 @@ export type ServerProcessEvent =
   | { kind: 'eula-required' }
   | { kind: 'start-timeout' }
   /** `**** FAILED TO BIND TO PORT!` : le port de jeu est pris (conflit, phase 7). */
-  | { kind: 'bind-failed' };
+  | { kind: 'bind-failed' }
+  /**
+   * Le dossier du serveur n'est pas inscriptible par le compte de l'agent. Remonté DÈS L'ADOPTION
+   * (échec d'écriture du marqueur) : sans lui, le serveur s'adopte proprement et ne casse qu'au
+   * premier démarrage, plusieurs jours plus tard, sans rapport apparent avec la cause.
+   */
+  | { kind: 'folder-not-writable'; path: string; user: string; reason: string };
 
 export interface SeqCounter {
   next(): number;

@@ -186,6 +186,9 @@ The script downloads the right platform archive from the panel, verifies its SHA
 - `mmo-agent` systemd unit with `KillMode=process` (detached servers survive) and `Restart=on-failure`. `sudo` is requested when needed.
 - **Without root**: `--user-service` installs into `~/.local/share/mmo-agent` (files in `app/`, state at the root) with `systemctl --user` and `loginctl enable-linger` (starts at boot without an open session). Careful: when run with `sudo`, `--user-service` is ignored and the system-wide install is performed.
 - Options: `--no-service`, `--dir`, `--state-dir`, `--panel`, `--archive <tar.gz>` (offline).
+- ⚠ **Permissions on your server folders.** Installed as a system service, the agent runs as `mmo`, not as you: servers kept under `/home/<you>/…` are often read-only to it. The panel warns you as soon as the server is adopted ("folder not writable"), and a refused start names the folder and the account. Two fixes, either one:
+  - give the agent's account access: `sudo chown -R mmo /path/to/my-servers` (or `sudo chmod -R g+w` after `sudo usermod -aG <your-group> mmo`);
+  - or install the agent under your own account: `--user <you>` (system service) or `--user-service` (no root).
 - Uninstall: `curl -fsSL https://<panel>/install.sh | sh -s -- --uninstall [--purge]` (add `--user-service` if installed that way). The `mmo` system account is kept (`userdel mmo` if you no longer want it).
 - Under **WSL**, the VM stops a few seconds after the last terminal closes: the service (and the servers) stop with it — WSL is fine for trying things out, not for hosting.
 

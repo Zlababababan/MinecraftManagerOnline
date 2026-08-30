@@ -5,6 +5,8 @@ import {
   isResponseSerializationError,
 } from 'fastify-type-provider-zod';
 
+import { isProtocolError } from '@mmo/protocol';
+
 import { AppError } from '../errors.js';
 import { sendIndex, wantsSpaFallback } from './static.js';
 
@@ -60,11 +62,21 @@ export function registerErrorHandler(
     }
     const app = AppError.from(error);
     if (app.status >= 500) {
-      // Le détail (chemins, SQLite…) reste dans le journal ; le client reçoit un message générique.
       request.log.error({ err: error }, app.message);
-      void reply
-        .code(app.status)
-        .send({ ...app.toJSON(), message: 'internal error', details: undefined });
+      // Une erreur venue de l'AGENT est déjà du vocabulaire produit : elle porte un code et un
+      // message écrits pour être lus (« EACCES: permission denied, open '…/server.properties' »).
+      // L'effacer ne protégeait rien et transformait un diagnostic complet en « internal error ».
+      // Seules les exceptions inattendues du panel (SQLite, TypeError…) sont masquées — et elles
+      // repartent avec l'identifiant de requête, qui est la clé pour retrouver la ligne de journal.
+      if (isProtocolError(error)) {
+        void reply.code(app.status).send(app.toJSON());
+        return;
+      }
+      void reply.code(app.status).send({
+        ...app.toJSON(),
+        message: 'internal error',
+        details: { requestId: request.id },
+      });
       return;
     }
     request.log.info({ code: app.code }, app.message);

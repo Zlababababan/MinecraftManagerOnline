@@ -100,6 +100,14 @@ export const en = {
     E_TIMEOUT: 'The operation timed out.',
     E_CANCELLED: 'The operation was cancelled.',
     E_IO: 'Disk or network error.',
+    // Variantes `E_IO_<reason>` : la cause système exacte, avec le geste qui répare.
+    E_IO_EACCES:
+      'Permission denied on {{path}} — the agent runs as "{{user}}", which cannot write there. Give that account access (for example: sudo chown -R {{user}} <server folder>), or reinstall the agent under the account that owns the servers.',
+    E_IO_EPERM:
+      'Operation not permitted on {{path}} — the agent runs as "{{user}}". Check the owner and permissions of that folder.',
+    E_IO_EROFS: '{{path}} is on a read-only filesystem.',
+    E_IO_ENOSPC: 'No space left on the device holding {{path}}.',
+    E_IO_ENOTDIR: '{{path}} is not a directory.',
     E_PORT_IN_USE: 'Port {{port}} is already in use.',
     E_RAM_GUARD: 'Not enough free memory: {{needMb}} MB needed, {{freeMb}} MB available.',
     E_EULA_REQUIRED: 'The Minecraft EULA must be accepted before starting the server.',

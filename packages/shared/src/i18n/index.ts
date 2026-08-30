@@ -60,6 +60,14 @@ export function translateError(
   i18n: I18nInstance,
   error: { code: string; details?: Record<string, unknown> | undefined },
 ): string {
+  // Un `details.reason` peut désigner une variante PRÉCISE du même code (`E_IO_EACCES`) : un refus
+  // de droits et un disque plein sont tous deux des `E_IO`, mais n'appellent pas le même geste.
+  // Le protocole n'a pas à multiplier les codes pour autant (doc 05 §2 : le code reste stable).
+  const reason = error.details?.reason;
+  if (typeof reason === 'string' && /^[A-Za-z0-9_]+$/.test(reason)) {
+    const variant = `errors:${error.code}_${reason}`;
+    if (i18n.exists(variant)) return i18n.t(variant, { ...error.details });
+  }
   const key = `errors:${error.code}`;
   if (!i18n.exists(key)) return i18n.t('errors:E_INTERNAL');
   return i18n.t(key, { ...error.details });

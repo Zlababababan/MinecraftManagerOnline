@@ -967,6 +967,22 @@ export class Agent {
           context: { serverId },
         });
         break;
+      case 'folder-not-writable':
+        // Visible dans le journal du panel (severity warning) : le seul moment où l'utilisateur
+        // peut corriger les droits AVANT de découvrir le problème à un démarrage.
+        this.emit('agent.log', {
+          ts,
+          level: 'WARN',
+          message: `server folder is not writable by the agent: ${event.path} (running as ${event.user})`,
+          context: {
+            serverId,
+            code: 'E_IO',
+            reason: event.reason,
+            path: event.path,
+            user: event.user,
+          },
+        });
+        break;
       case 'bind-failed': {
         const port = this.store.getServer(serverId)?.runtime?.gamePort;
         if (port !== undefined) this.emit('port.conflict', { ts, port, serverId });

@@ -52,6 +52,31 @@ describe('i18n', () => {
     ).toBe('Not enough free memory: 8192 MB needed, 2048 MB available.');
   });
 
+  /**
+   * `E_IO` couvre aussi bien un disque plein qu'un refus de droits — deux gestes très différents.
+   * Le `details.reason` choisit la variante précise sans multiplier les codes du protocole.
+   */
+  it('préfère la variante précise quand les détails portent une cause système', () => {
+    const fr = createI18n('fr');
+    const denied = {
+      code: 'E_IO',
+      details: { reason: 'EACCES', path: '/home/ubuntu/mc/stoneblock', user: 'mmo' },
+    };
+    const message = translateError(fr, denied);
+    expect(message).toContain('/home/ubuntu/mc/stoneblock');
+    expect(message).toContain('mmo');
+    expect(message).not.toBe(fr.t('errors:E_IO'));
+    expect(translateError(createI18n('en'), denied)).toContain('chown -R mmo');
+    // Cause sans variante dédiée : la phrase générique du code, pas une clé manquante.
+    expect(translateError(fr, { code: 'E_IO', details: { reason: 'EBUSY' } })).toBe(
+      fr.t('errors:E_IO'),
+    );
+    // Un `reason` de texte libre ne doit pas fabriquer de clé exotique (E_ACME_FAILED le fait).
+    expect(translateError(fr, { code: 'E_IO', details: { reason: 'boum: ../../x' } })).toBe(
+      fr.t('errors:E_IO'),
+    );
+  });
+
   it('traduit un indice de détection, et retombe sur le détail brut pour un code inconnu', () => {
     const en = createI18n('en');
     expect(translateEvidence(en, { code: 'neoforge_libraries', detail: '21.1.219' })).toBe(

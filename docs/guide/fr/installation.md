@@ -187,6 +187,9 @@ Le script télécharge l'archive de la bonne plateforme depuis le panel, vérifi
 - Unit systemd `mmo-agent` avec `KillMode=process` (les serveurs détachés survivent) et `Restart=on-failure`. `sudo` est demandé au besoin.
 - **Sans root** : `--user-service` installe dans `~/.local/share/mmo-agent` (fichiers dans `app/`, état à la racine) avec `systemctl --user` et `loginctl enable-linger` (démarre au boot sans session ouverte). Attention : lancé avec `sudo`, `--user-service` est ignoré et c'est l'installation système qui est faite.
 - Options : `--no-service`, `--dir`, `--state-dir`, `--panel`, `--archive <tar.gz>` (hors ligne).
+- ⚠ **Droits sur vos dossiers de serveurs.** Installé en service système, l'agent tourne sous le compte `mmo`, pas sous le vôtre : vos serveurs rangés dans `/home/<vous>/…` lui sont souvent accessibles en lecture seule. Le panel vous prévient dès l'adoption (« dossier non inscriptible »), et un démarrage refusé nomme le dossier et le compte. Deux réparations, au choix :
+  - donner l'accès au compte de l'agent : `sudo chown -R mmo /chemin/vers/mes-serveurs` (ou `sudo chmod -R g+w` après `sudo usermod -aG <votre-groupe> mmo`) ;
+  - ou installer l'agent sous votre propre compte : `--user <vous>` (service système) ou `--user-service` (sans root).
 - Désinstaller : `curl -fsSL https://<panel>/install.sh | sh -s -- --uninstall [--purge]` (ajoutez `--user-service` si installé ainsi). Le compte système `mmo` est conservé (`userdel mmo` si vous n'en voulez plus).
 - Sous **WSL**, la VM s'arrête quelques secondes après la fermeture du dernier terminal : le service (et les serveurs) s'arrêtent avec elle — WSL convient pour essayer, pas pour héberger.
 

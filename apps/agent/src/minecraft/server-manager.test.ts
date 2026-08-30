@@ -1,5 +1,5 @@
 import net from 'node:net';
-import { readFile, writeFile } from 'node:fs/promises';
+import { chmod, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -268,5 +268,33 @@ describe('gestionnaire de serveurs (garde-fous doc 05 §6, provisionnement doc 0
     await m.applyConfigs([]);
     expect(Object.keys(m.store.get().servers)).toEqual(['srv_1']);
     await m.stop('srv_1', { timeoutMs: 3000 });
+  });
+  /**
+   * Le piège vécu (VM Linux ARM, 2026-08-30) : agent en service système sous le compte `mmo`,
+   * serveurs dans le dossier d'un autre utilisateur. Deux exigences — le dire À L'ADOPTION, et
+   * refuser le démarrage par une erreur qui nomme la cause plutôt qu'« erreur interne ».
+   * `chmod` n'ayant de sens que sur POSIX (et pas pour root), le test ne joue que là.
+   */
+  it.runIf(
+    process.platform !== 'win32' && typeof process.getuid === 'function' && process.getuid() !== 0,
+  )('signale un dossier non inscriptible dès l’adoption, et refuse le démarrage', async () => {
+    const m = await makeManager();
+    await chmod(dir, 0o555);
+    try {
+      await m.applyConfigs([config(dir)]);
+      // Adoption : le serveur est bien connu (on ne perd pas le serveur pour une histoire de
+      // droits), mais l'utilisateur est prévenu tout de suite.
+      expect(Object.keys(m.store.get().servers)).toEqual(['srv_1']);
+      const warned = events.find(([, e]) => e.kind === 'folder-not-writable');
+      expect(warned?.[0]).toBe('srv_1');
+      expect(warned?.[1]).toMatchObject({ kind: 'folder-not-writable', path: dir });
+
+      await expect(m.start('srv_1')).rejects.toMatchObject({
+        code: 'E_IO',
+        details: { reason: 'EACCES', path: dir },
+      });
+    } finally {
+      await chmod(dir, 0o755);
+    }
   });
 });
