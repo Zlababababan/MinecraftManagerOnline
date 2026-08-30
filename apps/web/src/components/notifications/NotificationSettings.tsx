@@ -8,7 +8,12 @@ import { notifications } from '@mantine/notifications';
 import { IconBellRinging, IconDeviceMobile } from '@tabler/icons-react';
 import { useState } from 'react';
 
-import { NOTIFICATION_TYPES, type NotificationType } from '@mmo/protocol/client';
+import {
+  NOTIFICATION_CHANNELS,
+  NOTIFICATION_GROUPS,
+  type NotificationChannel,
+  type NotificationType,
+} from '@mmo/protocol/client';
 
 import {
   useNotificationPrefs,
@@ -34,6 +39,14 @@ export function NotificationPrefsCard() {
   const { t, i18n } = useT();
   const prefs = useNotificationPrefs();
   const set = useSetNotificationPrefs();
+  const channels = prefs.data?.channels;
+  /**
+   * Un panel qui ne renvoie pas encore `channels` (ancienne version servie pendant une mise à
+   * jour) : on retombe sur le réglage commun pour les deux colonnes plutôt que d'afficher des
+   * interrupteurs tous éteints, qui donneraient à croire que tout est coupé.
+   */
+  const valueOf = (channel: NotificationChannel, type: NotificationType): boolean =>
+    channels?.[channel][type] ?? prefs.data?.prefs[type] ?? false;
   return (
     <Card withBorder radius="md" padding="md" data-testid="notification-prefs">
       <Stack gap="sm">
@@ -41,24 +54,48 @@ export function NotificationPrefsCard() {
         <Text size="sm" c="dimmed">
           {t('web:notifications.prefsHint')}
         </Text>
-        {NOTIFICATION_TYPES.map((type: NotificationType) => (
-          <Switch
-            key={type}
-            label={tDynamic(i18n, `web:notifications.types.${type.replace('.', '_')}`)}
-            checked={prefs.data?.prefs[type] ?? false}
-            disabled={prefs.data === undefined}
-            onChange={(event) => {
-              set.mutate({ [type]: event.currentTarget.checked });
-            }}
-            data-testid={`pref-${type}`}
-          />
+        <Group gap="xs" justify="flex-end" wrap="nowrap">
+          <Text size="xs" c="dimmed" w={72} ta="center">
+            {t('web:notifications.channels.inapp')}
+          </Text>
+          <Text size="xs" c="dimmed" w={72} ta="center">
+            {t('web:notifications.channels.push')}
+          </Text>
+        </Group>
+        {/* Groupé, et une colonne par canal : la cloche et le téléphone n'ont pas les mêmes
+            besoins — suivre les arrivées de joueurs dans le panel ne doit pas réveiller la nuit. */}
+        {NOTIFICATION_GROUPS.map((group) => (
+          <Stack gap={4} key={group.id}>
+            <Text size="xs" fw={600} tt="uppercase" c="dimmed">
+              {tDynamic(i18n, `web:notifications.groups.${group.id}`)}
+            </Text>
+            {group.types.map((type: NotificationType) => (
+              <Group key={type} gap="xs" wrap="nowrap" justify="space-between">
+                <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
+                  {tDynamic(i18n, `web:notifications.types.${type.replace('.', '_')}`)}
+                </Text>
+                {NOTIFICATION_CHANNELS.map((channel: NotificationChannel) => (
+                  <Switch
+                    key={channel}
+                    w={72}
+                    styles={{ body: { justifyContent: 'center' } }}
+                    aria-label={`${tDynamic(i18n, `web:notifications.types.${type.replace('.', '_')}`)} — ${t(`web:notifications.channels.${channel}`)}`}
+                    checked={valueOf(channel, type)}
+                    disabled={prefs.data === undefined}
+                    onChange={(event) => {
+                      set.mutate({ channel, values: { [type]: event.currentTarget.checked } });
+                    }}
+                    data-testid={`pref-${channel}-${type}`}
+                  />
+                ))}
+              </Group>
+            ))}
+          </Stack>
         ))}
       </Stack>
     </Card>
   );
 }
-
-/** Injection du support (tests) : par défaut, détection réelle du navigateur. */
 export function PushCard({ support: supportOverride }: { support?: PushSupport }) {
   const { t, i18n } = useT();
   const status = usePushStatus();

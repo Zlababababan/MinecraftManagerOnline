@@ -60,15 +60,21 @@ export function registerPhase10Routes(app: FastifyInstance, ctx: AppContext): vo
 
   // --- Préférences et centre -----------------------------------------------------------------------
 
-  r.get('/api/notifications/prefs', (request) => ({
-    prefs: ctx.notifications.prefs(requireUser(request).id),
-  }));
+  // `prefs` reste le réglage commun hérité ; `channels` porte le réglage effectif par canal,
+  // c'est lui que l'écran manipule.
+  r.get('/api/notifications/prefs', (request) => {
+    const userId = requireUser(request).id;
+    return {
+      prefs: ctx.notifications.prefs(userId),
+      channels: ctx.notifications.channelPrefs(userId),
+    };
+  });
 
   r.put(
     '/api/notifications/prefs',
     { schema: { body: notificationPrefsPutSchema } },
     (request) => ({
-      prefs: ctx.notifications.setPrefs(requireUser(request).id, request.body),
+      channels: ctx.notifications.setPrefs(requireUser(request).id, request.body),
     }),
   );
 

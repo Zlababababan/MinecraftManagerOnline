@@ -8,11 +8,15 @@ import type { FastifyBaseLogger } from 'fastify';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import {
+  NOTIFICATION_CHANNELS,
   NOTIFICATION_DEFAULTS,
   NOTIFICATION_TYPES,
   notificationTypeOf,
   type EventDto,
+  type NotificationChannel,
+  type NotificationChannelPrefsDto,
   type NotificationPrefsDto,
+  type NotificationPrefsPut,
   type NotificationType,
   type NotificationsResult,
   type PushPayload,
@@ -29,7 +33,13 @@ function tr(i18n: I18nInstance, key: string, params?: Record<string, unknown>): 
 }
 
 import type { MmoDatabase } from '../db/client.js';
-import { events, notificationPrefs, pushSubscriptions, users } from '../db/schema.js';
+import {
+  events,
+  notificationChannelPrefs,
+  notificationPrefs,
+  pushSubscriptions,
+  users,
+} from '../db/schema.js';
 import { AppError } from '../errors.js';
 import { parseJson } from '../util/json.js';
 import type { EventBus } from './events.js';
@@ -39,6 +49,15 @@ import { SETTING_KEYS, type SettingsService } from './settings.js';
 /** Types d'événements du bus susceptibles de produire une notification (filtre SQL du centre). */
 const BUS_TYPES = [
   'server.stateChanged',
+  'task.completed',
+  'agent.log',
+  'machine.paired',
+  'server.adopted',
+  'server.removed',
+  'server.deleted',
+  'server.migrated',
+  'server.conflict',
+  'player.action',
   'server.startFailed',
   'watchdog.alert',
   'agent.offline',
@@ -107,21 +126,61 @@ export class NotificationsService {
     return out;
   }
 
-  setPrefs(
-    userId: string,
-    patch: Partial<Record<NotificationType, boolean>>,
-  ): NotificationPrefsDto {
-    for (const [type, enabled] of Object.entries(patch)) {
-      this.deps.db
-        .insert(notificationPrefs)
-        .values({ userId, eventType: type, enabled: enabled ? 1 : 0 })
-        .onConflictDoUpdate({
-          target: [notificationPrefs.userId, notificationPrefs.eventType],
-          set: { enabled: enabled ? 1 : 0 },
-        })
-        .run();
+  /**
+   * Réglages effectifs par canal. Chaîne de repli, du plus précis au plus général : préférence de
+   * ce canal, sinon ancienne préférence commune, sinon défaut du catalogue. Une catégorie inconnue
+   * n'apparaît pas ici, et `enabled()` la laisse passer : mieux vaut une notification en trop
+   * qu'un silence après une mise à jour.
+   */
+  channelPrefs(userId: string): NotificationChannelPrefsDto {
+    const shared = this.prefs(userId);
+    const perChannel = new Map<string, boolean>();
+    for (const row of this.deps.db
+      .select()
+      .from(notificationChannelPrefs)
+      .where(eq(notificationChannelPrefs.userId, userId))
+      .all()) {
+      perChannel.set(`${row.channel}:${row.eventType}`, row.enabled === 1);
     }
-    return this.prefs(userId);
+    const out = {} as Record<NotificationChannel, NotificationPrefsDto>;
+    for (const channel of NOTIFICATION_CHANNELS) {
+      const map = {} as Record<NotificationType, boolean>;
+      for (const type of NOTIFICATION_TYPES) {
+        // `shared` part des défauts du catalogue : une catégorie tout juste ajoutée y est donc
+        // déjà, avec sa valeur d'origine. C'est ce qui évite qu'une mise à jour rende muette une
+        // catégorie que personne n'a encore vue.
+        map[type] = perChannel.get(`${channel}:${type}`) ?? shared[type];
+      }
+      out[channel] = map;
+    }
+    return out;
+  }
+
+  /** Cette catégorie passe-t-elle sur ce canal ? (le catalogue est énuméré en entier, jamais de trou) */
+  private enabled(userId: string, channel: NotificationChannel, type: NotificationType): boolean {
+    return this.channelPrefs(userId)[channel][type];
+  }
+
+  setPrefs(userId: string, input: NotificationPrefsPut): NotificationChannelPrefsDto {
+    // Sans canal précisé, les deux : c'est le sens de l'ancien réglage unique.
+    const channels = input.channel === undefined ? NOTIFICATION_CHANNELS : [input.channel];
+    for (const [type, enabled] of Object.entries(input.values)) {
+      for (const channel of channels) {
+        this.deps.db
+          .insert(notificationChannelPrefs)
+          .values({ userId, channel, eventType: type, enabled: enabled ? 1 : 0 })
+          .onConflictDoUpdate({
+            target: [
+              notificationChannelPrefs.userId,
+              notificationChannelPrefs.channel,
+              notificationChannelPrefs.eventType,
+            ],
+            set: { enabled: enabled ? 1 : 0 },
+          })
+          .run();
+      }
+    }
+    return this.channelPrefs(userId);
   }
 
   // --- Abonnements push -------------------------------------------------------------------------
@@ -219,7 +278,9 @@ export class NotificationsService {
   list(userId: string, limit = 50): NotificationsResult {
     const user = this.deps.db.select().from(users).where(eq(users.id, userId)).get();
     const seenId = user?.notificationsSeenId ?? 0;
-    const prefs = this.prefs(userId);
+    // La cloche a son propre réglage : couper une catégorie sur le téléphone ne doit plus la
+    // faire disparaître de l'historique consultable dans le panel.
+    const prefs = this.channelPrefs(userId).inapp;
     const rows = this.deps.db
       .select()
       .from(events)
@@ -263,7 +324,7 @@ export class NotificationsService {
       .where(eq(users.isActive, 1))
       .all();
     for (const user of recipients) {
-      if (!this.prefs(user.id)[type]) continue;
+      if (!this.enabled(user.id, 'push', type)) continue;
       if (this.subscriptions(user.id).length === 0) continue;
       const payload = this.render(event, user.locale);
       if (payload === undefined) continue;
@@ -303,6 +364,9 @@ export class NotificationsService {
       freeGb: text(p.freeGb),
       tps: text(p.tps),
       scope: text(p.serverName) || text(p.machineName) || server || machine,
+      target: text(p.target),
+      path: text(p.path),
+      hostname: text(p.hostname),
       interpolation: { escapeValue: false },
     };
     return {
@@ -418,6 +482,8 @@ export function notifyKey(event: EventDto): string | undefined {
       return typeof p.kind === 'string' && p.kind.startsWith('backup.')
         ? 'backupFailed'
         : 'taskFailed';
+    case 'task.completed':
+      return typeof p.kind === 'string' && p.kind.startsWith('backup.') ? 'backupDone' : 'taskDone';
     case 'migration.done':
       return 'migrationDone';
     case 'migration.failed':
@@ -427,7 +493,7 @@ export function notifyKey(event: EventDto): string | undefined {
     case 'agent.updateRolledBack':
       return 'agentUpdateRolledBack';
     case 'schedule.run':
-      return event.severity === 'info' ? undefined : 'scheduleFailed';
+      return event.severity === 'info' ? 'scheduleDone' : 'scheduleFailed';
     case 'port.conflict':
       return 'portConflict';
     case 'player.joined':
@@ -436,6 +502,24 @@ export function notifyKey(event: EventDto): string | undefined {
       return 'playerLeft';
     case 'backup.overdue':
       return 'backupOverdue';
+    // Le message vient de l'agent, en anglais technique : il est repris tel quel dans le corps
+    // plutôt que traduit — c'est lui qui nomme le fichier ou le compte en cause.
+    case 'agent.log':
+      return 'agentProblem';
+    case 'machine.paired':
+      return 'machinePaired';
+    case 'server.adopted':
+      return 'serverDiscovered';
+    case 'server.removed':
+      return 'serverGone';
+    case 'server.deleted':
+      return 'serverDeleted';
+    case 'server.migrated':
+      return 'serverMoved';
+    case 'server.conflict':
+      return 'serverConflict';
+    case 'player.action':
+      return 'playerAction';
     // Une seule famille d'événements pour toutes les alertes : la règle choisit le libellé.
     case 'alert.firing': {
       const rule = (event.payload as { rule?: unknown } | undefined)?.rule;

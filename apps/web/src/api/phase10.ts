@@ -10,8 +10,9 @@ import type {
   AccessTestResult,
   CertificateDto,
   FirewallRulesDto,
+  NotificationChannelPrefsDto,
   NotificationPrefsDto,
-  NotificationType,
+  NotificationPrefsPut,
   NotificationsResult,
   PushStatusDto,
   PushSubscribeInput,
@@ -45,7 +46,10 @@ export const pushQuery = queryOptions({
 export const prefsQuery = queryOptions({
   queryKey: phase10Keys.prefs,
   queryFn: ({ signal }) =>
-    api.get<{ prefs: NotificationPrefsDto }>('/api/notifications/prefs', signal),
+    api.get<{ prefs: NotificationPrefsDto; channels?: NotificationChannelPrefsDto }>(
+      '/api/notifications/prefs',
+      signal,
+    ),
   staleTime: 60_000,
 });
 export const notificationsQuery = queryOptions({
@@ -119,10 +123,16 @@ export function usePushTest() {
 export function useSetNotificationPrefs() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (patch: Partial<Record<NotificationType, boolean>>) =>
-      api.put<{ prefs: NotificationPrefsDto }>('/api/notifications/prefs', patch),
+    mutationFn: (body: NotificationPrefsPut) =>
+      api.put<{ channels: NotificationChannelPrefsDto }>('/api/notifications/prefs', body),
+    // La réponse ne porte que `channels` : le cache est rafraîchi plutôt que remplacé, sinon
+    // `prefs` (réglage commun hérité) disparaîtrait de la requête en cours.
     onSuccess: (data) => {
-      queryClient.setQueryData(phase10Keys.prefs, data);
+      queryClient.setQueryData(
+        phase10Keys.prefs,
+        (old: { prefs: NotificationPrefsDto } | undefined) =>
+          old === undefined ? undefined : { ...old, channels: data.channels },
+      );
       void queryClient.invalidateQueries({ queryKey: phase10Keys.notifications });
     },
   });

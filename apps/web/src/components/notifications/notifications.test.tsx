@@ -95,7 +95,12 @@ interface Call {
 
 function installFetch(
   calls: Call[],
-  state: { seenId: number; prefs: Record<string, boolean>; exposeMode: 'tailnet' | 'direct' },
+  state: {
+    seenId: number;
+    prefs: Record<string, boolean>;
+    channels: Record<string, Record<string, boolean>>;
+    exposeMode: 'tailnet' | 'direct';
+  },
 ): void {
   vi.stubGlobal(
     'fetch',
@@ -122,10 +127,13 @@ function installFetch(
         return json(200, { seenId: state.seenId });
       }
       if (path === '/api/notifications/prefs' && method === 'GET')
-        return json(200, { prefs: state.prefs });
+        return json(200, { prefs: state.prefs, channels: state.channels });
       if (path === '/api/notifications/prefs' && method === 'PUT') {
-        Object.assign(state.prefs, body as Record<string, boolean>);
-        return json(200, { prefs: state.prefs });
+        const put = body as { channel?: string; values: Record<string, boolean> };
+        for (const channel of put.channel === undefined ? ['inapp', 'push'] : [put.channel]) {
+          Object.assign((state.channels[channel] ??= {}), put.values);
+        }
+        return json(200, { channels: state.channels });
       }
       if (path === '/api/push')
         return json(200, { vapidPublicKey: 'B'.repeat(87), subscriptions: [] });
@@ -186,13 +194,22 @@ function renderWith(
 
 describe('phase 10 — notifications et accès joueurs', () => {
   let calls: Call[];
-  let state: { seenId: number; prefs: Record<string, boolean>; exposeMode: 'tailnet' | 'direct' };
+  let state: {
+    seenId: number;
+    prefs: Record<string, boolean>;
+    channels: Record<string, Record<string, boolean>>;
+    exposeMode: 'tailnet' | 'direct';
+  };
   beforeEach(async () => {
     await i18n.changeLanguage('fr');
     calls = [];
     state = {
       seenId: 0,
       prefs: { 'server.crashed': true, 'player.activity': false },
+      channels: {
+        inapp: { 'server.crashed': true, 'player.activity': false },
+        push: { 'server.crashed': true, 'player.activity': false },
+      },
       exposeMode: 'tailnet',
     };
     installFetch(calls, state);
@@ -250,15 +267,25 @@ describe('phase 10 — notifications et accès joueurs', () => {
   it('préférences : interrupteurs depuis l’API, PUT partiel', async () => {
     const user = userEvent.setup();
     renderWith(<NotificationPrefsCard />);
-    const crashed = await screen.findByTestId('pref-server.crashed');
+    const crashed = await screen.findByTestId('pref-push-server.crashed');
     await waitFor(() => {
       expect(crashed).toBeChecked();
     });
-    expect(screen.getByTestId('pref-player.activity')).not.toBeChecked();
-    await user.click(screen.getByText('Joueur arrivé / parti'));
+    // Un interrupteur par canal : la cloche et le téléphone se règlent séparément.
+    expect(screen.getByTestId('pref-inapp-player.activity')).not.toBeChecked();
+    expect(screen.getByTestId('pref-push-player.activity')).not.toBeChecked();
+    await user.click(screen.getByTestId('pref-inapp-player.activity'));
     await waitFor(() => {
-      expect(calls.find((c) => c.method === 'PUT')?.body).toEqual({ 'player.activity': true });
+      expect(calls.find((c) => c.method === 'PUT')?.body).toEqual({
+        channel: 'inapp',
+        values: { 'player.activity': true },
+      });
     });
+    // ...et seule la colonne cliquée bouge.
+    await waitFor(() => {
+      expect(screen.getByTestId('pref-inapp-player.activity')).toBeChecked();
+    });
+    expect(screen.getByTestId('pref-push-player.activity')).not.toBeChecked();
   });
 
   it('push : onboarding iOS quand la PWA n’est pas installée, navigateur sans support', async () => {

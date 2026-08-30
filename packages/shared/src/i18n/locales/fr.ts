@@ -95,6 +95,29 @@ export const fr = {
         title: '{{player}} a quitté {{server}}',
         body: '{{online}} joueur(s) en ligne.',
       },
+      taskDone: { title: 'Tâche terminée : {{kind}}', body: '{{server}}{{machine}}' },
+      backupDone: { title: 'Sauvegarde faite : {{server}}', body: 'Enregistrée sur {{machine}}.' },
+      scheduleDone: { title: 'Action programmée exécutée', body: '{{server}} · {{action}}' },
+      agentProblem: { title: 'Problème sur {{machine}}', body: '{{reason}}' },
+      machinePaired: {
+        title: 'Nouvelle machine : {{machine}}',
+        body: 'Appairée depuis {{hostname}}.',
+      },
+      serverDiscovered: {
+        title: 'Nouveau serveur trouvé : {{server}}',
+        body: 'Sur {{machine}} · {{path}}',
+      },
+      serverGone: { title: '{{server}} a disparu', body: 'Dossier introuvable : {{path}}' },
+      serverDeleted: { title: '{{server}} supprimé', body: 'Retiré du panel.' },
+      serverMoved: {
+        title: '{{server}} a déménagé',
+        body: 'Maintenant dans {{path}} sur {{machine}}.',
+      },
+      serverConflict: {
+        title: 'Conflit sur {{machine}}',
+        body: 'Deux serveurs revendiquent {{path}}.',
+      },
+      playerAction: { title: '{{action}} · {{target}}', body: 'Sur {{server}}.' },
       test: {
         title: 'Notification de test',
         body: 'Les notifications push fonctionnent sur cet appareil.',

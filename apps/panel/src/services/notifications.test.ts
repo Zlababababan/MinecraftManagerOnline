@@ -162,16 +162,20 @@ describe('NotificationsService', () => {
       'server.crashed': true,
       'player.activity': false,
     });
+    // Sans canal précisé, le réglage vaut pour les deux : c'est le sens de l'ancien réglage unique.
     const put = await panel.app.inject({
       method: 'PUT',
       url: '/api/notifications/prefs',
       headers: { cookie: admin },
-      payload: { 'server.crashed': false, 'player.activity': true },
+      payload: { values: { 'server.crashed': false, 'player.activity': true } },
     });
-    expect(put.json<{ prefs: Record<string, boolean> }>().prefs).toMatchObject({
-      'server.crashed': false,
-      'player.activity': true,
-    });
+    const channels = put.json<{ channels: Record<string, Record<string, boolean>> }>().channels;
+    for (const channel of ['inapp', 'push']) {
+      expect(channels[channel], channel).toMatchObject({
+        'server.crashed': false,
+        'player.activity': true,
+      });
+    }
 
     panel.ctx.events.publish({
       type: 'server.stateChanged',
@@ -281,5 +285,78 @@ describe('NotificationsService', () => {
     const k = browserKeys();
     expect(fromB64url(k.keys.p256dh)).toHaveLength(65);
     expect(fromB64url(k.keys.auth)).toHaveLength(16);
+  });
+  /**
+   * Le défaut qui a motivé les canaux : couper une catégorie la retirait AUSSI de la cloche.
+   * Suivre les arrivées de joueurs dans le panel imposait donc de se faire réveiller la nuit.
+   */
+  it('canaux séparés : visible dans la cloche, muet sur le téléphone', async () => {
+    await subscribe(admin, 'https://push.test/admin/1');
+    const put = (payload: Record<string, unknown>) =>
+      panel.app.inject({
+        method: 'PUT',
+        url: '/api/notifications/prefs',
+        headers: { cookie: admin },
+        payload,
+      });
+    await put({ channel: 'inapp', values: { 'player.activity': true } });
+    await put({ channel: 'push', values: { 'player.activity': false } });
+
+    panel.ctx.events.publish({
+      type: 'player.joined',
+      serverId: 's',
+      payload: { name: 'Steve', online: 3 },
+    });
+    await panel.ctx.notifications.flush();
+    expect(delivered, 'aucun push').toHaveLength(0);
+
+    const center = await panel.app.inject({
+      method: 'GET',
+      url: '/api/notifications',
+      headers: { cookie: admin },
+    });
+    const list = center.json<{ notifications: { type: string }[] }>().notifications;
+    expect(
+      list.map((n) => n.type),
+      'présent dans la cloche',
+    ).toContain('player.joined');
+  });
+
+  it('les nouvelles catégories atteignent bien le téléphone', async () => {
+    await subscribe(admin, 'https://push.test/admin/1');
+    // `agent.problem` est activée par défaut : c'est le cas vécu du dossier non inscriptible.
+    panel.ctx.events.publish({
+      type: 'agent.log',
+      severity: 'warning',
+      payload: { level: 'WARN', message: 'server folder is not writable by the agent' },
+    });
+    await panel.ctx.notifications.flush();
+    expect(delivered).toHaveLength(1);
+    expect(delivered[0]?.payload.body).toContain('not writable');
+
+    // `task.done` est éteinte par défaut : une sauvegarde réussie ne réveille personne...
+    delivered.length = 0;
+    panel.ctx.events.publish({
+      type: 'task.completed',
+      serverId: 's',
+      payload: { kind: 'backup.create', status: 'done' },
+    });
+    await panel.ctx.notifications.flush();
+    expect(delivered).toHaveLength(0);
+
+    // ...jusqu'à ce qu'on le demande explicitement.
+    await panel.app.inject({
+      method: 'PUT',
+      url: '/api/notifications/prefs',
+      headers: { cookie: admin },
+      payload: { channel: 'push', values: { 'task.done': true } },
+    });
+    panel.ctx.events.publish({
+      type: 'task.completed',
+      serverId: 's',
+      payload: { kind: 'backup.create', status: 'done' },
+    });
+    await panel.ctx.notifications.flush();
+    expect(delivered).toHaveLength(1);
   });
 });

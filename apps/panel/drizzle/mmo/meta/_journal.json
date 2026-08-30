@@ -50,6 +50,20 @@
       "when": 1788118539167,
       "tag": "0006_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1788118599167,
+      "tag": "0007_notification_categories",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1788128493884,
+      "tag": "0008_notification_channels",
+      "breakpoints": true
     }
   ]
 }

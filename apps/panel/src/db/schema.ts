@@ -95,6 +95,30 @@ export const notificationPrefs = sqliteTable(
   (t) => [primaryKey({ columns: [t.userId, t.eventType] })],
 );
 
+/**
+ * Préférence par CANAL (`inapp` = cloche du panel, `push` = téléphone). Table à part plutôt qu'une
+ * colonne ajoutée à `notification_prefs` : changer une clé primaire fait recréer la table, et le
+ * `PRAGMA foreign_keys=OFF` que drizzle-kit émet alors est ignoré à l'intérieur de la transaction
+ * du migrateur. Surtout, l'ancienne table reste le REPLI en lecture : un choix déjà exprimé
+ * continue de valoir pour les deux canaux tant qu'il n'a pas été précisé, donc aucune préférence
+ * n'est perdue et aucune migration de données n'est nécessaire.
+ *
+ * Motif : jusqu'ici couper une catégorie la retirait AUSSI de la cloche — impossible de suivre les
+ * arrivées de joueurs dans le panel sans se faire réveiller par le téléphone.
+ */
+export const notificationChannelPrefs = sqliteTable(
+  'notification_channel_prefs',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    channel: text('channel').notNull(),
+    eventType: text('event_type').notNull(),
+    enabled: integer('enabled').notNull().default(1),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.channel, t.eventType] })],
+);
+
 // --- 2. Machines, appairage, agent, répertoires, Java ---------------------------------------------
 
 export const machines = sqliteTable(

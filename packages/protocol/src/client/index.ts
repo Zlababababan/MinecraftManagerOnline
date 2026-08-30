@@ -833,8 +833,13 @@ export const settingsPatchSchema = z.partialRecord(z.enum(EDITABLE_SETTINGS), z.
 // --- Phase 10 : notifications (push + centre in-app) -------------------------------------------------
 
 /**
- * Types de notification (préférences `notification_prefs.event_type`) : une catégorie regroupe un ou
- * plusieurs événements du bus. `defaultOn` = activé tant que l'utilisateur n'a rien choisi.
+ * Catégories de notification, activables une par une (`notification_prefs`).
+ *
+ * Élargies le 2026-08-31 sur retour d'usage : la moitié des événements du bus n'avait aucune case
+ * — un problème remonté par une machine, un serveur découvert, une machine appairée ne pouvaient
+ * NI être notifiés NI être réglés. Et `resources` mélangeait disque et TPS, deux urgences très
+ * différentes. Toute catégorie ajoutée ici doit être câblée dans `notificationTypeOf` ET traduite
+ * (`web:notifications.types.<clé avec _>`) : le test de parité i18n échoue sinon.
  */
 export const NOTIFICATION_TYPES = [
   'server.crashed',
@@ -849,11 +854,25 @@ export const NOTIFICATION_TYPES = [
   'port.conflict',
   'server.state',
   'player.activity',
-  // Disque presque plein, TPS effondré : aucune case existante ne les couvrait.
-  'resources',
+  /** Disque presque plein et TPS effondré : séparés, on ne réagit pas de la même façon. */
+  'resource.disk',
+  'resource.tps',
+  /** WARN/ERROR remontés par un agent (EULA non acceptée, dossier non inscriptible, timeout). */
+  'agent.problem',
+  'machine.paired',
+  'server.discovered',
+  'server.lifecycle',
+  'task.done',
+  'schedule.done',
+  'player.action',
 ] as const;
 export const notificationTypeSchema = z.enum(NOTIFICATION_TYPES);
 export type NotificationType = z.infer<typeof notificationTypeSchema>;
+
+/**
+ * Défauts. Règle : ce qui demande une intervention est activé, ce qui raconte la vie courante ne
+ * l'est pas — un téléphone qui sonne pour tout finit par être ignoré quand ça compte.
+ */
 export const NOTIFICATION_DEFAULTS: Readonly<Record<NotificationType, boolean>> = {
   'server.crashed': true,
   'server.startFailed': true,
@@ -867,8 +886,45 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<NotificationType, boolean>> 
   'port.conflict': true,
   'server.state': false,
   'player.activity': false,
-  resources: true,
+  'resource.disk': true,
+  'resource.tps': true,
+  'agent.problem': true,
+  'machine.paired': true,
+  'server.discovered': false,
+  'server.lifecycle': false,
+  'task.done': false,
+  'schedule.done': false,
+  'player.action': false,
 };
+
+/**
+ * Regroupement pour l'affichage : vingt interrupteurs en liste plate ne se lisent pas. L'ordre
+ * des groupes et des catégories est celui de l'écran.
+ */
+export const NOTIFICATION_GROUPS = [
+  {
+    id: 'servers',
+    types: [
+      'server.crashed',
+      'server.startFailed',
+      'watchdog.alert',
+      'port.conflict',
+      'server.state',
+      'server.discovered',
+      'server.lifecycle',
+    ],
+  },
+  {
+    id: 'machines',
+    types: ['agent.offline', 'agent.problem', 'machine.paired', 'agent.update', 'migration'],
+  },
+  { id: 'resources', types: ['resource.disk', 'resource.tps'] },
+  {
+    id: 'tasks',
+    types: ['backup.failed', 'task.failed', 'task.done', 'schedule.failed', 'schedule.done'],
+  },
+  { id: 'players', types: ['player.activity', 'player.action'] },
+] as const satisfies readonly { id: string; types: readonly NotificationType[] }[];
 
 /** Catégorie de notification d'un événement du bus (`undefined` = jamais notifié). */
 export function notificationTypeOf(event: {
@@ -897,7 +953,8 @@ export function notificationTypeOf(event: {
       const rule = (event.payload as { rule?: unknown } | undefined)?.rule;
       if (rule === 'machine.offline') return 'agent.offline';
       if (rule === 'server.down') return 'server.crashed';
-      if (rule === 'disk.low' || rule === 'tps.low') return 'resources';
+      if (rule === 'disk.low') return 'resource.disk';
+      if (rule === 'tps.low') return 'resource.tps';
       return undefined;
     }
     case 'task.failed':
@@ -908,6 +965,8 @@ export function notificationTypeOf(event: {
     // on réutilise la catégorie plutôt que d'ajouter une case à cocher de plus.
     case 'backup.overdue':
       return 'backup.failed';
+    case 'task.completed':
+      return 'task.done';
     case 'migration.done':
     case 'migration.failed':
       return 'migration';
@@ -915,20 +974,60 @@ export function notificationTypeOf(event: {
     case 'agent.updateRolledBack':
       return 'agent.update';
     case 'schedule.run':
-      return event.severity === 'info' ? undefined : 'schedule.failed';
+      return event.severity === 'info' ? 'schedule.done' : 'schedule.failed';
     case 'port.conflict':
       return 'port.conflict';
     case 'player.joined':
     case 'player.left':
       return 'player.activity';
+    case 'player.action':
+      return 'player.action';
+    // Un agent ne parle au bus que pour signaler une anomalie (EULA refusée, démarrage qui
+    // n'aboutit pas, dossier non inscriptible) : c'est exactement ce qu'on veut savoir.
+    case 'agent.log':
+      return 'agent.problem';
+    case 'machine.paired':
+      return 'machine.paired';
+    case 'server.adopted':
+      return 'server.discovered';
+    case 'server.removed':
+    case 'server.deleted':
+    case 'server.migrated':
+    case 'server.conflict':
+      return 'server.lifecycle';
     default:
       return undefined;
   }
 }
 
+/**
+ * Canaux de notification RÉELS du produit : la cloche du panel et le push sur appareil. Ils se
+ * règlent séparément — jusqu'ici couper une catégorie la retirait des deux, donc suivre les
+ * arrivées de joueurs dans le panel imposait de se faire réveiller la nuit.
+ */
+export const NOTIFICATION_CHANNELS = ['inapp', 'push'] as const;
+export const notificationChannelSchema = z.enum(NOTIFICATION_CHANNELS);
+export type NotificationChannel = z.infer<typeof notificationChannelSchema>;
+
 export const notificationPrefsDtoSchema = z.record(notificationTypeSchema, z.boolean());
 export type NotificationPrefsDto = z.infer<typeof notificationPrefsDtoSchema>;
-export const notificationPrefsPutSchema = z.partialRecord(notificationTypeSchema, z.boolean());
+
+/** Réglages effectifs, canal par canal (ce que l'écran affiche et ce que le panel applique). */
+export const notificationChannelPrefsDtoSchema = z.record(
+  notificationChannelSchema,
+  notificationPrefsDtoSchema,
+);
+export type NotificationChannelPrefsDto = z.infer<typeof notificationChannelPrefsDtoSchema>;
+
+/**
+ * `channel` absent = les deux canaux : c'est le sens de l'ancien réglage unique, et ce que fait
+ * un bouton « tout couper ».
+ */
+export const notificationPrefsPutSchema = z.object({
+  channel: notificationChannelSchema.optional(),
+  values: z.partialRecord(notificationTypeSchema, z.boolean()),
+});
+export type NotificationPrefsPut = z.infer<typeof notificationPrefsPutSchema>;
 
 export const notificationsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(200).optional(),
