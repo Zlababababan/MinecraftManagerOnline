@@ -17,7 +17,7 @@ jobs:
   check:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -56,14 +56,16 @@ jobs:
       - name: Tests
         run: pnpm test
 
-      # Phase 11 : archive d'installation de la plateforme courante (runtime Node épinglé par sha256),
-      # extraction + `launcher.cjs --version` avec le runtime embarqué.
-      - name: Archive agent (plateforme courante) + smoke
+      # Archives de la plateforme courante (runtime Node épinglé par sha256) : agent, puis PANEL.
+      # Le panel est construit ET DÉMARRÉ ici, sur chaque PR et sur les 4 OS. C'est le garde-fou
+      # qui manquait : ni la CI ni le smoke ne touchaient à l'archive du panel, ce qui a laissé
+      # sortir les archives Linux inutilisables des versions 1.0.2, 1.0.3 et deux 1.0.4.
+      - name: Archives agent + panel (plateforme courante) et smoke
         shell: bash
         run: |
           platform=$(node -e "console.log(require('os').platform()==='win32'?'win-x64':require('os').platform()+'-'+process.arch)")
-          node tools/release/build.mjs --skip-build --platforms "$platform"
-          node tools/release/smoke.mjs --host
+          node tools/release/build.mjs --skip-build --platforms "$platform" --panel
+          node tools/release/smoke.mjs --host --panel
 
   release-archives:
     name: archives (4 plateformes)
@@ -78,11 +80,23 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @mmo/agent... build
+      - run: pnpm build
       - name: Build des 4 archives (clé de développement) + smoke
         run: |
-          node tools/release/build.mjs --skip-build
-          node tools/release/smoke.mjs
+          node tools/release/build.mjs --skip-build --panel
+          node tools/release/smoke.mjs --panel
+
+      # L'archive Linux doit tourner sur une glibc ancienne : debian:11 a exactement la glibc 2.31
+      # d'Ubuntu 20.04, la distribution sur laquelle le panel a réellement échoué. Le runtime Node
+      # embarqué dans l'archive sert à lancer le smoke — la machine hôte n'a besoin de rien.
+      - name: Panel linux-x64 démarré sur glibc 2.31 (debian:11)
+        run: |
+          docker run --rm -v "$PWD:/w" -w /w debian:11 bash -c '
+            set -eu
+            tar xzf release/*/mmo-panel-*-linux-x64.tar.gz -C /tmp
+            ldd --version | head -1
+            "$(ls /tmp/mmo-panel/runtime/*/bin/node)" tools/release/smoke.mjs --host --panel
+          '
       - uses: actions/upload-artifact@v6
         with:
           name: mmo-agent-archives

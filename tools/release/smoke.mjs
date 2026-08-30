@@ -4,18 +4,25 @@
  * plateforme courante avec `--host`), extraction avec notre lecteur, vérification sha256/taille du
  * manifeste, présence des fichiers attendus ; sur la plateforme courante, exécution réelle de
  * `runtime/<v>/node launcher.cjs --version` (doit imprimer la version de l'agent).
- *   node tools/release/smoke.mjs [--out release] [--host]
+ * `--panel` vérifie EN PLUS l'archive du panel de la plateforme courante : empreinte, contenu
+ * (dont les migrations Drizzle), puis **démarrage réel** du panel avec son runtime embarqué et
+ * attente de `GET /api/health`. C'est le garde-fou qui manquait : ni la CI ni le smoke ne
+ * construisaient l'archive du panel, ce qui a laissé sortir les archives Linux cassées 1.0.2,
+ * 1.0.3 et deux 1.0.4.
+ *   node tools/release/smoke.mjs [--out release] [--host] [--panel]
  */
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
-  mkdirSync,
-  chmodSync,
 } from 'node:fs';
+import { createServer } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -43,6 +50,37 @@ function check(cond, message) {
     console.error(`  ✗ ${message}`);
   } else console.log(`  ✓ ${message}`);
 }
+
+/** Extrait les entrées d'une archive lue par `readArchive` dans un dossier. */
+function extract(entries, root) {
+  for (const e of entries) {
+    const p = path.join(root, e.name);
+    if (e.type === 'dir') {
+      mkdirSync(p, { recursive: true });
+      continue;
+    }
+    if (e.type !== 'file') continue;
+    mkdirSync(path.dirname(p), { recursive: true });
+    writeFileSync(p, e.data);
+    if (process.platform !== 'win32') chmodSync(p, e.mode);
+  }
+}
+
+/** Port libre : on laisse l'OS en choisir un et on le rend aussitôt. */
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const srv = createServer();
+    srv.on('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const { port } = srv.address();
+      srv.close(() => {
+        resolve(port);
+      });
+    });
+  });
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const bundle = readFileSync(path.join(dir, manifest.bundle.file));
 console.log(`bundle ${manifest.bundle.file}`);
@@ -81,17 +119,7 @@ for (const platform of targets) {
   if (platform === host) {
     const tmp = mkdtempSync(path.join(os.tmpdir(), 'mmo-smoke-'));
     try {
-      for (const e of entries) {
-        const p = path.join(tmp, e.name);
-        if (e.type === 'dir') {
-          mkdirSync(p, { recursive: true });
-          continue;
-        }
-        if (e.type !== 'file') continue;
-        mkdirSync(path.dirname(p), { recursive: true });
-        writeFileSync(p, e.data);
-        if (process.platform !== 'win32') chmodSync(p, e.mode);
-      }
+      extract(entries, tmp);
       const nodeBin = path.join(tmp, `mmo-agent/runtime/${NODE_VERSION}/${spec.nodeBinary}`);
       const out = execFileSync(nodeBin, [path.join(tmp, 'mmo-agent/launcher.cjs'), '--version'], {
         encoding: 'utf8',
@@ -106,6 +134,99 @@ for (const platform of targets) {
     }
   }
 }
+// --- Archive du panel (`--panel`) --------------------------------------------------------------
+if (args.includes('--panel')) {
+  const spec = PLATFORMS[host];
+  const manifestFile = path.join(dir, `panel-${host}.json`);
+  console.log(`panel ${host}`);
+  if (!existsSync(manifestFile)) {
+    check(false, `panel-${host}.json présent (produit par build.mjs --panel)`);
+  } else {
+    const pm = JSON.parse(readFileSync(manifestFile, 'utf8'));
+    const data = readFileSync(path.join(dir, pm.file));
+    check(sha256(data) === pm.sha256 && data.length === pm.size, 'sha256 + taille du manifeste');
+    const entries = readArchive(pm.file, data);
+    const names = new Set(entries.map((e) => e.name));
+    const wrapper = host === 'win-x64' ? 'mmo-panel/mmo-panel.cmd' : 'mmo-panel/mmo-panel.sh';
+    for (const n of [
+      'mmo-panel/app/dist/main.js',
+      'mmo-panel/app/package.json',
+      'mmo-panel/web/index.html',
+      `mmo-panel/runtime/${NODE_VERSION}/${spec.nodeBinary}`,
+      'mmo-panel/dist-agent/manifest.json',
+      wrapper,
+    ]) {
+      check(names.has(n), n);
+    }
+    // Les migrations voyagent avec le code : une archive sans elles démarre puis échoue au
+    // premier schéma manquant (oubli réel lors d'un déploiement à la main, session 5).
+    check(
+      entries.some(
+        (e) => e.name.startsWith('mmo-panel/app/drizzle/mmo/') && e.name.endsWith('.sql'),
+      ),
+      'migrations Drizzle mmo embarquées',
+    );
+
+    // Démarrage RÉEL avec le runtime embarqué : c'est le seul contrôle qui aurait arrêté les
+    // archives Linux dont le module natif ne se chargeait pas.
+    const tmp = mkdtempSync(path.join(os.tmpdir(), 'mmo-smoke-panel-'));
+    let child;
+    try {
+      extract(entries, tmp);
+      const root = path.join(tmp, 'mmo-panel');
+      const nodeBin = path.join(root, 'runtime', NODE_VERSION, spec.nodeBinary);
+      const port = await freePort();
+      const log = [];
+      child = spawn(nodeBin, [path.join(root, 'app', 'dist', 'main.js')], {
+        cwd: root,
+        env: {
+          ...process.env,
+          MMO_DATA_DIR: path.join(root, 'data'),
+          MMO_WEB_DIR: path.join(root, 'web'),
+          MMO_DIST_DIR: path.join(root, 'dist-agent'),
+          MMO_HOST: '127.0.0.1',
+          MMO_PORT: String(port),
+        },
+      });
+      child.stdout.on('data', (d) => log.push(d.toString()));
+      child.stderr.on('data', (d) => log.push(d.toString()));
+      let health;
+      const deadline = Date.now() + 90_000;
+      while (Date.now() < deadline && child.exitCode === null) {
+        try {
+          const res = await fetch(`http://127.0.0.1:${String(port)}/api/health`);
+          if (res.ok) {
+            health = await res.json();
+            break;
+          }
+        } catch {
+          /* pas encore à l'écoute */
+        }
+        await sleep(250);
+      }
+      if (!health) {
+        check(
+          false,
+          `panel démarré et /api/health atteignable
+${log.join('').slice(-4000)}`,
+        );
+      } else {
+        check(true, `panel démarré, /api/health répond`);
+        check(health.version === version, `version annoncée ${health.version} = ${version}`);
+        check(
+          health.sqlite?.driver === 'node:sqlite',
+          `driver SQLite : ${health.sqlite?.driver ?? 'absent'}`,
+        );
+        // La base a réellement été créée et migrée dans le dossier de données.
+        check(existsSync(path.join(root, 'data', 'mmo.db')), 'mmo.db créée et migrée');
+      }
+    } finally {
+      child?.kill();
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  }
+}
+
 if (failures > 0) {
   console.error(`${failures} échec(s)`);
   process.exit(1);

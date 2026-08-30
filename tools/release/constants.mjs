@@ -40,6 +40,13 @@ export const PLATFORMS = {
 
 export const NODE_DIST = `https://nodejs.org/dist/v${NODE_VERSION}/`;
 
+/**
+ * Plancher de glibc des archives Linux : Ubuntu 20.04 (2.31), la plus ancienne distribution encore
+ * en service chez un utilisateur du projet. Tout `.node` embarqué qui exige davantage rend
+ * l'archive inutilisable — c'est ce qui est sorti sans être vu en 1.0.2 et 1.0.3.
+ */
+export const GLIBC_FLOOR = [2, 31];
+
 /** shawl (service Windows, doc 03 §3), épinglé. */
 export const SHAWL = {
   version: '1.9.0',

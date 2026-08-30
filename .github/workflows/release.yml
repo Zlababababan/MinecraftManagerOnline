@@ -10,44 +10,33 @@ on:
   push:
     tags: ['v*']
 
+# Le job `build` matérialise la clé privée de signature : il n'a aucune raison de pouvoir écrire
+# sur le dépôt. Seul `publish` en a besoin.
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    # Jobs Linux : construits dans un conteneur ubuntu:20.04 (glibc 2.31) pour que les modules
-    # natifs du panel (better-sqlite3) tournent sur toutes les distributions courantes
-    # (Ubuntu 20.04+, Debian 11+). Compilé directement sur le runner 24.04, le binaire exigeait
-    # GLIBC_2.33 — constaté en réel sur une VM Ubuntu 20.04 ARM (v1.0.2).
-    container: ${{ matrix.container }}
+    # Le conteneur ubuntu:20.04 des versions 1.0.2 → 1.0.4 n'est plus nécessaire : le panel n'a
+    # plus de module natif SQLite (doc 03 §3) et le seul `.node` restant, `@node-rs/argon2`,
+    # n'exige que GLIBC_2.14 (x64) / 2.17 (arm64) — mesuré. `build.mjs` vérifie désormais le
+    # plancher de glibc de chaque `.node` embarqué et refuse d'archiver au-delà de 2.31.
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
           - { name: windows, os: windows-latest, panel: win-x64 }
-          - {
-              name: ubuntu,
-              os: ubuntu-latest,
-              panel: linux-x64,
-              agents: true,
-              container: 'ubuntu:20.04',
-            }
-          - {
-              name: ubuntu-arm,
-              os: ubuntu-24.04-arm,
-              panel: linux-arm64,
-              container: 'ubuntu:20.04',
-            }
+          - { name: ubuntu, os: ubuntu-latest, panel: linux-x64, agents: true }
+          - { name: ubuntu-arm, os: ubuntu-24.04-arm, panel: linux-arm64 }
           - { name: macos, os: macos-latest, panel: darwin-arm64 }
     steps:
-      - name: Prérequis du conteneur (compilateur, git, curl)
-        if: matrix.container != ''
-        run: |
-          apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git curl ca-certificates build-essential gcc-10 g++-10 python3 xz-utils
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
@@ -62,17 +51,19 @@ jobs:
           PEM: ${{ secrets.MMO_SIGNING_KEY_PEM }}
         run: |
           test -n "$PEM" || { echo "secret MMO_SIGNING_KEY_PEM absent"; exit 1; }
-          # Conteneur ubuntu:20.04 : g++ 9 par défaut ignore -std=c++20 (requis par better-sqlite3) — gcc-10.
-          if [ -n "${{ matrix.container }}" ]; then export CC=gcc-10 CXX=g++-10; fi
           printf '%s' "$PEM" > "$RUNNER_TEMP/release.pem"
           SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) node tools/release/build.mjs --skip-build --release --panel --key "$RUNNER_TEMP/release.pem"
           rm -f "$RUNNER_TEMP/release.pem"
-          node tools/release/smoke.mjs
+          node tools/release/smoke.mjs --panel
       - name: Artefact panel
         uses: actions/upload-artifact@v6
         with:
           name: panel-${{ matrix.panel }}
-          path: release/*/mmo-panel-*
+          # Le manifeste `panel-<hôte>.json` était produit par build.mjs puis perdu ici : sans lui,
+          # personne ne peut vérifier l'empreinte de l'archive téléchargée.
+          path: |
+            release/*/mmo-panel-*
+            release/*/panel-*.json
           if-no-files-found: error
       - name: Artefacts agents (hôte ubuntu uniquement — identiques sur tous les hôtes)
         if: matrix.agents == true
@@ -89,6 +80,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
       - uses: actions/download-artifact@v7
         with:

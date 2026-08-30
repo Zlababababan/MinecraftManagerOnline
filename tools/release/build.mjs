@@ -32,7 +32,15 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { readArchive, writeTarGz, writeZip } from './archive.mjs';
-import { NODE_DIST, NODE_VERSION, PLATFORMS, ROOT, SHAWL, hostPlatform } from './constants.mjs';
+import {
+  GLIBC_FLOOR,
+  NODE_DIST,
+  NODE_VERSION,
+  PLATFORMS,
+  ROOT,
+  SHAWL,
+  hostPlatform,
+} from './constants.mjs';
 import { download, sha256 } from './download.mjs';
 
 const args = process.argv.slice(2);
@@ -257,6 +265,45 @@ function collectDir(dir, prefix, filter = () => true) {
   return entries;
 }
 
+/** Tous les `.node` d'une arborescence : ce sont les seuls fichiers qui imposent une libc. */
+function collectNativeModules(dir) {
+  const out = [];
+  const walk = (d) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const full = path.join(d, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (e.name.endsWith('.node')) out.push(full);
+    }
+  };
+  if (existsSync(dir)) walk(dir);
+  return out;
+}
+
+/**
+ * Plancher de glibc d'un binaire ELF, lu sans dépendance ni outil externe : les versions requises
+ * apparaissent en clair (`GLIBC_2.34`) dans `.gnu.version_r`. Un binaire exigeant plus que
+ * GLIBC_FLOOR ne se chargera pas sur les distributions encore supportées (Ubuntu 20.04 = 2.31),
+ * et c'est exactement ce qui est sorti en 1.0.2 sans que rien ne l'arrête.
+ */
+function assertGlibcFloor(file, deployDir) {
+  const data = readFileSync(file);
+  if (data.length < 4 || data[0] !== 0x7f || data.toString('latin1', 1, 4) !== 'ELF') return;
+  let worst = [0, 0];
+  for (const m of data.toString('latin1').matchAll(/GLIBC_(d+).(d+)/g)) {
+    const v = [Number(m[1]), Number(m[2])];
+    if (v[0] > worst[0] || (v[0] === worst[0] && v[1] > worst[1])) worst = v;
+  }
+  const name = path.relative(deployDir, file);
+  if (worst[0] === 0) return;
+  console.log(`[release]   ${name} : GLIBC_${worst[0]}.${worst[1]} requis`);
+  if (worst[0] > GLIBC_FLOOR[0] || (worst[0] === GLIBC_FLOOR[0] && worst[1] > GLIBC_FLOOR[1])) {
+    throw new Error(
+      `${name} exige GLIBC_${worst[0]}.${worst[1]} (> ${GLIBC_FLOOR.join('.')}) : ` +
+        "l'archive serait inutilisable sur une distribution à glibc ancienne — construire dans le conteneur ubuntu:20.04.",
+    );
+  }
+}
+
 if (withPanel) {
   const host = hostPlatform();
   if (!host)
@@ -274,31 +321,24 @@ if (withPanel) {
     '--config.node-linker=hoisted',
     deployDir,
   );
-  // better-sqlite3 (13.x) embarque des prebuilds amont liés à une glibc récente (≥ 2.33, constaté
-  // en réel sur Ubuntu 20.04 ARM avec les releases 1.0.2/1.0.3) : sur Linux, recompilation depuis
-  // les sources contre la glibc de l'hôte de build (conteneur ubuntu:20.04 en CI → plancher 2.31,
-  // doc 03 §3), écrasement du prebuild de la plateforme, purge du dossier de compilation (sinon
-  // archivé), puis VÉRIFICATION par un require() réel — une archive Linux inchargeable sur l'hôte
-  // de build ne peut plus sortir.
-  if (process.platform === 'linux') {
-    console.log('[release] better-sqlite3 : recompilation contre la glibc locale');
-    const bsDir = path.join(deployDir, 'node_modules', 'better-sqlite3');
-    // node-gyp direct (via npx) avec --force_build=1 : le binding.gyp de better-sqlite3 ne
-    // compile RÉELLEMENT que si force_build==1 ou si aucun prebuild n'existe pour l'hôte —
-    // sans ce flag, make ne touche que des stamps (constaté aux deux runs v1.0.4 ratés).
-    execFileSync('npx', ['--yes', 'node-gyp', 'rebuild', '--release', '--force_build=1'], {
-      cwd: bsDir,
-      stdio: 'inherit',
-    });
-    const built = path.join(bsDir, 'build', 'Release', 'better_sqlite3.node');
-    if (!existsSync(built)) throw new Error('better-sqlite3 : binaire recompilé introuvable');
-    copyFileSync(built, path.join(bsDir, 'prebuilds', `linux-${process.arch}.node`));
-    rmSync(path.join(bsDir, 'build'), { recursive: true, force: true });
-    execFileSync(process.execPath, ['-e', "require('better-sqlite3')"], {
-      cwd: deployDir,
-      stdio: 'inherit',
-    });
-  }
+  // Modules natifs embarqués dans l'archive. SQLite n'en est plus un depuis le passage à
+  // `node:sqlite` (doc 03 §3) ; `@node-rs/argon2` en reste un, avec ses prebuilds. Deux
+  // garde-fous, parce que c'est très exactement cette famille de panne qui a produit les archives
+  // Linux inutilisables des versions 1.0.2 et 1.0.3 : le plancher de glibc exigé par chaque
+  // binaire, et un chargement RÉEL suivi d'un hachage.
+  const natives = collectNativeModules(path.join(deployDir, 'node_modules'));
+  console.log(
+    `[release] modules natifs embarqués : ${natives.length === 0 ? 'aucun' : natives.map((f) => path.relative(deployDir, f)).join(', ')}`,
+  );
+  for (const file of natives) assertGlibcFloor(file, deployDir);
+  execFileSync(
+    process.execPath,
+    [
+      '-e',
+      "const a = require('@node-rs/argon2'); if (!a.verifySync(a.hashSync('mmo'), 'mmo')) throw new Error('argon2 : vérification incohérente');",
+    ],
+    { cwd: deployDir, stdio: 'inherit' },
+  );
   const entries = [];
   const keep = new Set(['dist', 'node_modules', 'drizzle', 'install', 'package.json']);
   entries.push(
