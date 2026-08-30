@@ -8,6 +8,8 @@ _本文档译自英文版，如有出入以英文版为准。应用界面提供�
 
 打包支持的平台：**Windows x64**、**Linux x64**、**Linux ARM64**（Raspberry Pi 4/5、ARM 服务器）、**macOS Apple Silicon**。Windows ARM64 可通过 x64 压缩包运行（模拟）。Intel macOS 未提供打包。
 
+**支持哪些 Linux 发行版？** 自 1.0.5 起，面板不再包含任何编译模块，因此**任何基于 glibc 的发行版都可以运行**：Ubuntu 20.04 及以上、Debian 11 及以上、Fedora、Rocky/Alma/RHEL 9、openSUSE、Raspberry Pi OS、Oracle Linux、Arch……无需安装任何东西，既不需要编译器，也不需要开发包。唯一的例外是 **Alpine** 等基于 musl 的系统，内置的 Node 运行时不支持它们。
+
 ## 1. 面板
 
 ### 1.1 下载

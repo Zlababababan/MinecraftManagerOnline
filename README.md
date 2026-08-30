@@ -25,25 +25,21 @@ A central web **panel** (the machine that stays on) + a lightweight **agent** on
 
 ## Quick start
 
-1. **Download the panel archive** `mmo-panel-<version>-<platform>.zip` (Windows) or `.tar.gz` (Linux / macOS) from the [releases](https://github.com/Zlababababan/MinecraftManagerOnline/releases). If there is none for your platform, build it yourself — Node ≥ 22 and pnpm are all you need. On a fresh machine (e.g. a Linux ARM VM), install them first — standalone pnpm, then Node through it — and clone this repository:
+1. **Download the panel archive** for your machine from the [latest release](https://github.com/Zlababababan/MinecraftManagerOnline/releases/latest) — `win-x64` (Windows), `linux-x64`, `linux-arm64` (Raspberry Pi, ARM servers) or `darwin-arm64` (Apple Silicon). Not sure which Linux? `uname -m`: `x86_64` = x64, `aarch64` = ARM64.
+
+2. **Extract and launch.** There is nothing to install first — the archive carries its own Node runtime. Windows: extract, then double-click `mmo-panel.cmd`. Linux and macOS:
 
    ```bash
-   sudo apt install -y git curl build-essential       # Debian/Ubuntu — the compiler is needed when no prebuilt SQLite binary exists for your platform (e.g. Linux ARM)
-   curl -fsSL https://get.pnpm.io/install.sh | sh -   # then open a new shell
-   pnpm env use --global 24
-   git clone https://github.com/Zlababababan/MinecraftManagerOnline.git && cd MinecraftManagerOnline
+   tar -xzf mmo-panel-*.tar.gz
+   cd mmo-panel
+   ./mmo-panel.sh
    ```
 
-   Then build:
+   Then open `http://127.0.0.1:3000`. On a machine with no browser, create the account from the command line instead: `./mmo-panel.sh setup --username admin --random-password`. If anything goes wrong, `./mmo-panel.sh doctor` says what and why.
 
-   ```bash
-   pnpm install
-   pnpm release:build -- --panel
-   ```
+3. **Follow the [installation guide](docs/guide/installation.md)**: first-start wizard, running the panel as a service, agents installed in one click from the panel, and access for your friends and your phone.
 
-   The archive shows up in `release/<version>/`. Two things to know: the **panel** archive is produced for the platform you build on (build on Linux to host on Linux — the **agent** archives for all 4 platforms are always produced); without a maintainer key the build is signed with the development key, which the panel points out — fully functional for personal use.
-
-2. **Follow the [installation guide](docs/guide/installation.md)**: panel in two commands then the first-start wizard, agents installed in one click from the panel, and access for your friends and your phone.
+> Building from source is only needed for a platform that has no archive (Intel macOS): `pnpm install && pnpm release:build -- --panel` with Node 24 and pnpm. The **panel** archive is produced for the platform you build on; the **agent** archives for all 4 platforms are always produced. Without a maintainer key the build is signed with the development key, which the panel points out — fully functional for personal use.
 
 ## Platforms
 
@@ -55,7 +51,7 @@ A central web **panel** (the machine that stays on) + a lightweight **agent** on
 | macOS Apple Silicon              | ✅ (archive provided)       | ✅                  |
 | Windows ARM64                    | via the x64 archive (emulation) | via x64 (emulation) |
 
-No dependency to install: each archive embeds its pinned Node runtime. Linux archives run on glibc ≥ 2.31 (Ubuntu 20.04+, Debian 11+). Java is provisioned automatically by the agent (Temurin → Zulu) to match the Minecraft version.
+No dependency to install: each archive embeds its pinned Node runtime, and since 1.0.5 the panel contains **no compiled module** — every glibc-based Linux works (Ubuntu 20.04+, Debian 11+, Fedora, Rocky/Alma/RHEL 9, openSUSE, Raspberry Pi OS, Arch…), with no compiler and no development package. Alpine and other musl systems are not covered by the bundled runtime. Java is provisioned automatically by the agent (Temurin → Zulu) to match the Minecraft version.
 
 ## Documentation
 

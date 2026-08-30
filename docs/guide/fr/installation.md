@@ -4,31 +4,56 @@
 
 Guide utilisateur — installer le **panel** (une seule machine, celle qui reste allumée), puis un **agent** sur chaque machine qui héberge des serveurs Minecraft (souvent la même). Tout est livré sous forme d'archives autonomes : aucun Node, Java ou Python à installer au préalable.
 
-Plateformes packagées : **Windows x64**, **Linux x64**, **Linux ARM64** (Raspberry Pi 4/5, serveurs ARM), **macOS Apple Silicon**. Windows ARM64 fonctionne avec l'archive x64 (émulation). macOS Intel n'est pas packagé. Les archives Linux fonctionnent avec glibc ≥ 2.31 (Ubuntu 20.04+, Debian 11+).
+Plateformes packagées : **Windows x64**, **Linux x64**, **Linux ARM64** (Raspberry Pi 4/5, serveurs ARM), **macOS Apple Silicon**. Windows ARM64 fonctionne avec l'archive x64 (émulation). macOS Intel n'est pas packagé.
+
+**Quelles distributions Linux ?** Depuis la 1.0.5, le panel ne contient plus aucun module compilé : **toute distribution à base de glibc fonctionne** — Ubuntu 20.04 et suivantes, Debian 11 et suivantes, Fedora, Rocky/Alma/RHEL 9, openSUSE, Raspberry Pi OS, Oracle Linux, Arch… Rien à installer, ni compilateur, ni paquet de développement. Seule exception : **Alpine** et les systèmes à base de musl, que le runtime Node embarqué ne gère pas — utilisez une distribution à glibc, ou lancez le panel avec votre propre Node ≥ 24 (`node app/dist/main.js` depuis le dossier extrait).
 
 ## 1. Le panel
 
 ### 1.1 Télécharger
 
-Récupérez l'archive `mmo-panel-<version>-<plateforme>.zip` (Windows) ou `.tar.gz` (Linux / macOS) depuis les [releases GitHub](https://github.com/Zlababababan/MinecraftManagerOnline/releases). Elle contient le runtime Node épinglé, le panel, l'interface web et les archives d'installation des agents pour les 4 plateformes (`dist-agent/`).
+Ouvrez la [page des releases](https://github.com/Zlababababan/MinecraftManagerOnline/releases/latest) et téléchargez le fichier qui correspond à votre machine :
 
-> Pas d'archive disponible pour votre plateforme ? Construisez-la depuis les sources en deux commandes : voir « Démarrage rapide » dans le [README](../../../README.fr.md).
+| Votre machine                                   | Fichier à télécharger                     |
+| ----------------------------------------------- | ----------------------------------------- |
+| Windows (n'importe quel PC récent)              | `mmo-panel-<version>-win-x64.zip`         |
+| Linux sur un PC ou un serveur ordinaire         | `mmo-panel-<version>-linux-x64.tar.gz`    |
+| Linux sur ARM (Raspberry Pi, VM Oracle/Ampere…) | `mmo-panel-<version>-linux-arm64.tar.gz`  |
+| Mac Apple Silicon (M1–M4)                       | `mmo-panel-<version>-darwin-arm64.tar.gz` |
+
+Vous ne savez pas quel Linux vous avez ? Tapez `uname -m` : `x86_64` = x64, `aarch64` = ARM64.
+
+L'archive se suffit à elle-même : elle embarque son propre runtime Node, le panel, l'interface web et les installeurs d'agents des quatre plateformes. **Il n'y a rien à installer au préalable** — ni Node, ni Java, ni compilateur, ni paquet de développement.
+
+> Envie de vérifier le téléchargement ? Chaque release publie aussi `panel-<plateforme>.json`, qui contient l'empreinte SHA-256 attendue. Comparez avec `sha256sum <fichier>` (Linux/macOS) ou `Get-FileHash <fichier>` (Windows).
 
 ### 1.2 Extraire et lancer
 
-**Windows** — extrayez dans un dossier permanent, par exemple `C:\mmo\panel`, puis :
+**Windows.** Clic droit sur le `.zip` → **Extraire tout**, dans un dossier que vous garderez, par exemple `C:\mmo\panel` (évitez Téléchargements et le Bureau). Ouvrez ce dossier et double-cliquez sur **`mmo-panel.cmd`**. Une fenêtre noire s'ouvre et reste ouverte : c'est le panel qui tourne, la fermer l'arrête — le §1.4 en fait un vrai service. Depuis un terminal :
 
 ```powershell
 C:\mmo\panel\mmo-panel.cmd
 ```
 
-**Linux / macOS** :
+**Linux.** Dans un terminal, dans le dossier où le fichier a été téléchargé :
+
+```bash
+tar -xzf mmo-panel-*.tar.gz
+cd mmo-panel
+./mmo-panel.sh
+```
+
+C'est suffisant pour essayer. Pour une machine qui restera allumée, posez-le dans un endroit définitif — et attention au `chown`, c'est l'erreur qui coûte le plus de temps :
 
 ```bash
 sudo mkdir -p /opt/mmo && sudo tar -xzf mmo-panel-*.tar.gz -C /opt/mmo
 sudo chown -R "$USER" /opt/mmo/mmo-panel   # extrait par root — donnez-le à l'utilisateur qui le lance (§1.4 le donnera à l'utilisateur de service mmo)
 /opt/mmo/mmo-panel/mmo-panel.sh
 ```
+
+**macOS** — mêmes commandes que Linux. Au premier lancement, macOS peut refuser d'exécuter un binaire téléchargé : Réglages Système → Confidentialité et sécurité → « Ouvrir quand même ».
+
+> Quelque chose cloche ? `mmo-panel.cmd doctor` (Windows) ou `./mmo-panel.sh doctor` (Linux/macOS) vérifie le runtime, le dossier de données et son propriétaire, la base et le port, et dit quoi faire — voir §1.6.
 
 Le panel écoute sur `http://127.0.0.1:3000` (jamais sur toutes les interfaces — c'est la couche d'accès, §3, qui l'expose ; `0.0.0.0` est refusé au démarrage). Variables utiles : `MMO_PORT`, `MMO_HOST` (une adresse précise), `MMO_DATA_DIR` (défaut `./data` à côté du script — **c'est le dossier à sauvegarder** : base SQLite, métriques, certificats, releases). En plus de la console, le panel écrit son journal dans `data/logs/panel-<date>.log` (14 jours conservés) — c'est là qu'il faut regarder quand quelque chose s'est mal passé après la fermeture de la fenêtre.
 

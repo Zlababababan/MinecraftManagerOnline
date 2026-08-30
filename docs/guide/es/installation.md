@@ -8,6 +8,8 @@ Guía del usuario — instale el **panel** (una sola máquina, la que permanece 
 
 Plataformas empaquetadas: **Windows x64**, **Linux x64**, **Linux ARM64** (Raspberry Pi 4/5, servidores ARM), **macOS Apple Silicon**. Windows ARM64 funciona con el archivo x64 (emulación). macOS Intel no está empaquetado.
 
+**¿Qué distribuciones de Linux?** Desde la 1.0.5 el panel no contiene ningún módulo compilado, así que **funciona en cualquier distribución basada en glibc**: Ubuntu 20.04 y posteriores, Debian 11 y posteriores, Fedora, Rocky/Alma/RHEL 9, openSUSE, Raspberry Pi OS, Oracle Linux, Arch… No hay nada que instalar: ni compilador ni paquetes de desarrollo. La única excepción es **Alpine** y otros sistemas basados en musl, que el runtime de Node incluido no admite.
+
 ## 1. El panel
 
 ### 1.1 Descarga

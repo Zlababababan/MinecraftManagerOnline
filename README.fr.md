@@ -25,25 +25,21 @@ Un **panel** web central (la machine qui reste allumée) + un **agent** léger s
 
 ## Démarrage rapide
 
-1. **Téléchargez l'archive du panel** `mmo-panel-<version>-<plateforme>.zip` (Windows) ou `.tar.gz` (Linux / macOS) depuis les [releases](https://github.com/Zlababababan/MinecraftManagerOnline/releases). S'il n'y en a pas pour votre plateforme, construisez-la vous-même — Node ≥ 22 et pnpm suffisent. Sur une machine vierge (ex. une VM Linux ARM), installez-les d'abord — pnpm autonome, puis Node via pnpm — et clonez ce dépôt :
+1. **Téléchargez l'archive du panel** correspondant à votre machine depuis la [dernière release](https://github.com/Zlababababan/MinecraftManagerOnline/releases/latest) — `win-x64` (Windows), `linux-x64`, `linux-arm64` (Raspberry Pi, serveurs ARM) ou `darwin-arm64` (Apple Silicon). Vous ne savez pas quel Linux ? `uname -m` : `x86_64` = x64, `aarch64` = ARM64.
+
+2. **Extrayez et lancez.** Il n'y a rien à installer avant : l'archive embarque son propre runtime Node. Windows : extrayez, puis double-cliquez sur `mmo-panel.cmd`. Linux et macOS :
 
    ```bash
-   sudo apt install -y git curl build-essential       # Debian/Ubuntu — le compilateur sert quand aucun binaire SQLite précompilé n'existe pour votre plateforme (ex. Linux ARM)
-   curl -fsSL https://get.pnpm.io/install.sh | sh -   # puis ouvrez un nouveau shell
-   pnpm env use --global 24
-   git clone https://github.com/Zlababababan/MinecraftManagerOnline.git && cd MinecraftManagerOnline
+   tar -xzf mmo-panel-*.tar.gz
+   cd mmo-panel
+   ./mmo-panel.sh
    ```
 
-   Puis construisez :
+   Ouvrez ensuite `http://127.0.0.1:3000`. Sur une machine sans navigateur, créez plutôt le compte en ligne de commande : `./mmo-panel.sh setup --username admin --random-password`. Si quelque chose cloche, `./mmo-panel.sh doctor` dit quoi et pourquoi.
 
-   ```bash
-   pnpm install
-   pnpm release:build -- --panel
-   ```
+3. **Suivez le [guide d'installation](docs/guide/fr/installation.md)** : wizard du premier démarrage, panel en service, agents installés en un clic depuis le panel, et accès pour vos amis et votre téléphone.
 
-   L'archive apparaît dans `release/<version>/`. Deux choses à savoir : l'archive du **panel** est produite pour la plateforme sur laquelle vous buildez (construisez sous Linux pour héberger sous Linux — les archives d'**agents** des 4 plateformes sont, elles, toujours produites) ; sans clé de mainteneur le build est signé avec la clé de développement, ce que le panel affiche — pleinement fonctionnel pour un usage personnel.
-
-2. **Suivez le [guide d'installation](docs/guide/fr/installation.md)** : panel en deux commandes puis wizard du premier démarrage, agents installés en un clic depuis le panel, et accès pour vos amis et votre téléphone.
+> Construire depuis les sources ne sert que pour une plateforme sans archive (macOS Intel) : `pnpm install && pnpm release:build -- --panel`, avec Node 24 et pnpm. L'archive du **panel** est produite pour la plateforme sur laquelle vous buildez ; celles des **agents** le sont pour les 4. Sans clé de mainteneur, le build est signé avec la clé de développement, ce que le panel affiche — pleinement fonctionnel pour un usage personnel.
 
 ## Plateformes
 
@@ -55,7 +51,7 @@ Un **panel** web central (la machine qui reste allumée) + un **agent** léger s
 | macOS Apple Silicon             | ✅ (archive fournie)          | ✅                  |
 | Windows ARM64                   | via l'archive x64 (émulation) | via x64 (émulation) |
 
-Aucune dépendance à installer : chaque archive embarque son runtime Node épinglé. Les archives Linux fonctionnent avec glibc ≥ 2.31 (Ubuntu 20.04+, Debian 11+). Java est provisionné automatiquement par l'agent (Temurin → Zulu) selon la version Minecraft.
+Aucune dépendance à installer : chaque archive embarque son runtime Node épinglé, et depuis la 1.0.5 le panel ne contient **aucun module compilé** — tous les Linux à base de glibc fonctionnent (Ubuntu 20.04+, Debian 11+, Fedora, Rocky/Alma/RHEL 9, openSUSE, Raspberry Pi OS, Arch…), sans compilateur ni paquet de développement. Alpine et les systèmes à base de musl ne sont pas couverts par le runtime embarqué. Java est provisionné automatiquement par l'agent (Temurin → Zulu) selon la version Minecraft.
 
 ## Documentation
 

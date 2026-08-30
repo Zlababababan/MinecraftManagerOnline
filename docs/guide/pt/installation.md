@@ -8,6 +8,8 @@ Guia do usuário — instale o **painel** (uma única máquina, a que fica ligad
 
 Plataformas empacotadas: **Windows x64**, **Linux x64**, **Linux ARM64** (Raspberry Pi 4/5, servidores ARM), **macOS Apple Silicon**. O Windows ARM64 funciona com o arquivo x64 (emulação). macOS Intel não é empacotado.
 
+**Quais distribuições Linux?** Desde a 1.0.5 o painel não contém nenhum módulo compilado, portanto **qualquer distribuição baseada em glibc funciona**: Ubuntu 20.04 e posteriores, Debian 11 e posteriores, Fedora, Rocky/Alma/RHEL 9, openSUSE, Raspberry Pi OS, Oracle Linux, Arch… Não há nada a instalar — nem compilador nem pacote de desenvolvimento. A única exceção é o **Alpine** e outros sistemas baseados em musl, que o runtime Node embutido não suporta.
+
 ## 1. O painel
 
 ### 1.1 Download
