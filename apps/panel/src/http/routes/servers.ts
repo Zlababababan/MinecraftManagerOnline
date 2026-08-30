@@ -5,6 +5,7 @@ import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import {
+  bulkActionSchema,
   commandRequestSchema,
   createServerSchema,
   metricsQuerySchema,
@@ -13,11 +14,12 @@ import {
   resolveConflictSchema,
   stopServerSchema,
   updateServerSchema,
+  type BulkActionResult,
 } from '@mmo/protocol/client';
 
 import type { AppContext } from '../../context.js';
 import { commandHistory, type ServerRow } from '../../db/schema.js';
-import { conflict } from '../../errors.js';
+import { AppError, conflict, notFound } from '../../errors.js';
 import { requireUser } from '../auth.js';
 import { auditMeta } from './setup-auth.js';
 
@@ -159,8 +161,108 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
 
   // --- Actions ----------------------------------------------------------------------------------
 
+  /**
+   * Démarrage d'un serveur : l'intention est écrite AVANT l'appel (l'agent la relit dans sa
+   * configuration), et **remise à `stopped` si l'appel échoue**. Sans cette compensation, un
+   * démarrage refusé — garde-fou mémoire, EULA, Java absent — laissait un serveur marqué « doit
+   * tourner » : `restoreOnBoot` le relancerait au prochain démarrage, et depuis les alertes à
+   * état il déclencherait « serveur à terre » cinq minutes plus tard.
+   */
+  async function startServer(
+    context: AppContext,
+    session: ReturnType<AppContext['registry']['require']>,
+    row: ServerRow,
+    userId: string,
+  ) {
+    context.servers.setDesiredState(row.id, 'running');
+    await session.pushConfig();
+    try {
+      return await session.peer.request('server.start', { serverId: row.id }, { userId });
+    } catch (error) {
+      context.servers.setDesiredState(row.id, 'stopped');
+      await session.pushConfig().catch(() => undefined);
+      throw error;
+    }
+  }
+
   const action = (name: 'start' | 'stop' | 'restart' | 'kill') =>
     `/api/servers/:id/${name}` as const;
+
+  /**
+   * Action groupée, **séquentielle**. Le garde-fou mémoire de l'agent compare `maxRamMb` à
+   * `total − réserve − somme des maxRamMb des serveurs déjà lancés`, et il est recalculé à chaque
+   * requête sans verrou global : dix démarrages en parallèle passent tous la garde avant que le
+   * premier ne soit compté, ou s'effondrent en cascade de refus selon le minutage. Enchaîner
+   * suffit — `server.start` répond après le spawn, et un serveur en `starting` est déjà compté
+   * par l'agent. Inutile donc d'attendre l'état `running`, ce qui rendrait la route bloquante
+   * pendant des minutes.
+   */
+  r.post(
+    '/api/servers/bulk-action',
+    { config: { role: 'operator' }, schema: { body: bulkActionSchema } },
+    async (request) => {
+      const user = requireUser(request);
+      const { action: name, serverIds, continueOnError = false } = request.body;
+      const results: BulkActionResult['results'] = [];
+      let stopped = false;
+      for (const id of serverIds) {
+        const row = ctx.servers.get(id);
+        // « Non tenté » se décide AVANT tout le reste : une fois la série interrompue, plus rien
+        // n'est évalué, pas même l'existence du serveur.
+        if (stopped) {
+          results.push({ serverId: id, name: row?.name ?? id, status: 'skipped' });
+          continue;
+        }
+        if (!row) {
+          results.push({
+            serverId: id,
+            name: id,
+            status: 'failed',
+            error: notFound('server', id).toJSON(),
+          });
+          if (!continueOnError) stopped = true;
+          continue;
+        }
+        try {
+          if (row.provisioning !== 'ready') {
+            throw conflict(`server is ${row.provisioning}`, { provisioning: row.provisioning });
+          }
+          const session = ctx.registry.require(row.machineId);
+          if (name === 'start') {
+            await startServer(ctx, session, row, user.id);
+          } else {
+            ctx.servers.setDesiredState(row.id, name === 'restart' ? 'running' : 'stopped');
+            await session.pushConfig();
+            await session.peer.request(
+              name === 'stop' ? 'server.stop' : 'server.restart',
+              { serverId: row.id },
+              { userId: user.id, deadlineMs: 180_000 },
+            );
+          }
+          ctx.audit.record({
+            ...auditMeta(request),
+            action: `server.${name}`,
+            targetType: 'server',
+            targetId: row.id,
+            targetLabel: row.name,
+            details: { bulk: true },
+          });
+          results.push({ serverId: id, name: row.name, status: 'done' });
+        } catch (error) {
+          results.push({
+            serverId: id,
+            name: row.name,
+            status: 'failed',
+            error: AppError.from(error).toJSON(),
+          });
+          // On s'arrête au premier refus : sur une machine saturée, insister ne produirait que
+          // des refus identiques, et l'utilisateur doit voir LEQUEL a bloqué.
+          if (!continueOnError) stopped = true;
+        }
+      }
+      return { results } satisfies BulkActionResult;
+    },
+  );
 
   r.post(
     action('start'),
@@ -171,13 +273,7 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
       if (row.provisioning !== 'ready')
         throw conflict(`server is ${row.provisioning}`, { provisioning: row.provisioning });
       const session = ctx.registry.require(row.machineId);
-      ctx.servers.setDesiredState(row.id, 'running');
-      await session.pushConfig();
-      const res = await session.peer.request(
-        'server.start',
-        { serverId: row.id },
-        { userId: user.id },
-      );
+      const res = await startServer(ctx, session, row, user.id);
       ctx.audit.record({
         ...auditMeta(request),
         action: 'server.start',

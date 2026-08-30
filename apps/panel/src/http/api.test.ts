@@ -1,4 +1,6 @@
 import { sql } from 'drizzle-orm';
+
+import type { BulkActionResult } from '@mmo/protocol/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { assertListenHost } from '../config.js';
@@ -414,5 +416,45 @@ describe('panel — API, auth, RBAC, migrations', () => {
     expect(res.statusCode).toBe(200);
     expect(panel.ctx.settings.getBool('agents.restoreOnBoot')).toBe(false);
     expect(panel.ctx.settings.getInt('metrics.intervalSec', 15)).toBe(30);
+  });
+  // L'exécution groupée est SÉQUENTIELLE et s'arrête au premier refus : le garde-fou mémoire de
+  // l'agent est recalculé à chaque requête à partir des serveurs déjà lancés, et sur une machine
+  // saturée insister ne produirait que des refus identiques. L'utilisateur doit voir LEQUEL a
+  // bloqué et lesquels n'ont pas été tentés.
+  it('action groupée : séquentielle, arrêt au premier refus, reste non tenté', async () => {
+    const admin = await setupAdmin(panel);
+    const res = await panel.app.inject({
+      method: 'POST',
+      url: '/api/servers/bulk-action',
+      headers: { cookie: admin },
+      payload: { action: 'start', serverIds: ['inconnu-1', 'inconnu-2', 'inconnu-3'] },
+    });
+    expect(res.statusCode).toBe(200);
+    const { results } = res.json<BulkActionResult>();
+    expect(results.map((r) => r.status)).toEqual(['failed', 'skipped', 'skipped']);
+    expect(results[0]?.error?.code).toBe('E_NOT_FOUND');
+
+    // `continueOnError` insiste malgré tout : chaque ligne est tentée et rapportée.
+    const all = await panel.app.inject({
+      method: 'POST',
+      url: '/api/servers/bulk-action',
+      headers: { cookie: admin },
+      payload: { action: 'stop', serverIds: ['a', 'b'], continueOnError: true },
+    });
+    expect(all.json<BulkActionResult>().results.map((r) => r.status)).toEqual(['failed', 'failed']);
+
+    // Un viewer ne peut pas agir en groupe : même rang que les actions unitaires.
+    const viewer = await createUser(panel, admin, {
+      username: 'lea',
+      password: 'password-lea',
+      role: 'viewer',
+    });
+    const denied = await panel.app.inject({
+      method: 'POST',
+      url: '/api/servers/bulk-action',
+      headers: { cookie: viewer },
+      payload: { action: 'start', serverIds: ['x'] },
+    });
+    expect(denied.statusCode).toBe(403);
   });
 });

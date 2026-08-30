@@ -108,6 +108,8 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 | **Alertes à état** : serveur tombé, machine hors ligne, disque presque plein, TPS effondré — hystérésis, regroupement par dépendance, rappel espacé, retour à la normale notifié (2026-08-30) | V1 |
 | Webhooks / intégration Discord | Futur |
 
+> **Ajout (2026-08-30) — vue de flotte.** Page `/servers` : liste plate de tous les serveurs, recherche (nom **et** chemin), filtres machine / loader / version / état, tri (nom, état, dernier démarrage, RAM allouée), le tout **persisté dans l'URL** — une vue se met en favori et se partage. Sélection multiple et **actions groupées séquentielles** : le garde-fou mémoire de l'agent compare `maxRamMb` à `total − réserve − somme des maxRamMb des serveurs déjà lancés` et se recalcule à chaque requête sans verrou, donc des démarrages parallèles passent tous la garde avant que le premier ne soit compté, ou s'effondrent en cascade de refus. Le panel enchaîne (`server.start` répond après le spawn, et un serveur en `starting` est déjà compté) et **s'arrête au premier refus** en disant lequel a bloqué et lesquels n'ont pas été tentés. Non réalisable en l'état : tri par TPS ou par joueurs connectés — ces valeurs ne sont pas dans le DTO serveur, elles ne transitent qu'en `metrics.sample`.
+
 ## 11. Interface
 
 | Fonctionnalité | Portée |

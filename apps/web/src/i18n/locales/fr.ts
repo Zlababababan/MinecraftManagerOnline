@@ -179,6 +179,43 @@ export const webFr = {
     },
     info: 'Informations de l’agent',
   },
+  servers: {
+    title: 'Serveurs',
+    count_one: '{{count}} serveur',
+    count_other: '{{count}} serveurs',
+    countFiltered: '{{shown}} sur {{total}}',
+    search: 'Rechercher',
+    searchPlaceholder: 'Nom ou dossier',
+    none: 'Aucun serveur pour le moment. Ajoutez une machine, puis un répertoire surveillé.',
+    noMatch: 'Aucun serveur ne correspond à ces filtres.',
+    filters: {
+      any: 'Tous',
+      machine: 'Machine',
+      loader: 'Loader',
+      version: 'Version',
+      state: 'État',
+      reset: 'Effacer',
+    },
+    sort: {
+      label: 'Trier par',
+      name: 'Nom',
+      state: 'État',
+      started: 'Dernier démarrage',
+      ram: 'RAM allouée',
+    },
+    columns: { name: 'Serveur', machine: 'Machine', state: 'État', ram: 'RAM' },
+    bulk: {
+      selected_one: '{{count}} sélectionné',
+      selected_other: '{{count}} sélectionnés',
+      selectAll: 'Sélectionner tous les serveurs listés',
+      sequential:
+        'Exécution l’un après l’autre — le garde-fou mémoire refuse les démarrages en parallèle.',
+      done_one: '{{count}} serveur traité.',
+      done_other: '{{count}} serveurs traités.',
+      skipped_one: '{{count}} non tenté : {{names}}',
+      skipped_other: '{{count}} non tentés : {{names}}',
+    },
+  },
   server: {
     one: 'Serveur',
     tabs: {

@@ -11,6 +11,7 @@ import {
   createRouter,
   isRedirect,
   redirect,
+  useNavigate,
   useRouteContext,
   type RouterHistory,
 } from '@tanstack/react-router';
@@ -29,6 +30,8 @@ import { ErrorPage } from './pages/ErrorPage.js';
 import { LoginPage } from './pages/LoginPage.js';
 import { MachinePage } from './pages/MachinePage.js';
 import { MachinesPage } from './pages/MachinesPage.js';
+import { ServersPage } from './pages/ServersPage.js';
+import { filterToSearch, searchToFilter } from './lib/server-filter.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { SERVER_TABS, ServerPage, type ServerTab } from './pages/ServerPage.js';
 import { SettingsPage } from './pages/SettingsPage.js';
@@ -125,6 +128,26 @@ const indexRoute = createRoute({
   component: DashboardPage,
 });
 
+const serversRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/servers',
+  // Le filtre vit dans l'URL : une vue se met en favori et se partage. `searchToFilter` est
+  // tolérant par construction, un paramètre inconnu ou invalide retombe sur le défaut.
+  validateSearch: (search: Record<string, unknown>) => filterToSearch(searchToFilter(search)),
+  component: function ServersRoute() {
+    const search = serversRoute.useSearch();
+    const navigate = useNavigate();
+    return (
+      <ServersPage
+        filter={searchToFilter(search)}
+        onFilterChange={(next) => {
+          void navigate({ to: '/servers', search: filterToSearch(next), replace: true });
+        }}
+      />
+    );
+  },
+});
+
 const serverRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/servers/$serverId',
@@ -189,6 +212,7 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   appRoute.addChildren([
     indexRoute,
+    serversRoute,
     serverRoute,
     machinesRoute,
     machineRoute,

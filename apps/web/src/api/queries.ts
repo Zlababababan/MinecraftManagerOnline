@@ -11,6 +11,8 @@ import type { z } from 'zod';
 
 import type { ConfigData, ConfigFile, ConfigSetData, ConsoleLine } from '@mmo/protocol';
 import type {
+  BulkAction,
+  BulkActionResult,
   ConfigSetResult,
   EventDto,
   FsEntryDto,
@@ -463,6 +465,19 @@ export function useServerAction(serverId: string) {
           : { servers: old.servers.map((s) => (s.id === data.server.id ? data.server : s)) },
       );
     },
+  });
+}
+
+/**
+ * Action groupée. Le panel exécute SÉQUENTIELLEMENT et s'arrête au premier refus : la réponse
+ * dit ce qui a été fait, ce qui a échoué et ce qui n'a pas été tenté. On invalide la liste plutôt
+ * que de recoller les DTO un par un — l'état de N serveurs vient de bouger.
+ */
+export function useBulkAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: BulkAction) => api.post<BulkActionResult>('/api/servers/bulk-action', body),
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.servers }),
   });
 }
 

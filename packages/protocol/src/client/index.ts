@@ -524,6 +524,36 @@ export const backupPolicyInputSchema = z.object({
 });
 export type BackupPolicyInput = z.infer<typeof backupPolicyInputSchema>;
 
+/**
+ * Action groupée. **Exécution séquentielle imposée par le produit** : le garde-fou mémoire de
+ * l'agent refuse un démarrage quand `maxRamMb` dépasse `total - réserve - somme des maxRamMb des
+ * serveurs déjà lancés`. Dix démarrages en parallèle passent tous la garde avant que le premier
+ * n'ait été compté, ou s'effondrent en cascade de refus selon le minutage. Enchaîner suffit :
+ * `server.start` répond après le spawn, et un serveur en `starting` est déjà compté.
+ */
+export const bulkActionSchema = z.object({
+  action: z.enum(['start', 'stop', 'restart']),
+  serverIds: z.array(z.string().min(1)).min(1).max(50),
+  /** Par défaut on s'arrête au premier refus : enchaîner sur une machine saturée est inutile. */
+  continueOnError: z.boolean().optional(),
+});
+export type BulkAction = z.infer<typeof bulkActionSchema>;
+
+export const bulkActionResultSchema = z.object({
+  results: z.array(
+    z.object({
+      serverId: z.string(),
+      name: z.string(),
+      status: z.enum(['done', 'failed', 'skipped']),
+      /** Erreur telle que l'agent l'a produite : l'UI la traduit, le panel ne la réécrit pas. */
+      error: z
+        .object({ code: z.string(), message: z.string(), details: z.unknown().optional() })
+        .optional(),
+    }),
+  ),
+});
+export type BulkActionResult = z.infer<typeof bulkActionResultSchema>;
+
 export const scheduledActionSchema = z.enum(['start', 'stop', 'restart', 'command', 'announce']);
 export type ScheduledAction = z.infer<typeof scheduledActionSchema>;
 

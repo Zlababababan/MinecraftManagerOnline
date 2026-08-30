@@ -18,6 +18,7 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   IconDeviceDesktop,
   IconLanguage,
+  IconDeviceGamepad2,
   IconLayoutDashboard,
   IconLogout,
   IconMoon,
@@ -218,12 +219,13 @@ export function LanguageMenu({ onChange }: { onChange?: (locale: 'fr' | 'en') =>
   );
 }
 
-type NavTo = '/' | '/machines' | '/account' | '/settings';
+type NavTo = '/' | '/servers' | '/machines' | '/account' | '/settings';
 
 function NavItems({ onNavigate, isAdmin }: { onNavigate?: () => void; isAdmin: boolean }) {
   const { t } = useT();
   const items: { to: NavTo; label: string; icon: ReactNode }[] = [
     { to: '/', label: t('web:nav.dashboard'), icon: <IconLayoutDashboard size={18} /> },
+    { to: '/servers', label: t('web:nav.servers'), icon: <IconDeviceGamepad2 size={18} /> },
     { to: '/machines', label: t('web:nav.machines'), icon: <IconServer2 size={18} /> },
     { to: '/account', label: t('web:nav.account'), icon: <IconUserCircle size={18} /> },
     ...(isAdmin
@@ -258,6 +260,7 @@ function BottomNav({ isAdmin }: { isAdmin: boolean }) {
   const { t } = useT();
   const items: { to: NavTo; label: string; icon: ReactNode }[] = [
     { to: '/', label: t('web:nav.dashboard'), icon: <IconLayoutDashboard size={22} /> },
+    { to: '/servers', label: t('web:nav.servers'), icon: <IconDeviceGamepad2 size={22} /> },
     { to: '/machines', label: t('web:nav.machines'), icon: <IconServer2 size={22} /> },
     { to: '/account', label: t('web:nav.account'), icon: <IconUserCircle size={22} /> },
     ...(isAdmin
