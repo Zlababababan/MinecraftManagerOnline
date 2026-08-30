@@ -1,7 +1,6 @@
 /** Wizard first-run (doc 03 §8) et sessions (login/logout/me). */
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { generateKeyPairSync } from 'node:crypto';
 import { z } from 'zod';
 
 import {
@@ -13,9 +12,8 @@ import {
 } from '@mmo/protocol/client';
 
 import type { AppContext } from '../../context.js';
-import { coerceOrigin } from '../../util/origin.js';
 import { AppError } from '../../errors.js';
-import { SETTING_KEYS } from '../../services/settings.js';
+import { completeSetup as runSetup } from '../../services/setup.js';
 import { toUserDto } from '../../services/users.js';
 import { RateLimiter, clientKey } from '../../util/rate-limit.js';
 import { clearSessionCookie, requireUser, setSessionCookie } from '../auth.js';
@@ -28,16 +26,8 @@ export function auditMeta(request: FastifyRequest) {
   };
 }
 
-/** Clés VAPID (P-256) générées localement — aucune dépendance (`web-push` arrivera avec le push). */
-export function generateVapidKeys(): { publicKey: string; privateKey: string } {
-  const { publicKey, privateKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
-  const pub = publicKey.export({ format: 'jwk' });
-  const priv = privateKey.export({ format: 'jwk' });
-  const x = Buffer.from(String(pub.x), 'base64url');
-  const y = Buffer.from(String(pub.y), 'base64url');
-  const raw = Buffer.concat([Buffer.from([0x04]), x, y]);
-  return { publicKey: raw.toString('base64url'), privateKey: String(priv.d) };
-}
+/** Réexport historique : l'implémentation vit dans `services/setup.ts`. */
+export { generateVapidKeys } from '../../services/setup.js';
 
 export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext): void {
   const r = app.withTypeProvider<ZodTypeProvider>();
@@ -92,40 +82,14 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
     },
   );
 
+  /** La configuration elle-même vit dans `services/setup.ts` : `mmo-panel setup` (machine sans
+   *  navigateur) emprunte exactement le même chemin, clés VAPID comprises. */
   async function completeSetup(
     body: z.infer<typeof setupRequestSchema>,
     client: { ip: string; userAgent: string | undefined },
     reply: FastifyReply,
   ): Promise<unknown> {
-    // Tout valider AVANT la première écriture : un rejet après users.create laisserait un setup
-    // à moitié fait (compte créé, setupCompletedAt absent → retentative en conflit d'identifiant).
-    const origin = body.publicUrl === undefined ? undefined : coerceOrigin(body.publicUrl);
-    if (body.publicUrl !== undefined && origin === undefined) {
-      throw new AppError('E_VALIDATION', 'publicUrl must be an http(s) origin');
-    }
-    const admin = await ctx.users.create({
-      username: body.username,
-      password: body.password,
-      role: 'admin',
-      locale: body.locale,
-    });
-    const vapid = generateVapidKeys();
-    ctx.settings.set(SETTING_KEYS.vapidPublicKey, vapid.publicKey);
-    ctx.settings.set(SETTING_KEYS.vapidPrivateKey, vapid.privateKey);
-    if (origin !== undefined) ctx.settings.set(SETTING_KEYS.publicUrl, origin);
-    if (body.accessMode !== undefined) ctx.settings.set(SETTING_KEYS.accessMode, body.accessMode);
-    if (body.backupDestination !== undefined) {
-      ctx.settings.set(SETTING_KEYS.backupDestination, body.backupDestination);
-    }
-    ctx.settings.set(SETTING_KEYS.setupCompletedAt, String(ctx.now()));
-    ctx.audit.record({
-      userId: admin.id,
-      username: admin.username,
-      action: 'setup.completed',
-      targetType: 'user',
-      targetId: admin.id,
-      ip: client.ip,
-    });
+    const admin = await runSetup(ctx, body, { ip: client.ip });
     const session = ctx.sessions.create(admin.id, {
       ip: client.ip,
       userAgent: client.userAgent,

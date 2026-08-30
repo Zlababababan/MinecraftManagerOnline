@@ -36,6 +36,18 @@ The panel listens on `http://127.0.0.1:3000` (never on all interfaces — the ac
 
 Open `http://127.0.0.1:3000`. On a headless machine (server, VM): either set up remote access first (§3 — install Tailscale, run the `tailscale serve` command, then open `https://<machine>.<tailnet>.ts.net` from another device) or use an SSH tunnel (`ssh -L 3000:127.0.0.1:3000 user@machine` then open `http://127.0.0.1:3000` locally). The wizard runs in two steps — **Administrator account** (username, password, language), then **Access**: the **public panel URL** (optional at this stage), the **access mode** (see §3) and the **default backup destination**. The public URL can be changed at any time in Settings → General: it is what gets injected into the agent install commands and into push notifications — set it as soon as your remote access is in place.
 
+**Without a browser at all** (cloud VM, container, cloud-init), create the administrator account
+from the command line instead — it is the very same code path as the wizard:
+
+```bash
+/opt/mmo/mmo-panel/mmo-panel.sh setup --username admin --random-password --public-url panel.example.net
+```
+
+The generated password is printed once. Use `--password-stdin` (`echo -n 'secret' | … setup
+--username admin --password-stdin`) or `--password-file <file>` to choose it yourself — never pass
+it as an argument, the command line is visible to every process on the machine. `--locale` and
+`--access-mode` are optional. The command refuses to run twice.
+
 ### 1.4 Start at boot (service)
 
 **Windows** (shawl ships in the archive) — in an **administrator** PowerShell:

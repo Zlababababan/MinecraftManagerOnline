@@ -36,6 +36,18 @@ Le panel écoute sur `http://127.0.0.1:3000` (jamais sur toutes les interfaces �
 
 Ouvrez `http://127.0.0.1:3000`. Sur une machine sans navigateur (serveur, VM) : mettez d'abord l'accès distant en place (§3 — installer Tailscale, exécuter la commande `tailscale serve`, puis ouvrir `https://<machine>.<tailnet>.ts.net` depuis un autre appareil) ou passez par un tunnel SSH (`ssh -L 3000:127.0.0.1:3000 utilisateur@machine` puis ouvrez `http://127.0.0.1:3000` en local). Le wizard se déroule en deux étapes — **Compte administrateur** (identifiant, mot de passe, langue), puis **Accès** : l'**URL publique du panel** (optionnelle à ce stade), le **mode d'accès** (voir §3) et la **destination de backups par défaut**. L'URL publique se change à tout moment dans Réglages → Général : c'est elle qui est injectée dans les commandes d'installation des agents et dans les notifications push — renseignez-la dès que votre accès distant est en place.
 
+**Sans navigateur du tout** (VM cloud, conteneur, cloud-init), créez le compte administrateur en
+ligne de commande — c'est exactement le même chemin de code que le wizard :
+
+```bash
+/opt/mmo/mmo-panel/mmo-panel.sh setup --username admin --random-password --public-url panel.exemple.net
+```
+
+Le mot de passe généré est affiché une fois. Utilisez `--password-stdin` (`echo -n 'secret' | …
+setup --username admin --password-stdin`) ou `--password-file <fichier>` pour le choisir — ne le
+passez jamais en argument, la ligne de commande est visible de tous les processus de la machine.
+`--locale` et `--access-mode` sont facultatifs. La commande refuse de s'exécuter deux fois.
+
 ### 1.4 Démarrer au boot (service)
 
 **Windows** (shawl est fourni dans l'archive) — dans un PowerShell **administrateur** :
