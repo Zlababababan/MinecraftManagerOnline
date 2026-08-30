@@ -258,6 +258,9 @@ export class Agent {
       backups: this.backups,
       tasks: this.tasks,
       logger: this.logger.child('schedules'),
+      onSkipped: (skip) => {
+        this.emit('backup.skipped', skip);
+      },
       ...(options.backupSchedulerTickMs === undefined || options.backupSchedulerTickMs <= 0
         ? {}
         : { tickMs: options.backupSchedulerTickMs }),

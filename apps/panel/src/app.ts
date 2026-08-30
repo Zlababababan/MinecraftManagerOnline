@@ -123,6 +123,13 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   };
 }
 
+/**
+ * Tolérance avant de déclarer une politique de sauvegarde en retard. Large à dessein : l'agent
+ * évalue le cron en heure locale de SA machine, il peut être éteint quelques heures, et un
+ * faux positif sur une sauvegarde est le meilleur moyen de faire ignorer l'alerte.
+ */
+const BACKUP_OVERDUE_GRACE_MS = 2 * 3_600_000;
+
 export function runMaintenance(ctx: AppContext): void {
   const day = 24 * 3_600_000;
   const t = ctx.now();
@@ -133,6 +140,28 @@ export function runMaintenance(ctx: AppContext): void {
   ctx.audit.purgeOlderThan(t - ctx.settings.getInt('retention.auditDays', 365) * day);
   ctx.tasks.purgeOlderThan(t - 30 * day);
   ctx.sqlite.pragma('wal_checkpoint(PASSIVE)');
+  // Politiques de sauvegarde qui ne tournent plus. C'était le trou le plus large du produit :
+  // aucune colonne d'état, et la seule notification d'échec naissait d'un `task.failed`, donc
+  // d'une sauvegarde qui avait AU MOINS démarré. Signalé une seule fois par épisode
+  // (`overdueSince`), levé dès qu'une occurrence est enregistrée — y compris `skipped`.
+  for (const policy of ctx.backups.overduePolicies(t, BACKUP_OVERDUE_GRACE_MS)) {
+    ctx.backups.markOverdue(policy.id, t);
+    const server = ctx.servers.get(policy.serverId);
+    ctx.events.publish({
+      type: 'backup.overdue',
+      severity: 'warning',
+      serverId: policy.serverId,
+      ...(server?.machineId === undefined ? {} : { machineId: server.machineId }),
+      payload: {
+        policyId: policy.id,
+        cron: policy.cron,
+        lastRunAt: policy.lastRunAt,
+        lastStatus: policy.lastStatus,
+        serverName: server?.name ?? policy.serverId,
+      },
+      ts: t,
+    });
+  }
   // Sauvegarde quotidienne du panel lui-même (`VACUUM INTO`, doc 07 phase 8).
   try {
     ctx.panelBackup.backupIfStale();

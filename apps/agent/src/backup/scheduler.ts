@@ -23,6 +23,18 @@ export interface BackupSchedulerOptions {
   now?: () => number;
   /** Période d'évaluation (défaut 30 s). */
   tickMs?: number;
+  /**
+   * Occurrence volontairement non exécutée. Sans ce signal, les trois sorties silencieuses du
+   * planificateur laissent le panel croire que la politique est morte : côté utilisateur, un
+   * serveur arrêté sous `onlyIfRunning` et une politique réellement cassée étaient identiques.
+   */
+  onSkipped?: (skip: {
+    serverId: string;
+    policyId: string;
+    ts: number;
+    reason: 'server_stopped' | 'task_running' | 'invalid_cron' | 'start_failed';
+    detail?: string;
+  }) => void;
 }
 
 export class BackupScheduler {
@@ -78,6 +90,7 @@ export class BackupScheduler {
             cron: schedule.cron,
             error: errorMessage(error),
           });
+          this.skip(schedule, t, 'invalid_cron', errorMessage(error));
           continue;
         }
         const last = this.options.store.get().backupScheduleRuns[schedule.id];
@@ -91,6 +104,7 @@ export class BackupScheduler {
           !(this.options.manager.get(schedule.serverId)?.isRunning ?? false)
         ) {
           await this.markRun(schedule.id, due);
+          this.skip(schedule, t, 'server_stopped');
           continue;
         }
         if (this.options.tasks.activeFor(schedule.serverId, ['backup.create', 'backup.restore'])) {
@@ -99,6 +113,7 @@ export class BackupScheduler {
             serverId: schedule.serverId,
           });
           await this.markRun(schedule.id, due);
+          this.skip(schedule, t, 'task_running');
           continue;
         }
         await this.markRun(schedule.id, due);
@@ -111,10 +126,22 @@ export class BackupScheduler {
           ...(schedule.keepDays === undefined ? {} : { keepDays: schedule.keepDays }),
           ...(schedule.destination === undefined ? {} : { destination: schedule.destination }),
         };
-        await this.options.tasks.start(
-          { taskId, kind: 'backup.create', serverId: schedule.serverId, payload: req },
-          (ctx) => this.options.backups.create(req, ctx),
-        );
+        // `markRun` a déjà consommé l'occurrence : si `start` jette, elle serait perdue sans
+        // sauvegarde NI trace, et la politique paraîtrait simplement muette ce jour-là.
+        try {
+          await this.options.tasks.start(
+            { taskId, kind: 'backup.create', serverId: schedule.serverId, payload: req },
+            (ctx) => this.options.backups.create(req, ctx),
+          );
+        } catch (error) {
+          this.options.logger.warn('scheduled backup could not start', {
+            id: schedule.id,
+            serverId: schedule.serverId,
+            error: errorMessage(error),
+          });
+          this.skip(schedule, t, 'start_failed', errorMessage(error));
+          continue;
+        }
         this.options.logger.info('scheduled backup started', {
           id: schedule.id,
           serverId: schedule.serverId,
@@ -126,6 +153,33 @@ export class BackupScheduler {
       this.ticking = false;
     }
     return started;
+  }
+
+  /**
+   * Prévient le panel qu'une occurrence n'a pas été exécutée, et pourquoi. **Jamais fatal** : une
+   * notification qui échoue ne doit pas interrompre le tick, sinon les plannings suivants ne
+   * seraient pas évalués du tout — un signalement casserait plus que ce qu'il rapporte.
+   */
+  private skip(
+    schedule: BackupSchedule,
+    ts: number,
+    reason: 'server_stopped' | 'task_running' | 'invalid_cron' | 'start_failed',
+    detail?: string,
+  ): void {
+    try {
+      this.options.onSkipped?.({
+        serverId: schedule.serverId,
+        policyId: schedule.id,
+        ts,
+        reason,
+        ...(detail === undefined ? {} : { detail: detail.slice(0, 500) }),
+      });
+    } catch (error) {
+      this.options.logger.warn('could not report a skipped backup occurrence', {
+        id: schedule.id,
+        error: errorMessage(error),
+      });
+    }
   }
 
   private async markRun(scheduleId: string, at: number): Promise<void> {

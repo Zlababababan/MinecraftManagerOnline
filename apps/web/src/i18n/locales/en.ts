@@ -544,6 +544,7 @@ export const webEn = {
       'task.completed': 'Task done: {{kind}}',
       'task.failed': 'Task failed: {{kind}}',
       'backup.rotated': 'Backup rotation',
+      'backup.overdue': 'Backup overdue',
       'schedule.run': 'Scheduled action: {{action}} ({{status}})',
     },
   },
@@ -635,6 +636,14 @@ export const webEn = {
     keepLastLabel: 'Number to keep',
     keepDaysLabel: 'Maximum age (days)',
     onlyIfRunning: 'Only when the server is running',
+    lastRun: 'last run {{date}}',
+    neverRan: 'never run yet',
+    health: {
+      success: 'Ran',
+      failed: 'Failed',
+      skipped: 'Skipped',
+      overdue: 'Overdue',
+    },
     localTimeHint: 'Local time of the agent machine. Help:',
   },
   schedule: {

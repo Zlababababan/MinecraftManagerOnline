@@ -89,6 +89,7 @@ import {
   backupListSchema,
   backupRestoreSchema,
   backupRotatedSchema,
+  backupSkippedSchema,
   fsFetchSchema,
   taskAcceptedSchema,
   taskAckResultSchema,
@@ -242,6 +243,8 @@ export const EVENTS = {
   'task.completed': evt('a2p', taskCompletedSchema, true),
   'task.failed': evt('a2p', taskFailedSchema, true),
   'backup.rotated': evt('a2p', backupRotatedSchema, true),
+  // Non critique : voir le commentaire du schéma (un panel N-1 le jette sans acquitter).
+  'backup.skipped': evt('a2p', backupSkippedSchema),
   // Jalon C
   'fs.transfer.ack': evt('both', fsTransferAckSchema),
   'fs.transfer.cancel': evt('both', fsTransferCancelSchema),

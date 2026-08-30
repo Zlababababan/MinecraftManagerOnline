@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { BackupDto, ServerDto, TaskDto } from '@mmo/protocol/client';
 
 import { Agent } from '../../../agent/src/agent.js';
+import { runMaintenance } from '../app.js';
 import { Logger } from '../../../agent/src/log.js';
 import {
   connectClient,
@@ -357,6 +358,40 @@ describe('phase 8 — panel ↔ agent réels', () => {
     await waitFor(() => panel.ctx.backups.require(scheduled[0]!.id).status === 'deleted', 10_000);
     expect(panel.ctx.backups.list(server.id).filter((b) => b.status === 'success')).toHaveLength(1);
     expect(panel.ctx.events.list({ serverId: server.id, type: 'backup.rotated' })).toHaveLength(1);
+
+    // Preuve d'exécution : la politique porte désormais l'issue de sa dernière occurrence.
+    // Sans ces colonnes, une politique morte affichait exactement la même chose qu'une saine.
+    const ran = panel.ctx.backups.getPolicy(policy.id);
+    expect(ran?.lastStatus).toBe('success');
+    expect(ran?.lastRunAt).toBeGreaterThan(0);
+    expect(ran?.lastBackupId).toBeTruthy();
+    expect(ran?.overdueSince).toBeNull();
+
+    // Retard : on recule la dernière exécution bien au-delà de la tolérance de 2 h. La maintenance
+    // publie UN événement et pose le marqueur ; un second passage ne réalerte pas.
+    panel.ctx.backups.recordPolicyRun(policy.id, {
+      status: 'success',
+      at: Date.now() - 48 * 3_600_000,
+      backupId: 'bk_ancien',
+    });
+    runMaintenance(panel.ctx);
+    runMaintenance(panel.ctx);
+    const overdue = panel.ctx.events.list({ serverId: server.id, type: 'backup.overdue' });
+    expect(overdue).toHaveLength(1);
+    expect(overdue[0]?.severity).toBe('warning');
+    expect(panel.ctx.backups.getPolicy(policy.id)?.overdueSince).toBeGreaterThan(0);
+
+    // Une occurrence « ignorée » prouve elle aussi que le planning tourne : elle lève le retard.
+    panel.ctx.backups.recordPolicyRun(policy.id, {
+      status: 'skipped',
+      at: Date.now(),
+      reason: 'server_stopped',
+    });
+    const cleared = panel.ctx.backups.getPolicy(policy.id);
+    expect(cleared?.overdueSince).toBeNull();
+    expect(cleared?.lastStatus).toBe('skipped');
+    runMaintenance(panel.ctx);
+    expect(panel.ctx.events.list({ serverId: server.id, type: 'backup.overdue' })).toHaveLength(1);
 
     // Suppression de la politique : l'agent n'a plus de planning.
     res = await api('DELETE', `/api/servers/${server.id}/backup-policies/${policy.id}`);

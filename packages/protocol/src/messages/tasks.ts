@@ -193,6 +193,24 @@ export const backupDeleteSchema = z.object({
 });
 export const backupDeleteResponseSchema = z.object({ deleted: z.boolean() });
 
+/**
+ * Occurrence de planning volontairement NON exécutée (serveur arrêté et `onlyIfRunning`, autre
+ * task de sauvegarde en cours, expression cron invalide). Sans ce message, ces trois sorties sont
+ * muettes côté panel : la politique paraît morte alors qu'elle se comporte comme prévu.
+ *
+ * ⚠ Événement **non critique** délibérément : un type inconnu d'un panel N-1 est journalisé puis
+ * jeté sans acquittement (`rpc/peer.ts`). Déclaré critique, il resterait pour toujours dans
+ * `pendingEvents` et finirait par évincer de vrais `task.completed`.
+ */
+export const backupSkippedSchema = z.object({
+  serverId: serverIdSchema,
+  ts: epochMsSchema,
+  policyId: z.string(),
+  /** Chaîne libre volontairement : le panel l'affiche, il ne branche pas dessus. */
+  reason: z.enum(['server_stopped', 'task_running', 'invalid_cron', 'start_failed']),
+  detail: z.string().max(500).optional(),
+});
+
 /** Rotation locale (agent) : archives supprimées — synchronise la table `backups` du panel. */
 export const backupRotatedSchema = z.object({
   eventId: ulidSchema,

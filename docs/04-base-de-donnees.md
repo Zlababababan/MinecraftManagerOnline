@@ -274,7 +274,16 @@ CREATE TABLE backup_policies (
   keep_days       INTEGER,
   only_if_running INTEGER NOT NULL DEFAULT 0,
   enabled         INTEGER NOT NULL DEFAULT 1,
-  created_at      INTEGER NOT NULL
+  created_at      INTEGER NOT NULL,
+  -- Preuve d'exécution (migration 0005, 2026-08-30). Sans ces colonnes, le DTO ne montrait qu'un
+  -- `nextRunAt` recalculé à chaque affichage : une politique morte s'affichait exactement comme
+  -- une politique saine. Nullable : NULL = jamais tourné, c'est un état à part entière.
+  -- Pas de CHECK sur last_status : une contrainte ajoutée imposerait une reconstruction de table.
+  last_run_at     INTEGER,
+  last_status     TEXT,                                 -- success | failed | skipped
+  last_backup_id  TEXT,
+  last_error      TEXT,                                 -- message d'échec, ou raison du skip
+  overdue_since   INTEGER                               -- NULL = à l'heure ; posé une seule fois
 );
 CREATE INDEX idx_bpol_server ON backup_policies(server_id);
 

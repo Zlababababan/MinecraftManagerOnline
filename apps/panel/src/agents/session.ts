@@ -274,6 +274,15 @@ export class AgentSession {
         this.deps.releases.applyUpdateResult(this.requireAuth(), p);
       });
     });
+    // Non critique (voir le catalogue) : pas de `critical()`, pas d'acquittement attendu.
+    peer.on('backup.skipped', (p) => {
+      this.requireAuth();
+      this.deps.backups.recordPolicyRun(p.policyId, {
+        status: 'skipped',
+        at: p.ts,
+        reason: p.detail === undefined ? p.reason : `${p.reason}: ${p.detail}`,
+      });
+    });
     peer.on('backup.rotated', (p, ctx) => {
       this.critical(ctx, () => {
         const machineId = this.requireAuth();
@@ -311,10 +320,18 @@ export class AgentSession {
       if (row.kind === 'backup.create' || row.kind === 'migration.export') {
         const manifest = backupManifestSchema.safeParse(result);
         if (manifest.success && this.deps.servers.get(manifest.data.serverId)) {
-          this.deps.backups.applyManifest(manifest.data, machineId, {
+          const applied = this.deps.backups.applyManifest(manifest.data, machineId, {
             taskId: row.id,
             ...(row.createdBy === null ? {} : { createdBy: row.createdBy }),
           });
+          // Preuve d'exécution de la politique : c'est le manifeste qui porte le `policyId`.
+          if (manifest.data.policyId !== undefined) {
+            this.deps.backups.recordPolicyRun(manifest.data.policyId, {
+              status: 'success',
+              at: manifest.data.createdAt,
+              backupId: applied.id,
+            });
+          }
         }
       } else if (row.kind === 'backup.restore') {
         const safety = backupManifestSchema.safeParse(result.safetyBackup);
@@ -329,8 +346,20 @@ export class AgentSession {
           if (target?.status === 'running') this.deps.backups.fail(row.refId, 'restore target');
         }
       }
-    } else if (row.refId !== null && row.kind === 'backup.create') {
-      this.deps.backups.fail(row.refId, dto.error?.message ?? row.status);
+    } else if (row.kind === 'backup.create') {
+      const error = dto.error?.message ?? row.status;
+      if (row.refId !== null) this.deps.backups.fail(row.refId, error);
+      // Une sauvegarde lancée par le PLANNING de l'agent n'a ni `refId` ni ligne `backups` : sans
+      // ce rattrapage, son échec n'était rattaché à aucune politique et celle-ci continuait de
+      // paraître saine. Le `policyId` est dans la requête que l'agent a jointe à la task.
+      const policyId = parseRequest(row).policyId;
+      if (typeof policyId === 'string') {
+        this.deps.backups.recordPolicyRun(policyId, {
+          status: 'failed',
+          at: row.finishedAt ?? this.deps.now(),
+          error,
+        });
+      }
     } else if (row.kind === 'migration.export') {
       const request = parseRequest(row);
       if (typeof request.backupId === 'string') {

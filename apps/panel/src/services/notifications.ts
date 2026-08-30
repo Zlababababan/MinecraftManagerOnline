@@ -51,6 +51,7 @@ const BUS_TYPES = [
   'port.conflict',
   'player.joined',
   'player.left',
+  'backup.overdue',
 ] as const;
 
 /** Au-delà : l'abonnement est considéré mort même sans 410 (iOS purge silencieusement). */
@@ -427,6 +428,8 @@ export function notifyKey(event: EventDto): string | undefined {
       return 'playerJoined';
     case 'player.left':
       return 'playerLeft';
+    case 'backup.overdue':
+      return 'backupOverdue';
     default:
       return undefined;
   }

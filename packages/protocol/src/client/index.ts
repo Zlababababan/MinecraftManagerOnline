@@ -504,6 +504,13 @@ export const backupPolicyDtoSchema = z.object({
   createdAt: epochMsSchema,
   /** Calculé par le panel (heure locale du panel — l'agent évalue en heure locale de sa machine). */
   nextRunAt: epochMsSchema.nullable(),
+  // Preuve d'exécution : sans ces champs, une politique morte s'affichait comme une politique
+  // saine. `null` = jamais tourné depuis l'ajout des colonnes, c'est un état à part entière.
+  lastRunAt: epochMsSchema.nullable(),
+  lastStatus: z.enum(['success', 'failed', 'skipped']).nullable(),
+  lastError: z.string().nullable(),
+  /** Depuis quand l'occurrence attendue n'est pas arrivée ; `null` = à l'heure. */
+  overdueSince: epochMsSchema.nullable(),
 });
 export type BackupPolicyDto = z.infer<typeof backupPolicyDtoSchema>;
 
@@ -852,6 +859,10 @@ export function notificationTypeOf(event: {
       return typeof payload.kind === 'string' && payload.kind.startsWith('backup.')
         ? 'backup.failed'
         : 'task.failed';
+    // Une politique qui ne tourne plus relève de la même préoccupation qu'une sauvegarde ratée :
+    // on réutilise la catégorie plutôt que d'ajouter une case à cocher de plus.
+    case 'backup.overdue':
+      return 'backup.failed';
     case 'migration.done':
     case 'migration.failed':
       return 'migration';

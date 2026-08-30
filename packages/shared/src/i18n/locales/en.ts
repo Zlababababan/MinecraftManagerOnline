@@ -66,6 +66,10 @@ export const en = {
         title: 'Port conflict on {{machine}}',
         body: 'Port {{port}} is already in use.',
       },
+      backupOverdue: {
+        title: 'No backup for {{server}}',
+        body: 'A scheduled backup has not run when expected.',
+      },
       serverRunning: { title: '{{server}} is running', body: 'Started on {{machine}}.' },
       serverStopped: { title: '{{server}} stopped', body: 'Stopped on {{machine}}.' },
       playerJoined: { title: '{{player}} joined {{server}}', body: '{{online}} player(s) online.' },

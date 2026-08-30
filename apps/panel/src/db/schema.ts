@@ -356,6 +356,18 @@ export const backupPolicies = sqliteTable(
     onlyIfRunning: integer('only_if_running').notNull().default(0),
     enabled: integer('enabled').notNull().default(1),
     createdAt: integer('created_at').notNull(),
+    // Preuve d'exécution (doc 04) : sans ces colonnes, une politique morte est strictement
+    // indiscernable d'une politique saine — le DTO ne montrait qu'un `nextRunAt` recalculé.
+    // Nullable : NULL = jamais tourné depuis l'ajout, ce qui est un état à part entière.
+    // Vocabulaire aligné sur `scheduled_tasks` ; pas de CHECK, qui imposerait une reconstruction
+    // de table à la migration (drizzle-kit recrée la table pour toute contrainte ajoutée).
+    lastRunAt: integer('last_run_at'),
+    /** 'success' | 'failed' | 'skipped' — `skipped` = occurrence volontairement non exécutée. */
+    lastStatus: text('last_status'),
+    lastBackupId: text('last_backup_id'),
+    lastError: text('last_error'),
+    /** Depuis quand l'occurrence attendue n'est pas arrivée ; NULL = pas en retard. */
+    overdueSince: integer('overdue_since'),
   },
   (t) => [index('idx_bpol_server').on(t.serverId)],
 );

@@ -70,6 +70,10 @@ export const fr = {
         title: 'Conflit de port sur {{machine}}',
         body: 'Le port {{port}} est déjà utilisé.',
       },
+      backupOverdue: {
+        title: 'Aucune sauvegarde de {{server}}',
+        body: 'Une sauvegarde planifiée n’a pas eu lieu à l’heure attendue.',
+      },
       serverRunning: { title: '{{server}} est en marche', body: 'Démarré sur {{machine}}.' },
       serverStopped: { title: '{{server}} est arrêté', body: 'Arrêté sur {{machine}}.' },
       playerJoined: {

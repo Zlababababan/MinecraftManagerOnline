@@ -1284,6 +1284,16 @@
       }
     },
     {
+      "type": "backup.skipped",
+      "payload": {
+        "serverId": "srv_01",
+        "ts": 1787330455000,
+        "policyId": "pol_01",
+        "reason": "server_stopped",
+        "detail": "le serveur est arrêté et la politique exige qu il tourne"
+      }
+    },
+    {
       "type": "fs.transfer.ack",
       "payload": {
         "transferId": "0123456789abcdef0123456789abcdef",

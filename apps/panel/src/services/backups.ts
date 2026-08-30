@@ -9,7 +9,7 @@
 import { backupManifestSchema, ulid, type BackupManifest } from '@mmo/protocol';
 import type { BackupDto, BackupPolicyDto, BackupPolicyInput } from '@mmo/protocol/client';
 import { nextCronRun } from '@mmo/shared';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 
 import type { MmoDatabase } from '../db/client.js';
 import { backupPolicies, backups, type BackupPolicyRow, type BackupRow } from '../db/schema.js';
@@ -33,6 +33,11 @@ interface ManifestExtras {
 }
 
 export const DEFAULT_POLICY = { cron: '0 4 * * *', keepLast: 7, onlyIfRunning: true } as const;
+
+/** Les colonnes d'état n'ont pas de CHECK (une contrainte ajoutée reconstruirait la table). */
+function isPolicyStatus(value: string | null): value is 'success' | 'failed' | 'skipped' {
+  return value === 'success' || value === 'failed' || value === 'skipped';
+}
 
 export class BackupsService {
   constructor(private readonly deps: BackupsServiceDeps) {}
@@ -274,7 +279,69 @@ export class BackupsService {
       enabled: row.enabled === 1,
       createdAt: row.createdAt,
       nextRunAt: row.enabled === 1 ? (nextCronRun(row.cron, this.deps.now()) ?? null) : null,
+      lastRunAt: row.lastRunAt,
+      lastStatus: isPolicyStatus(row.lastStatus) ? row.lastStatus : null,
+      lastError: row.lastError,
+      overdueSince: row.overdueSince,
     };
+  }
+
+  /**
+   * Enregistre l'issue d'une occurrence. C'est le seul endroit qui écrit l'état d'une politique :
+   * `success` et `skipped` prouvent tous deux que le planning tourne (un serveur arrêté sous
+   * `onlyIfRunning` se comporte exactement comme prévu), donc les deux lèvent le retard.
+   */
+  recordPolicyRun(
+    policyId: string,
+    outcome:
+      | { status: 'success'; at: number; backupId: string }
+      | { status: 'failed'; at: number; error: string }
+      | { status: 'skipped'; at: number; reason: string },
+  ): BackupPolicyRow | undefined {
+    if (this.getPolicy(policyId) === undefined) return undefined;
+    this.deps.db
+      .update(backupPolicies)
+      .set({
+        lastRunAt: outcome.at,
+        lastStatus: outcome.status,
+        lastBackupId: outcome.status === 'success' ? outcome.backupId : null,
+        lastError:
+          outcome.status === 'failed'
+            ? outcome.error.slice(0, 500)
+            : outcome.status === 'skipped'
+              ? outcome.reason
+              : null,
+        overdueSince: null,
+      })
+      .where(eq(backupPolicies.id, policyId))
+      .run();
+    return this.getPolicy(policyId);
+  }
+
+  /**
+   * Politiques dont l'occurrence attendue n'est jamais arrivée, à la tolérance près, et qui ne
+   * sont pas déjà signalées. Base de calcul : la dernière exécution connue, sinon la création —
+   * une politique ajoutée il y a cinq minutes n'est pas « en retard » de sa première occurrence.
+   */
+  overduePolicies(now: number, graceMs: number): BackupPolicyRow[] {
+    return this.deps.db
+      .select()
+      .from(backupPolicies)
+      .where(and(eq(backupPolicies.enabled, 1), isNull(backupPolicies.overdueSince)))
+      .all()
+      .filter((row) => {
+        const expected = nextCronRun(row.cron, row.lastRunAt ?? row.createdAt);
+        return expected !== undefined && now > expected + graceMs;
+      });
+  }
+
+  /** Marque le retard (une seule fois : `recordPolicyRun` le lève au prochain passage). */
+  markOverdue(policyId: string, at: number): void {
+    this.deps.db
+      .update(backupPolicies)
+      .set({ overdueSince: at })
+      .where(eq(backupPolicies.id, policyId))
+      .run();
   }
 
   /**

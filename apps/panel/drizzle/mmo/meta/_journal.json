@@ -36,6 +36,13 @@
       "when": 1787592867957,
       "tag": "0004_scheduler_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1788117056513,
+      "tag": "0005_backup_policy_health",
+      "breakpoints": true
     }
   ]
 }

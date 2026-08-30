@@ -384,6 +384,35 @@ export function BackupsPanel({ server }: { server: ServerDto }) {
 
 // --- Politiques (plannings agent) ----------------------------------------------------------------
 
+/**
+ * État réel de la politique. Sans lui, une politique morte s'affiche exactement comme une
+ * politique saine : seule la « prochaine exécution » était montrée, et elle est recalculée à
+ * chaque affichage, donc toujours rassurante.
+ */
+function PolicyHealth({ policy }: { policy: BackupPolicyDto }) {
+  const { t } = useT();
+  if (policy.overdueSince !== null) {
+    return (
+      <Badge size="xs" color="red" data-testid={`policy-health-${policy.id}`}>
+        {t('web:backups.health.overdue')}
+      </Badge>
+    );
+  }
+  if (policy.lastStatus === null) return null;
+  const color =
+    policy.lastStatus === 'success' ? 'teal' : policy.lastStatus === 'failed' ? 'red' : 'gray';
+  return (
+    <Badge
+      size="xs"
+      color={color}
+      data-testid={`policy-health-${policy.id}`}
+      title={policy.lastError ?? undefined}
+    >
+      {t(`web:backups.health.${policy.lastStatus}`)}
+    </Badge>
+  );
+}
+
 function PoliciesCard({
   server,
   policies,
@@ -466,6 +495,7 @@ function PoliciesCard({
                       {t('web:schedule.disabled')}
                     </Badge>
                   )}
+                  <PolicyHealth policy={p} />
                 </Group>
                 <Text size="xs" c="dimmed">
                   {[
@@ -480,6 +510,11 @@ function PoliciesCard({
                       ? undefined
                       : t('web:schedule.nextRun', {
                           date: formatDateTime(p.nextRunAt, i18n.language),
+                        }),
+                    p.lastRunAt === null
+                      ? t('web:backups.neverRan')
+                      : t('web:backups.lastRun', {
+                          date: formatDateTime(p.lastRunAt, i18n.language),
                         }),
                   ]
                     .filter((x) => x !== undefined)

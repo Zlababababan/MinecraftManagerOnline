@@ -96,6 +96,10 @@ const policy: BackupPolicyDto = {
   enabled: true,
   createdAt: 0,
   nextRunAt: 1_787_400_000_000,
+  lastRunAt: null,
+  lastStatus: null,
+  lastError: null,
+  overdueSince: null,
 };
 
 function json(status: number, body: unknown): Response {

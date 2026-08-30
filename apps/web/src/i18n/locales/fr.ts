@@ -552,6 +552,7 @@ export const webFr = {
       'task.completed': 'Tâche terminée : {{kind}}',
       'task.failed': 'Tâche échouée : {{kind}}',
       'backup.rotated': 'Rotation des sauvegardes',
+      'backup.overdue': 'Sauvegarde en retard',
       'schedule.run': 'Action programmée : {{action}} ({{status}})',
     },
   },
@@ -645,6 +646,14 @@ export const webFr = {
     keepLastLabel: 'Nombre à conserver',
     keepDaysLabel: 'Âge maximal (jours)',
     onlyIfRunning: 'Seulement si le serveur tourne',
+    lastRun: 'dernière exécution {{date}}',
+    neverRan: 'jamais exécutée',
+    health: {
+      success: 'Exécutée',
+      failed: 'Échouée',
+      skipped: 'Ignorée',
+      overdue: 'En retard',
+    },
     localTimeHint: 'Heure locale de la machine de l’agent. Aide :',
   },
   schedule: {
