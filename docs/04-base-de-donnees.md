@@ -368,6 +368,25 @@ CREATE INDEX idx_migr_server ON server_migrations(server_id, started_at DESC);
 -- Bus d'événements persistant ; rowid = curseur de reprise des consommateurs
 -- (push, UI temps réel, webhooks futurs). Sans FK volontairement : un événement
 -- survit à la suppression de sa cible. Purge configurable (défaut 90 j).
+-- Alertes à ÉTAT (2026-08-30). Le bus d'événements est append-only et ponctuel : il ne sait pas
+-- dire « c'est toujours en cours » ni « c'est rentré dans l'ordre ». Une ligne par (règle, portée),
+-- mise à jour en place, ce qui donne l'hystérésis, le rappel espacé, le regroupement par
+-- dépendance et la notification de retour à la normale.
+CREATE TABLE alerts (
+  id             TEXT PRIMARY KEY,
+  rule           TEXT NOT NULL,                         -- machine.offline | server.down | disk.low | tps.low
+  scope_type     TEXT NOT NULL,                         -- machine | server
+  scope_id       TEXT NOT NULL,
+  state          TEXT NOT NULL,                         -- firing | resolved
+  first_fired_at INTEGER NOT NULL,
+  last_fired_at  INTEGER NOT NULL,
+  resolved_at    INTEGER,
+  notified_at    INTEGER,                               -- NULL = jamais notifiée (alerte masquée)
+  detail         TEXT
+);
+CREATE UNIQUE INDEX idx_alerts_rule_scope ON alerts(rule, scope_id);
+CREATE INDEX idx_alerts_state ON alerts(state);
+
 CREATE TABLE events (
   id         INTEGER PRIMARY KEY,
   ts         INTEGER NOT NULL,

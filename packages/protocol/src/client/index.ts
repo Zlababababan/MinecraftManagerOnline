@@ -817,6 +817,8 @@ export const NOTIFICATION_TYPES = [
   'port.conflict',
   'server.state',
   'player.activity',
+  // Disque presque plein, TPS effondré : aucune case existante ne les couvrait.
+  'resources',
 ] as const;
 export const notificationTypeSchema = z.enum(NOTIFICATION_TYPES);
 export type NotificationType = z.infer<typeof notificationTypeSchema>;
@@ -833,6 +835,7 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<NotificationType, boolean>> 
   'port.conflict': true,
   'server.state': false,
   'player.activity': false,
+  resources: true,
 };
 
 /** Catégorie de notification d'un événement du bus (`undefined` = jamais notifié). */
@@ -853,8 +856,18 @@ export function notificationTypeOf(event: {
       return 'server.startFailed';
     case 'watchdog.alert':
       return 'watchdog.alert';
-    case 'agent.offline':
-      return 'agent.offline';
+    // `agent.offline` n'est plus notifié directement : il partait dès la coupure du WebSocket,
+    // donc un simple redémarrage de PC réveillait le téléphone, et son retour n'était jamais
+    // annoncé. C'est la règle d'alerte `machine.offline` qui le remplace, avec un délai et une
+    // notification de retour à la normale. L'événement reste publié pour l'historique.
+    case 'alert.firing':
+    case 'alert.resolved': {
+      const rule = (event.payload as { rule?: unknown } | undefined)?.rule;
+      if (rule === 'machine.offline') return 'agent.offline';
+      if (rule === 'server.down') return 'server.crashed';
+      if (rule === 'disk.low' || rule === 'tps.low') return 'resources';
+      return undefined;
+    }
     case 'task.failed':
       return typeof payload.kind === 'string' && payload.kind.startsWith('backup.')
         ? 'backup.failed'

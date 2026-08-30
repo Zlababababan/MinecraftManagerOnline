@@ -43,6 +43,13 @@
       "when": 1788117056513,
       "tag": "0005_backup_policy_health",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1788118539167,
+      "tag": "0006_alerts",
+      "breakpoints": true
     }
   ]
 }

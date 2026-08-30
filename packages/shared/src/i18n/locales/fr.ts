@@ -70,6 +70,17 @@ export const fr = {
         title: 'Conflit de port sur {{machine}}',
         body: 'Le port {{port}} est déjà utilisé.',
       },
+      alertMachineOffline: {
+        title: '{{machine}} est hors ligne',
+        body: 'Aucun signe de l’agent depuis un moment.',
+      },
+      alertServerDown: { title: '{{server}} est arrêté', body: 'Il devrait être en marche.' },
+      alertDiskLow: {
+        title: 'Disque presque plein sur {{machine}}',
+        body: '{{percent}} % utilisés, {{freeGb}} Go restants.',
+      },
+      alertTpsLow: { title: '{{server}} rame', body: 'TPS descendu à {{tps}}.' },
+      alertResolved: { title: 'Retour à la normale : {{scope}}', body: 'L’alerte est levée.' },
       backupOverdue: {
         title: 'Aucune sauvegarde de {{server}}',
         body: 'Une sauvegarde planifiée n’a pas eu lieu à l’heure attendue.',

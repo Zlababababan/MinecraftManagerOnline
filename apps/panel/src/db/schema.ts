@@ -16,6 +16,7 @@ import {
   sqliteTable,
   text,
   unique,
+  uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
 // --- 1. Utilisateurs, sessions, notifications ---------------------------------------------------
@@ -372,6 +373,35 @@ export const backupPolicies = sqliteTable(
   (t) => [index('idx_bpol_server').on(t.serverId)],
 );
 
+/**
+ * Alertes à état (doc 04). Une ligne par (règle, portée) : l'état vit dans le temps au lieu d'être
+ * un événement ponctuel. C'est ce qui permet l'hystérésis, le rappel espacé, le regroupement par
+ * dépendance et — ce qui manquait le plus — la notification de RETOUR À LA NORMALE : jusqu'ici le
+ * téléphone sonnait pour la panne et jamais pour sa résolution.
+ */
+export const alerts = sqliteTable(
+  'alerts',
+  {
+    id: text('id').primaryKey(),
+    /** `machine.offline`, `server.down`, `disk.low`, `tps.low` — texte libre, pas de CHECK. */
+    rule: text('rule').notNull(),
+    scopeType: text('scope_type', { enum: ['machine', 'server'] }).notNull(),
+    scopeId: text('scope_id').notNull(),
+    /** `firing` | `resolved` — la ligne survit à la résolution (historique et anti-rebond). */
+    state: text('state').notNull(),
+    firstFiredAt: integer('first_fired_at').notNull(),
+    lastFiredAt: integer('last_fired_at').notNull(),
+    resolvedAt: integer('resolved_at'),
+    /** Dernière notification envoyée : borne le rappel d'une alerte qui dure. */
+    notifiedAt: integer('notified_at'),
+    detail: text('detail'),
+  },
+  (t) => [
+    uniqueIndex('idx_alerts_rule_scope').on(t.rule, t.scopeId),
+    index('idx_alerts_state').on(t.state),
+  ],
+);
+
 export const backups = sqliteTable(
   'backups',
   {
@@ -576,3 +606,4 @@ export type ScheduledTaskRow = typeof scheduledTasks.$inferSelect;
 export type ServerMigrationRow = typeof serverMigrations.$inferSelect;
 export type JavaRuntimeRow = typeof javaRuntimes.$inferSelect;
 export type AgentReleaseRow = typeof agentReleases.$inferSelect;
+export type AlertRow = typeof alerts.$inferSelect;

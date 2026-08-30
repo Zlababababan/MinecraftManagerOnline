@@ -52,6 +52,8 @@ const BUS_TYPES = [
   'player.joined',
   'player.left',
   'backup.overdue',
+  'alert.firing',
+  'alert.resolved',
 ] as const;
 
 /** Au-delà : l'abonnement est considéré mort même sans 410 (iOS purge silencieusement). */
@@ -297,6 +299,10 @@ export class NotificationsService {
       port: text(p.port),
       player: text(p.name),
       online: text(p.online),
+      percent: text(p.percent),
+      freeGb: text(p.freeGb),
+      tps: text(p.tps),
+      scope: text(p.serverName) || text(p.machineName) || server || machine,
       interpolation: { escapeValue: false },
     };
     return {
@@ -430,6 +436,21 @@ export function notifyKey(event: EventDto): string | undefined {
       return 'playerLeft';
     case 'backup.overdue':
       return 'backupOverdue';
+    // Une seule famille d'événements pour toutes les alertes : la règle choisit le libellé.
+    case 'alert.firing': {
+      const rule = (event.payload as { rule?: unknown } | undefined)?.rule;
+      return rule === 'machine.offline'
+        ? 'alertMachineOffline'
+        : rule === 'server.down'
+          ? 'alertServerDown'
+          : rule === 'disk.low'
+            ? 'alertDiskLow'
+            : rule === 'tps.low'
+              ? 'alertTpsLow'
+              : undefined;
+    }
+    case 'alert.resolved':
+      return 'alertResolved';
     default:
       return undefined;
   }

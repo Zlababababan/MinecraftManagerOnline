@@ -28,6 +28,8 @@ import { MachinesService } from './services/machines.js';
 import { MetricsService } from './services/metrics.js';
 import { PanelBackupService } from './services/panel-backup.js';
 import { ProcessedEventsService } from './services/processed-events.js';
+import { AlertsService, DEFAULT_THRESHOLDS } from './services/alerts.js';
+import { collectConditions } from './services/alert-conditions.js';
 import { SchedulerService } from './services/scheduler.js';
 import { ServersService } from './services/servers.js';
 import { SessionsService } from './services/sessions.js';
@@ -63,6 +65,7 @@ export interface AppContext {
   tasks: TasksService;
   backups: BackupsService;
   scheduler: SchedulerService;
+  alerts: AlertsService;
   transfers: TransferService;
   panelBackup: PanelBackupService;
   /** Phase 9 : jetons de relais (bundles, JRE, archives de migration). */
@@ -198,6 +201,47 @@ export function createContext(options: ContextOptions): AppContext {
     logger,
     ...(options.schedulerTickMs === undefined ? {} : { tickMs: options.schedulerTickMs }),
   });
+  /**
+   * Alertes à état. Les seuils sont lus dans `app_settings` à chaque évaluation : ils se règlent
+   * sans redémarrer, et un réglage absent retombe sur le défaut.
+   */
+  const alertThresholds = () => ({
+    machineOfflineMs:
+      settings.getInt(
+        'alerts.machineOfflineMinutes',
+        DEFAULT_THRESHOLDS.machineOfflineMs / 60_000,
+      ) * 60_000,
+    serverDownMs:
+      settings.getInt('alerts.serverDownMinutes', DEFAULT_THRESHOLDS.serverDownMs / 60_000) *
+      60_000,
+    diskEnterPct: settings.getInt('alerts.diskPercent', DEFAULT_THRESHOLDS.diskEnterPct),
+    diskExitPct: settings.getInt('alerts.diskPercentClear', DEFAULT_THRESHOLDS.diskExitPct),
+    tpsEnter: settings.getInt('alerts.tpsBelow', DEFAULT_THRESHOLDS.tpsEnter),
+    tpsExit: settings.getInt('alerts.tpsClear', DEFAULT_THRESHOLDS.tpsExit),
+    sampleMaxAgeMs: DEFAULT_THRESHOLDS.sampleMaxAgeMs,
+    repeatMs:
+      settings.getInt('alerts.repeatHours', DEFAULT_THRESHOLDS.repeatMs / 3_600_000) * 3_600_000,
+  });
+  const alerts = new AlertsService({
+    db,
+    now,
+    thresholds: alertThresholds,
+    conditions: (firing) =>
+      collectConditions(
+        {
+          now: now(),
+          thresholds: alertThresholds(),
+          machines: machines.list(),
+          servers: servers.list(),
+          machineSample: (id) => metricsService.latestMachinePoint(id),
+          serverSample: (id) => metricsService.latestServerPoint(id),
+        },
+        firing,
+      ),
+    publish: (event) => {
+      events.publish(event);
+    },
+  });
   const transfers = new TransferService({
     registry,
     logger,
@@ -295,6 +339,7 @@ export function createContext(options: ContextOptions): AppContext {
     metrics: metrics.db,
     metricsSqlite: metrics.sqlite,
     metricsService,
+    alerts,
     uiEvents,
     settings,
     audit,

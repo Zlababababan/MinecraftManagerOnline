@@ -66,6 +66,17 @@ export const en = {
         title: 'Port conflict on {{machine}}',
         body: 'Port {{port}} is already in use.',
       },
+      alertMachineOffline: {
+        title: '{{machine}} is offline',
+        body: 'No sign of the agent for a while.',
+      },
+      alertServerDown: { title: '{{server}} is down', body: 'It is supposed to be running.' },
+      alertDiskLow: {
+        title: 'Disk almost full on {{machine}}',
+        body: '{{percent}}% used, {{freeGb}} GB left.',
+      },
+      alertTpsLow: { title: '{{server}} is lagging', body: 'TPS down to {{tps}}.' },
+      alertResolved: { title: 'Back to normal: {{scope}}', body: 'The alert has cleared.' },
       backupOverdue: {
         title: 'No backup for {{server}}',
         body: 'A scheduled backup has not run when expected.',

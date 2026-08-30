@@ -553,6 +553,8 @@ export const webFr = {
       'task.failed': 'Tâche échouée : {{kind}}',
       'backup.rotated': 'Rotation des sauvegardes',
       'backup.overdue': 'Sauvegarde en retard',
+      'alert.firing': 'Alerte',
+      'alert.resolved': 'Alerte levée',
       'schedule.run': 'Action programmée : {{action}} ({{status}})',
     },
   },
@@ -858,6 +860,7 @@ export const webFr = {
       schedule_failed: 'Tâche planifiée échouée',
       port_conflict: 'Conflit de port',
       server_state: 'Serveur démarré / arrêté',
+      resources: 'Disque presque plein, TPS effondré',
       player_activity: 'Joueur arrivé / parti',
     },
     push: {

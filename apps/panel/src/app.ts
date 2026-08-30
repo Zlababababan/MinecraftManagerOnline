@@ -111,8 +111,21 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
 
   ctx.scheduler.start();
 
+  // Alertes : évaluées bien plus souvent que la maintenance horaire — un serveur tombé doit se
+  // savoir en minutes, pas au prochain passage de ménage. Le moteur est idempotent, un tick de
+  // plus ne produit pas une notification de plus.
+  const alertsTick = setInterval(() => {
+    try {
+      ctx.alerts.evaluate();
+    } catch (error) {
+      logger.warn({ err: error }, 'alerts evaluation failed');
+    }
+  }, ALERTS_INTERVAL_MS);
+  alertsTick.unref();
+
   app.addHook('onClose', () => {
     clearInterval(maintenance);
+    clearInterval(alertsTick);
     ctx.close();
   });
 
@@ -129,6 +142,12 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
  * faux positif sur une sauvegarde est le meilleur moyen de faire ignorer l'alerte.
  */
 const BACKUP_OVERDUE_GRACE_MS = 2 * 3_600_000;
+
+/** Cadence d'évaluation des alertes : assez fine pour être utile, assez lâche pour être gratuite. */
+const ALERTS_INTERVAL_MS = 60_000;
+
+/** Les alertes résolues ne servent plus qu'à l'historique. */
+const ALERTS_RETENTION_MS = 7 * 24 * 3_600_000;
 
 export function runMaintenance(ctx: AppContext): void {
   const day = 24 * 3_600_000;
@@ -179,5 +198,6 @@ export function runMaintenance(ctx: AppContext): void {
     );
   }
   ctx.uiEvents.purgeOlderThan(t - ctx.settings.getInt('retention.uiEventsDays', 14) * day);
+  ctx.alerts.purgeResolvedBefore(t - ALERTS_RETENTION_MS);
   ctx.metricsSqlite.pragma('wal_checkpoint(PASSIVE)');
 }

@@ -105,6 +105,7 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 |---|---|
 | Bus d'événements interne (crash, joueur rejoint/quitte, backup terminé/échoué, TPS bas…) | V1 |
 | Notifications push PWA (mobile et PC) | V1 |
+| **Alertes à état** : serveur tombé, machine hors ligne, disque presque plein, TPS effondré — hystérésis, regroupement par dépendance, rappel espacé, retour à la normale notifié (2026-08-30) | V1 |
 | Webhooks / intégration Discord | Futur |
 
 ## 11. Interface

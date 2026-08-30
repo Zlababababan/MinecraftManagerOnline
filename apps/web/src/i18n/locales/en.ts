@@ -545,6 +545,8 @@ export const webEn = {
       'task.failed': 'Task failed: {{kind}}',
       'backup.rotated': 'Backup rotation',
       'backup.overdue': 'Backup overdue',
+      'alert.firing': 'Alert',
+      'alert.resolved': 'Alert cleared',
       'schedule.run': 'Scheduled action: {{action}} ({{status}})',
     },
   },
@@ -849,6 +851,7 @@ export const webEn = {
       port_conflict: 'Port conflict',
       server_state: 'Server started / stopped',
       player_activity: 'Player joined / left',
+      resources: 'Low disk space, TPS collapse',
     },
     push: {
       title: 'Push notifications',

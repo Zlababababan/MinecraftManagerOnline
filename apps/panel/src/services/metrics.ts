@@ -181,6 +181,19 @@ export class MetricsService {
     return this.pending.length;
   }
 
+  /**
+   * Dernier point connu, en mémoire. ⚠ Perdu au redémarrage du panel, jamais relu depuis
+   * `metrics.db`, et figé sur la dernière valeur d'un serveur arrêté : tout appelant doit
+   * vérifier `ts` avant de conclure quoi que ce soit (voir les règles d'alerte).
+   */
+  latestServerPoint(serverId: string): ServerMetricsPoint | undefined {
+    return this.latestServer.get(serverId)?.point;
+  }
+
+  latestMachinePoint(machineId: string): MachineMetricsPoint | undefined {
+    return this.latestMachine.get(machineId)?.point;
+  }
+
   // --- Downsampling et purge ----------------------------------------------------------------------
 
   /**
