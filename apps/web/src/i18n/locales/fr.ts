@@ -315,6 +315,24 @@ export const webFr = {
       },
       download: 'Télécharger logs/latest.log (à joindre pour du support)',
     },
+    macros: {
+      add: 'Nouvelle macro',
+      name: 'Nom',
+      commands: 'Commandes',
+      commandsHint:
+        'Une commande par ligne, exécutées dans l’ordre. La séquence s’arrête à la première qui échoue.',
+      scopeAll: 'Sur tous les serveurs',
+      scopeServer: 'Sur ce serveur seulement',
+      newTitle: 'Nouvelle macro',
+      editTitle: 'Modifier la macro',
+      done: '« {{name}} » exécutée ({{count}} commande(s)).',
+      partial:
+        '« {{name}} » interrompue : {{done}}/{{total}} commande(s) passées, échec sur « {{command}} » — {{reason}}',
+      confirmTitle: 'Exécuter « {{name}} » ?',
+      confirmBody:
+        'Cette macro contient une commande qui arrête, bannit ou détruit. Vérifiez la séquence avant de la lancer.',
+      confirmRun: 'Exécuter quand même',
+    },
     players: {
       none: 'Aucun joueur en ligne.',
       online: '{{online}} joueur(s) en ligne',

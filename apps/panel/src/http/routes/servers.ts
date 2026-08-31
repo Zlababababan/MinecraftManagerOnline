@@ -1,5 +1,5 @@
 /** Serveurs : lecture, adoption manuelle, réglages, start/stop/restart/kill, console, commandes, joueurs, conflits. */
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -8,6 +8,8 @@ import {
   bulkActionSchema,
   commandRequestSchema,
   createServerSchema,
+  macroInputSchema,
+  macroRunSchema,
   metricsQuerySchema,
   playerActionRequestSchema,
   playerResolveRequestSchema,
@@ -423,29 +425,129 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
     },
   );
 
+  /**
+   * Envoi d'une commande, avec sa journalisation. Extrait de la route pour que les macros
+   * empruntent EXACTEMENT le même chemin : une commande de macro doit apparaître dans
+   * l'historique et dans l'audit comme si elle avait été tapée.
+   */
+  const sendCommand = async (
+    request: FastifyRequest,
+    row: { id: string; machineId: string; name: string },
+    rawCommand: string,
+    audit: { action: string; details?: Record<string, unknown> } = { action: 'server.command' },
+  ): Promise<{ via: 'stdin' | 'rcon' }> => {
+    const user = requireUser(request);
+    const command = rawCommand.replace(/^\//, '');
+    const res = await ctx.registry
+      .require(row.machineId)
+      .peer.request('server.command', { serverId: row.id, command }, { userId: user.id });
+    ctx.db
+      .insert(commandHistory)
+      .values({ serverId: row.id, userId: user.id, command, via: res.via, ts: ctx.now() })
+      .run();
+    ctx.audit.record({
+      ...auditMeta(request),
+      action: audit.action,
+      targetType: 'server',
+      targetId: row.id,
+      targetLabel: row.name,
+      // La macro d'origine est nommée : sinon l'audit montre trois commandes sans dire d'où
+      // elles viennent, et « qui a arrêté le serveur » reste sans réponse.
+      details: { command, via: res.via, ...audit.details },
+    });
+    return res;
+  };
+
   r.post(
     '/api/servers/:id/command',
     { config: { role: 'operator' }, schema: { params: idParams, body: commandRequestSchema } },
+    async (request) =>
+      sendCommand(request, ctx.servers.require(request.params.id), request.body.command),
+  );
+
+  // --- Macros de console ----------------------------------------------------------------------
+
+  r.get(
+    '/api/servers/:id/macros',
+    { config: { role: 'operator' }, schema: { params: idParams } },
+    (request) => ({ macros: ctx.macros.list(ctx.servers.require(request.params.id).id) }),
+  );
+
+  r.post(
+    '/api/servers/:id/macros/:macroId/run',
+    {
+      config: { role: 'operator' },
+      schema: { params: idParams.extend({ macroId: z.string() }), body: macroRunSchema },
+    },
     async (request) => {
-      const user = requireUser(request);
       const row = ctx.servers.require(request.params.id);
-      const command = request.body.command.replace(/^\//, '');
-      const res = await ctx.registry
-        .require(row.machineId)
-        .peer.request('server.command', { serverId: row.id, command }, { userId: user.id });
-      ctx.db
-        .insert(commandHistory)
-        .values({ serverId: row.id, userId: user.id, command, via: res.via, ts: ctx.now() })
-        .run();
+      const macro = ctx.macros.get(request.params.macroId);
+      // Le garde-fou est ICI, pas dans le navigateur : la macro a pu gagner un `stop` depuis un
+      // autre onglet, et le `destructive` affiché venir d'une liste en cache.
+      if (macro.destructive && request.body.confirmDestructive !== true) {
+        throw new AppError('E_CONFLICT', 'this macro needs an explicit confirmation', {
+          details: { reason: 'confirm_required', commands: macro.commands, name: macro.name },
+        });
+      }
+      return ctx.macros.run(macro.id, row.id, (_serverId, command) =>
+        sendCommand(request, row, command, {
+          action: 'macro.run',
+          details: { macroId: macro.id, macroName: macro.name },
+        }),
+      );
+    },
+  );
+
+  r.post(
+    '/api/macros',
+    { config: { role: 'operator' }, schema: { body: macroInputSchema } },
+    (request) => {
+      const macro = ctx.macros.create(request.body, requireUser(request).id);
       ctx.audit.record({
         ...auditMeta(request),
-        action: 'server.command',
-        targetType: 'server',
-        targetId: row.id,
-        targetLabel: row.name,
-        details: { command, via: res.via },
+        action: 'macro.create',
+        targetType: 'macro',
+        targetId: macro.id,
+        targetLabel: macro.name,
+        details: { commands: macro.commands.length },
       });
-      return res;
+      return { macro };
+    },
+  );
+
+  r.put(
+    '/api/macros/:macroId',
+    {
+      config: { role: 'operator' },
+      schema: { params: z.object({ macroId: z.string() }), body: macroInputSchema },
+    },
+    (request) => {
+      const macro = ctx.macros.update(request.params.macroId, request.body);
+      ctx.audit.record({
+        ...auditMeta(request),
+        action: 'macro.update',
+        targetType: 'macro',
+        targetId: macro.id,
+        targetLabel: macro.name,
+      });
+      return { macro };
+    },
+  );
+
+  r.delete(
+    '/api/macros/:macroId',
+    { config: { role: 'operator' }, schema: { params: z.object({ macroId: z.string() }) } },
+    (request, reply) => {
+      const macro = ctx.macros.get(request.params.macroId);
+      ctx.macros.remove(macro.id);
+      ctx.audit.record({
+        ...auditMeta(request),
+        action: 'macro.delete',
+        targetType: 'macro',
+        targetId: macro.id,
+        targetLabel: macro.name,
+      });
+      return reply.code(204).send();
     },
   );
 

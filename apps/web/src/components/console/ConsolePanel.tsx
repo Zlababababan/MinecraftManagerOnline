@@ -30,6 +30,7 @@ import {
 import { describeError } from '../../lib/errors.js';
 import { realtime, type RealtimeClient } from '../../ws/client.js';
 import { CommandSignature } from './CommandSignature.js';
+import { MacroBar } from './MacroBar.js';
 import {
   CommandHistory,
   complete,
@@ -439,6 +440,7 @@ export function ConsolePanel({
         </Group>
       )}
       <CommandSignature view={signatureView} source={catalogSource} />
+      <MacroBar serverId={serverId} canSend={canSend} />
       <div
         data-testid="console-mirror"
         aria-label={t('web:server.console.mirror')}

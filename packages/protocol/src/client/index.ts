@@ -275,6 +275,60 @@ export const stopServerSchema = z.object({
   forceAfterTimeout: z.boolean().optional(),
 });
 export const commandRequestSchema = z.object({ command: z.string().min(1).max(4096) });
+/**
+ * Macros de console : une séquence de commandes enregistrée, exécutée dans l'ordre.
+ *
+ * Bornes délibérément basses. Une macro n'est pas un langage : pas de boucle, pas de condition,
+ * pas d'attente. Ce qui demande un délai (« prévenir puis arrêter dans 5 minutes ») relève du
+ * planificateur, qui sait déjà le faire et le montre dans l'interface.
+ */
+export const MACRO_MAX_COMMANDS = 20;
+export const macroInputSchema = z.object({
+  name: z.string().min(1).max(60),
+  /** Une commande par ligne ; les lignes vides sont ignorées. */
+  commands: z.string().min(1).max(4096),
+  /** `null` = disponible sur tous les serveurs (le cas normal). */
+  serverId: z.string().nullable().optional(),
+});
+export const macroDtoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  commands: z.array(z.string()),
+  serverId: z.string().nullable(),
+  createdBy: z.string().nullable(),
+  updatedAt: epochMsSchema,
+  /**
+   * La macro contient au moins une commande qui arrête le serveur, bannit, ou détruit.
+   * L'interface demande confirmation avant de la lancer : une macro est à un clic, et
+   * « arrêter le serveur » ne doit jamais être un clic distrait.
+   */
+  destructive: z.boolean(),
+});
+/**
+ * Lancement d'une macro. `confirmDestructive` est exigé par le panel pour toute macro qui arrête,
+ * bannit ou détruit : la confirmation ne peut pas reposer sur le `destructive` d'un DTO en cache,
+ * qui peut dater d'avant la modification de la macro depuis un autre serveur ou un autre onglet.
+ */
+export const macroRunSchema = z.object({ confirmDestructive: z.boolean().optional() });
+
+export const macroRunResultSchema = z.object({
+  /** Commandes réellement envoyées, dans l'ordre, avec leur issue. */
+  results: z.array(
+    z.object({
+      command: z.string(),
+      ok: z.boolean(),
+      via: z.enum(['stdin', 'rcon']).optional(),
+      error: z.string().optional(),
+      /** Message technique de la cause, quand il y en a un (journal, diagnostic). */
+      message: z.string().optional(),
+    }),
+  ),
+});
+
+export type MacroInput = z.infer<typeof macroInputSchema>;
+export type MacroDto = z.infer<typeof macroDtoSchema>;
+export type MacroRunResult = z.infer<typeof macroRunResultSchema>;
+
 export const commandHistoryItemSchema = z.object({
   id: z.int(),
   userId: z.string().nullable(),

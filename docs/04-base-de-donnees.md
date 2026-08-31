@@ -431,6 +431,19 @@ CREATE TABLE app_settings (
   value      TEXT NOT NULL,
   updated_at INTEGER NOT NULL
 );
+
+-- Macros de console (2026-08-31) : séquences de commandes enregistrées, jouées d'un clic.
+-- `server_id` NULL = disponible sur tous les serveurs (le cas normal). Migration 0009.
+CREATE TABLE console_macros (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  commands   TEXT NOT NULL,        -- une commande par ligne, exécutées dans l'ordre
+  server_id  TEXT REFERENCES servers(id) ON DELETE CASCADE,
+  created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX idx_console_macros_server ON console_macros(server_id);
 ```
 
 **Amendement (2026-08-30) — `schedule.timezone`.** Nom IANA (`Europe/Paris`) dans lequel **toutes** les planifications sont lues : politiques de sauvegarde et actions programmées. Absent ⇒ fuseau de l'hôte du panel ; valeur devenue invalide ⇒ même repli (un réglage bricolé ne doit pas figer le planificateur). Le panel l'applique à `nextCronRun`/`nextCronRunList`, le pousse à l'agent avec chaque politique (`agent.configure.backupSchedules[].timezone`) et l'expose à tout utilisateur connecté par `GET /api/auth/me` — la route des réglages étant réservée aux administrateurs, alors que n'importe qui saisissant une heure a besoin de savoir dans quel fuseau elle sera lue. Motif : les expressions cron étaient évaluées dans le fuseau du **processus** (agent pour les sauvegardes, panel pour les actions, navigateur pour l'aperçu) ; un agent Linux en UTC faisait partir à 6 h une sauvegarde réglée sur 4 h par un utilisateur à Paris, sans que rien ne le signale.

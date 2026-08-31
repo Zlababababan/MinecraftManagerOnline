@@ -38,6 +38,9 @@ Liste de référence, validée avant le développement. Chaque fonctionnalité e
 | Envoi de commandes avec autocomplétion et historique | V1 |
 | Recherche dans les logs, accès aux logs archivés | V1 |
 | RCON en complément du stdin (parler à un serveur non lancé par l'application) | V1 |
+| **Macros de console** : séquences de commandes enregistrées, jouées d'un clic (2026-08-31) | V1 |
+
+> **Ajout (2026-08-31) — macros de console.** Une macro est une suite de commandes exécutées **dans l'ordre**, enregistrée une fois et rejouée d'un clic : sur cinquante serveurs, les mêmes trois ou quatre commandes se retapent plusieurs fois par semaine, et se retapent mal (`save-all` sans `save-off` avant, un `kill @e` trop large). Par défaut une macro vaut pour **toute la flotte** ; la rattacher à un serveur sert aux séquences qui dépendent d'un mod. Trois décisions : (1) chaque commande passe par le **même chemin que la console**, donc apparaît dans l'historique et dans l'audit — une macro agit, elle ne lit pas ; (2) la séquence **s'arrête au premier échec**, parce que continuer laisserait le serveur dans l'état intermédiaire (sauvegarde désactivée) sans que personne ne le sache, et le résultat dit lesquelles sont passées ; (3) une macro qui contient un arrêt, un bannissement ou une destruction **demande confirmation en montrant la séquence exacte** — c'est un clic, et « arrêter le serveur » ne doit jamais être un clic distrait. Pas de boucle, pas de condition, pas d'attente : ce qui demande un délai (« prévenir puis arrêter dans 5 minutes ») relève du planificateur, qui sait déjà le faire et le montre.
 
 ## 4. Joueurs
 

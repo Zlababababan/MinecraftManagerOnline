@@ -301,6 +301,32 @@ export const servers = sqliteTable(
   ],
 );
 
+/**
+ * Séquences de commandes enregistrées, exécutables d'un clic depuis la console.
+ *
+ * Nées de l'usage : sur cinquante serveurs, les mêmes trois ou quatre commandes se retapent
+ * plusieurs fois par semaine, et se retapent MAL — « save-all » sans « save-off » avant, un
+ * « kill @e » trop large. Une macro fige la bonne séquence une fois pour toutes.
+ *
+ * `server_id` nul = disponible sur tous les serveurs : c'est le cas normal, une macro de
+ * redémarrage propre vaut pour toute la flotte. Le rattacher à un serveur sert aux séquences qui
+ * dépendent d'un mod précis.
+ */
+export const consoleMacros = sqliteTable(
+  'console_macros',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    /** Une commande par ligne, exécutées dans l'ordre. */
+    commands: text('commands').notNull(),
+    serverId: text('server_id').references(() => servers.id, { onDelete: 'cascade' }),
+    createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (t) => [index('idx_console_macros_server').on(t.serverId)],
+);
+
 export const commandHistory = sqliteTable(
   'command_history',
   {
@@ -622,6 +648,7 @@ export type MachineRow = typeof machines.$inferSelect;
 export type ServerRow = typeof servers.$inferSelect;
 export type WatchedDirectoryRow = typeof watchedDirectories.$inferSelect;
 export type EventRow = typeof events.$inferSelect;
+export type ConsoleMacroRow = typeof consoleMacros.$inferSelect;
 export type AuditRow = typeof auditLog.$inferSelect;
 export type TaskRow = typeof tasks.$inferSelect;
 export type BackupRow = typeof backups.$inferSelect;

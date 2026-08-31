@@ -31,6 +31,7 @@ import { ProcessedEventsService } from './services/processed-events.js';
 import { AlertsService, DEFAULT_THRESHOLDS } from './services/alerts.js';
 import { collectConditions } from './services/alert-conditions.js';
 import { CommandCatalogService } from './services/command-catalog.js';
+import { MacrosService } from './services/macros.js';
 import { SchedulerService } from './services/scheduler.js';
 import { ServersService } from './services/servers.js';
 import { SessionsService } from './services/sessions.js';
@@ -68,6 +69,8 @@ export interface AppContext {
   scheduler: SchedulerService;
   /** Aperçu des commandes de la console : lu chez le serveur, mis en cache court. */
   commandCatalog: CommandCatalogService;
+  /** Séquences de commandes enregistrées, jouées depuis la console. */
+  macros: MacrosService;
   alerts: AlertsService;
   transfers: TransferService;
   panelBackup: PanelBackupService;
@@ -199,6 +202,7 @@ export function createContext(options: ContextOptions): AppContext {
    * un modpack mis à jour n'expose plus les mêmes commandes.
    */
   const commandCatalog = new CommandCatalogService({ registry, servers, now, logger });
+  const macros = new MacrosService({ db, now });
   events.subscribe((event) => {
     if (event.type === 'server.stateChanged' && event.serverId !== null) {
       commandCatalog.invalidate(event.serverId);
@@ -372,6 +376,7 @@ export function createContext(options: ContextOptions): AppContext {
     backups,
     scheduler,
     commandCatalog,
+    macros,
     transfers,
     panelBackup,
     relayTokens,

@@ -315,6 +315,24 @@ export const webEn = {
       },
       download: 'Download logs/latest.log (attach it when asking for help)',
     },
+    macros: {
+      add: 'New macro',
+      name: 'Name',
+      commands: 'Commands',
+      commandsHint:
+        'One command per line, run in order. The sequence stops at the first one that fails.',
+      scopeAll: 'On every server',
+      scopeServer: 'On this server only',
+      newTitle: 'New macro',
+      editTitle: 'Edit macro',
+      done: '“{{name}}” ran ({{count}} command(s)).',
+      partial:
+        '“{{name}}” stopped: {{done}}/{{total}} command(s) ran, failed on “{{command}}” — {{reason}}',
+      confirmTitle: 'Run “{{name}}”?',
+      confirmBody:
+        'This macro contains a command that stops, bans or destroys. Check the sequence before running it.',
+      confirmRun: 'Run anyway',
+    },
     players: {
       none: 'No player online.',
       online: '{{online}} player(s) online',

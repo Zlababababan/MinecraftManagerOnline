@@ -18,6 +18,9 @@ import type {
   FsEntryDto,
   FsReadResult,
   LogsSearchRequest,
+  MacroDto,
+  MacroInput,
+  MacroRunResult,
   MachineDto,
   MachineMetricsResult,
   PairingCodeDto,
@@ -63,6 +66,7 @@ export const keys = {
   players: (id: string) => ['servers', id, 'players'] as const,
   commandHistory: (id: string) => ['servers', id, 'command-history'] as const,
   serverCommands: (id: string) => ['servers', id, 'commands'] as const,
+  macros: (id: string) => ['servers', id, 'macros'] as const,
   events: (filter: EventsFilter) => ['events', filter] as const,
   // Phase 6
   config: (id: string, file: ConfigFile) => ['servers', id, 'config', file] as const,
@@ -524,6 +528,78 @@ export function useSendCommand(serverId: string) {
     mutationFn: (command: string) =>
       api.post<{ via: 'stdin' | 'rcon' }>(`/api/servers/${serverId}/command`, { command }),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.commandHistory(serverId) }),
+  });
+}
+
+// --- Macros de console ---------------------------------------------------------------------------
+
+export function useMacros(serverId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: keys.macros(serverId),
+    queryFn: ({ signal }) =>
+      api.get<{ macros: MacroDto[] }>(`/api/servers/${serverId}/macros`, signal),
+    staleTime: 60_000,
+    enabled,
+  });
+}
+
+/**
+ * Une macro globale apparaît dans la liste de CHAQUE serveur : la modifier depuis l'un doit
+ * périmer toutes les autres, sinon un serveur voisin garde une version obsolète — et donc un
+ * `destructive` obsolète.
+ */
+function invalidateMacros(qc: QueryClient): void {
+  void qc.invalidateQueries({
+    predicate: (q) => q.queryKey[0] === 'servers' && q.queryKey[2] === 'macros',
+  });
+}
+
+export function useRunMacro(serverId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      macroId,
+      confirmDestructive,
+    }: {
+      macroId: string;
+      confirmDestructive?: boolean;
+    }) =>
+      api.post<MacroRunResult>(`/api/servers/${serverId}/macros/${macroId}/run`, {
+        ...(confirmDestructive === undefined ? {} : { confirmDestructive }),
+      }),
+    // Une macro envoie de vraies commandes : elles doivent apparaître dans l'historique.
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.commandHistory(serverId) }),
+  });
+}
+
+export function useCreateMacro() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: MacroInput) => api.post<{ macro: MacroDto }>('/api/macros', body),
+    onSuccess: () => {
+      invalidateMacros(qc);
+    },
+  });
+}
+
+export function useUpdateMacro() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: MacroInput }) =>
+      api.put<{ macro: MacroDto }>(`/api/macros/${id}`, body),
+    onSuccess: () => {
+      invalidateMacros(qc);
+    },
+  });
+}
+
+export function useDeleteMacro() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/api/macros/${id}`),
+    onSuccess: () => {
+      invalidateMacros(qc);
+    },
   });
 }
 
