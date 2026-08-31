@@ -41,3 +41,12 @@ Les joueurs du même réseau local n'ont besoin de rien : adresse LAN + port, qu
 ## 6. Retirer une machine
 
 Page machine → **Retirer la machine** : elle disparaît du panel (les serveurs et fichiers restent intacts sur le disque). Sur la machine : `install.ps1 -Uninstall` / `install.sh --uninstall` ([Installation § 2](installation.md#2-les-agents)).
+
+## 7. Sauvegardes
+
+Page serveur → onglet **Sauvegardes**. Deux moitiés :
+
+- **Archives** : créer une sauvegarde maintenant (fonctionne serveur allumé — l'agent vide d'abord le monde sur disque avec `save-all`), la télécharger, la restaurer en un clic (une sauvegarde de sécurité de l'état courant est prise par défaut), ou la supprimer. Chaque archive affiche sa taille, sa date et son empreinte d'intégrité.
+- **Politiques** : sauvegardes planifiées exécutées **par l'agent**, panel allumé ou non. Choisissez la fréquence et le nombre d'archives à garder (la rotation ne périme jamais l'archive réussie la plus récente). « Seulement si le serveur tourne » saute un serveur arrêté. Les horaires suivent le fuseau de planification du panel, affiché sous le formulaire.
+
+Un nouveau serveur reçoit une politique par défaut (quotidienne, 7 conservées). Si une sauvegarde planifiée échoue ou est sautée, le panel l'enregistre et peut vous prévenir — voir les catégories de notifications dans les réglages de votre compte. Le dossier de destination se règle dans Réglages → Général (remplaçable par politique).

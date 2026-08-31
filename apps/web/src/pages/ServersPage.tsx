@@ -97,7 +97,9 @@ export function ServersPage({
   return (
     <Stack gap="md" data-testid="servers-page">
       <Group justify="space-between" wrap="wrap">
-        <Title order={2}>{t('web:servers.title')}</Title>
+        <Title order={1} size="h2">
+          {t('web:servers.title')}
+        </Title>
         <Text size="sm" c="dimmed" data-testid="servers-count">
           {filtered
             ? t('web:servers.countFiltered', { shown: shown.length, total: all.length })

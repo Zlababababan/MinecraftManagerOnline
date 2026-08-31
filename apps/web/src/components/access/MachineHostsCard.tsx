@@ -45,7 +45,9 @@ export function MachineHostsCard({ machine }: { machine: MachineDto }) {
         })}
       >
         <Stack gap="sm">
-          <Title order={4}>{t('web:playerAccess.hosts')}</Title>
+          <Title order={2} size="h4">
+            {t('web:playerAccess.hosts')}
+          </Title>
           <Text size="sm" c="dimmed">
             {t('web:playerAccess.hostsHint')}
           </Text>

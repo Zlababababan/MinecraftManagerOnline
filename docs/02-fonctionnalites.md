@@ -125,6 +125,9 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 | Bilingue FR / EN | V1 |
 | Dashboard : cartes serveurs groupées par machine, stats globales | V1 |
 | Page serveur : onglets Console / Joueurs / Config / Backups / Stats / Fichiers | V1 |
+| **Premiers pas guidés** : carte de 4 étapes auto-cochées sur le dashboard tant que le panel n'est pas prêt, avec la ligne « accès à distance » (2026-08-31) | V1 |
+| **Aide contextuelle** : icône vers la section du guide dans la langue de l'interface (appairage, accès, URL publique, Java, sauvegardes) — table langue → chemin verrouillée par test contre les guides du dépôt (2026-08-31) | V1 |
+| **Accessibilité** : un h1 par page (visuel inchangé via `size`), lien d'évitement, région live globale (connexion, agent hors ligne, état serveur), miroir console en `role="log"` ligne par ligne (2026-08-31) | V1 |
 | Carte du monde en ligne | Futur |
 
 ## 12. Post-1.0 — ajouts livrés pendant la recette utilisateur (2026-08-24)

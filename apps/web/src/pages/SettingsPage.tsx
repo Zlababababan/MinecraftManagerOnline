@@ -29,6 +29,7 @@ import { AuditCard } from '../components/admin/AuditCard.js';
 import { DistributionCard } from '../components/admin/DistributionCard.js';
 import { PanelBackupsCard } from '../components/admin/PanelBackupsCard.js';
 import { UsersCard } from '../components/admin/UsersCard.js';
+import { HelpLink } from '../components/HelpLink.js';
 import { useT } from '../i18n/hooks.js';
 import { describeError } from '../lib/errors.js';
 import { coerceOriginInput, isValidOriginInput } from '../lib/origin.js';
@@ -90,10 +91,16 @@ function GeneralCard({ settings }: { settings: Record<string, string> }) {
         })}
       >
         <Stack gap="sm">
-          <Title order={4}>{t('web:settings.general.title')}</Title>
+          <Title order={2} size="h4">
+            {t('web:settings.general.title')}
+          </Title>
           <TextInput
             label={t('web:settings.general.publicUrl')}
-            description={t('web:settings.general.publicUrlHint')}
+            description={
+              <>
+                {t('web:settings.general.publicUrlHint')} <HelpLink topic="publicUrl" inline />
+              </>
+            }
             placeholder="https://panel.example.org"
             {...form.getInputProps('publicUrl')}
             data-testid="settings-public-url"
@@ -163,7 +170,9 @@ function PushAdminCard() {
   return (
     <Card withBorder radius="md" padding="md" data-testid="settings-push">
       <Stack gap="sm">
-        <Title order={4}>{t('web:settings.push.title')}</Title>
+        <Title order={2} size="h4">
+          {t('web:settings.push.title')}
+        </Title>
         {push.data !== undefined &&
           (key === null ? (
             <Alert color="yellow">{t('web:settings.push.vapidMissing')}</Alert>
@@ -185,7 +194,9 @@ export function SettingsPage() {
   const settings = useSettings();
   return (
     <Stack gap="lg" data-testid="settings-page">
-      <Title order={2}>{t('web:settings.title')}</Title>
+      <Title order={1} size="h2">
+        {t('web:settings.title')}
+      </Title>
       {settings.data !== undefined && <GeneralCard settings={settings.data.settings} />}
       <UsersCard />
       <AccessCard />

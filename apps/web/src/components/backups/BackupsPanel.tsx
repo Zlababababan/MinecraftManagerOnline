@@ -48,6 +48,7 @@ import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
 import { formatBytes, formatDateTime, hasRole } from '../../lib/format.js';
 import { ErrorAlert } from '../ErrorAlert.js';
+import { HelpLink } from '../HelpLink.js';
 import { ScheduleInput, describeWhen, isScheduleValid } from '../schedule/ScheduleInput.js';
 import { TaskProgressRow, isActiveTask } from '../tasks/TaskProgress.js';
 
@@ -233,7 +234,10 @@ export function BackupsPanel({ server }: { server: ServerDto }) {
       <Card withBorder padding="md">
         <Group justify="space-between" mb="sm" wrap="wrap">
           <Stack gap={0}>
-            <Text fw={600}>{t('web:backups.title')}</Text>
+            <Group gap={6}>
+              <Text fw={600}>{t('web:backups.title')}</Text>
+              <HelpLink topic="backups" />
+            </Group>
             <Text size="xs" c="dimmed">
               {t('web:backups.hint')}
             </Text>

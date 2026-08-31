@@ -50,7 +50,9 @@ export function NotificationPrefsCard() {
   return (
     <Card withBorder radius="md" padding="md" data-testid="notification-prefs">
       <Stack gap="sm">
-        <Title order={4}>{t('web:notifications.prefsTitle')}</Title>
+        <Title order={2} size="h4">
+          {t('web:notifications.prefsTitle')}
+        </Title>
         <Text size="sm" c="dimmed">
           {t('web:notifications.prefsHint')}
         </Text>
@@ -142,7 +144,9 @@ export function PushCard({ support: supportOverride }: { support?: PushSupport }
       <Stack gap="sm">
         <Group gap="xs">
           <IconBellRinging size={18} />
-          <Title order={4}>{t('web:notifications.push.title')}</Title>
+          <Title order={2} size="h4">
+            {t('web:notifications.push.title')}
+          </Title>
         </Group>
         <Text size="sm" c="dimmed">
           {t('web:notifications.push.hint')}
@@ -231,7 +235,9 @@ export function PushCard({ support: supportOverride }: { support?: PushSupport }
             {t('web:notifications.push.test')}
           </Button>
         </Group>
-        <Title order={6}>{t('web:notifications.push.devices')}</Title>
+        <Title order={3} size="h6">
+          {t('web:notifications.push.devices')}
+        </Title>
         {(status.data?.subscriptions.length ?? 0) === 0 ? (
           <Text size="sm" c="dimmed" data-testid="push-no-devices">
             {t('web:notifications.push.noDevices')}

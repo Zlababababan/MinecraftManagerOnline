@@ -33,7 +33,9 @@ export function AgentCard({ machine }: { machine: MachineDto }) {
     <Card withBorder radius="md" padding="md" data-testid="agent-card">
       <Stack gap="sm">
         <Group justify="space-between">
-          <Title order={4}>{t('web:agentUpdate.title')}</Title>
+          <Title order={2} size="h4">
+            {t('web:agentUpdate.title')}
+          </Title>
           {machine.updateAvailable === true ? (
             <Badge color="yellow" variant="light" data-testid="update-available">
               {t('web:agentUpdate.available', { version: machine.latestRelease ?? '' })}

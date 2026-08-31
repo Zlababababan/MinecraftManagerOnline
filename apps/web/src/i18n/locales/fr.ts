@@ -23,6 +23,7 @@ export const webFr = {
     settings: 'Réglages',
     menu: 'Menu',
     logout: 'Se déconnecter',
+    skipToContent: 'Aller au contenu',
   },
   theme: { label: 'Thème', light: 'Clair', dark: 'Sombre', auto: 'Système' },
   lang: { label: 'Langue', fr: 'Français', en: 'English' },
@@ -60,6 +61,7 @@ export const webFr = {
     reload: 'Recharger la page',
     scrollLeft: 'Défiler vers la gauche',
     scrollRight: 'Défiler vers la droite',
+    helpGuide: 'Ouvrir le guide',
     staleVersion:
       'Le panel a été mis à jour pendant que cette page était ouverte. Rechargez pour passer à la nouvelle version.',
   },
@@ -121,6 +123,18 @@ export const webFr = {
     unreachable: 'Agent hors ligne — les serveurs ne peuvent pas être pilotés.',
     recentEvents: 'Événements récents',
     noEvents: 'Aucun événement pour l’instant.',
+    onboarding: {
+      title: 'Premiers pas',
+      intro: 'Le panel est prêt quand ces quatre étapes sont vertes.',
+      machine: 'Ajouter une machine',
+      connected: 'Appairer son agent',
+      directory: 'Surveiller un répertoire de serveurs',
+      server: 'Détecter un premier serveur',
+      open: 'Ouvrir la machine',
+      access: 'Accès à distance',
+      notTested: 'jamais testé',
+      configure: 'Configurer',
+    },
   },
   machine: {
     title: 'Machines',
@@ -297,6 +311,9 @@ export const webFr = {
       sourceStatic: 'liste générique',
       sourceStaticHint:
         'Les formes affichées viennent d’une liste générique du panel. Démarrez le serveur pour que le panel lui demande ses vraies commandes, mods compris.',
+      sourceUnavailable: 'liste générique',
+      sourceUnavailableHint:
+        'Le serveur n’a pas répondu au balayage (agent plus ancien, ou RCON pas encore prêt) : l’aperçu se rabat sur la liste générique du panel. Le panel redemandera tout seul.',
       args: {
         player: 'Attend un pseudo de joueur.',
         targets: 'Attend un joueur ou un sélecteur (@a, @p, @e).',
@@ -317,6 +334,7 @@ export const webFr = {
     },
     macros: {
       add: 'Nouvelle macro',
+      loadFailed: 'Macros indisponibles pour l’instant.',
       name: 'Nom',
       commands: 'Commandes',
       commandsHint:

@@ -322,7 +322,12 @@ export function ServerPage({ serverId, tab }: { serverId: string; tab: ServerTab
       <Group justify="space-between" align="flex-start" wrap="wrap">
         <Stack gap={2} style={{ minWidth: 0 }}>
           <Group gap="sm" wrap="nowrap">
-            <Title order={2} style={{ wordBreak: 'break-word' }} data-testid="server-name">
+            <Title
+              order={1}
+              size="h2"
+              style={{ wordBreak: 'break-word' }}
+              data-testid="server-name"
+            >
               {s.name}
             </Title>
             <RunStateBadge server={s} size="lg" />

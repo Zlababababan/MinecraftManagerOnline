@@ -66,7 +66,9 @@ export function DistributionCard() {
     <Card withBorder radius="md" padding="md" data-testid="distribution-card">
       <Stack gap="sm">
         <Group justify="space-between">
-          <Title order={4}>{t('web:distribution.title')}</Title>
+          <Title order={2} size="h4">
+            {t('web:distribution.title')}
+          </Title>
           {d?.available === true && (
             <Button
               type="button"

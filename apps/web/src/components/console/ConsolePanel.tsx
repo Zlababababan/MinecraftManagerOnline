@@ -97,7 +97,12 @@ export function ConsolePanel({
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const lastSeqRef = useRef(-1);
-  const [mirror, setMirror] = useState<string[]>([]);
+  // Miroir lisible par lecteur d'écran : une entrée PAR LIGNE avec un id stable, pour qu'une
+  // région `role="log"` n'annonce que les additions (un nœud texte unique serait ré-annoncé entier).
+  const [mirror, setMirror] = useState<{ id: number; text: string }[]>([]);
+  const mirrorIdRef = useRef(0);
+  const toMirror = (texts: string[]): { id: number; text: string }[] =>
+    texts.map((text) => ({ id: mirrorIdRef.current++, text }));
   const [truncated, setTruncated] = useState(false);
   const [empty, setEmpty] = useState(true);
   const [input, setInput] = useState('');
@@ -190,7 +195,8 @@ export function ConsolePanel({
           for (const line of lines) term.writeln(`\x1b[2m${line}\x1b[0m`);
           term.writeln(`\x1b[2m─── ${t('web:server.console.live')} ───\x1b[0m`);
           setEmpty(false);
-          setMirror((prev) => [...prev, ...lines].slice(-MIRROR_LINES));
+          const entries = toMirror(lines);
+          setMirror((prev) => [...prev, ...entries].slice(-MIRROR_LINES));
         }
       }
     }
@@ -210,7 +216,8 @@ export function ConsolePanel({
       for (const line of fresh) term?.writeln(formatConsoleLine(line));
       lastSeqRef.current = fresh[fresh.length - 1]?.seq ?? lastSeqRef.current;
       setEmpty(false);
-      setMirror((prev) => [...prev, ...fresh.map((l) => l.text)].slice(-MIRROR_LINES));
+      const entries = toMirror(fresh.map((l) => l.text));
+      setMirror((prev) => [...prev, ...entries].slice(-MIRROR_LINES));
     };
     // Tant que l'historique n'est pas écrit, on met en attente pour préserver l'ordre d'affichage.
     const enqueue = (lines: ConsoleLine[]): void => {
@@ -443,17 +450,13 @@ export function ConsolePanel({
       <MacroBar serverId={serverId} canSend={canSend} />
       <div
         data-testid="console-mirror"
+        role="log"
         aria-label={t('web:server.console.mirror')}
-        style={{
-          position: 'absolute',
-          width: 1,
-          height: 1,
-          overflow: 'hidden',
-          clip: 'rect(0 0 0 0)',
-          whiteSpace: 'pre',
-        }}
+        className="mmo-visually-hidden"
       >
-        {mirror.join('\n')}
+        {mirror.map((line) => (
+          <div key={line.id}>{line.text}</div>
+        ))}
       </div>
     </Stack>
   );

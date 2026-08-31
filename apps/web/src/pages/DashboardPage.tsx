@@ -1,5 +1,5 @@
 /** Dashboard : compteurs, machines (statut/heartbeat) + cartes serveurs groupées par machine, événements. */
-import { Alert, Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import { RouterButton } from '../components/links.js';
 import { useT } from '../i18n/hooks.js';
@@ -11,6 +11,7 @@ import { ConflictsPanel } from '../components/ConflictsPanel.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { EventsList } from '../components/EventsList.js';
 import { MachineHeader } from '../components/MachineHeader.js';
+import { OnboardingCard } from '../components/OnboardingCard.js';
 import { ServerCard } from '../components/ServerCard.js';
 import { useNow } from '../lib/hooks.js';
 import { hasRole } from '../lib/format.js';
@@ -56,7 +57,9 @@ export function DashboardPage() {
   return (
     <Stack gap="lg" data-testid="dashboard">
       <Group justify="space-between">
-        <Title order={2}>{t('web:dashboard.title')}</Title>
+        <Title order={1} size="h2">
+          {t('web:dashboard.title')}
+        </Title>
         {isAdmin && (
           <RouterButton
             to="/machines"
@@ -88,11 +91,7 @@ export function DashboardPage() {
         />
       </SimpleGrid>
       {conflicts.data !== undefined && <ConflictsPanel conflicts={conflicts.data.conflicts} />}
-      {machines.data?.machines.length === 0 && (
-        <Alert color="blue" variant="light" data-testid="no-machines">
-          {t('web:dashboard.noMachines')}
-        </Alert>
-      )}
+      <OnboardingCard />
       {machines.data?.machines.map((machine) => {
         const mine = allServers.filter((s) => s.machineId === machine.id);
         return (
@@ -128,7 +127,9 @@ export function DashboardPage() {
       })}
       <Card withBorder radius="md" padding="md">
         <Stack gap="sm">
-          <Title order={4}>{t('web:dashboard.recentEvents')}</Title>
+          <Title order={2} size="h4">
+            {t('web:dashboard.recentEvents')}
+          </Title>
           <EventsList events={merged} resolveName={nameOf} compact />
         </Stack>
       </Card>

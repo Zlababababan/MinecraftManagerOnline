@@ -129,7 +129,9 @@ export function MachinesPage({ openAdd }: { openAdd: boolean }) {
   return (
     <Stack gap="lg" data-testid="machines-page">
       <Group justify="space-between">
-        <Title order={2}>{t('web:machine.title')}</Title>
+        <Title order={1} size="h2">
+          {t('web:machine.title')}
+        </Title>
         {isAdmin && (
           <Button
             leftSection={<IconPlus size={16} />}

@@ -62,7 +62,9 @@ export function AuditCard() {
     <Card withBorder radius="md" padding="md" data-testid="settings-audit">
       <Stack gap="sm">
         <Group justify="space-between">
-          <Title order={4}>{t('web:settings.audit.title')}</Title>
+          <Title order={2} size="h4">
+            {t('web:settings.audit.title')}
+          </Title>
           <Button
             variant="subtle"
             size="compact-xs"

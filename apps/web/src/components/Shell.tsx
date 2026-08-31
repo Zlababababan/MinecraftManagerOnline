@@ -39,17 +39,18 @@ import type { UserDto } from '@mmo/protocol/client';
 import { isLocale } from '@mmo/shared';
 
 import { useAccessStatus, usePushStatus, usePushSubscribe } from '../api/phase10.js';
-import { useLogout, useUpdateMe } from '../api/queries.js';
+import { useLogout, useMachines, useServers, useUpdateMe } from '../api/queries.js';
 import { tDynamic } from '../i18n/index.js';
 import { hasRole } from '../lib/format.js';
 import { resyncPush } from '../lib/push.js';
+import { eventLabel } from './EventsList.js';
 import { NotificationCenter } from './notifications/NotificationCenter.js';
 import { RouterNavLink, RouterUnstyledButton as RouterButton } from './links.js';
 import { TasksIndicator } from './tasks/TaskProgress.js';
 import { setLocale } from '../i18n/index.js';
 import { useRealtimeStore } from '../store/realtime.js';
 import { realtime } from '../ws/client.js';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /** Phase 10 : indicateur d'accès public (mode + dernier test de joignabilité). */
 export function AccessIndicator({ isAdmin }: { isAdmin: boolean }) {
@@ -117,6 +118,70 @@ export function RealtimeIndicator() {
         </Text>
       </Indicator>
     </Tooltip>
+  );
+}
+
+/**
+ * Lot 7 (accessibilité) : région live globale. Les toasts Mantine n'ont pas de région persistante
+ * (le `role="alert"` injecté avec son contenu est peu fiable) — cette région annonce aux lecteurs
+ * d'écran les transitions de connexion et les événements d'état qui changent l'écran sans bruit.
+ */
+const ANNOUNCED_EVENTS = new Set([
+  'agent.online',
+  'agent.offline',
+  'server.stateChanged',
+  'server.startFailed',
+]);
+
+export function LiveAnnouncer() {
+  const { t, i18n } = useT();
+  const status = useRealtimeStore((s) => s.status);
+  const events = useRealtimeStore((s) => s.recentEvents);
+  const servers = useServers();
+  const machines = useMachines();
+  const [message, setMessage] = useState('');
+  const prevStatus = useRef(status);
+  const lastEventId = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (prevStatus.current === status) return;
+    prevStatus.current = status;
+    setMessage(t(`web:realtime.${status}`));
+  }, [status, t]);
+
+  useEffect(() => {
+    if (lastEventId.current === null) {
+      // Premier passage : ce qui est déjà dans le tampon n'est pas une nouvelle.
+      lastEventId.current = events[0]?.id ?? 0;
+      return;
+    }
+    const latest = events[0];
+    if (latest === undefined || latest.id <= lastEventId.current) return;
+    lastEventId.current = latest.id;
+    if (!ANNOUNCED_EVENTS.has(latest.type)) return;
+    const name =
+      latest.serverId !== null
+        ? servers.data?.servers.find((s) => s.id === latest.serverId)?.name
+        : latest.machineId !== null
+          ? machines.data?.machines.find((m) => m.id === latest.machineId)?.name
+          : undefined;
+    const label = eventLabel(
+      (k, o) => tDynamic(i18n, k, o),
+      latest,
+      (k) => i18n.exists(k),
+    );
+    setMessage(name === undefined ? label : `${name} — ${label}`);
+  }, [events, servers.data, machines.data, i18n]);
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="mmo-visually-hidden"
+      data-testid="live-announcer"
+    >
+      {message}
+    </div>
   );
 }
 
@@ -340,6 +405,10 @@ export function Shell({ user }: { user: UserDto }) {
       footer={{ height: { base: 60, sm: 0 } }}
       padding="md"
     >
+      <a href="#main" className="mmo-skip-link" data-testid="skip-link">
+        {t('web:nav.skipToContent')}
+      </a>
+      <LiveAnnouncer />
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap">
@@ -435,7 +504,7 @@ export function Shell({ user }: { user: UserDto }) {
         <NavItems onNavigate={close} isAdmin={isAdmin} />
       </AppShell.Navbar>
       <CommandPalette opened={palette} onClose={paletteControls.close} />
-      <AppShell.Main>
+      <AppShell.Main id="main" tabIndex={-1}>
         <Outlet />
       </AppShell.Main>
       <AppShell.Footer hiddenFrom="sm" p={0}>

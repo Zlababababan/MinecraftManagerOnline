@@ -43,7 +43,9 @@ export function PlayerAccessCard({ server }: { server: ServerDto }) {
       <Stack gap="sm">
         <Group gap="xs">
           <IconPlugConnected size={18} />
-          <Title order={4}>{t('web:playerAccess.title')}</Title>
+          <Title order={2} size="h4">
+            {t('web:playerAccess.title')}
+          </Title>
         </Group>
         <Text size="sm" c="dimmed">
           {t('web:playerAccess.hint')}

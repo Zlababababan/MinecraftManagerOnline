@@ -206,7 +206,9 @@ export function UsersCard() {
   return (
     <Card withBorder radius="md" padding="md" data-testid="settings-users">
       <Stack gap="sm">
-        <Title order={4}>{t('web:settings.users.title')}</Title>
+        <Title order={2} size="h4">
+          {t('web:settings.users.title')}
+        </Title>
         <ErrorAlert error={users.error} />
         {users.data !== undefined && (
           <Table.ScrollContainer minWidth={560}>

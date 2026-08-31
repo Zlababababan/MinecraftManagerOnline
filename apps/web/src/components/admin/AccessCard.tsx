@@ -50,6 +50,7 @@ import { describeError } from '../../lib/errors.js';
 import { formatDateTime } from '../../lib/format.js';
 import { coerceOriginInput } from '../../lib/origin.js';
 import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
+import { HelpLink } from '../HelpLink.js';
 
 const LE_STAGING = 'https://acme-staging-v02.api.letsencrypt.org/directory';
 
@@ -282,7 +283,9 @@ function DirectSection({
       </form>
 
       <Stack gap="xs">
-        <Title order={5}>{t('web:access.direct.certificate')}</Title>
+        <Title order={3} size="h5">
+          {t('web:access.direct.certificate')}
+        </Title>
         {d?.certificate ? (
           <Text
             size="sm"
@@ -353,7 +356,9 @@ function DirectSection({
       </Stack>
 
       <Stack gap="xs">
-        <Title order={5}>{t('web:access.direct.dyndns')}</Title>
+        <Title order={3} size="h5">
+          {t('web:access.direct.dyndns')}
+        </Title>
         <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="xs">
           <Text size="sm">
             {t('web:access.direct.currentAddress')} : <Code>{d?.dyndns.currentAddress ?? '—'}</Code>
@@ -397,7 +402,9 @@ function DirectSection({
       </Stack>
 
       <Stack gap="xs">
-        <Title order={5}>{t('web:access.direct.firewall')}</Title>
+        <Title order={3} size="h5">
+          {t('web:access.direct.firewall')}
+        </Title>
         <Text size="xs" c="dimmed">
           {t('web:access.direct.firewallHint')}
         </Text>
@@ -454,7 +461,12 @@ export function AccessCard() {
     <Card withBorder radius="md" padding="md" data-testid="access-card">
       <Stack gap="md">
         <Group justify="space-between">
-          <Title order={4}>{t('web:access.title')}</Title>
+          <Group gap={6}>
+            <Title order={2} size="h4">
+              {t('web:access.title')}
+            </Title>
+            <HelpLink topic="access" />
+          </Group>
           <Badge variant="light" data-testid="access-request-via">
             {t('web:access.requestVia.label')}{' '}
             {tDynamic(i18n, `web:access.requestVia.${s.requestVia}`)}
@@ -494,7 +506,9 @@ export function AccessCard() {
         {mode === 'direct' && <DirectSection status={s} settings={settings.data.settings} />}
 
         <Stack gap="xs">
-          <Title order={5}>{t('web:access.test.title')}</Title>
+          <Title order={3} size="h5">
+            {t('web:access.test.title')}
+          </Title>
           <Text size="xs" c="dimmed">
             {t('web:access.test.hint')}
           </Text>

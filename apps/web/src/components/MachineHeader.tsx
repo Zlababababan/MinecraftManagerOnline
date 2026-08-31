@@ -1,5 +1,5 @@
 /** En-tête machine (dashboard + page machine) : statut, dernier heartbeat, CPU/RAM/disque. */
-import { Group, Progress, Stack, Text, ThemeIcon, Tooltip } from '@mantine/core';
+import { Group, Progress, Stack, Text, ThemeIcon, Title, Tooltip } from '@mantine/core';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { RouterAnchor } from './links.js';
 import { useT } from '../i18n/hooks.js';
@@ -65,9 +65,10 @@ export function MachineHeader({
               {machine.name}
             </RouterAnchor>
           ) : (
-            <Text fw={700} size="lg">
+            // `link={false}` = page de la machine : son nom est le titre de la page.
+            <Title order={1} fz="lg">
               {machine.name}
-            </Text>
+            </Title>
           )}
           <MachineStatusBadge machine={machine} />
         </Group>

@@ -58,7 +58,9 @@ export function ReleasesCard() {
   return (
     <Card withBorder radius="md" padding="md" data-testid="releases-card">
       <Stack gap="sm">
-        <Title order={4}>{t('web:releases.title')}</Title>
+        <Title order={2} size="h4">
+          {t('web:releases.title')}
+        </Title>
         <Text size="sm" c="dimmed">
           {t('web:releases.hint')}
         </Text>

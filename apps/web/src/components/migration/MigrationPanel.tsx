@@ -325,7 +325,9 @@ export function MigrationsCard({ server }: { server: ServerDto }) {
     <Card withBorder radius="md" padding="md" data-testid="migrations-card">
       <Stack gap="sm">
         <Group justify="space-between">
-          <Title order={5}>{t('web:migration.title')}</Title>
+          <Title order={2} size="h5">
+            {t('web:migration.title')}
+          </Title>
           {isAdmin && (
             <Button
               type="button"

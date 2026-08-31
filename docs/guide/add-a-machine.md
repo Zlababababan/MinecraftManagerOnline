@@ -41,3 +41,12 @@ Players on the same local network need nothing: LAN address + port, whatever the
 ## 6. Remove a machine
 
 Machine page → **Remove machine**: it disappears from the panel (servers and files stay intact on disk). On the machine itself: `install.ps1 -Uninstall` / `install.sh --uninstall` ([Installation § 2](installation.md#2-the-agents)).
+
+## 7. Backups
+
+Server page → **Backups** tab. Two halves:
+
+- **Archives**: create a backup now (works on a running server — the agent flushes the world with `save-all` first), download it, restore it in one click (a safety backup of the current state is taken by default), or delete it. Each archive shows its size, date and integrity hash.
+- **Policies**: scheduled backups executed **by the agent**, panel online or not. Pick the frequency and how many archives to keep (rotation never expires the most recent successful archive). "Only if running" skips a stopped server. Times follow the panel's schedule time zone, shown under the form.
+
+A new server gets a default policy (daily, keep 7). If a scheduled backup fails or is skipped, the panel records it and can notify you — see the notification categories in your account settings. The destination folder is set in Settings → General (per-server override on the policy).

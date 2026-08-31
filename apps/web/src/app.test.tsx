@@ -3,14 +3,15 @@
  * first-run → wizard ; sans session → login ; login → dashboard (machine, carte serveur, start).
  */
 import { createMemoryHistory } from '@tanstack/react-router';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { MachineDto, ServerDto, UserDto } from '@mmo/protocol/client';
+import type { AccessStatusDto, MachineDto, ServerDto, UserDto } from '@mmo/protocol/client';
 
 import { App, createQueryClient } from './app.js';
 import { i18n } from './i18n/index.js';
+import { useRealtimeStore } from './store/realtime.js';
 
 const admin: UserDto = {
   id: 'u1',
@@ -82,10 +83,24 @@ const server: ServerDto = {
   reachable: true,
 };
 
+const access: AccessStatusDto = {
+  mode: 'tailscale',
+  publicUrl: 'https://tour.tailnet.ts.net',
+  listen: { host: '127.0.0.1', port: 3100 },
+  https: { listening: false, port: null },
+  tailscaleServeCommand: null,
+  direct: null,
+  lastTest: { at: 1, ok: true, via: 'tailscale' },
+  requestVia: 'direct',
+};
+
 interface FakeApi {
   needsSetup: boolean;
   session: boolean;
   calls: string[];
+  machines: MachineDto[];
+  servers: ServerDto[];
+  access: AccessStatusDto | null;
 }
 
 function json(status: number, body: unknown): Response {
@@ -127,9 +142,13 @@ function installFetch(state: FakeApi): void {
         case 'GET /api/auth/me':
           return json(200, { user: admin });
         case 'GET /api/machines':
-          return json(200, { machines: [machine] });
+          return json(200, { machines: state.machines });
         case 'GET /api/servers':
-          return json(200, { servers: [server] });
+          return json(200, { servers: state.servers });
+        case 'GET /api/access':
+          return state.access === null
+            ? json(404, { code: 'E_NOT_FOUND', message: 'no access status' })
+            : json(200, { access: state.access });
         case 'GET /api/servers/s1':
           return json(200, { server });
         case 'GET /api/servers/s1/players':
@@ -179,13 +198,21 @@ function renderApp(path: string) {
 describe('App', () => {
   let state: FakeApi;
   beforeEach(async () => {
-    state = { needsSetup: false, session: false, calls: [] };
+    state = {
+      needsSetup: false,
+      session: false,
+      calls: [],
+      machines: [machine],
+      servers: [server],
+      access: null,
+    };
     installFetch(state);
     vi.stubGlobal('WebSocket', FakeWebSocket);
     await i18n.changeLanguage('fr');
   });
   afterEach(() => {
     vi.unstubAllGlobals();
+    useRealtimeStore.getState().reset();
   });
 
   it('first-run : toute page protégée redirige vers le wizard', async () => {
@@ -234,6 +261,77 @@ describe('App', () => {
       expect(state.calls).toContain('POST /api/servers/s1/start');
     });
     expect(await screen.findByText('Démarrage')).toBeInTheDocument();
+  });
+
+  it('premiers pas : panel vierge → quatre étapes non faites et bouton d’ajout', async () => {
+    state.session = true;
+    state.machines = [];
+    state.servers = [];
+    renderApp('/');
+    expect(await screen.findByTestId('onboarding')).toBeInTheDocument();
+    for (const step of ['machine', 'connected', 'directory', 'server']) {
+      expect(screen.getByTestId(`onboarding-step-${step}`)).toHaveAttribute('data-done', 'false');
+    }
+    expect(screen.getByTestId('onboarding-add-machine')).toBeInTheDocument();
+    // Pas de machine → pas de bouton « ouvrir la machine », et pas d'accès chargé → pas de ligne.
+    expect(screen.queryByTestId('onboarding-open-connected')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('onboarding-access')).not.toBeInTheDocument();
+  });
+
+  it('premiers pas : étapes partielles, bouton vers la machine, ligne d’accès distant', async () => {
+    state.session = true;
+    state.machines = [{ ...machine, watchedDirectories: [] }];
+    state.servers = [];
+    state.access = access;
+    renderApp('/');
+    expect(await screen.findByTestId('onboarding')).toBeInTheDocument();
+    expect(screen.getByTestId('onboarding-step-machine')).toHaveAttribute('data-done', 'true');
+    expect(screen.getByTestId('onboarding-step-connected')).toHaveAttribute('data-done', 'true');
+    expect(screen.getByTestId('onboarding-step-directory')).toHaveAttribute('data-done', 'false');
+    expect(screen.getByTestId('onboarding-step-server')).toHaveAttribute('data-done', 'false');
+    expect(screen.getByTestId('onboarding-open-directory')).toHaveAttribute('href', '/machines/m1');
+    const line = await screen.findByTestId('onboarding-access');
+    expect(line).toHaveAttribute('data-ok', 'true');
+    expect(screen.getByTestId('onboarding-access-settings')).toHaveAttribute('href', '/settings');
+  });
+
+  it('premiers pas : tout vert → la carte disparaît', async () => {
+    state.session = true;
+    state.machines = [
+      {
+        ...machine,
+        watchedDirectories: [{ id: 'd1', path: 'E:\\srv', enabled: true, lastScanAt: 1 }],
+      },
+    ];
+    renderApp('/');
+    expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
+    expect(await screen.findByTestId('server-card')).toBeInTheDocument();
+    expect(screen.queryByTestId('onboarding')).not.toBeInTheDocument();
+  });
+
+  it('accessibilité : lien d’évitement, h1 de page, région live qui annonce un événement', async () => {
+    state.session = true;
+    renderApp('/');
+    expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
+    expect(screen.getByTestId('skip-link')).toHaveAttribute('href', '#main');
+    expect(screen.getByRole('heading', { level: 1, name: 'Tableau de bord' })).toBeInTheDocument();
+    // La région existe et annonce déjà la transition de connexion du montage.
+    const announcer = screen.getByTestId('live-announcer');
+    act(() => {
+      useRealtimeStore.getState().pushEvent({
+        id: 1,
+        ts: 1,
+        type: 'agent.offline',
+        severity: 'warning',
+        machineId: 'm1',
+        serverId: null,
+        userId: null,
+        payload: {},
+      });
+    });
+    await waitFor(() => {
+      expect(announcer).toHaveTextContent('Tour — Agent hors ligne');
+    });
   });
 
   it('bascule de langue : l’interface passe en anglais', async () => {

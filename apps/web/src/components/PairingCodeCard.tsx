@@ -13,6 +13,7 @@ import {
 } from '@mantine/core';
 import { IconCheck, IconCopy } from '@tabler/icons-react';
 import { useT } from '../i18n/hooks.js';
+import { HelpLink } from './HelpLink.js';
 
 import type { PairingCodeDto } from '@mmo/protocol/client';
 
@@ -52,7 +53,12 @@ export function PairingCodeCard({ pairing }: { pairing: PairingCodeDto }) {
   const { t, i18n } = useT();
   return (
     <Stack gap="md" data-testid="pairing-card">
-      <Title order={4}>{t('web:machine.pairing.title')}</Title>
+      <Group gap={6}>
+        <Title order={2} size="h4">
+          {t('web:machine.pairing.title')}
+        </Title>
+        <HelpLink topic="pairing" />
+      </Group>
       <Alert color="yellow" variant="light">
         {t('web:machine.pairing.once')}
       </Alert>

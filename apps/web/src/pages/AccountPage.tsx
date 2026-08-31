@@ -44,10 +44,14 @@ export function AccountPage({ user }: { user: UserDto }) {
 
   return (
     <Stack gap="lg" data-testid="account-page">
-      <Title order={2}>{t('web:account.title')}</Title>
+      <Title order={1} size="h2">
+        {t('web:account.title')}
+      </Title>
       <Card withBorder radius="md" padding="md">
         <Stack gap="sm">
-          <Title order={4}>{t('web:account.profile')}</Title>
+          <Title order={2} size="h4">
+            {t('web:account.profile')}
+          </Title>
           <Text size="sm">
             {user.username} · {t(`web:role.${user.role}`)}
           </Text>
@@ -112,7 +116,9 @@ export function AccountPage({ user }: { user: UserDto }) {
           })}
         >
           <Stack gap="sm" maw={420}>
-            <Title order={4}>{t('web:account.password')}</Title>
+            <Title order={2} size="h4">
+              {t('web:account.password')}
+            </Title>
             <PasswordInput
               label={t('web:account.currentPassword')}
               autoComplete="current-password"

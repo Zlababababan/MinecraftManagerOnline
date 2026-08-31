@@ -28,6 +28,7 @@ import { useActiveTasks } from '../../api/phase8.js';
 import { useInstallJava, useJavaRuntimes, useRemoveJava } from '../../api/phase9.js';
 import { useMe } from '../../api/queries.js';
 import { useT } from '../../i18n/hooks.js';
+import { HelpLink } from '../HelpLink.js';
 import { describeError } from '../../lib/errors.js';
 import { hasRole } from '../../lib/format.js';
 import { TaskProgressRow } from '../tasks/TaskProgress.js';
@@ -65,7 +66,10 @@ export function JavaCard({ machine }: { machine: MachineDto }) {
     <Card withBorder radius="md" padding="md" data-testid="java-card">
       <Stack gap="sm">
         <Group justify="space-between">
-          <Title order={4}>{t('web:java.title')}</Title>
+          <Title order={2} size="h4">
+            {t('web:java.title')}
+          </Title>
+          <HelpLink topic="java" />
         </Group>
         <Text size="sm" c="dimmed">
           {t('web:java.hint')}

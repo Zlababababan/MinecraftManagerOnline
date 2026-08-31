@@ -230,7 +230,9 @@ export function MachinePage({ machineId }: { machineId: string }) {
 
       <Card withBorder radius="md" padding="md">
         <Stack gap="sm">
-          <Title order={4}>{t('web:metrics.title')}</Title>
+          <Title order={2} size="h4">
+            {t('web:metrics.title')}
+          </Title>
           <MachineMetricsPanel machine={m} />
         </Stack>
       </Card>
@@ -238,7 +240,9 @@ export function MachinePage({ machineId }: { machineId: string }) {
       <Card withBorder radius="md" padding="md">
         <Stack gap="sm">
           <Group justify="space-between">
-            <Title order={4}>{t('web:machine.directories')}</Title>
+            <Title order={2} size="h4">
+              {t('web:machine.directories')}
+            </Title>
             {canOperate && (
               <Button
                 size="xs"
@@ -342,7 +346,9 @@ export function MachinePage({ machineId }: { machineId: string }) {
       <Card withBorder radius="md" padding="md">
         <Stack gap="sm">
           <Group justify="space-between">
-            <Title order={4}>{t('web:machine.servers')}</Title>
+            <Title order={2} size="h4">
+              {t('web:machine.servers')}
+            </Title>
             {isAdmin && (
               <Button
                 size="xs"

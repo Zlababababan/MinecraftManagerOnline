@@ -25,6 +25,7 @@ export const webEn = {
     settings: 'Settings',
     menu: 'Menu',
     logout: 'Sign out',
+    skipToContent: 'Skip to content',
   },
   theme: { label: 'Theme', light: 'Light', dark: 'Dark', auto: 'System' },
   lang: { label: 'Language', fr: 'Français', en: 'English' },
@@ -62,6 +63,7 @@ export const webEn = {
     reload: 'Reload the page',
     scrollLeft: 'Scroll left',
     scrollRight: 'Scroll right',
+    helpGuide: 'Open the guide',
     staleVersion:
       'The panel was updated while this page was open. Reload to switch to the new version.',
   },
@@ -123,6 +125,18 @@ export const webEn = {
     unreachable: 'Agent offline — servers cannot be controlled.',
     recentEvents: 'Recent events',
     noEvents: 'No event yet.',
+    onboarding: {
+      title: 'First steps',
+      intro: 'The panel is ready once these four steps are green.',
+      machine: 'Add a machine',
+      connected: 'Pair its agent',
+      directory: 'Watch a servers directory',
+      server: 'Detect a first server',
+      open: 'Open the machine',
+      access: 'Remote access',
+      notTested: 'never tested',
+      configure: 'Configure',
+    },
   },
   machine: {
     title: 'Machines',
@@ -297,6 +311,9 @@ export const webEn = {
       sourceStatic: 'generic list',
       sourceStaticHint:
         'The forms shown come from a generic list built into the panel. Start the server and the panel will ask it for its real commands, mods included.',
+      sourceUnavailable: 'generic list',
+      sourceUnavailableHint:
+        'The server did not answer the sweep (older agent, or RCON not ready yet): the preview falls back to the panel’s generic list. The panel will ask again on its own.',
       args: {
         player: 'Expects a player name.',
         targets: 'Expects a player or a selector (@a, @p, @e).',
@@ -317,6 +334,7 @@ export const webEn = {
     },
     macros: {
       add: 'New macro',
+      loadFailed: 'Macros unavailable right now.',
       name: 'Name',
       commands: 'Commands',
       commandsHint:

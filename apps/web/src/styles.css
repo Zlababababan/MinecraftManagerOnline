@@ -40,3 +40,33 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* Lot 7 (accessibilité) : masqué visuellement mais exposé aux lecteurs d'écran. */
+.mmo-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Lien d'évitement : invisible jusqu'au focus clavier, puis affiché par-dessus l'en-tête. */
+.mmo-skip-link {
+  position: absolute;
+  top: -100px;
+  left: 8px;
+  z-index: 1000;
+  padding: 8px 14px;
+  background: var(--mantine-primary-color-filled);
+  color: var(--mantine-color-white);
+  border-radius: var(--mantine-radius-sm);
+  text-decoration: none;
+}
+
+.mmo-skip-link:focus {
+  top: 8px;
+}

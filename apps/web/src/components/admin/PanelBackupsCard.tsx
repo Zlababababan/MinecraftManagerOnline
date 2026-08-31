@@ -22,7 +22,9 @@ export function PanelBackupsCard() {
     <Card withBorder radius="md" padding="md" data-testid="panel-backups-card">
       <Stack gap="sm">
         <Group justify="space-between" align="flex-start">
-          <Title order={4}>{t('web:panelBackups.title')}</Title>
+          <Title order={2} size="h4">
+            {t('web:panelBackups.title')}
+          </Title>
           <Button
             type="button"
             size="xs"

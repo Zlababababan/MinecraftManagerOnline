@@ -8,7 +8,9 @@ export function NotFoundPage() {
   return (
     <Center mih="60vh">
       <Stack align="center" gap="xs">
-        <Title order={2}>404</Title>
+        <Title order={1} size="h2">
+          404
+        </Title>
         <Text c="dimmed">{t('web:common.notFound')}</Text>
         <RouterAnchor to="/">{t('web:nav.dashboard')}</RouterAnchor>
       </Stack>

@@ -49,7 +49,9 @@ export function LoginPage() {
           <Stack gap="md">
             <Group justify="space-between" align="flex-start">
               <div>
-                <Title order={2}>{t('web:auth.title')}</Title>
+                <Title order={1} size="h2">
+                  {t('web:auth.title')}
+                </Title>
                 <Text c="dimmed" size="sm">
                   {t('web:app.name')}
                 </Text>
