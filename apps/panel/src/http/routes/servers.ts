@@ -483,13 +483,24 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
       const row = ctx.servers.require(request.params.id);
       const macro = ctx.macros.get(request.params.macroId);
       // Le garde-fou est ICI, pas dans le navigateur : la macro a pu gagner un `stop` depuis un
-      // autre onglet, et le `destructive` affiché venir d'une liste en cache.
-      if (macro.destructive && request.body.confirmDestructive !== true) {
+      // autre onglet, et le `destructive` affiché venir d'une liste en cache. Et la confirmation
+      // approuve une VERSION (`approvedAt` = le `updatedAt` montré dans le modal) : un booléen
+      // seul validerait une séquence modifiée entre l'ouverture du modal et le clic.
+      const approved =
+        request.body.confirmDestructive === true && request.body.approvedAt === macro.updatedAt;
+      if (macro.destructive && !approved) {
         throw new AppError('E_CONFLICT', 'this macro needs an explicit confirmation', {
-          details: { reason: 'confirm_required', commands: macro.commands, name: macro.name },
+          details: {
+            reason: 'confirm_required',
+            commands: macro.commands,
+            name: macro.name,
+            updatedAt: macro.updatedAt,
+          },
         });
       }
-      return ctx.macros.run(macro.id, row.id, (_serverId, command) =>
+      // `run` exécute le DTO vérifié ci-dessus, pas une relecture : rien ne peut changer entre
+      // le garde-fou et l'envoi.
+      return ctx.macros.run(macro, row.id, (_serverId, command) =>
         sendCommand(request, row, command, {
           action: 'macro.run',
           details: { macroId: macro.id, macroName: macro.name },

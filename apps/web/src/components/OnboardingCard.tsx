@@ -71,7 +71,7 @@ export function OnboardingCard() {
                   </Text>
                 )}
               </ThemeIcon>
-              <Text size="sm" c={step.done ? 'dimmed' : undefined}>
+              <Text size="sm" {...(step.done ? { c: 'dimmed' } : {})}>
                 {tDynamic(i18n, `web:dashboard.onboarding.${step.key}`)}
               </Text>
               {!step.done &&

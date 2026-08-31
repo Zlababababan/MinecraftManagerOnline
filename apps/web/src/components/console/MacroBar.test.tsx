@@ -106,7 +106,10 @@ describe('barre de macros', () => {
       expect(calls.some((c) => c.url.includes('/macros/m2/run'))).toBe(true);
     });
     // La confirmation voyage jusqu'au panel : c'est LUI qui tranche, pas le DTO en cache.
-    expect(calls.find((c) => c.url.includes('/run'))?.body).toContain('confirmDestructive');
+    // La VALEUR est verrouillée : `toContain('confirmDestructive')` passerait aussi avec `false`.
+    expect(calls.find((c) => c.url.includes('/run'))?.body).toContain('"confirmDestructive":true');
+    // Et elle approuve la VERSION affichée dans le modal, pas un booléen nu.
+    expect(calls.find((c) => c.url.includes('/run'))?.body).toContain('"approvedAt":1');
   });
 
   it('ouvre la confirmation quand le panel la réclame, avec la séquence qu’il renvoie', async () => {
@@ -122,6 +125,7 @@ describe('barre de macros', () => {
           reason: 'confirm_required',
           name: 'Annonce',
           commands: ['say bonjour', 'stop'],
+          updatedAt: 2,
         },
       },
       409,
@@ -132,6 +136,36 @@ describe('barre de macros', () => {
     await screen.findByTestId('macro-confirm-run');
     // La séquence affichée est celle du serveur, pas celle qu'on croyait connaître.
     expect(screen.getByText('stop')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('macro-confirm-run'));
+    await waitFor(() => {
+      expect(calls.filter((c) => c.url.includes('/run')).length).toBe(2);
+    });
+    // La ré-approbation porte la version FRAÎCHE renvoyée par le refus, pas celle du cache.
+    expect(calls.filter((c) => c.url.includes('/run'))[1]?.body).toContain('"approvedAt":2');
+  });
+
+  it('une liste en échec le dit, au lieu de se faire passer pour vide', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ code: 'E_INTERNAL', message: 'internal error', retryable: false }),
+            { status: 500, headers: { 'content-type': 'application/json' } },
+          ),
+        ),
+      ),
+    );
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <MantineProvider>
+        <QueryClientProvider client={client}>
+          <MacroBar serverId="srv_1" canSend />
+        </QueryClientProvider>
+      </MantineProvider>,
+    );
+    expect(await screen.findByTestId('macros-error')).toBeInTheDocument();
   });
 
   it('annuler la confirmation n’envoie rien', async () => {

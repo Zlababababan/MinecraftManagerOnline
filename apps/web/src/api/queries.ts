@@ -47,7 +47,7 @@ import type {
 
 import type { CommandSpec } from '@mmo/shared';
 
-import { api } from './client.js';
+import { api, ApiRequestError } from './client.js';
 
 export interface EventsFilter {
   serverId?: string;
@@ -205,6 +205,9 @@ export const serverCommandsQuery = (id: string) =>
     // Un serveur arrêté ou un agent trop ancien répondent « indisponible » : insister ne sert à
     // rien, et l'aperçu se rabat sur la table locale sans rien afficher d'inquiétant.
     retry: false,
+    // MAIS un « indisponible » obtenu pendant le démarrage (RCON pas encore prêt) ne doit pas
+    // rester figé cinq minutes : on redemande tranquillement tant que le serveur n'a pas répondu.
+    refetchInterval: (query) => (query.state.data?.source === 'unavailable' ? 20_000 : false),
     refetchOnWindowFocus: false,
   });
 
@@ -560,15 +563,24 @@ export function useRunMacro(serverId: string) {
     mutationFn: ({
       macroId,
       confirmDestructive,
+      approvedAt,
     }: {
       macroId: string;
       confirmDestructive?: boolean;
+      /** `updatedAt` de la version montrée dans le modal : la confirmation approuve UNE séquence. */
+      approvedAt?: number;
     }) =>
       api.post<MacroRunResult>(`/api/servers/${serverId}/macros/${macroId}/run`, {
         ...(confirmDestructive === undefined ? {} : { confirmDestructive }),
+        ...(approvedAt === undefined ? {} : { approvedAt }),
       }),
     // Une macro envoie de vraies commandes : elles doivent apparaître dans l'historique.
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.commandHistory(serverId) }),
+    // Un refus « confirmation requise » prouve que la liste locale est en retard : on la périme
+    // tout de suite, sinon le prochain clic repartirait de la même version obsolète.
+    onError: (error) => {
+      if (error instanceof ApiRequestError && error.code === 'E_CONFLICT') invalidateMacros(qc);
+    },
   });
 }
 

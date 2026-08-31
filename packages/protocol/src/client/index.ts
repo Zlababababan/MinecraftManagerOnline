@@ -308,8 +308,13 @@ export const macroDtoSchema = z.object({
  * Lancement d'une macro. `confirmDestructive` est exigé par le panel pour toute macro qui arrête,
  * bannit ou détruit : la confirmation ne peut pas reposer sur le `destructive` d'un DTO en cache,
  * qui peut dater d'avant la modification de la macro depuis un autre serveur ou un autre onglet.
+ * `approvedAt` lie la confirmation à la VERSION approuvée (le `updatedAt` que le modal a montré) :
+ * un booléen seul validerait une séquence modifiée entre l'ouverture du modal et le clic.
  */
-export const macroRunSchema = z.object({ confirmDestructive: z.boolean().optional() });
+export const macroRunSchema = z.object({
+  confirmDestructive: z.boolean().optional(),
+  approvedAt: epochMsSchema.optional(),
+});
 
 export const macroRunResultSchema = z.object({
   /** Commandes réellement envoyées, dans l'ordre, avec leur issue. */
@@ -323,6 +328,8 @@ export const macroRunResultSchema = z.object({
       message: z.string().optional(),
     }),
   ),
+  /** Longueur RÉELLE de la séquence exécutée — la liste du client peut être en retard. */
+  total: z.int().optional(),
 });
 
 export type MacroInput = z.infer<typeof macroInputSchema>;

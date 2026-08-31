@@ -58,18 +58,23 @@ export function MacroBar({ serverId, canSend }: { serverId: string; canSend: boo
   const remove = useDeleteMacro();
   const [editor, setEditor] = useState<EditorState | undefined>();
   const [confirming, setConfirming] = useState<
-    { id: string; name: string; commands: string[] } | undefined
+    { id: string; name: string; commands: string[]; updatedAt: number } | undefined
   >();
 
   if (!canSend) return null;
 
   const execute = (
-    macro: { id: string; name: string; commands: string[] },
+    macro: { id: string; name: string; commands: string[]; updatedAt: number },
     confirmed = false,
   ): void => {
     setConfirming(undefined);
     run.mutate(
-      { macroId: macro.id, ...(confirmed ? { confirmDestructive: true } : {}) },
+      {
+        macroId: macro.id,
+        // La confirmation approuve UNE version : le `updatedAt` montré dans le modal part avec
+        // elle, et le panel refusera si la macro a changé entre l'ouverture et le clic.
+        ...(confirmed ? { confirmDestructive: true, approvedAt: macro.updatedAt } : {}),
+      },
       {
         onSuccess: (data) => {
           const failed = data.results.find((r) => !r.ok);
@@ -81,7 +86,9 @@ export function MacroBar({ serverId, canSend }: { serverId: string; canSend: boo
               ? t('web:server.macros.partial', {
                   name: macro.name,
                   done: data.results.filter((r) => r.ok).length,
-                  total: macro.commands.length,
+                  // Le total vient de la RÉPONSE : la liste locale peut être en retard, et
+                  // « 3/3 passées, échec sur… » serait contradictoire.
+                  total: data.total ?? macro.commands.length,
                   command: failed.command,
                   reason: describeError(
                     i18n,
@@ -98,18 +105,24 @@ export function MacroBar({ serverId, canSend }: { serverId: string; canSend: boo
           });
         },
         onError: (error) => {
-          // Le panel refuse une macro destructrice sans confirmation explicite : c'est le cas
-          // normal d'une liste locale devenue obsolète. On ouvre la confirmation avec la
-          // séquence QU'IL vient de renvoyer, pas avec celle qu'on croyait connaître.
+          // Le panel refuse une macro destructrice sans confirmation valable : liste locale
+          // obsolète, ou macro modifiée pendant que le modal était ouvert. On rouvre la
+          // confirmation avec la séquence et la version QU'IL vient de renvoyer.
           const details =
             error instanceof ApiRequestError && error.code === 'E_CONFLICT'
-              ? (error.details as { reason?: string; commands?: string[]; name?: string })
+              ? (error.details as {
+                  reason?: string;
+                  commands?: string[];
+                  name?: string;
+                  updatedAt?: number;
+                })
               : undefined;
           if (details?.reason === 'confirm_required') {
             setConfirming({
               id: macro.id,
               name: details.name ?? macro.name,
               commands: details.commands ?? macro.commands,
+              updatedAt: details.updatedAt ?? macro.updatedAt,
             });
             return;
           }
@@ -178,6 +191,12 @@ export function MacroBar({ serverId, canSend }: { serverId: string; canSend: boo
             </ActionIcon>
           </Group>
         ))}
+        {macros.error !== null && (
+          // Sans cette ligne, une liste en échec se rend comme « aucune macro » : silence trompeur.
+          <Text size="xs" c="red" data-testid="macros-error">
+            {t('web:server.macros.loadFailed')}
+          </Text>
+        )}
         <Button
           size="compact-xs"
           variant="subtle"

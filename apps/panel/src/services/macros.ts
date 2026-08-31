@@ -12,7 +12,7 @@
  */
 import { asc, eq, isNull, or } from 'drizzle-orm';
 
-import { ulid } from '@mmo/protocol';
+import { isProtocolError, ulid } from '@mmo/protocol';
 import { MACRO_MAX_COMMANDS } from '@mmo/protocol/client';
 
 import type { MmoDatabase } from '../db/client.js';
@@ -51,11 +51,14 @@ export interface MacroRunResult {
     error?: string;
     message?: string;
   }[];
+  /** Longueur réelle de la séquence exécutée (la liste du client peut être en retard). */
+  total: number;
 }
 
 export interface MacrosDeps {
   db: MmoDatabase;
   now: () => number;
+  logger: { error: (obj: object, msg: string) => void };
 }
 
 /**
@@ -183,6 +186,11 @@ export class MacrosService {
     if (input.serverId !== null && input.serverId !== undefined) {
       requireServer(this.deps.db, input.serverId);
     }
+    // Le nom est trimé à l'écriture : fait uniquement d'espaces, il deviendrait un bouton sans
+    // libellé dans la barre.
+    if (input.name.trim() === '') {
+      throw new AppError('E_VALIDATION', 'a macro needs a name', { details: { field: 'name' } });
+    }
     const commands = splitCommands(input.commands);
     if (commands.length === 0) {
       throw new AppError('E_VALIDATION', 'a macro needs at least one command', {
@@ -200,14 +208,17 @@ export class MacrosService {
   /**
    * Exécute la macro sur un serveur, dans l'ordre, en s'arrêtant au premier échec.
    *
+   * Reçoit le DTO — pas un id : c'est la séquence que la route vient de vérifier (et que
+   * l'utilisateur a approuvée) qui s'exécute, pas une relecture qui pourrait avoir changé
+   * entre le garde-fou et l'exécution.
+   *
    * Ne lève pas sur l'échec d'une commande : l'appelant a besoin de savoir **lesquelles** sont
    * passées. Une erreur globale ne dirait pas si le serveur a été arrêté avant de casser.
    */
-  async run(id: string, serverId: string, send: SendCommand): Promise<MacroRunResult> {
-    const macro = this.get(id);
+  async run(macro: MacroDto, serverId: string, send: SendCommand): Promise<MacroRunResult> {
     if (macro.serverId !== null && macro.serverId !== serverId) {
       throw new AppError('E_VALIDATION', 'this macro belongs to another server', {
-        details: { macroId: id, serverId },
+        details: { macroId: macro.id, serverId },
       });
     }
     const results: MacroRunResult['results'] = [];
@@ -221,17 +232,32 @@ export class MacrosService {
         // ligne (`E_AGENT_OFFLINE`, une `AppError`) ressortait en « erreur interne », ce qui est
         // à la fois faux et inexploitable pour qui lit le résultat.
         const app = AppError.from(error);
+        // Même politique que le gestionnaire HTTP (`http/errors.ts`) : une exception INATTENDUE
+        // du panel (SQLite, TypeError…) ne sort pas en clair — cette réponse part en 200 et ne
+        // passe jamais par lui. Le message brut va au journal ; une E_INTERNAL écrite par
+        // l'agent (ProtocolError) reste du vocabulaire produit et traverse.
+        const unexpected = app.code === 'E_INTERNAL' && !isProtocolError(error);
+        if (unexpected) {
+          this.deps.logger.error(
+            { macroId: macro.id, serverId, command, err: error },
+            'macro command failed unexpectedly',
+          );
+        }
         results.push({
           command,
           ok: false,
           error: app.code,
-          ...(app.message === '' ? {} : { message: app.message }),
+          ...(unexpected
+            ? { message: 'internal error' }
+            : app.message === ''
+              ? {}
+              : { message: app.message }),
         });
         // Les commandes suivantes ne sont même pas tentées : la séquence a un sens, pas les
         // commandes prises isolément.
         break;
       }
     }
-    return { results };
+    return { results, total: macro.commands.length };
   }
 }

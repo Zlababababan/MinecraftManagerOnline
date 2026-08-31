@@ -268,11 +268,13 @@ export function ConsolePanel({
   );
 
   const signatureView = signature(input, completionContext);
+  // « unavailable » = le serveur TOURNE mais n'a pas répondu au balayage (agent N-1, RCON pas
+  // prêt) : la pastille ne doit pas conseiller de « démarrer le serveur » — il l'est déjà.
   const catalogSource =
     commandsQuery.data?.source === 'discovered'
       ? 'discovered'
-      : commandsQuery.isFetching
-        ? 'static'
+      : commandsQuery.data?.source === 'unavailable'
+        ? 'unavailable'
         : 'static';
 
   const submit = (): void => {

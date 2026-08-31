@@ -49,10 +49,30 @@ export function CommandSignature({
         )}
         {source !== 'discovered' && (
           // Sans cette mention, un utilisateur sur modpack croirait l'aperçu exhaustif et
-          // conclurait qu'une commande de mod n'existe pas.
-          <Tooltip label={t('web:server.console.sourceStaticHint')} multiline w={260}>
-            <Badge size="xs" variant="light" color="gray" data-testid="console-signature-source">
-              {t('web:server.console.sourceStatic')}
+          // conclurait qu'une commande de mod n'existe pas. Deux explications distinctes :
+          // « static » = serveur arrêté (le démarrer changera les choses) ; « unavailable » =
+          // il tourne mais n'a pas répondu — lui conseiller de le démarrer serait mentir.
+          <Tooltip
+            label={t(
+              source === 'unavailable'
+                ? 'web:server.console.sourceUnavailableHint'
+                : 'web:server.console.sourceStaticHint',
+            )}
+            multiline
+            w={260}
+          >
+            <Badge
+              size="xs"
+              variant="light"
+              color="gray"
+              data-testid="console-signature-source"
+              data-source={source}
+            >
+              {t(
+                source === 'unavailable'
+                  ? 'web:server.console.sourceUnavailable'
+                  : 'web:server.console.sourceStatic',
+              )}
             </Badge>
           </Tooltip>
         )}

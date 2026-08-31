@@ -202,7 +202,7 @@ export function createContext(options: ContextOptions): AppContext {
    * un modpack mis à jour n'expose plus les mêmes commandes.
    */
   const commandCatalog = new CommandCatalogService({ registry, servers, now, logger });
-  const macros = new MacrosService({ db, now });
+  const macros = new MacrosService({ db, now, logger });
   events.subscribe((event) => {
     if (event.type === 'server.stateChanged' && event.serverId !== null) {
       commandCatalog.invalidate(event.serverId);

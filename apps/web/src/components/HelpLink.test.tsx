@@ -29,7 +29,7 @@ describe('HELP_TOPICS', () => {
   it('chaque entrée pointe vers un fichier existant et une ancre existante', () => {
     for (const [topic, links] of Object.entries(HELP_TOPICS)) {
       for (const [locale, link] of Object.entries(links)) {
-        const [file, anchor] = link.split('#');
+        const [file = link, anchor] = link.split('#');
         const markdown = readFileSync(path.join(GUIDE_DIR, file), 'utf8');
         if (anchor !== undefined) {
           const slugs = markdown

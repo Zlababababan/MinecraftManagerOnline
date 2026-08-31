@@ -99,6 +99,10 @@ export class CommandCatalogService {
       });
       if (!res.available) return UNAVAILABLE(capturedAt);
       const parsed = parseHelpOutput(res.lines.join('\n'));
+      // « Disponible » mais rien d'exploitable (réponse vide, help moddé non parsable) : pour
+      // l'aperçu c'est équivalent à indisponible. Dire « découvert » avec zéro commande
+      // masquerait la pastille « liste générique » alors que la complétion s'y rabat justement.
+      if (name === undefined && parsed.specs.length === 0) return UNAVAILABLE(capturedAt);
       const catalog: CommandCatalog = {
         source: 'discovered',
         commands: parsed.specs,

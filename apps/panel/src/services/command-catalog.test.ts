@@ -94,8 +94,16 @@ describe('catalogue des commandes', () => {
     } as unknown as Partial<CommandCatalogDeps>);
     await expect(offline.svc.get('srv_1')).resolves.toMatchObject({ source: 'unavailable' });
 
+    // « Disponible » mais rien d'exploitable (réponse vide, help moddé non parsable) :
+    // équivalent à indisponible — un catalogue « découvert » de zéro commande masquerait la
+    // pastille « liste générique » alors que la complétion s'y rabat justement.
+    const emptySweep = service({}, () => []);
+    await expect(emptySweep.svc.get('srv_1')).resolves.toMatchObject({
+      source: 'unavailable',
+      commands: [],
+    });
+
     // Serveur arrêté ou RCON absent : l'agent répond `available: false`.
-    const noRcon = service({}, () => []);
     const withFalse = new CommandCatalogService({
       registry: {
         require: () => ({
@@ -109,7 +117,6 @@ describe('catalogue des commandes', () => {
       logger: { debug: () => undefined },
     } as unknown as CommandCatalogDeps);
     await expect(withFalse.get('srv_1')).resolves.toMatchObject({ source: 'unavailable' });
-    expect(noRcon.svc).toBeDefined();
   });
 
   it('un serveur inconnu ne fait pas d’aller-retour', async () => {
@@ -132,10 +139,11 @@ describe('catalogue des commandes', () => {
   });
 
   it('ne reçoit même pas de quoi écrire dans l’historique de commandes', () => {
-    // Garde structurelle : si un jour quelqu'un ajoute `db` aux dépendances, c'est le moment de
-    // se demander pourquoi — `help` ne doit jamais remonter dans le rappel « flèche haut ».
-    const deps: (keyof CommandCatalogDeps)[] = ['registry', 'servers', 'now', 'logger', 'ttlMs'];
-    expect(deps).not.toContain('db');
-    expect(deps).not.toContain('audit');
+    // Garde structurelle au niveau des TYPES : ajouter `db` ou `audit` aux dépendances fait
+    // échouer la COMPILATION de ce test — l'ancienne liste écrite à la main ne surveillait
+    // qu'elle-même. `help` ne doit jamais remonter dans le rappel « flèche haut ».
+    type Forbidden = Extract<keyof CommandCatalogDeps, 'db' | 'audit'>;
+    const guard: [Forbidden] extends [never] ? true : never = true;
+    expect(guard).toBe(true);
   });
 });
