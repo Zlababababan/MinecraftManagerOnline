@@ -30,7 +30,10 @@ test('wizard first-run, appairage et scan', async ({ page, request }) => {
 
   // 2. Dashboard vide, puis « Ajouter une machine » → code d'appairage + one-liners.
   await expect(page.getByTestId('dashboard')).toBeVisible();
-  await expect(page.getByTestId('no-machines')).toBeVisible();
+  // Depuis le lot 7, le tableau de bord vide affiche la carte de premiers pas (et non plus une
+  // alerte « aucune machine ») : ses étapes se cochent seules, la première ne l'est pas encore.
+  await expect(page.getByTestId('onboarding')).toBeVisible();
+  await expect(page.getByTestId('onboarding-step-machine')).toHaveAttribute('data-done', 'false');
   await page.getByTestId('dashboard-add-machine').click();
   await expect(page).toHaveURL(/\/machines\?add=true$/);
   await page.getByTestId('machine-name').fill('Tour');
