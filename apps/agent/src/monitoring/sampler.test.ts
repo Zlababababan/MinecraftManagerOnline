@@ -55,6 +55,75 @@ describe('échantillonneurs CPU/RSS (spike n°2)', () => {
     sampler.close();
   });
 
+  it('PlatformSampler : le repli ticks est temporaire, le primaire est retenté après le backoff', async () => {
+    let fail = true;
+    let closed = false;
+    const primary = {
+      sample: (pids: number[]) => {
+        if (fail) return Promise.reject(new Error('metrics sidecar start timeout'));
+        const processes = new Map(pids.map((pid) => [pid, { cpuPct: 12, rssMb: 34 }]));
+        return Promise.resolve({
+          ts: Date.now(),
+          cpuSource: 'cycles' as const,
+          machineCpuPct: 5,
+          processes,
+        });
+      },
+      close: () => {
+        closed = true;
+      },
+    };
+    const sampler = new PlatformSampler(logger, 'win32', { primary, retryDelaysMs: [40] });
+
+    const degraded = await sampler.sample([42]);
+    expect(degraded.cpuSource).toBe('ticks');
+    expect(degraded.processes.get(42)).toEqual({ cpuPct: undefined, rssMb: undefined });
+    expect(closed).toBe(false); // le primaire n'est pas jeté : la panne peut être passagère
+
+    // Pendant le backoff, on ne retente pas (le primaire échouerait encore).
+    fail = false;
+    expect((await sampler.sample([42])).cpuSource).toBe('ticks');
+
+    await sleep(60);
+    const recovered = await sampler.sample([42]);
+    expect(recovered.cpuSource).toBe('cycles');
+    expect(recovered.processes.get(42)).toEqual({ cpuPct: 12, rssMb: 34 });
+    sampler.close();
+  });
+
+  it('PlatformSampler : PowerShell introuvable = panne définitive, le primaire est fermé', async () => {
+    let closed = false;
+    const primary = {
+      sample: () => Promise.reject(new Error('powershell unavailable: spawn ENOENT')),
+      close: () => {
+        closed = true;
+      },
+    };
+    const sampler = new PlatformSampler(logger, 'win32', { primary, retryDelaysMs: [0] });
+    expect((await sampler.sample([42])).cpuSource).toBe('ticks');
+    expect(closed).toBe(true);
+    sampler.close();
+  });
+
+  // Le sidecar lui-même, exercé jusque sur les runners CI (contrairement au « burner » ci-dessous) :
+  // c'est sa poignée de main qui, trop lente, faisait disparaître le RSS des métriques Windows.
+  it.runIf(process.platform === 'win32')(
+    'WindowsCyclesSampler : démarre et rend le RSS du processus courant',
+    async () => {
+      const sampler = new WindowsCyclesSampler({ logger });
+      try {
+        const started = Date.now();
+        const s = await sampler.sample([process.pid]);
+        logger.info('sidecar handshake + premier relevé', { ms: Date.now() - started });
+        expect(['cycles', 'ticks']).toContain(s.cpuSource);
+        expect(s.processes.get(process.pid)?.rssMb ?? 0).toBeGreaterThan(0);
+      } finally {
+        sampler.close();
+      }
+    },
+    60_000,
+  );
+
   it.runIf(process.platform === 'linux')(
     'ProcSampler : le processus courant a un RSS',
     async () => {

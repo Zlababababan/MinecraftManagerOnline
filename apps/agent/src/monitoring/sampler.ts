@@ -243,10 +243,19 @@ $mode = 'cycles'
 try {
   Add-Type -Namespace Mmo -Name Native -MemberDefinition '[DllImport("kernel32.dll")] public static extern bool QueryProcessCycleTime(IntPtr hProcess, out ulong cycles);' -ErrorAction Stop
 } catch { $mode = 'ticks' }
-$cpu = Get-CimInstance Win32_Processor | Select-Object -First 1
-$mhz = [int]$cpu.MaxClockSpeed
+# Fréquence et cœurs par le registre et l'environnement, JAMAIS par CIM/WMI : une requête CIM peut
+# rester pendante plusieurs dizaines de secondes sur une machine chargée (déjà vu sur process-info,
+# qui a fini par se doter d'un disjoncteur). Ici elle bloquait la poignée de main du sidecar, donc
+# son démarrage, et un dépassement privait l'agent de RSS jusqu'à son redémarrage. La valeur ~MHz du
+# registre est la fréquence relevée au boot là où CIM donnait la fréquence nominale : le CPU% par
+# cycles reste l'estimation qu'il était. (Pas d'accent grave dans ce script : il est porté par un
+# template literal.)
+$mhz = 0
+try {
+  $mhz = [int](Get-ItemProperty -Path 'HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0' -Name '~MHz' -ErrorAction Stop).'~MHz'
+} catch { $mhz = 0 }
 if ($mhz -le 0) { $mhz = 1 }
-$cores = [int](Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+$cores = [int]$env:NUMBER_OF_PROCESSORS
 if ($cores -le 0) { $cores = 1 }
 $utilityCounter = $null
 try {
@@ -366,8 +375,15 @@ export class WindowsCyclesSampler implements ProcessSampler {
     if (this.ready !== undefined && this.child?.exitCode === null) {
       return this.ready;
     }
-    this.ready = this.start();
-    return this.ready;
+    const started = this.start();
+    this.ready = started;
+    // Un démarrage raté ne doit pas être mémorisé : `child.kill()` est asynchrone, le processus a
+    // encore `exitCode === null` pendant quelques millisecondes et l'essai suivant se verrait
+    // resservir cette promesse rejetée — le sidecar ne redémarrerait jamais.
+    started.catch(() => {
+      if (this.ready === started) this.ready = undefined;
+    });
+    return started;
   }
 
   private start(): Promise<SidecarReady> {
@@ -459,39 +475,83 @@ export class WindowsCyclesSampler implements ProcessSampler {
 
 // --- Sélection ----------------------------------------------------------------------------------------
 
+/** Repli ticks après un échec : 5 s, puis 15 s, 30 s, 60 s tant que le primaire retombe. */
+const SAMPLER_RETRY_DELAYS_MS = [5_000, 15_000, 30_000, 60_000] as const;
+
 /**
- * Échantillonneur adapté à l'OS, avec repli automatique vers `TicksSampler` (journalisé une fois)
- * si la méthode principale échoue.
+ * Échantillonneur adapté à l'OS, avec repli vers `TicksSampler` quand la méthode principale échoue.
+ *
+ * Le repli est **temporaire** (backoff borné, puis nouvel essai du primaire). Un seul coup de mou —
+ * sidecar PowerShell lent à démarrer sur un runner chargé, `Add-Type` à froid, requête au-delà de
+ * 10 s — privait sinon l'agent du RSS et du CPU par processus jusqu'à son redémarrage, alors que
+ * `TicksSampler` ne mesure AUCUN processus. Même famille de panne que le verrou de 10 min de la
+ * sonde TPS (doc 06 §1) : un échec de transport n'est pas une incapacité durable.
+ *
+ * Seule une erreur définitive coupe le primaire pour de bon : PowerShell (ou `ps`) introuvable.
  */
 export class PlatformSampler implements ProcessSampler {
   private primary: ProcessSampler | undefined;
   private readonly fallback = new TicksSampler();
-  private degraded = false;
+  private readonly retryDelaysMs: readonly number[];
+  /** Échecs consécutifs du primaire ; remis à zéro dès qu'il refonctionne. */
+  private failures = 0;
+  /** Date (ms) avant laquelle on ne retente pas le primaire. */
+  private retryAt = 0;
 
   constructor(
     private readonly logger: Logger,
     private readonly platform: NodeJS.Platform = process.platform,
+    options: { primary?: ProcessSampler; retryDelaysMs?: readonly number[] } = {},
   ) {
-    if (platform === 'win32') this.primary = new WindowsCyclesSampler({ logger });
+    this.retryDelaysMs = options.retryDelaysMs ?? SAMPLER_RETRY_DELAYS_MS;
+    if (options.primary) this.primary = options.primary;
+    else if (platform === 'win32') this.primary = new WindowsCyclesSampler({ logger });
     else if (platform === 'linux') this.primary = new ProcSampler();
     else if (platform === 'darwin') this.primary = new PsSampler();
   }
 
   async sample(pids: number[]): Promise<Sample> {
-    if (this.primary && !this.degraded) {
+    if (this.primary && Date.now() >= this.retryAt) {
       try {
-        return await this.primary.sample(pids);
+        const sample = await this.primary.sample(pids);
+        if (this.failures > 0) {
+          this.logger.info('process sampler recovered', {
+            platform: this.platform,
+            failures: this.failures,
+          });
+          this.failures = 0;
+        }
+        return sample;
       } catch (error) {
-        this.degraded = true;
-        this.logger.warn('process sampler unavailable, falling back to ticks', {
-          platform: this.platform,
-          error: errorMessage(error),
-        });
-        this.primary.close();
-        this.primary = undefined;
+        this.onFailure(error);
       }
     }
     return this.fallback.sample(pids);
+  }
+
+  /** Repli ticks pour ce relevé ; le primaire sera retenté après le backoff, sauf panne définitive. */
+  private onFailure(error: unknown): void {
+    const message = errorMessage(error);
+    this.failures += 1;
+    // `powershell unavailable: …` = l'exécutable n'existe pas (ENOENT au spawn) : inutile d'insister.
+    if (message.startsWith('powershell unavailable')) {
+      this.logger.warn('process sampler unavailable for good, ticks only', {
+        platform: this.platform,
+        error: message,
+      });
+      this.primary?.close();
+      this.primary = undefined;
+      return;
+    }
+    const index = Math.min(this.failures - 1, this.retryDelaysMs.length - 1);
+    const retryInMs = this.retryDelaysMs[index] ?? 0;
+    this.retryAt = Date.now() + retryInMs;
+    this.logger.warn('process sampler failed, ticks fallback until retry', {
+      platform: this.platform,
+      failures: this.failures,
+      retryInMs,
+      error: message,
+    });
   }
 
   close(): void {
