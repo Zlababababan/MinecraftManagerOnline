@@ -204,6 +204,18 @@ commande `chown` exacte quand l'archive a été extraite en `sudo` et que le pan
 autre utilisateur. La commande sort en 1 dès qu'un contrôle échoue : elle est utilisable dans un
 script.
 
+**Vous signalez un problème ?** `report` écrit le même diagnostic dans un fichier, avec vos
+versions, vos machines et leurs agents, vos réglages (secrets exclus) et un extrait masqué du
+journal — exactement ce que réclame le formulaire d'issue.
+
+```bash
+/opt/mmo/mmo-panel/mmo-panel.sh report
+```
+
+Relisez le fichier avant de le joindre : les chemins personnels, les jetons et les codes
+d'appairage sont masqués et les dossiers de serveurs ne sont jamais listés, mais c'est vous qui le
+publiez. `--stdout` l'affiche au lieu de l'écrire, `--no-log` laisse le journal de côté.
+
 ### 1.7 Sauvegarder et restaurer le panel
 
 Le panel se sauvegarde lui-même une fois par jour (copie cohérente `VACUUM INTO` de sa base) dans `data/backups/panel/mmo-<date>.db`, 7 copies conservées ; Réglages → Sauvegardes du panel permet d'en créer une à la demande. Les métriques (`metrics.db`) ne sont pas copiées : elles sont reconstituables et volumineuses. Sauvegardez aussi le dossier `data/` complet si vous voulez garder certificats et archives d'agents.

@@ -50,7 +50,8 @@ export const SETTING_KEYS = {
   accessDirectEnabled: 'access.direct.enabled',
 } as const;
 
-const SECRET_KEYS: ReadonlySet<string> = new Set([
+/** Jamais renvoyées par l API ni écrites dans un rapport de diagnostic (une 2e liste divergerait). */
+export const SECRET_KEYS: ReadonlySet<string> = new Set([
   SETTING_KEYS.vapidPrivateKey,
   SETTING_KEYS.dnsToken,
 ]);

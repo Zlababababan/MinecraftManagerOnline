@@ -206,6 +206,18 @@ des genauen `chown`-Befehls, wenn das Archiv mit `sudo` entpackt wurde und das P
 anderen Benutzer läuft. Der Befehl endet mit 1, sobald eine Prüfung fehlschlägt, und lässt sich so
 in einem Skript verwenden.
 
+**Sie melden ein Problem?** `report` schreibt dieselbe Diagnose in eine Datei — mit Ihren Versionen,
+Ihren Maschinen und deren Agenten, Ihren Einstellungen (ohne Geheimnisse) und einem maskierten
+Auszug aus dem Log. Genau das, wonach das Issue-Formular fragt.
+
+```bash
+/opt/mmo/mmo-panel/mmo-panel.sh report
+```
+
+Lesen Sie die Datei, bevor Sie sie anhängen: persönliche Pfade, Tokens und Kopplungscodes sind
+maskiert und Server-Ordner werden nie aufgeführt — veröffentlicht wird sie aber von Ihnen.
+`--stdout` gibt sie aus, statt sie zu schreiben, `--no-log` lässt das Log weg.
+
 ### 1.7 Panel sichern und wiederherstellen
 
 Das Panel sichert sich einmal täglich selbst (konsistente `VACUUM INTO`-Kopie seiner Datenbank) nach `data/backups/panel/mmo-<date>.db`, 7 Kopien werden aufbewahrt; unter Settings → Panel backups lässt sich eine Sicherung auf Anforderung erstellen. Die Metriken (`metrics.db`) werden nicht kopiert: Sie sind neu aufbaubar und groß. Sichern Sie auch den gesamten Ordner `data/`, wenn Sie Zertifikate und Agent-Archive behalten wollen.

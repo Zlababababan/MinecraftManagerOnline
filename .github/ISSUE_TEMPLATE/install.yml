@@ -1,0 +1,69 @@
+name: Installation problem
+description: The panel or an agent will not install, or will not start at all
+labels: [installation]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Most installation problems are already named by the panel itself. **Run this first** — it
+        checks the runtime, the data directory and its owner, the database, the port and the
+        front-end, and each error says what to do:
+
+        ```
+        mmo-panel.cmd doctor        # Windows
+        ./mmo-panel.sh doctor       # Linux / macOS
+        ```
+
+        If the panel starts but misbehaves, use the *Bug report* form instead: it asks for
+        `mmo-panel report`, which includes all of this and more.
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `mmo-panel doctor`
+      description: Paste it whole, including the ok lines. If the command itself fails, paste what it printed.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What you ran, and what it printed
+      description: The exact command, and the error. If the installer failed, its last twenty lines.
+      render: text
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: Machine
+      description: Operating system, version, and architecture. `uname -m` on Linux/macOS, or "Windows 11 x64".
+      placeholder: Ubuntu 22.04, aarch64 (Oracle free VM)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: how
+    attributes:
+      label: How you are installing it
+      options:
+        - One-command installer (install-panel.sh)
+        - One-command installer (install-panel.ps1)
+        - Archive extracted by hand
+        - Docker image
+        - Built from source
+        - Agent, from the command shown by the panel
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        Two known cases worth checking before you file this:
+
+        - **Alpine or another musl system**: the bundled Node runtime does not support it. Use the
+          Docker image, a glibc distribution, or your own Node ≥ 24.
+        - **Archive extracted with `sudo`, panel started as your user**: the data directory belongs
+          to root. `doctor` prints the exact `chown` command to fix it.

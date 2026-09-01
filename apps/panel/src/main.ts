@@ -4,6 +4,7 @@
  *   mmo-panel                      démarre le panel
  *   mmo-panel setup …              crée le compte admin sans navigateur (VM, conteneur, cloud-init)
  *   mmo-panel doctor               diagnostic de l'installation (runtime, données, base, port)
+ *   mmo-panel report               fichier de diagnostic à joindre à une issue (secrets exclus)
  *   mmo-panel restore <fichier>    restaure une sauvegarde `VACUUM INTO`, panel arrêté
  *
  * Variables d'environnement :
@@ -38,6 +39,11 @@ if (command === 'setup') {
   process.exit(await runSetupCommand(config, process.argv.slice(3)));
 }
 
+if (command === 'report') {
+  const { runReportCommand } = await import('./cli-report.js');
+  process.exit(await runReportCommand(config, process.argv.slice(3)));
+}
+
 if (command === 'doctor') {
   const { doctor } = await import('./doctor.js');
   process.exit(await doctor(config));
@@ -63,7 +69,7 @@ if (command === 'restore') {
 
 if (command !== undefined && !command.startsWith('-')) {
   console.error(
-    `unknown command: ${command}\nusage: mmo-panel [setup … | doctor | restore <fichier .db>]`,
+    `unknown command: ${command}\nusage: mmo-panel [setup … | doctor | report | restore <fichier .db>]`,
   );
   process.exit(2);
 }

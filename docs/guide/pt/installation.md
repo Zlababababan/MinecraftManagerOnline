@@ -205,6 +205,18 @@ Cada linha é prefixada com `ok`, `warn` ou `ERROR`, e cada erro diz o que fazer
 comando `chown` exato quando o arquivo foi extraído com `sudo` e o painel roda sob outro usuário. O
 comando sai com 1 assim que uma verificação falha, portanto pode ser usado num script.
 
+**Vai relatar um problema?** O `report` escreve o mesmo diagnóstico num arquivo, com as suas
+versões, as suas máquinas e os respetivos agentes, as suas configurações (sem os segredos) e um
+trecho mascarado do log — exatamente o que o formulário de issue pede.
+
+```bash
+/opt/mmo/mmo-panel/mmo-panel.sh report
+```
+
+Leia o arquivo antes de anexá-lo: caminhos pessoais, tokens e códigos de emparelhamento são
+mascarados e as pastas dos servidores nunca são listadas, mas quem o publica é você. `--stdout`
+mostra-o em vez de gravá-lo, `--no-log` deixa o log de fora.
+
 ### 1.7 Backup e restauração do painel
 
 O painel faz o seu próprio backup uma vez por dia (cópia consistente `VACUUM INTO` do seu banco de dados) em `data/backups/panel/mmo-<date>.db`, mantendo 7 cópias; Settings → Panel backups permite criar uma sob demanda. As métricas (`metrics.db`) não são copiadas: podem ser reconstruídas e são grandes. Salvaguarde também a pasta `data/` inteira se quiser manter os certificados e os arquivos dos agentes.

@@ -1,0 +1,95 @@
+name: Bug report
+description: Something does not work — the panel, an agent, a server that will not start
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. **Before anything else, run this on the panel machine:**
+
+        ```
+        mmo-panel.cmd report        # Windows
+        ./mmo-panel.sh report       # Linux / macOS
+        ```
+
+        It writes a text file with everything asked below — versions, platforms, the `doctor`
+        output and a masked log excerpt. **Read it, then attach it**: secrets are excluded and
+        personal paths are masked, but you are the one publishing it.
+
+        Panel installed as a service? Run the command as the service account, for example
+        `sudo -u mmo MMO_DATA_DIR=/var/lib/mmo-panel /opt/mmo-panel/mmo-panel.sh report`.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got instead. Exact error message if there is one.
+      placeholder: |
+        I clicked Start on server "ATM10" and got "internal error".
+        I expected the server to start; the console stayed empty.
+    validations:
+      required: true
+
+  - type: textarea
+    id: report
+    attributes:
+      label: Diagnostic report
+      description: Paste the content of the file produced by `mmo-panel report`, or attach the file by dragging it here.
+      render: text
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Panel version
+      description: Visible in the report, and at the bottom of the interface.
+      placeholder: 1.0.6
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How is the panel installed
+      options:
+        - One-command installer (install-panel.sh / install-panel.ps1)
+        - Archive extracted by hand
+        - Docker image
+        - Built from source
+        - I do not know
+    validations:
+      required: true
+
+  - type: dropdown
+    id: access
+    attributes:
+      label: Remote access mode
+      options:
+        - Tailscale
+        - Direct (my own domain and certificate)
+        - Manual (my own reverse proxy)
+        - None, I only use it on the panel machine
+    validations:
+      required: true
+
+  - type: textarea
+    id: machines
+    attributes:
+      label: The machine that hosts the servers
+      description: Only if the problem involves an agent or a Minecraft server. OS and architecture, whether the agent runs as a service and under which account, and where the server folders live.
+      placeholder: |
+        Windows 11 x64, agent installed as a service under my own account.
+        Servers under D:\Minecraft\Server.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I ran `mmo-panel doctor` (its output is in the report) and read the errors it reported.
+          required: true
+        - label: I read the report before attaching it.
+          required: true
+        - label: This is not a security vulnerability — those go through [the security policy](https://github.com/Zlababababan/MinecraftManagerOnline/blob/main/SECURITY.md), never a public issue.
+          required: true

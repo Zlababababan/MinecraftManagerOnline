@@ -206,6 +206,18 @@ comando `chown` exacto cuando el archivo se extrajo con `sudo` y el panel se eje
 usuario. El comando termina con código 1 en cuanto falla una comprobación, así que puede usarse en
 un script.
 
+**¿Va a informar de un problema?** `report` escribe el mismo diagnóstico en un archivo, con sus
+versiones, sus máquinas y sus agentes, sus ajustes (sin los secretos) y un extracto enmascarado del
+registro — justo lo que pide el formulario de incidencias.
+
+```bash
+/opt/mmo/mmo-panel/mmo-panel.sh report
+```
+
+Lea el archivo antes de adjuntarlo: las rutas personales, los tokens y los códigos de emparejamiento
+están enmascarados y las carpetas de los servidores nunca se listan, pero es usted quien lo publica.
+`--stdout` lo muestra en lugar de escribirlo, `--no-log` omite el registro.
+
 ### 1.7 Copia de seguridad y restauración del panel
 
 El panel se respalda a sí mismo una vez al día (copia consistente `VACUUM INTO` de su base de datos) en `data/backups/panel/mmo-<date>.db`, conservando 7 copias; Settings → Panel backups permite crear una a demanda. Las métricas (`metrics.db`) no se copian: pueden reconstruirse y ocupan mucho. Respalde también toda la carpeta `data/` si quiere conservar los certificados y los archivos de los agentes.

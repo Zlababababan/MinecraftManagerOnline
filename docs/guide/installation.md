@@ -203,6 +203,18 @@ Every line is prefixed with `ok`, `warn` or `ERROR`, and each error says what to
 the exact `chown` command when the archive was extracted with `sudo` and the panel runs as
 another user. The command exits with 1 as soon as one check fails, so it can be used in a script.
 
+**Reporting a problem?** `report` writes the same diagnosis to a file, with your versions, your
+machines and their agents, your settings (secrets excluded) and a masked excerpt of the log — that
+is exactly what the issue form asks for.
+
+```bash
+/opt/mmo/mmo-panel/mmo-panel.sh report
+```
+
+Read the file before attaching it: personal paths, tokens and pairing codes are masked and server
+folders are never listed, but you are the one publishing it. `--stdout` prints it instead of
+writing it, `--no-log` leaves the log out.
+
 ### 1.7 Back up and restore the panel
 
 The panel backs itself up once a day (consistent `VACUUM INTO` copy of its database) into `data/backups/panel/mmo-<date>.db`, 7 copies kept; Settings → Panel backups lets you create one on demand. Metrics (`metrics.db`) are not copied: they can be rebuilt and are large. Also back up the whole `data/` folder if you want to keep certificates and agent archives.
