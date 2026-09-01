@@ -244,9 +244,11 @@ export async function buildReport(
   if (options.noLog !== true) {
     parts.push(
       masked(
-        ['## Recent log', '', recentLog(config.dataDir, options.logLines ?? DEFAULT_LOG_LINES)].join(
-          '\n',
-        ),
+        [
+          '## Recent log',
+          '',
+          recentLog(config.dataDir, options.logLines ?? DEFAULT_LOG_LINES),
+        ].join('\n'),
       ),
     );
   }
