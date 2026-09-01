@@ -87,17 +87,53 @@ Le panel écoute sur `http://127.0.0.1:3000` (jamais sur toutes les interfaces �
 
 Ouvrez `http://127.0.0.1:3000`. Sur une machine sans navigateur (serveur, VM) : mettez d'abord l'accès distant en place (§3 — installer Tailscale, exécuter la commande `tailscale serve`, puis ouvrir `https://<machine>.<tailnet>.ts.net` depuis un autre appareil) ou passez par un tunnel SSH (`ssh -L 3000:127.0.0.1:3000 utilisateur@machine` puis ouvrez `http://127.0.0.1:3000` en local). Le wizard se déroule en deux étapes — **Compte administrateur** (identifiant, mot de passe, langue), puis **Accès** : l'**URL publique du panel** (optionnelle à ce stade), le **mode d'accès** (voir §3) et la **destination de backups par défaut**. L'URL publique se change à tout moment dans Réglages → Général : c'est elle qui est injectée dans les commandes d'installation des agents et dans les notifications push — renseignez-la dès que votre accès distant est en place.
 
-**Sans navigateur du tout** (VM cloud, conteneur, cloud-init), créez le compte administrateur en
-ligne de commande — c'est exactement le même chemin de code que le wizard :
+**Sans navigateur du tout** (VM cloud, conteneur, cloud-init), le compte administrateur se crée en ligne de commande — `setup` est exactement le même chemin de code que le wizard. Sur une VM cloud toute fraîche jointe en SSH (Oracle, AWS, Hetzner…), le déroulé complet ressemble à ceci :
 
-```bash
-/opt/mmo/mmo-panel/mmo-panel.sh setup --username admin --random-password --public-url panel.exemple.net
+1. **Installer** — l'installeur en une commande du §1.2 fait tout, service compris :
+
+   ```bash
+   curl -fsSL https://github.com/Zlababababan/MinecraftManagerOnline/releases/latest/download/install-panel.sh | sh
+   ```
+
+2. **Créer le compte administrateur.** L'installeur fait tourner le panel sous le compte de service `mmo`, avec ses données dans `/var/lib/mmo-panel` — lancez `setup` sous cette même identité :
+
+   ```bash
+   sudo -u mmo MMO_DATA_DIR=/var/lib/mmo-panel /opt/mmo-panel/mmo-panel.sh setup --username admin --random-password
+   ```
+
+   Le mot de passe généré est affiché une seule fois — copiez-le tout de suite. Utilisez `--password-stdin` (`echo -n 'secret' | … setup --username admin --password-stdin`) ou `--password-file <fichier>` pour le choisir vous-même — ne le passez jamais en argument, la ligne de commande est visible de tous les processus de la machine. `--public-url`, `--locale` et `--access-mode` sont facultatifs. La commande refuse de s'exécuter deux fois. Sur une installation manuelle (§1.2), où les données vivent à côté du script et vous appartiennent, aucun préfixe n'est nécessaire : `/opt/mmo/mmo-panel/mmo-panel.sh setup --username admin --random-password --public-url panel.exemple.net`.
+
+3. **Vérifier.** `doctor` (§1.6) inspecte toute l'installation, et le journal du panel défile via journalctl :
+
+   ```bash
+   sudo -u mmo MMO_DATA_DIR=/var/lib/mmo-panel /opt/mmo-panel/mmo-panel.sh doctor
+   journalctl -u mmo-panel -f
+   ```
+
+4. **Ouvrir l'interface depuis votre propre ordinateur** (§3). Soit installer Tailscale sur la VM et exposer le panel sur votre tailnet :
+
+   ```bash
+   tailscale serve --bg --https=443 http://127.0.0.1:3000
+   ```
+
+   puis ouvrir `https://<vm>.<tailnet>.ts.net` — soit, pour un premier coup d'œil sans rien installer, passer par un tunnel SSH : `ssh -L 3000:127.0.0.1:3000 utilisateur@vm`, puis ouvrez `http://127.0.0.1:3000` sur votre ordinateur.
+
+**Avec cloud-init**, la même séquence peut se jouer au tout premier démarrage de la VM, avant même votre première connexion. Utilisez `--password-file` avec un fichier posé par `write_files` — pas `--random-password`, dont l'affichage unique se perdrait dans les journaux de cloud-init. Le fichier peut vivre dans `/var/lib/mmo-panel` : l'installeur donne tout ce dossier au compte `mmo`, le panel pourra donc l'y lire.
+
+```yaml
+write_files:
+  - path: /var/lib/mmo-panel/admin-password
+    permissions: '0600'
+    content: |
+      choisissez-un-long-mot-de-passe-ici
+runcmd:
+  - curl -fsSL https://github.com/Zlababababan/MinecraftManagerOnline/releases/latest/download/install-panel.sh -o /run/install-panel.sh
+  - sh /run/install-panel.sh
+  - sudo -u mmo MMO_DATA_DIR=/var/lib/mmo-panel /opt/mmo-panel/mmo-panel.sh setup --username admin --password-file /var/lib/mmo-panel/admin-password
+  - rm -f /var/lib/mmo-panel/admin-password /run/install-panel.sh
 ```
 
-Le mot de passe généré est affiché une fois. Utilisez `--password-stdin` (`echo -n 'secret' | …
-setup --username admin --password-stdin`) ou `--password-file <fichier>` pour le choisir — ne le
-passez jamais en argument, la ligne de commande est visible de tous les processus de la machine.
-`--locale` et `--access-mode` sont facultatifs. La commande refuse de s'exécuter deux fois.
+Deux choses à savoir. Cloud-init s'exécute en root, sans terminal : aucune commande ne doit jamais attendre une saisie — `install-panel.sh` n'en attend jamais, c'est l'une de ses règles. Et le réseau n'est pas toujours établi au moment où `runcmd` démarre : si le téléchargement échoue, relancer la même commande à la main une fois la VM joignable suffit.
 
 ### 1.4 Démarrer au boot (service)
 
