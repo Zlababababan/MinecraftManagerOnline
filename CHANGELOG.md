@@ -6,6 +6,21 @@ the release notes on GitHub — a release fails to publish if its section is mis
 Releases before 1.0.5 have their notes on the [releases page](https://github.com/Zlababababan/MinecraftManagerOnline/releases)
 only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archives were unusable.
 
+## Unreleased
+
+### The database stops growing for no reason
+
+The hourly maintenance now bounds every table. Four of them had no limit at all: the console
+command history, player sessions, finished migrations and the records of deleted backups. Each
+retention is a setting (Settings → General → _Retention_, in days), and the panel log reports what
+was removed, table by table, at every pass — the number you want the day a database grows and
+nobody knows why.
+
+`mmo.db` never shrank: it now gets a full `VACUUM` once a week, between 3 and 6 in the morning
+(schedule time zone), only when nothing is running and only after checking that the disk has room
+for the rewrite. `metrics.db` returns its free pages to the file system every hour within a fixed
+time budget, instead of the 200 pages a day it was limited to.
+
 ## 1.0.7 — 2026-09-01
 
 A small release, mostly about being able to check what you downloaded and to report a problem

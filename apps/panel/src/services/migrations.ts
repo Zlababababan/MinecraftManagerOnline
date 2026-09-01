@@ -36,7 +36,7 @@ import type {
   MigrationPrecheckDto,
   StartMigrationInput,
 } from '@mmo/protocol/client';
-import { desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 
 import type { AgentRegistry } from '../agents/registry.js';
 import type { MmoDatabase } from '../db/client.js';
@@ -141,6 +141,22 @@ export class MigrationsService {
       .from(serverMigrations)
       .where(inArray(serverMigrations.status, ACTIVE))
       .all();
+  }
+
+  /**
+   * Purge par rétention (doc 04 §8.6) : migrations terminées, datées de leur fin — ou de leur
+   * début pour une ligne close sans `finished_at`. Rend le nombre de lignes supprimées.
+   */
+  purgeFinishedBefore(ts: number): number {
+    return this.deps.db
+      .delete(serverMigrations)
+      .where(
+        and(
+          inArray(serverMigrations.status, ['done', 'failed', 'rolled_back']),
+          lt(sql`coalesce(${serverMigrations.finishedAt}, ${serverMigrations.startedAt})`, ts),
+        ),
+      )
+      .run().changes;
   }
 
   toDto(row: ServerMigrationRow): MigrationDto {

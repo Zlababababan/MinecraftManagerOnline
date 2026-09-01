@@ -18,6 +18,9 @@ import { coerceOrigin } from '../../util/origin.js';
 import { PANEL_VERSION } from '../../version.js';
 import { auditMeta } from './setup-auth.js';
 
+/** Dix ans : au-delà, la rétention est un « jamais » qui ne dit pas son nom. */
+const MAX_RETENTION_DAYS = 3650;
+
 export function registerMiscRoutes(app: FastifyInstance, ctx: AppContext): void {
   const r = app.withTypeProvider<ZodTypeProvider>();
 
@@ -82,6 +85,19 @@ export function registerMiscRoutes(app: FastifyInstance, ctx: AppContext): void 
             });
           }
           ctx.settings.set(key, origin);
+          continue;
+        }
+        if (key.startsWith('retention.')) {
+          // Jours entiers ≥ 1 : « 0 » viderait la table entière à la maintenance suivante.
+          const days = Number(value.trim());
+          if (!Number.isInteger(days) || days < 1 || days > MAX_RETENTION_DAYS) {
+            throw new AppError(
+              'E_VALIDATION',
+              `${key} must be a whole number of days between 1 and ${String(MAX_RETENTION_DAYS)}`,
+              { details: { key } },
+            );
+          }
+          ctx.settings.set(key, String(days));
           continue;
         }
         ctx.settings.set(key, value);

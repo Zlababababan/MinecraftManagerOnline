@@ -55,6 +55,12 @@ function GeneralCard({ settings }: { settings: Record<string, string> }) {
       backupDestination: settings['backups.defaultDestination'] ?? '',
       eventsRetention: Number(settings['retention.eventsDays'] ?? '90'),
       auditRetention: Number(settings['retention.auditDays'] ?? '365'),
+      commandHistoryRetention: Number(settings['retention.commandHistoryDays'] ?? '90'),
+      playerSessionsRetention: Number(settings['retention.playerSessionsDays'] ?? '365'),
+      uiEventsRetention: Number(settings['retention.uiEventsDays'] ?? '14'),
+      migrationsRetention: Number(settings['retention.migrationsDays'] ?? '90'),
+      deletedBackupsRetention: Number(settings['retention.deletedBackupsDays'] ?? '30'),
+      tasksRetention: Number(settings['retention.tasksDays'] ?? '30'),
       metricsInterval: Number(settings['metrics.intervalSec'] ?? '15'),
       scheduleTimezone: settings['schedule.timezone'] ?? localTimeZone(),
       restoreOnBoot: settings['agents.restoreOnBoot'] === 'true',
@@ -76,6 +82,12 @@ function GeneralCard({ settings }: { settings: Record<string, string> }) {
               'backups.defaultDestination': v.backupDestination.trim(),
               'retention.eventsDays': String(v.eventsRetention),
               'retention.auditDays': String(v.auditRetention),
+              'retention.commandHistoryDays': String(v.commandHistoryRetention),
+              'retention.playerSessionsDays': String(v.playerSessionsRetention),
+              'retention.uiEventsDays': String(v.uiEventsRetention),
+              'retention.migrationsDays': String(v.migrationsRetention),
+              'retention.deletedBackupsDays': String(v.deletedBackupsRetention),
+              'retention.tasksDays': String(v.tasksRetention),
               'metrics.intervalSec': String(v.metricsInterval),
               'schedule.timezone': v.scheduleTimezone,
               'agents.restoreOnBoot': v.restoreOnBoot ? 'true' : 'false',
@@ -112,22 +124,76 @@ function GeneralCard({ settings }: { settings: Record<string, string> }) {
             label={t('web:settings.general.backupDestination')}
             {...form.getInputProps('backupDestination')}
           />
-          <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
+          <NumberInput
+            label={t('web:settings.general.metricsInterval')}
+            min={5}
+            max={300}
+            {...form.getInputProps('metricsInterval')}
+          />
+          <div>
+            <Text size="sm" fw={500}>
+              {t('web:settings.general.retentionTitle')}
+            </Text>
+            <Text size="xs" c="dimmed">
+              {t('web:settings.general.retentionHint')}
+            </Text>
+          </div>
+          <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="sm">
             <NumberInput
               label={t('web:settings.general.eventsRetention')}
               min={1}
+              max={3650}
               {...form.getInputProps('eventsRetention')}
+              data-testid="settings-retention-events"
             />
             <NumberInput
               label={t('web:settings.general.auditRetention')}
               min={1}
+              max={3650}
               {...form.getInputProps('auditRetention')}
+              data-testid="settings-retention-audit"
             />
             <NumberInput
-              label={t('web:settings.general.metricsInterval')}
-              min={5}
-              max={300}
-              {...form.getInputProps('metricsInterval')}
+              label={t('web:settings.general.commandHistoryRetention')}
+              min={1}
+              max={3650}
+              {...form.getInputProps('commandHistoryRetention')}
+              data-testid="settings-retention-command-history"
+            />
+            <NumberInput
+              label={t('web:settings.general.playerSessionsRetention')}
+              min={1}
+              max={3650}
+              {...form.getInputProps('playerSessionsRetention')}
+              data-testid="settings-retention-player-sessions"
+            />
+            <NumberInput
+              label={t('web:settings.general.uiEventsRetention')}
+              min={1}
+              max={3650}
+              {...form.getInputProps('uiEventsRetention')}
+              data-testid="settings-retention-ui-events"
+            />
+            <NumberInput
+              label={t('web:settings.general.migrationsRetention')}
+              min={1}
+              max={3650}
+              {...form.getInputProps('migrationsRetention')}
+              data-testid="settings-retention-migrations"
+            />
+            <NumberInput
+              label={t('web:settings.general.deletedBackupsRetention')}
+              min={1}
+              max={3650}
+              {...form.getInputProps('deletedBackupsRetention')}
+              data-testid="settings-retention-deleted-backups"
+            />
+            <NumberInput
+              label={t('web:settings.general.tasksRetention')}
+              min={1}
+              max={3650}
+              {...form.getInputProps('tasksRetention')}
+              data-testid="settings-retention-tasks"
             />
           </SimpleGrid>
           <Select

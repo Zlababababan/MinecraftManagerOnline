@@ -18,8 +18,21 @@ export const SETTING_KEYS = {
    * une sauvegarde réglée sur 4 h par un utilisateur à Paris, sans que rien ne le dise.
    */
   scheduleTimezone: 'schedule.timezone',
+  /**
+   * Rétentions (jours, entiers ≥ 1) appliquées par la maintenance horaire (doc 04 §8.6). Lot 9 :
+   * `command_history`, `player_sessions`, migrations et sauvegardes supprimées n'étaient bornées
+   * par rien ; `tasks` l'était par une constante.
+   */
   eventsRetentionDays: 'retention.eventsDays',
   auditRetentionDays: 'retention.auditDays',
+  uiEventsRetentionDays: 'retention.uiEventsDays',
+  commandHistoryRetentionDays: 'retention.commandHistoryDays',
+  playerSessionsRetentionDays: 'retention.playerSessionsDays',
+  migrationsRetentionDays: 'retention.migrationsDays',
+  deletedBackupsRetentionDays: 'retention.deletedBackupsDays',
+  tasksRetentionDays: 'retention.tasksDays',
+  /** Horodatage du dernier VACUUM hebdomadaire (persisté : un redémarrage ne relance pas la semaine). */
+  vacuumAt: 'maintenance.vacuumAt',
   restoreOnBoot: 'agents.restoreOnBoot',
   metricsIntervalSec: 'metrics.intervalSec',
   /** Phase 9 : mise à jour automatique des agents à la connexion. */
@@ -60,6 +73,12 @@ const DEFAULTS: Readonly<Record<string, string>> = {
   [SETTING_KEYS.accessMode]: 'tailscale',
   [SETTING_KEYS.eventsRetentionDays]: '90',
   [SETTING_KEYS.auditRetentionDays]: '365',
+  [SETTING_KEYS.uiEventsRetentionDays]: '14',
+  [SETTING_KEYS.commandHistoryRetentionDays]: '90',
+  [SETTING_KEYS.playerSessionsRetentionDays]: '365',
+  [SETTING_KEYS.migrationsRetentionDays]: '90',
+  [SETTING_KEYS.deletedBackupsRetentionDays]: '30',
+  [SETTING_KEYS.tasksRetentionDays]: '30',
   [SETTING_KEYS.restoreOnBoot]: 'true',
   [SETTING_KEYS.metricsIntervalSec]: '15',
   [SETTING_KEYS.accessHttpsPort]: '443',
@@ -88,6 +107,18 @@ export class SettingsService {
   getInt(key: string, fallback: number): number {
     const v = Number(this.get(key));
     return Number.isFinite(v) ? v : fallback;
+  }
+
+  /**
+   * Entier ≥ 1 (rétentions en jours). Une valeur absente, non numérique ou nulle retombe sur le
+   * défaut de la clé : « 0 jour » viderait la table entière à la prochaine maintenance.
+   */
+  positiveInt(key: string): number {
+    const parse = (raw: string | undefined): number | undefined => {
+      const v = Number(raw);
+      return Number.isInteger(v) && v >= 1 ? v : undefined;
+    };
+    return parse(this.get(key)) ?? parse(DEFAULTS[key]) ?? 1;
   }
 
   set(key: string, value: string): void {

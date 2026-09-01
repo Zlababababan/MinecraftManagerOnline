@@ -13,7 +13,7 @@ import {
   type ServerConfig,
 } from '@mmo/protocol';
 import type { ServerConflictDto, ServerDto } from '@mmo/protocol/client';
-import { and, asc, desc, eq, isNull, ne } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, isNull, lt, ne } from 'drizzle-orm';
 
 import type { MmoDatabase } from '../db/client.js';
 import {
@@ -912,6 +912,17 @@ export class ServersService {
       .update(playerSessions)
       .set({ leftAt: ts })
       .where(and(eq(playerSessions.serverId, serverId), isNull(playerSessions.leftAt)))
+      .run().changes;
+  }
+
+  /**
+   * Purge par rétention (doc 04 §8.6) : sessions **closes** seulement — une session ouverte est un
+   * joueur en ligne, quelle que soit son ancienneté. Rend le nombre de lignes supprimées.
+   */
+  purgePlayerSessionsBefore(ts: number): number {
+    return this.db
+      .delete(playerSessions)
+      .where(and(isNotNull(playerSessions.leftAt), lt(playerSessions.leftAt, ts)))
       .run().changes;
   }
 

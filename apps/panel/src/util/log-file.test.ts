@@ -30,8 +30,7 @@ describe('createPanelLogStream', () => {
 
     stream.write('{"msg":"ligne 1"}\n');
     stream.write('{"msg":"ligne 2"}\n');
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    const content = fs.readFileSync(stream.file!, 'utf8');
+    const content = await waitForContent(stream.file!, 'ligne 2');
     expect(content).toContain('ligne 1');
     expect(content).toContain('ligne 2');
     stream.close();
@@ -49,11 +48,10 @@ describe('createPanelLogStream', () => {
     now = Date.UTC(2026, 7, 26, 0, 1);
     stream.write('{"msg":"lendemain"}\n');
     expect(stream.file).toBe(path.join(dir, 'logs', 'panel-2026-08-26.log'));
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(fs.readFileSync(path.join(dir, 'logs', 'panel-2026-08-25.log'), 'utf8')).toContain(
-      'veille',
-    );
-    expect(fs.readFileSync(stream.file!, 'utf8')).toContain('lendemain');
+    expect(
+      await waitForContent(path.join(dir, 'logs', 'panel-2026-08-25.log'), 'veille'),
+    ).toContain('veille');
+    expect(await waitForContent(stream.file!, 'lendemain')).toContain('lendemain');
     stream.close();
   });
 
@@ -67,8 +65,7 @@ describe('createPanelLogStream', () => {
       expect(stream.file).toBe(path.join(dir, 'logs', 'panel-2026-08-25.log'));
       stream.write(`${'b'.repeat(60)}\n`);
       expect(stream.file).toBe(path.join(dir, 'logs', 'panel-2026-08-25-1.log'));
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      expect(fs.readFileSync(stream.file!, 'utf8')).toContain('bbb');
+      expect(await waitForContent(stream.file!, 'bbb')).toContain('bbb');
       stream.close();
     } finally {
       delete process.env.MMO_LOG_MAX_BYTES;
@@ -87,3 +84,26 @@ describe('createPanelLogStream', () => {
     }).not.toThrow();
   });
 });
+
+/**
+ * Un `WriteStream` écrit de façon asynchrone : attendre le contenu plutôt qu'un délai fixe — 50 ms
+ * ne suffisaient pas sous un `pnpm check` complet (cinq paquets de tests en parallèle), le
+ * fichier était encore vide à la lecture.
+ */
+async function waitForContent(file: string, needle: string): Promise<string> {
+  const deadline = Date.now() + 5000;
+  let content = readOrEmpty(file);
+  while (!content.includes(needle) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    content = readOrEmpty(file);
+  }
+  return content;
+}
+
+function readOrEmpty(file: string): string {
+  try {
+    return fs.readFileSync(file, 'utf8');
+  } catch {
+    return '';
+  }
+}

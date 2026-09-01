@@ -9,7 +9,7 @@
 import { backupManifestSchema, ulid, type BackupManifest } from '@mmo/protocol';
 import type { BackupDto, BackupPolicyDto, BackupPolicyInput } from '@mmo/protocol/client';
 import { nextCronRun } from '@mmo/shared';
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
 
 import type { MmoDatabase } from '../db/client.js';
 import { backupPolicies, backups, type BackupPolicyRow, type BackupRow } from '../db/schema.js';
@@ -210,6 +210,24 @@ export class BackupsService {
       this.deps.broadcast(this.toDto(updated));
     }
     return out;
+  }
+
+  /**
+   * Purge par rétention (doc 04 §8.6) des fiches `deleted` (archive rotée par l'agent ou disparue
+   * du disque) — jamais celles qu'une migration référence encore (`server_migrations.backup_id`
+   * est une clé étrangère sans ON DELETE). Rend le nombre de lignes supprimées.
+   */
+  purgeDeletedBefore(ts: number): number {
+    return this.deps.db
+      .delete(backups)
+      .where(
+        and(
+          eq(backups.status, 'deleted'),
+          lt(sql`coalesce(${backups.finishedAt}, ${backups.startedAt})`, ts),
+          sql`NOT EXISTS (SELECT 1 FROM server_migrations WHERE backup_id = ${backups.id})`,
+        ),
+      )
+      .run().changes;
   }
 
   /** Dossiers où chercher en plus de la destination courante (anciennes destinations connues). */

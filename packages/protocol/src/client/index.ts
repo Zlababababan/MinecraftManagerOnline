@@ -940,9 +940,15 @@ export const EDITABLE_SETTINGS = [
   'panel.publicUrl',
   'access.mode',
   'backups.defaultDestination',
+  /** Rétentions en jours (entiers 1–3650, validés par le panel) appliquées par la maintenance horaire. */
   'retention.eventsDays',
   'retention.auditDays',
   'retention.uiEventsDays',
+  'retention.commandHistoryDays',
+  'retention.playerSessionsDays',
+  'retention.migrationsDays',
+  'retention.deletedBackupsDays',
+  'retention.tasksDays',
   'agents.restoreOnBoot',
   'metrics.intervalSec',
   /** Fuseau dans lequel toutes les planifications sont lues (nom IANA, ex. `Europe/Paris`). */

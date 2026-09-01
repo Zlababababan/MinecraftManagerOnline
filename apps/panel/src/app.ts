@@ -25,6 +25,7 @@ import { registerSecurityHeaders } from './http/security.js';
 import { registerStatic } from './http/static.js';
 import { registerUserRoutes } from './http/routes/users.js';
 import { registerWsRoutes } from './http/routes/ws.js';
+import { runMaintenance } from './services/maintenance.js';
 
 export interface AppOptions extends Partial<Omit<ContextOptions, 'config' | 'logger'>> {
   config?: Partial<PanelConfig>;
@@ -102,7 +103,8 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
     },
   );
 
-  // Purges planifiées (doc 04 §8.6) : sessions, codes d'appairage, événements, audit, dédup.
+  // Maintenance horaire (doc 04 §8.3/§8.6) : purges par rétention, métriques, sauvegarde du
+  // panel, compaction bornée, VACUUM hebdomadaire — voir `services/maintenance.ts`.
   const maintenance = setInterval(() => {
     try {
       runMaintenance(ctx);
@@ -150,70 +152,9 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   };
 }
 
-/**
- * Tolérance avant de déclarer une politique de sauvegarde en retard. Large à dessein : l'agent
- * évalue le cron en heure locale de SA machine, il peut être éteint quelques heures, et un
- * faux positif sur une sauvegarde est le meilleur moyen de faire ignorer l'alerte.
- */
-const BACKUP_OVERDUE_GRACE_MS = 2 * 3_600_000;
-
 /** Cadence d'évaluation des alertes : assez fine pour être utile, assez lâche pour être gratuite. */
 const ALERTS_INTERVAL_MS = 60_000;
 /** Cadence du tick de vérification de version (le service ne sort réellement qu'une fois par 6 h). */
 const UPDATE_TICK_MS = 30 * 60_000;
 
-/** Les alertes résolues ne servent plus qu'à l'historique. */
-const ALERTS_RETENTION_MS = 7 * 24 * 3_600_000;
-
-export function runMaintenance(ctx: AppContext): void {
-  const day = 24 * 3_600_000;
-  const t = ctx.now();
-  ctx.sessions.purgeExpired();
-  ctx.machines.purgeExpiredPairingCodes();
-  ctx.processed.purgeOlderThan(t - day);
-  ctx.events.purgeOlderThan(t - ctx.settings.getInt('retention.eventsDays', 90) * day);
-  ctx.audit.purgeOlderThan(t - ctx.settings.getInt('retention.auditDays', 365) * day);
-  ctx.tasks.purgeOlderThan(t - 30 * day);
-  ctx.sqlite.pragma('wal_checkpoint(PASSIVE)');
-  // Politiques de sauvegarde qui ne tournent plus. C'était le trou le plus large du produit :
-  // aucune colonne d'état, et la seule notification d'échec naissait d'un `task.failed`, donc
-  // d'une sauvegarde qui avait AU MOINS démarré. Signalé une seule fois par épisode
-  // (`overdueSince`), levé dès qu'une occurrence est enregistrée — y compris `skipped`.
-  for (const policy of ctx.backups.overduePolicies(t, BACKUP_OVERDUE_GRACE_MS)) {
-    ctx.backups.markOverdue(policy.id, t);
-    const server = ctx.servers.get(policy.serverId);
-    ctx.events.publish({
-      type: 'backup.overdue',
-      severity: 'warning',
-      serverId: policy.serverId,
-      ...(server?.machineId === undefined ? {} : { machineId: server.machineId }),
-      payload: {
-        policyId: policy.id,
-        cron: policy.cron,
-        lastRunAt: policy.lastRunAt,
-        lastStatus: policy.lastStatus,
-        serverName: server?.name ?? policy.serverId,
-      },
-      ts: t,
-    });
-  }
-  // Sauvegarde quotidienne du panel lui-même (`VACUUM INTO`, doc 07 phase 8).
-  try {
-    ctx.panelBackup.backupIfStale();
-  } catch (error) {
-    ctx.logger.warn({ err: error }, 'panel self-backup failed');
-  }
-  // Métriques (doc 04 §7) : downsampling brut → 1 min → 1 h, purge, checkpoint du second fichier.
-  const metrics = ctx.metricsService.maintain(t);
-  if (metrics.compactedMs !== undefined) {
-    // Rattrapage unique d'une base d'avant le correctif d'ordre des PRAGMA : `auto_vacuum` valait
-    // 0, le VACUUM complet vient de la basculer en INCREMENTAL.
-    ctx.logger.info(
-      { durationMs: metrics.compactedMs },
-      'metrics database compacted (auto_vacuum)',
-    );
-  }
-  ctx.uiEvents.purgeOlderThan(t - ctx.settings.getInt('retention.uiEventsDays', 14) * day);
-  ctx.alerts.purgeResolvedBefore(t - ALERTS_RETENTION_MS);
-  ctx.metricsSqlite.pragma('wal_checkpoint(PASSIVE)');
-}
+export { runMaintenance };

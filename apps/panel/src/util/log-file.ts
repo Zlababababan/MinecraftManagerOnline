@@ -49,7 +49,7 @@ export function createPanelLogStream(
   const open = (next = false): void => {
     try {
       fs.mkdirSync(dir, { recursive: true });
-      purgeOldLogs(dir, now());
+      purgePanelLogs(dir, now());
       const today = new Date(now()).toISOString().slice(0, 10);
       if (today !== day) index = 0;
       else if (next) index += 1;
@@ -113,14 +113,30 @@ function sizeOf(file: string): number {
   }
 }
 
-function purgeOldLogs(dir: string, now: number): void {
-  for (const name of fs.readdirSync(dir)) {
+/**
+ * Supprime les journaux de plus de 14 jours ; rend leur nombre. Appelée à chaque bascule de
+ * fichier et par la maintenance horaire (un panel silencieux n'écrit pas, donc ne bascule pas :
+ * sans ce second appel, des journaux orphelins survivaient à la rétention).
+ */
+export function purgePanelLogs(dir: string, now: number): number {
+  let names: string[];
+  try {
+    names = fs.readdirSync(dir);
+  } catch {
+    return 0;
+  }
+  let removed = 0;
+  for (const name of names) {
     if (!/^panel-\d{4}-\d{2}-\d{2}(-\d+)?\.log$/.test(name)) continue;
     const full = path.join(dir, name);
     try {
-      if (now - fs.statSync(full).mtimeMs > RETENTION_DAYS * 86_400_000) fs.unlinkSync(full);
+      if (now - fs.statSync(full).mtimeMs > RETENTION_DAYS * 86_400_000) {
+        fs.unlinkSync(full);
+        removed += 1;
+      }
     } catch {
-      // Fichier verrouillé ou déjà supprimé : la purge réessaiera à la prochaine bascule.
+      // Fichier verrouillé ou déjà supprimé : la purge réessaiera au prochain passage.
     }
   }
+  return removed;
 }

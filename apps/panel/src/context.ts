@@ -51,6 +51,8 @@ export interface AppContext {
   sqlite: SqliteHandle;
   metrics: MetricsDatabase;
   metricsSqlite: SqliteHandle;
+  /** Chemins des deux fichiers (`':memory:'` en test) : VACUUM hebdomadaire et contrôle d'espace disque. */
+  files: { mmo: string; metrics: string };
   metricsService: MetricsService;
   uiEvents: UiEventsService;
   settings: SettingsService;
@@ -129,10 +131,12 @@ export interface ContextOptions {
 export function createContext(options: ContextOptions): AppContext {
   const { config, logger } = options;
   const now = options.now ?? (() => Date.now());
-  const mmo = openMmoDatabase(options.dbFile ?? path.join(config.dataDir, 'mmo.db'));
-  const metrics = openMetricsDatabase(
-    options.metricsFile ?? path.join(config.dataDir, 'metrics.db'),
-  );
+  const files = {
+    mmo: options.dbFile ?? path.join(config.dataDir, 'mmo.db'),
+    metrics: options.metricsFile ?? path.join(config.dataDir, 'metrics.db'),
+  };
+  const mmo = openMmoDatabase(files.mmo);
+  const metrics = openMetricsDatabase(files.metrics);
   const db = mmo.db;
 
   const settings = new SettingsService(db, now);
@@ -381,6 +385,7 @@ export function createContext(options: ContextOptions): AppContext {
     sqlite: mmo.sqlite,
     metrics: metrics.db,
     metricsSqlite: metrics.sqlite,
+    files,
     metricsService,
     alerts,
     uiEvents,

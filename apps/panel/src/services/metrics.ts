@@ -2,7 +2,8 @@
  * Métriques (doc 04 §7) : `metrics.sample` des agents → `metrics.db`, **par lots et transactions
  * groupées** (jamais un INSERT par échantillon) ; job horaire de downsampling brut → 1 min → 1 h
  * (min/max/avg, moyennes pondérées par `samples`) et purge (brut 48 h, 1 min 14 j, 1 h 2 ans),
- * `incremental_vacuum` occasionnel ; lectures par plage avec résolution automatique.
+ * compaction incrémentale **bornée en temps** à chaque passage ; lectures par plage avec
+ * résolution automatique.
  */
 
 import type { EventPayload } from '@mmo/protocol';
@@ -16,6 +17,7 @@ import type {
   ServerMetricsResult,
 } from '@mmo/protocol/client';
 
+import { incrementalVacuum, type IncrementalVacuumResult } from '../db/compaction.js';
 import type { SqliteHandle } from '../db/sqlite.js';
 
 export type MetricsSample = EventPayload<'metrics.sample'>;
@@ -68,7 +70,6 @@ export class MetricsService {
   private flushTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly latestServer = new Map<string, LatestServer>();
   private readonly latestMachine = new Map<string, LatestMachine>();
-  private lastVacuumAt = 0;
   private autoVacuumChecked = false;
   /** Plus ancien timestamp ingéré depuis la dernière agrégation (rejeux tardifs : tampon agent 1 h). */
   private dirtySince: number | undefined;
@@ -197,13 +198,20 @@ export class MetricsService {
   // --- Downsampling et purge ----------------------------------------------------------------------
 
   /**
-   * Agrège les tranches **complètes** non encore agrégées (brut → 1 min, 1 min → 1 h) puis purge
-   * les tranches expirées. Idempotent ; ré-exécutable à tout moment (`INSERT OR REPLACE`).
+   * Agrège les tranches **complètes** non encore agrégées (brut → 1 min, 1 min → 1 h), purge les
+   * tranches expirées, puis rend les pages libres au système de fichiers dans un budget de temps
+   * (l'ancien `incremental_vacuum(200)` quotidien plafonnait à ~800 Kio/jour). Idempotent ;
+   * ré-exécutable à tout moment (`INSERT OR REPLACE`).
    */
-  maintain(now = this.options.now()): {
+  maintain(
+    now = this.options.now(),
+    options: { compactionBudgetMs?: number; compactionClock?: () => number } = {},
+  ): {
     minutes: number;
     hours: number;
     purged: number;
+    /** Compaction incrémentale de ce passage (pages rendues, reste à rendre). */
+    compaction: IncrementalVacuumResult;
     /** Durée du VACUUM complet de rattrapage (`auto_vacuum` absent), quand il a eu lieu. */
     compactedMs?: number;
   } {
@@ -238,13 +246,14 @@ export class MetricsService {
       return { minutes, hours, purged };
     });
     const result = run();
-    if (now - this.lastVacuumAt >= DAY) {
-      this.lastVacuumAt = now;
-      const compactedMs = this.ensureAutoVacuum();
-      db.pragma('incremental_vacuum(200)');
-      if (compactedMs !== undefined) return { ...result, compactedMs };
-    }
-    return result;
+    const compactedMs = this.ensureAutoVacuum();
+    const compaction = incrementalVacuum(db, {
+      ...(options.compactionBudgetMs === undefined ? {} : { budgetMs: options.compactionBudgetMs }),
+      ...(options.compactionClock === undefined ? {} : { clock: options.compactionClock }),
+    });
+    return compactedMs === undefined
+      ? { ...result, compaction }
+      : { ...result, compaction, compactedMs };
   }
 
   /**
