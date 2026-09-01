@@ -497,6 +497,12 @@ function startRcon() {
       }
     });
   });
+  // Sans ce gestionnaire, un port déjà pris tuait le processus sans un mot : le test d'en face
+  // n'avait plus qu'un délai d'attente pour tout diagnostic.
+  rconServer.on('error', (e) => {
+    log(`**** FAILED TO BIND RCON PORT! ${e.message}`, 'WARN', 'RCON Listener #1');
+    exit(1);
+  });
   rconServer.listen(Number(rconPort), '0.0.0.0', () => {
     log(`RCON running on 0.0.0.0:${rconPort}`, 'INFO', 'RCON Listener #1');
   });

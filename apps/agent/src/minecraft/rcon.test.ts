@@ -4,9 +4,46 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { ProtocolError } from '@mmo/protocol';
 
-import { FAKE_SERVER, freePort, waitFor } from '../test/helpers.js';
+import { FAKE_SERVER, freePort, testBudget, waitFor } from '../test/helpers.js';
 import { RconClient, decodeRconPackets, encodeRconPacket, parseListResponse } from './rcon.js';
-import { isPortFree } from '../platform/ports.js';
+
+/**
+ * Attend que le faux serveur ANNONCE son listener RCON, au lieu de sonder le port : un port occupé
+ * ne dit pas PAR QUI. Sur un runner chargé, un autre worker peut prendre le port que `freePort()`
+ * vient de rendre ; le faux serveur meurt alors sur EADDRINUSE, la sonde de port réussit quand même
+ * et le test attend une connexion RCON vers un inconnu jusqu'à expiration (vécu en CI Windows).
+ */
+async function waitForRconReady(child: ChildProcess, timeoutMs = 20_000): Promise<void> {
+  let output = '';
+  await new Promise<void>((resolve, reject) => {
+    const cleanup = (): void => {
+      clearTimeout(timer);
+      child.stdout?.off('data', onData);
+      child.off('exit', onExit);
+    };
+    const onData = (chunk: Buffer): void => {
+      output += chunk.toString();
+      if (output.includes('RCON running')) {
+        cleanup();
+        resolve();
+      }
+    };
+    const onExit = (code: number | null): void => {
+      cleanup();
+      reject(
+        new Error(`faux serveur terminé (code ${String(code)}) avant d'ouvrir RCON :\n${output}`),
+      );
+    };
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(
+        new Error(`faux serveur : pas de listener RCON après ${String(timeoutMs)} ms :\n${output}`),
+      );
+    }, testBudget(timeoutMs));
+    child.stdout?.on('data', onData);
+    child.on('exit', onExit);
+  });
+}
 
 describe('client RCON maison (doc 06 §5)', () => {
   let child: ChildProcess;
@@ -32,9 +69,9 @@ describe('client RCON maison (doc 06 §5)', () => {
         '--big-response',
         '9000',
       ],
-      { stdio: ['pipe', 'ignore', 'ignore'] },
+      { stdio: ['pipe', 'pipe', 'ignore'] },
     );
-    await waitFor(async () => !(await isPortFree(port)), 5000);
+    await waitForRconReady(child);
   });
   afterAll(() => {
     child.kill('SIGKILL');
@@ -130,10 +167,10 @@ describe('client RCON maison (doc 06 §5)', () => {
         '--big-response',
         '9000',
       ],
-      { stdio: ['pipe', 'ignore', 'ignore'] },
+      { stdio: ['pipe', 'pipe', 'ignore'] },
     );
     try {
-      await waitFor(async () => !(await isPortFree(strictPort)), 5000);
+      await waitForRconReady(strict);
       const rcon = new RconClient({ port: strictPort, password });
       await waitFor(async () => {
         try {
