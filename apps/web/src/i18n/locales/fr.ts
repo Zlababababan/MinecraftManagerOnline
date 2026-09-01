@@ -237,6 +237,32 @@ export const webFr = {
       skipped_other: '{{count}} non tentés : {{names}}',
     },
   },
+  groups: {
+    title: 'Groupes de démarrage',
+    open: 'Groupes',
+    hint: 'Un groupe démarre ses serveurs dans l’ordre, en attendant que chacun soit en marche avant de passer au suivant ; l’arrêt parcourt l’ordre inverse. La série s’arrête au premier échec, qui est notifié.',
+    none: 'Aucun groupe. Créez-en un pour démarrer plusieurs serveurs dans le bon ordre.',
+    newName: 'Nouveau groupe',
+    namePlaceholder: 'Réseau Velocity',
+    create: 'Créer',
+    delete: 'Supprimer le groupe',
+    deleteConfirm:
+      'Supprimer « {{name}} » ? Les serveurs ne sont pas touchés — seuls le groupe et son ordre disparaissent.',
+    start: 'Démarrer',
+    stop: 'Arrêter',
+    restart: 'Redémarrer',
+    started: 'Action lancée — les serveurs s’enchaînent dans l’ordre du groupe.',
+    members_one: '{{count}} serveur',
+    members_other: '{{count}} serveurs',
+    empty: 'Aucun serveur dans ce groupe.',
+    add: 'Ajouter',
+    addPlaceholder: 'Ajouter un serveur…',
+    moveUp: 'Monter',
+    moveDown: 'Descendre',
+    remove: 'Retirer du groupe',
+    velocityHint:
+      'Ce groupe contient un proxy Velocity qui n’est pas en dernière position : il démarrera avant ses serveurs cibles.',
+  },
   server: {
     one: 'Serveur',
     tabs: {
@@ -596,6 +622,7 @@ export const webFr = {
         'Fabric n’a pas de commande TPS intégrée. Installer le mod spark la rend disponible.',
       forgeNoAnswer:
         'La commande /forge tps n’a pas encore répondu (serveur en cours de chargement, ou RCON indisponible).',
+      proxy: 'Un proxy n’a pas de ticks : le TPS n’existe pas pour lui.',
       unknown: 'Aucune méthode connue n’a répondu sur ce serveur.',
     },
     sparkLink: 'Télécharger spark',

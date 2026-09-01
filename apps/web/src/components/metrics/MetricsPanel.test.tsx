@@ -47,6 +47,8 @@ const base: ServerDto = {
   createdAt: 0,
   updatedAt: 0,
   reachable: true,
+  groupId: null,
+  groupPosition: 0,
 };
 
 function json(status: number, body: unknown): Response {

@@ -10,6 +10,7 @@ export const en = {
       forge: 'Forge',
       neoforge: 'NeoForge',
       fabric: 'Fabric',
+      velocity: 'Velocity (proxy)',
       unknown: 'Unknown (to configure)',
     },
     confidence: {
@@ -195,6 +196,7 @@ export const en = {
       ram_ambiguous: 'several memory settings found ({{detail}})',
       eula_accepted: 'EULA accepted',
       eula_missing: 'EULA not accepted yet',
+      velocity_toml: 'velocity.toml found — Velocity proxy ({{detail}})',
       marker: 'MMO marker found ({{detail}})',
       no_loader: 'no loader signal found — configure manually',
       no_version: 'Minecraft version not found — configure manually',

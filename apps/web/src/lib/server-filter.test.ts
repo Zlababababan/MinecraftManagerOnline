@@ -27,6 +27,8 @@ function srv(over: Partial<ServerDto> = {}): ServerDto {
     startedAt: null,
     maxRamMb: 4096,
     reachable: true,
+    groupId: null,
+    groupPosition: 0,
     ...over,
   } as ServerDto;
 }

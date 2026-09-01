@@ -11,7 +11,15 @@ export const ulidSchema = z.string().regex(/^[0-9A-HJKMNP-TV-Z]{26}$/);
 export const serverIdSchema = z.string().min(1);
 export const portSchema = z.int().min(1).max(65535);
 
-export const loaderSchema = z.enum(['vanilla', 'forge', 'neoforge', 'fabric', 'unknown']);
+/** `velocity` = proxy (pas de version Minecraft, pas d'EULA Mojang, pas de RCON). */
+export const loaderSchema = z.enum([
+  'vanilla',
+  'forge',
+  'neoforge',
+  'fabric',
+  'velocity',
+  'unknown',
+]);
 export type Loader = z.infer<typeof loaderSchema>;
 
 export const runStateSchema = z.enum(['stopped', 'starting', 'running', 'stopping', 'crashed']);

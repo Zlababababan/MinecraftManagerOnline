@@ -3,7 +3,7 @@
  * ancien/Fabric, `argfile` Forge/NeoForge modernes) + flags injectés systématiquement.
  * Jamais via un shell ni un `.bat`/`.sh` ; cwd = dossier du serveur. Fonction pure (testable).
  */
-import { ProtocolError, type LaunchPlan, type Os } from '@mmo/protocol';
+import { ProtocolError, type LaunchPlan, type Loader, type Os } from '@mmo/protocol';
 import { compareMcVersions } from '@mmo/shared';
 
 import { LOG4J2_112_116_FILENAME, LOG4J2_112_116_XML } from './log4j2-config.js';
@@ -17,6 +17,8 @@ export interface LaunchInput {
   maxRamMb: number;
   minRamMb?: number | undefined;
   mcVersion?: string | undefined;
+  /** `velocity` : proxy — pas d'argument `nogui` (inconnu de Velocity, qui refuserait de démarrer). */
+  loader?: Loader | undefined;
   /** Arguments JVM supplémentaires (après les flags injectés). */
   jvmArgs?: readonly string[] | undefined;
 }
@@ -103,7 +105,7 @@ export function buildLaunchCommand(input: LaunchInput): LaunchCommand {
       break;
     }
   }
-  args.push('nogui');
+  if (input.loader !== 'velocity') args.push('nogui');
 
   return { file: input.javaPath, args, cwd: input.serverDir, cmdlineKey, files };
 }

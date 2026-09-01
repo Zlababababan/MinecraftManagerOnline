@@ -218,6 +218,20 @@ export const javaRuntimes = sqliteTable(
 
 // --- 3. Serveurs Minecraft --------------------------------------------------------------------------
 
+/**
+ * Groupes de démarrage (lot 7) : démarrage séquentiel par `group_position` croissante en attendant
+ * `running`, arrêt en ordre inverse. Un serveur appartient à au plus un groupe (colonne sur
+ * `servers`) ; supprimer un groupe détache ses membres (ON DELETE SET NULL).
+ */
+export const serverGroups = sqliteTable('server_groups', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+export type ServerGroupRow = typeof serverGroups.$inferSelect;
+
 export const servers = sqliteTable(
   'servers',
   {
@@ -230,7 +244,9 @@ export const servers = sqliteTable(
     }),
     path: text('path').notNull(),
     name: text('name').notNull(),
-    loader: text('loader', { enum: ['vanilla', 'forge', 'neoforge', 'fabric', 'unknown'] })
+    loader: text('loader', {
+      enum: ['vanilla', 'forge', 'neoforge', 'fabric', 'velocity', 'unknown'],
+    })
       .notNull()
       .default('unknown'),
     mcVersion: text('mc_version'),
@@ -280,13 +296,19 @@ export const servers = sqliteTable(
     detectionJson: text('detection_json'),
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull(),
+    /** Groupe de démarrage (lot 7) et rang dans le groupe (démarrage croissant, arrêt décroissant). */
+    groupId: text('group_id').references(() => serverGroups.id, { onDelete: 'set null' }),
+    groupPosition: integer('group_position').notNull().default(0),
   },
   (t) => [
     unique('uq_servers_path').on(t.machineId, t.path),
     index('idx_servers_machine').on(t.machineId),
     index('idx_servers_run').on(t.runState),
     index('idx_servers_ports').on(t.machineId, t.gamePort),
-    check('servers_loader', sql`${t.loader} IN ('vanilla','forge','neoforge','fabric','unknown')`),
+    check(
+      'servers_loader',
+      sql`${t.loader} IN ('vanilla','forge','neoforge','fabric','velocity','unknown')`,
+    ),
     check('servers_expose', sql`${t.exposeMode} IN ('tailnet','direct')`),
     check(
       'servers_provisioning',

@@ -147,6 +147,40 @@ describe('gestionnaire de serveurs (garde-fous doc 05 §6, provisionnement doc 0
     }
   });
 
+  it('Velocity : démarre sans eula.txt, port lu dans velocity.toml, aucun RCON provisionné, arrêt par shutdown', async () => {
+    const { dir: vdir, cleanup: vcleanup } = await tmpDir();
+    try {
+      const vport = await freePort();
+      await writeFile(path.join(vdir, 'velocity.toml'), `bind = "0.0.0.0:${String(vport)}"\n`);
+      await writeFile(path.join(vdir, 'velocity-3.4.0.jar'), '');
+      // Le faux serveur en mode proxy : `stop` inconnu, `shutdown` arrête.
+      const m = await makeManager({ commandBuilder: commandBuilder(['--velocity']) });
+      await m.applyConfigs([
+        {
+          serverId: 'proxy_1',
+          path: vdir,
+          maxRamMb: 1024,
+          loader: 'velocity',
+          launch: { kind: 'jar', jar: 'velocity-3.4.0.jar' },
+        },
+      ]);
+      // Sans eula.txt ni server.properties : un proxy démarre quand même (aucune EULA Mojang).
+      const r = await m.start('proxy_1');
+      expect(r.pid).toBeGreaterThan(0);
+      await waitFor(() => m.get('proxy_1')?.state === 'running', 5000);
+      // Pas de RCON provisionné : aucun server.properties parasite dans le dossier du proxy.
+      await expect(readFile(path.join(vdir, 'server.properties'), 'utf8')).rejects.toThrow();
+      const record = m.store.getServer('proxy_1');
+      expect(record?.runtime?.gamePort).toBe(vport);
+      expect(record?.runtime?.rconPort).toBeUndefined();
+      // Arrêt propre : `shutdown` envoyé (avec `stop`, le proxy resterait vivant → forced).
+      const stopped = await m.stop('proxy_1', { timeoutMs: 5000 });
+      expect(stopped).toEqual({ alreadyStopped: false, forced: false });
+    } finally {
+      await vcleanup();
+    }
+  });
+
   it('provisionne RCON dans server.properties, démarre, idempotent (alreadyRunning), restart, snapshot', async () => {
     const m = await makeManager();
     await m.applyConfigs([config(dir)]);

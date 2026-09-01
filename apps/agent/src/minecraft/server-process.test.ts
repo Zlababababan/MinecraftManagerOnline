@@ -124,6 +124,19 @@ describe('processus serveur géré (doc 06 §3–4)', () => {
     });
   });
 
+  it('stopCommand personnalisé (Velocity) : `shutdown` arrête proprement là où `stop` est inconnu', async () => {
+    proc = makeProcess(dir, events);
+    await proc.start(fakeServerCommand(dir, ['--done-after', '50', '--velocity']));
+    await waitFor(() => proc!.state === 'running', 5000);
+    const result = await proc.stop({ timeoutMs: 5000, stopCommand: 'shutdown' });
+    expect(result).toEqual({ alreadyStopped: false, forced: false });
+    expect(events.filter((e) => e.kind === 'state').at(-1)).toMatchObject({
+      state: 'stopped',
+      exitReason: 'stop',
+      exitCode: 0,
+    });
+  });
+
   it('EULA refusée : signalée, état stopped (pas crash)', async () => {
     proc = makeProcess(dir, events);
     await proc.start(fakeServerCommand(dir, ['--eula']));

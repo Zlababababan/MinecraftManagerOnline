@@ -244,6 +244,9 @@ export const serverDtoSchema = z.object({
   updatedAt: epochMsSchema,
   /** Agent joignable à cet instant (dérivé de la machine) ; sinon « inaccessible ». */
   reachable: z.boolean(),
+  /** Groupe de démarrage et rang dans le groupe (démarrage croissant, arrêt décroissant). */
+  groupId: z.string().nullable().default(null),
+  groupPosition: z.int().default(0),
   /** Dernière détection (confiance, evidence, template de lancement). */
   detection: detectedServerSchema.optional(),
 });
@@ -268,12 +271,38 @@ export const updateServerSchema = z.object({
   crashLoopMax: z.int().nonnegative().optional(),
   watchdogFreezeS: z.int().positive().optional(),
   provisioning: z.enum(['ready', 'archived']).optional(),
+  /** Groupe de démarrage (null = retirer du groupe) et rang dans le groupe. */
+  groupId: z.string().min(1).nullable().optional(),
+  groupPosition: z.int().min(0).max(9999).optional(),
 });
 export const stopServerSchema = z.object({
   timeoutSec: z.int().positive().optional(),
   announce: z.string().optional(),
   forceAfterTimeout: z.boolean().optional(),
 });
+
+/**
+ * Groupes de démarrage (lot 7) : démarrage séquentiel par `groupPosition` croissante en attendant
+ * `running`, arrêt en ordre inverse. L'appartenance et le rang se règlent serveur par serveur
+ * (`updateServerSchema.groupId`/`groupPosition`).
+ */
+export const serverGroupDtoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  createdAt: epochMsSchema,
+  updatedAt: epochMsSchema,
+});
+export type ServerGroupDto = z.infer<typeof serverGroupDtoSchema>;
+
+export const serverGroupInputSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+});
+export type ServerGroupInput = z.infer<typeof serverGroupInputSchema>;
+
+export const groupActionSchema = z.object({
+  action: z.enum(['start', 'stop', 'restart']),
+});
+export type GroupAction = z.infer<typeof groupActionSchema>['action'];
 export const commandRequestSchema = z.object({ command: z.string().min(1).max(4096) });
 /**
  * Macros de console : une séquence de commandes enregistrée, exécutée dans l'ordre.

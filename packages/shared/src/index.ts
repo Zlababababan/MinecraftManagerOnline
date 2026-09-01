@@ -16,5 +16,6 @@ export * from './logs/patterns.js';
 export * from './detection/fs.js';
 export * from './detection/detect.js';
 export * from './detection/scan.js';
+export * from './detection/velocity.js';
 export * from './cron.js';
 export * from './timezone.js';

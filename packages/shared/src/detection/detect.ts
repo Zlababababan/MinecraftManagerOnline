@@ -25,6 +25,7 @@ import { parseLogText } from '../logs/parser.js';
 import { matchServerLogEvent } from '../logs/patterns.js';
 import { normalizeMcVersion, parseMcVersion } from '../minecraft/version.js';
 import { baseName, joinPath, type DetectFs, type DirEntry } from './fs.js';
+import { VELOCITY_JAVA_MAJOR, parseVelocityToml, type VelocityToml } from './velocity.js';
 
 export interface DetectOptions {
   /** OS de l'agent : choisit le script de lancement à lire en priorité (`.bat` vs `.sh`). */
@@ -126,12 +127,13 @@ export async function detectServer(
   if (entries.length === 0) return undefined;
   const ctx = new Ctx(fs, root, entries, opts);
 
-  // 0. Qualification
+  // 0. Qualification — `velocity.toml` qualifie un proxy (ni server.properties, ni eula.txt).
   const rootJars = ctx.files(/\.jar$/i);
   const serverJars = rootJars.filter((j) => !INSTALLER_JAR.test(j));
   const qualified =
     ctx.hasFile('server.properties') ||
     ctx.hasFile('eula.txt') ||
+    ctx.hasFile('velocity.toml') ||
     (serverJars.length > 0 && ctx.hasDir('mods'));
   if (!qualified) return undefined;
 
@@ -143,38 +145,53 @@ export async function detectServer(
   const spc = await readVariablesTxt(ctx);
   const ftb = await readServerSetupConfig(ctx);
   const loaderResult = await detectLoader(ctx, serverJars, mods, spc, ftb);
+  // Proxy Velocity : pas de version Minecraft, pas d'EULA Mojang, config dans velocity.toml.
+  const proxy = loaderResult.loader.value === 'velocity';
 
-  // 2. Version MC
-  const mcVersion = await detectMcVersion(ctx, loaderResult, serverJars, rootJars, spc, ftb);
+  // 2. Version MC (sans objet pour un proxy)
+  const mcVersion = proxy
+    ? undefined
+    : await detectMcVersion(ctx, loaderResult, serverJars, rootJars, spc, ftb);
 
   // 3. RAM
   const ram = await detectRam(ctx, spc);
 
   // 4. Ports et propriétés
   const props = parseProperties((await ctx.readText('server.properties')) ?? '');
-  const gamePort = toPort(props.get('server-port'));
-  const rconPort = toPort(props.get('rcon.port'));
-  const queryPort = toPort(props.get('query.port'));
-  const rconEnabled = props.has('enable-rcon') ? props.get('enable-rcon') === 'true' : undefined;
+  const velocity: VelocityToml | undefined = proxy
+    ? parseVelocityToml((await ctx.readText('velocity.toml', 64 * 1024)) ?? '')
+    : undefined;
+  const gamePort = proxy ? velocity?.port : toPort(props.get('server-port'));
+  const rconPort = proxy ? undefined : toPort(props.get('rcon.port'));
+  const queryPort = proxy ? undefined : toPort(props.get('query.port'));
+  const rconEnabled = proxy
+    ? false
+    : props.has('enable-rcon')
+      ? props.get('enable-rcon') === 'true'
+      : undefined;
 
-  // EULA
-  const eulaText = await ctx.readText('eula.txt', 4096);
-  const eulaAccepted = eulaText !== undefined && /^\s*eula\s*=\s*true\s*$/im.test(eulaText);
-  ctx.note(eulaAccepted ? 'eula_accepted' : 'eula_missing');
+  // EULA (sans objet pour un proxy : rien à accepter)
+  const eulaText = proxy ? undefined : await ctx.readText('eula.txt', 4096);
+  const eulaAccepted =
+    proxy || (eulaText !== undefined && /^\s*eula\s*=\s*true\s*$/im.test(eulaText));
+  if (!proxy) ctx.note(eulaAccepted ? 'eula_accepted' : 'eula_missing');
 
-  // 5. Java requis (table ; le panel affine avec le manifest)
-  const javaRequirement =
-    mcVersion === undefined
+  // 5. Java requis (table ; le panel affine avec le manifest — Velocity : 17+, sans version MC)
+  const javaRequirement = proxy
+    ? { majorVersion: VELOCITY_JAVA_MAJOR, strict: false, source: 'table' as const }
+    : mcVersion === undefined
       ? undefined
       : javaRequirementFromTable(mcVersion.value, loaderResult.loader.value);
 
   // 6. Assemblage
   if (loaderResult.loader.value === 'unknown') ctx.note('no_loader');
-  if (mcVersion === undefined) ctx.note('no_version');
+  if (mcVersion === undefined && !proxy) ctx.note('no_version');
   const confidence =
     loaderResult.loader.value === 'unknown'
       ? 'low'
-      : minConfidence(loaderResult.loader.confidence, mcVersion?.confidence ?? 'low');
+      : proxy
+        ? loaderResult.loader.confidence
+        : minConfidence(loaderResult.loader.confidence, mcVersion?.confidence ?? 'low');
 
   const result: DetectedServer = {
     path: root,
@@ -200,7 +217,7 @@ export async function detectServer(
   if (rconPort !== undefined) result.rconPort = rconPort;
   if (queryPort !== undefined) result.queryPort = queryPort;
   if (rconEnabled !== undefined) result.rconEnabled = rconEnabled;
-  const motd = props.get('motd');
+  const motd = proxy ? velocity?.motd : props.get('motd');
   if (motd !== undefined && motd !== '') result.motd = motd;
   const levelName = props.get('level-name');
   if (levelName !== undefined && levelName !== '') result.levelName = levelName;
@@ -313,6 +330,7 @@ function modsAgree(loader: Loader, m: ModsInspection): boolean | undefined {
     case 'forge':
       return m.votes.forgeFamily + m.votes.forgeLegacy >= total / 2;
     case 'vanilla':
+    case 'velocity':
     case 'unknown':
       return undefined;
   }
@@ -439,6 +457,24 @@ async function detectLoader(
 ): Promise<LoaderResult> {
   const mcClaims: Claim<string>[] = [];
   let result: LoaderResult | undefined;
+
+  // 1z. Proxy Velocity : velocity.toml à la racine. Un serveur Java ordinaire (template `jar`),
+  // prioritaire sur tout le reste — un proxy n'a ni libraries/, ni mods/, ni jar Mojang.
+  if (ctx.hasFile('velocity.toml')) {
+    const jar =
+      serverJars.find((j) => /^velocity.*\.jar$/i.test(j)) ??
+      (serverJars.length === 1 ? serverJars[0] : undefined);
+    const version = jar === undefined ? undefined : /^velocity-(.+)\.jar$/i.exec(jar)?.[1];
+    ctx.note('velocity_toml', jar);
+    return {
+      loader: { value: 'velocity', confidence: 'high', source: 'velocity.toml' },
+      ...(version === undefined
+        ? {}
+        : { loaderVersion: { value: version, confidence: 'high', source: 'jar_name' } }),
+      mcVersionClaims: [],
+      ...(jar === undefined ? {} : { launch: { kind: 'jar', jar } as const }),
+    };
+  }
 
   // 1a. NeoForge : libraries/net/neoforged/neoforge/<v>/
   const neoDirs = (await ctx.readdir('libraries/net/neoforged/neoforge'))

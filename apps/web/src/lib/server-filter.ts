@@ -8,7 +8,7 @@
  */
 import type { ServerDto } from '@mmo/protocol/client';
 
-const LOADERS = ['vanilla', 'forge', 'neoforge', 'fabric', 'unknown'] as const;
+const LOADERS = ['vanilla', 'forge', 'neoforge', 'fabric', 'velocity', 'unknown'] as const;
 const RUN_STATES = ['stopped', 'starting', 'running', 'stopping', 'crashed'] as const;
 
 export const SERVER_SORTS = ['name', 'state', 'started', 'ram'] as const;

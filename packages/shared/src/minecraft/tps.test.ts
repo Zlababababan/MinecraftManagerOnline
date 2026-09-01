@@ -72,5 +72,9 @@ describe('parsing TPS (doc 06 §6)', () => {
         (m) => m.source,
       ),
     ).toEqual(['spark', 'tick_query']);
+    // Un proxy n'a pas de ticks : aucune méthode, même avec spark ou sans version connue.
+    expect(tpsChain({ loader: 'velocity', mcVersion: undefined, sparkInstalled: true })).toEqual(
+      [],
+    );
   });
 });

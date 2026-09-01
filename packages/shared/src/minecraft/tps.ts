@@ -125,7 +125,7 @@ export function parseTpsResponse(source: TpsSource, text: string): TpsReading | 
 }
 
 export interface TpsChainInput {
-  loader: 'vanilla' | 'forge' | 'neoforge' | 'fabric' | 'unknown' | undefined;
+  loader: 'vanilla' | 'forge' | 'neoforge' | 'fabric' | 'velocity' | 'unknown' | undefined;
   mcVersion: string | undefined;
   /** spark détecté dans `mods/` (jar `spark-*`). */
   sparkInstalled: boolean;
@@ -149,6 +149,9 @@ export function tpsChain(input: TpsChainInput): TpsMethod[] {
     case undefined:
       chain.push('neoforge', 'forge');
       break;
+    // Un proxy n'a ni ticks ni RCON : aucune méthode, « TPS indisponible » assumé.
+    case 'velocity':
+      return [];
     case 'vanilla':
     case 'fabric':
       break;

@@ -49,11 +49,35 @@ function createDrizzle(client: SqliteHandle, tables: Record<string, unknown>): u
   return new BaseSQLiteDatabase('sync', dialect, session, relational);
 }
 
+/**
+ * Migrations avec clés étrangères coupées HORS transaction (procédure canonique SQLite pour les
+ * recréations de table) : le migrateur Drizzle enveloppe chaque lot dans une transaction, où le
+ * `PRAGMA foreign_keys=OFF` émis par drizzle-kit est un no-op — un `DROP TABLE servers` y
+ * déclencherait les cascades des tables dépendantes (backups, planifications, migrations…).
+ * `foreign_key_check` vérifie l'intégrité avant de réarmer l'application des FK.
+ */
+function migrateWithForeignKeysOff(
+  db: MmoDatabase | MetricsDatabase,
+  sqlite: SqliteHandle,
+  folder: string,
+): void {
+  sqlite.exec('PRAGMA foreign_keys = OFF');
+  try {
+    migrate(db as MmoDatabase, { migrationsFolder: folder });
+    const violations = sqlite.pragma('foreign_key_check') as unknown[];
+    if (violations.length > 0) {
+      throw new Error(`migration left ${String(violations.length)} foreign key violation(s)`);
+    }
+  } finally {
+    sqlite.exec('PRAGMA foreign_keys = ON');
+  }
+}
+
 /** `mmo.db` : ouverture + migrations. `':memory:'` accepté (tests). */
 export function openMmoDatabase(file: string): OpenedDatabase<MmoDatabase> {
   const sqlite = openSqliteFile(file);
   const db = createDrizzle(sqlite, schema) as MmoDatabase;
-  migrate(db, { migrationsFolder: path.join(MIGRATIONS_ROOT, 'mmo') });
+  migrateWithForeignKeysOff(db, sqlite, path.join(MIGRATIONS_ROOT, 'mmo'));
   return {
     db,
     sqlite,
@@ -67,7 +91,7 @@ export function openMmoDatabase(file: string): OpenedDatabase<MmoDatabase> {
 export function openMetricsDatabase(file: string): OpenedDatabase<MetricsDatabase> {
   const sqlite = openSqliteFile(file, 'INCREMENTAL');
   const db = createDrizzle(sqlite, metricsSchema) as MetricsDatabase;
-  migrate(db, { migrationsFolder: path.join(MIGRATIONS_ROOT, 'metrics') });
+  migrateWithForeignKeysOff(db, sqlite, path.join(MIGRATIONS_ROOT, 'metrics'));
   return {
     db,
     sqlite,

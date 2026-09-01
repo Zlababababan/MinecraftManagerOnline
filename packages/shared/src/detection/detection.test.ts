@@ -8,6 +8,7 @@ import { createNodeDetectFs } from '../node/index.js';
 import { detectServer, mcVersionFromNeoForge, parseProperties } from './detect.js';
 import { MemoryDetectFs, MemoryJar } from './fs.js';
 import { scanForServers } from './scan.js';
+import { parseVelocityToml } from './velocity.js';
 
 const FIXTURES = path.join(import.meta.dirname, '..', '..', 'test', 'fixtures', 'servers');
 
@@ -109,6 +110,47 @@ describe('détection sur fixtures réelles (critère phase 2 : ≥ 90 % corrects
 describe('détection — cas synthétiques (FS mémoire)', () => {
   const props =
     'server-port=25565\nenable-rcon=true\nrcon.port=25575\nrcon.password=x\nmotd=Hi\nlevel-name=world\n';
+
+  it('Velocity : velocity.toml qualifie un proxy — port bind, Java 17, ni EULA ni RCON ni version MC', async () => {
+    const fs = new MemoryDetectFs({
+      '/srv/proxy': {
+        'velocity.toml': [
+          'config-version = "2.7"',
+          'bind = "0.0.0.0:25577"',
+          'motd = "<#09add3>Réseau"',
+          'show-max-players = 500',
+        ].join('\n'),
+        'forwarding.secret': 'secret',
+        'velocity-3.4.0-SNAPSHOT-446.jar': '',
+        plugins: {},
+      },
+    });
+    const r = await detectServer(fs, '/srv/proxy');
+    expect(r?.loader).toEqual({ value: 'velocity', confidence: 'high', source: 'velocity.toml' });
+    expect(r?.loaderVersion?.value).toBe('3.4.0-SNAPSHOT-446');
+    expect(r?.mcVersion).toBeUndefined();
+    expect(r?.launch).toEqual({ kind: 'jar', jar: 'velocity-3.4.0-SNAPSHOT-446.jar' });
+    expect(r?.gamePort).toBe(25577);
+    expect(r?.motd).toBe('<#09add3>Réseau');
+    // Pas d'EULA Mojang à accepter, pas de RCON à provisionner : rien à reprocher au proxy.
+    expect(r?.eulaAccepted).toBe(true);
+    expect(r?.rconEnabled).toBe(false);
+    expect(r?.javaRequirement).toEqual({ majorVersion: 17, strict: false, source: 'table' });
+    expect(r?.confidence).toBe('high');
+    // Le résultat reste un payload protocole `server.detected` valide.
+    const parsed = detectedServerSchema.safeParse(r);
+    expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+  });
+
+  it('parseVelocityToml : bind, motd, et replis honnêtes', () => {
+    expect(parseVelocityToml('bind = "0.0.0.0:25577"\nmotd = "Hey"\n')).toEqual({
+      port: 25577,
+      motd: 'Hey',
+    });
+    expect(parseVelocityToml('bind = "192.168.1.4:26000"\n')).toEqual({ port: 26000 });
+    expect(parseVelocityToml('# bind manquant\n')).toEqual({});
+    expect(parseVelocityToml('bind = "0.0.0.0:99999"\n')).toEqual({});
+  });
 
   it('FTB server-setup-config.yaml : loader, versions et RAM quand rien n’est installé', async () => {
     const fs = new MemoryDetectFs({

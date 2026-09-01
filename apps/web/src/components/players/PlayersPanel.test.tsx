@@ -57,6 +57,8 @@ const server: ServerDto = {
   createdAt: 0,
   updatedAt: 0,
   reachable: true,
+  groupId: null,
+  groupPosition: 0,
 };
 
 interface FakeState {

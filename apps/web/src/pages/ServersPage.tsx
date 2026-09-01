@@ -8,6 +8,7 @@
  */
 import {
   Alert,
+  Badge,
   Button,
   Checkbox,
   Group,
@@ -20,6 +21,7 @@ import {
 } from '@mantine/core';
 import {
   IconAlertTriangle,
+  IconListNumbers,
   IconPlayerPlay,
   IconPlayerStop,
   IconRefresh,
@@ -30,7 +32,9 @@ import { useState } from 'react';
 
 import type { BulkActionResult, ServerDto } from '@mmo/protocol/client';
 
+import { useGroups } from '../api/groups.js';
 import { useBulkAction, useMachines, useMe, useServers } from '../api/queries.js';
+import { GroupsModal } from '../components/groups/GroupsPanel.js';
 import { RunStateBadge } from '../components/badges.js';
 import { RouterAnchor } from '../components/links.js';
 import { serverSubtitle } from '../components/ServerCard.js';
@@ -56,10 +60,14 @@ export function ServersPage({
   const me = useMe();
   const servers = useServers();
   const machines = useMachines();
+  const groups = useGroups();
   const bulk = useBulkAction();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [groupsOpen, setGroupsOpen] = useState(false);
 
   const canOperate = me.data !== undefined && hasRole(me.data.user.role, 'operator');
+  const groupName = (id: string | null): string | undefined =>
+    id === null ? undefined : groups.data?.groups.find((g) => g.id === id)?.name;
   const all = servers.data?.servers ?? [];
   const options = filterOptions(all);
   const shown = filterServers(all, filter);
@@ -100,11 +108,27 @@ export function ServersPage({
         <Title order={1} size="h2">
           {t('web:servers.title')}
         </Title>
-        <Text size="sm" c="dimmed" data-testid="servers-count">
-          {filtered
-            ? t('web:servers.countFiltered', { shown: shown.length, total: all.length })
-            : t('web:servers.count', { count: all.length })}
-        </Text>
+        <Group gap="xs">
+          {canOperate && (
+            <Button
+              type="button"
+              size="xs"
+              variant="light"
+              leftSection={<IconListNumbers size={14} />}
+              onClick={() => {
+                setGroupsOpen(true);
+              }}
+              data-testid="servers-groups-open"
+            >
+              {t('web:groups.open')}
+            </Button>
+          )}
+          <Text size="sm" c="dimmed" data-testid="servers-count">
+            {filtered
+              ? t('web:servers.countFiltered', { shown: shown.length, total: all.length })
+              : t('web:servers.count', { count: all.length })}
+          </Text>
+        </Group>
       </Group>
 
       <Group gap="xs" wrap="wrap" align="flex-end">
@@ -290,6 +314,7 @@ export function ServersPage({
                   server={s}
                   machineName={machineName(s.machineId)}
                   loaderLabel={t(`common:loader.${s.loader}`)}
+                  groupLabel={groupName(s.groupId)}
                   selectable={canOperate}
                   selected={selected.has(s.id)}
                   onToggle={() => {
@@ -302,6 +327,12 @@ export function ServersPage({
           </Table>
         </Table.ScrollContainer>
       )}
+      <GroupsModal
+        opened={groupsOpen}
+        onClose={() => {
+          setGroupsOpen(false);
+        }}
+      />
     </Stack>
   );
 }
@@ -310,6 +341,7 @@ function ServerRow({
   server,
   machineName,
   loaderLabel,
+  groupLabel,
   selectable,
   selected,
   onToggle,
@@ -318,6 +350,7 @@ function ServerRow({
   server: ServerDto;
   machineName: string;
   loaderLabel: string;
+  groupLabel: string | undefined;
   selectable: boolean;
   selected: boolean;
   onToggle: () => void;
@@ -337,14 +370,21 @@ function ServerRow({
       )}
       <Table.Td>
         <Stack gap={0}>
-          <RouterAnchor
-            to="/servers/$serverId"
-            params={{ serverId: server.id }}
-            fw={600}
-            truncate="end"
-          >
-            {server.name}
-          </RouterAnchor>
+          <Group gap={6} wrap="nowrap">
+            <RouterAnchor
+              to="/servers/$serverId"
+              params={{ serverId: server.id }}
+              fw={600}
+              truncate="end"
+            >
+              {server.name}
+            </RouterAnchor>
+            {groupLabel !== undefined && (
+              <Badge variant="outline" size="xs" data-testid={`servers-group-badge-${server.id}`}>
+                {groupLabel}
+              </Badge>
+            )}
+          </Group>
           <Text size="xs" c="dimmed" truncate="end">
             {serverSubtitle(server, loaderLabel)}
           </Text>

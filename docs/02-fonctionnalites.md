@@ -28,6 +28,8 @@ Liste de référence, validée avant le développement. Chaque fonctionnalité e
 | Gestion des ports : affichage, modification, détection de conflit par machine avant lancement | V1 |
 | Acceptation guidée de l'EULA | V1 |
 | États de provisionnement (en installation / prêt / archivé) | V1 |
+| Groupes de démarrage : démarrage séquentiel par rang en attendant l'état « en marche », arrêt en ordre inverse, série interrompue au premier échec | V1 (post-1.0, 2026-09-01) |
+| Proxy Velocity reconnu au scan (`velocity.toml`) et pilotable : lancement `jar` sans `nogui`, console stdin, arrêt `shutdown`, pas d'EULA ni de RCON | V1 (post-1.0, 2026-09-01) |
 | Création d'un serveur depuis un modpack (CurseForge, FTB, Modrinth) | Futur |
 | Mise à jour d'un serveur vers une nouvelle version de modpack | Futur |
 

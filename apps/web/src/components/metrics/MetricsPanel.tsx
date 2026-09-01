@@ -100,7 +100,7 @@ export function CpuSourceWarning({ source }: { source: string | null | undefined
 /** Raison honnête de l'absence de TPS selon le loader / la version. */
 export function tpsUnavailableReason(
   server: Pick<ServerDto, 'loader' | 'mcVersion' | 'runState'>,
-): 'notRunning' | 'vanillaOld' | 'fabricNoSpark' | 'forgeNoAnswer' | 'unknown' {
+): 'notRunning' | 'vanillaOld' | 'fabricNoSpark' | 'forgeNoAnswer' | 'proxy' | 'unknown' {
   if (server.runState !== 'running') return 'notRunning';
   const tickQuery =
     server.mcVersion !== null && (compareMcVersions(server.mcVersion, '1.20.3') ?? -1) >= 0;
@@ -112,6 +112,9 @@ export function tpsUnavailableReason(
     case 'forge':
     case 'neoforge':
       return 'forgeNoAnswer';
+    // Un proxy n'a pas de ticks : le TPS n'existe pas, ce n'est pas une panne.
+    case 'velocity':
+      return 'proxy';
     case 'unknown':
       return 'unknown';
   }

@@ -11,6 +11,7 @@
 //   --join <nom>[,<nom>]    joueurs qui rejoignent 100 ms après `Done`
 //   --stop-delay <ms>       délai entre `stop` et la sortie (sauvegarde du monde)
 //   --ignore-stop           ignore `stop` (test d'arrêt forcé)
+//   --velocity              simule un proxy : `stop` inconnu, `shutdown` arrête
 //   --rcon-port <port>      active RCON (mot de passe `--rcon-password`, défaut : server.properties)
 //   --rcon-password <pwd>
 //   --rcon-delay <ms>       délai avant l'ouverture du listener RCON (défaut : juste avant `Done`)
@@ -53,6 +54,7 @@ const joins = String(opt('join', '') || '')
   .filter((s) => s !== '');
 const stopDelay = Number(opt('stop-delay', 50));
 const ignoreStop = opt('ignore-stop', false) === true;
+const velocity = opt('velocity', false) === true;
 const modern = opt('modern-format', false) === true;
 const bigResponse = Number(opt('big-response', 0));
 const gamePort = opt('port', undefined);
@@ -192,12 +194,20 @@ function runCommand(cmd) {
   if (tps !== undefined) return tps;
   switch (name) {
     case 'stop':
+      if (velocity) {
+        log('Unable to find command: stop', 'ERROR');
+        return 'Unknown command';
+      }
       if (ignoreStop) {
         log('stop ignored (--ignore-stop)', 'WARN');
         return 'stop ignored';
       }
       doStop();
       return 'Stopping the server';
+    case 'shutdown':
+      if (!velocity) return undefined;
+      doStop();
+      return 'Shutting down the proxy...';
     case 'say': {
       const msg = rest.join(' ');
       log(`[Server] ${msg}`);

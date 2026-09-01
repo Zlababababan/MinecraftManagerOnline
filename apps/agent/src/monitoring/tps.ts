@@ -21,7 +21,7 @@ import { parseTpsResponse, tpsChain, type TpsMethod, type TpsReading } from '@mm
 
 export interface TpsProbeOptions {
   serverDir: string;
-  loader: 'vanilla' | 'forge' | 'neoforge' | 'fabric' | 'unknown' | undefined;
+  loader: 'vanilla' | 'forge' | 'neoforge' | 'fabric' | 'velocity' | 'unknown' | undefined;
   mcVersion: string | undefined;
   exec: (command: string, timeoutMs: number) => Promise<string>;
   timeoutMs?: number;

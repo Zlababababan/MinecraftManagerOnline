@@ -12,6 +12,7 @@ import { createContext, type AppContext, type ContextOptions } from './context.j
 import { registerAuth } from './http/auth.js';
 import { registerErrorHandler } from './http/errors.js';
 import { registerFileRoutes } from './http/routes/files.js';
+import { registerGroupRoutes } from './http/routes/groups.js';
 import { registerMachineRoutes } from './http/routes/machines.js';
 import { registerMiscRoutes } from './http/routes/misc.js';
 import { registerPhase9Routes } from './http/routes/phase9.js';
@@ -62,6 +63,7 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
       ? {}
       : { transferReconnectWaitMs: options.transferReconnectWaitMs }),
     ...(options.migrationTtlMs === undefined ? {} : { migrationTtlMs: options.migrationTtlMs }),
+    ...(options.groupWait === undefined ? {} : { groupWait: options.groupWait }),
     ...(options.access === undefined ? {} : { access: options.access }),
   });
 
@@ -78,6 +80,7 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   registerUserRoutes(app, ctx);
   registerMachineRoutes(app, ctx);
   registerServerRoutes(app, ctx);
+  registerGroupRoutes(app, ctx);
   registerFileRoutes(app, ctx);
   registerTaskRoutes(app, ctx);
   registerPhase9Routes(app, ctx);

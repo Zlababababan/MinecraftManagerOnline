@@ -38,6 +38,18 @@ describe('matrice de lancement (doc 06 §1)', () => {
     expect(cmd.files).toEqual([]);
   });
 
+  it('Velocity : jamais de `nogui` (argument inconnu du proxy, qui refuserait de démarrer)', () => {
+    const cmd = buildLaunchCommand({
+      ...base,
+      launch: { kind: 'jar', jar: 'velocity-3.4.0.jar' },
+      loader: 'velocity',
+    });
+    expect(cmd.args.at(-1)).toBe('velocity-3.4.0.jar');
+    expect(cmd.args).not.toContain('nogui');
+    // mcVersion inconnue : la propriété no_lookups est injectée (inoffensive), rien d'autre.
+    expect(cmd.args).toContain('-Dlog4j2.formatMsgNoLookups=true');
+  });
+
   it('Forge/NeoForge modernes : @argfile selon l’OS, jvmArgs après les flags injectés', () => {
     const launch = {
       kind: 'argfile' as const,

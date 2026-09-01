@@ -39,6 +39,8 @@ const server = (over: Partial<ServerDto> = {}): ServerDto => ({
   createdAt: 1,
   updatedAt: 1,
   reachable: true,
+  groupId: null,
+  groupPosition: 0,
   ...over,
 });
 

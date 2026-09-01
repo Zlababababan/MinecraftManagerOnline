@@ -97,6 +97,8 @@ export interface StopOptions {
   forceAfterTimeout?: boolean;
   /** Délai SIGTERM → SIGKILL (POSIX), défaut 30 s. */
   termGraceMs?: number;
+  /** Commande console d'arrêt propre (défaut `stop` ; Velocity ne connaît que `shutdown`). */
+  stopCommand?: string;
 }
 
 export interface RconSettings {
@@ -379,7 +381,7 @@ export class ServerProcess {
       if (options.announce !== undefined && options.announce !== '') {
         await this.sendCommand(`say ${options.announce}`).catch(() => undefined);
       }
-      await this.sendCommand('stop');
+      await this.sendCommand(options.stopCommand ?? 'stop');
       sent = true;
     } catch (error) {
       this.logger.warn('graceful stop unavailable', { error: errorMessage(error) });

@@ -4,6 +4,7 @@
  * persistance du runtime (PID + heure + clé cmdline) et ré-adoption au démarrage de l'agent,
  * restauration selon `desired_state` (doc 05 §5).
  */
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
@@ -15,7 +16,13 @@ import {
   type RequestPayload,
   type ServerConfig,
 } from '@mmo/protocol';
-import { detectServer, javaRequirementFromTable, type DetectFs } from '@mmo/shared';
+import {
+  VELOCITY_DEFAULT_PORT,
+  detectServer,
+  javaRequirementFromTable,
+  parseVelocityToml,
+  type DetectFs,
+} from '@mmo/shared';
 import { createNodeDetectFs } from '@mmo/shared/node';
 
 import { FsService } from '../files/fs-service.js';
@@ -43,7 +50,12 @@ import {
   writeMarker,
 } from './provisioning.js';
 import { CommandHelpProbe } from './command-help.js';
-import { ServerProcess, type ServerProcessEvent, type StopOptions } from './server-process.js';
+import {
+  ServerProcess,
+  type RconSettings,
+  type ServerProcessEvent,
+  type StopOptions,
+} from './server-process.js';
 
 export interface CommandContext {
   config: ServerConfig;
@@ -232,11 +244,12 @@ export class ServerManager {
     const { config } = record;
     const dir = config.path;
 
-    // 1. Plan de lancement (config, sinon redétection du dossier)
+    // 1. Plan de lancement (config, sinon redétection du dossier). Un proxy Velocity n'a pas de
+    //    version Minecraft : ne pas redétecter le dossier à chaque démarrage pour autant.
     let launch = config.launch;
     let mcVersion = config.mcVersion;
     let loader = config.loader;
-    if (!launch || mcVersion === undefined) {
+    if (!launch || (mcVersion === undefined && loader !== 'velocity')) {
       const detected = await detectServer(this.detectFs, dir, { os: this.options.os });
       launch ??= detected?.launch;
       mcVersion ??= detected?.mcVersion?.value;
@@ -251,8 +264,8 @@ export class ServerManager {
     // 2. Dossier inscriptible (RCON, logs, monde : démarrer sans droit d'écriture est perdu d'avance)
     await assertServerDirWritable(dir);
 
-    // 3. EULA
-    if (!(await isEulaAccepted(dir))) {
+    // 3. EULA (sans objet pour un proxy Velocity : rien à accepter)
+    if (loader !== 'velocity' && !(await isEulaAccepted(dir))) {
       throw new ProtocolError('E_EULA_REQUIRED', 'eula.txt not accepted', {
         details: { serverId },
       });
@@ -277,19 +290,30 @@ export class ServerManager {
       });
     }
 
-    // 6. Port de jeu
-    const { props } = await readServerProperties(dir);
-    const gamePort = gamePortFromProperties(props);
+    // 6. Port de jeu (Velocity : le port d'écoute vient de velocity.toml, pas de server.properties)
+    let gamePort: number;
+    if (loader === 'velocity') {
+      const toml = await readFile(path.join(dir, 'velocity.toml'), 'utf8').catch(() => '');
+      gamePort = parseVelocityToml(toml).port ?? VELOCITY_DEFAULT_PORT;
+    } else {
+      const { props } = await readServerProperties(dir);
+      gamePort = gamePortFromProperties(props);
+    }
     if (!(await isPortFree(gamePort))) {
       throw new ProtocolError('E_PORT_IN_USE', `port ${String(gamePort)} already in use`, {
         details: { port: gamePort, serverId },
       });
     }
 
-    // 7. RCON auto-provisionné
-    const rcon = await this.ensureRcon(serverId, record);
-    await withFsErrors(dir, () => ensureRconProvisioned(dir, rcon));
-    proc.setRcon(rcon);
+    // 7. RCON auto-provisionné — jamais pour un proxy Velocity (pas de RCON, et le provisionner
+    //    créerait un server.properties parasite dans son dossier) : console via stdin seulement.
+    let rcon: RconSettings | undefined;
+    if (loader !== 'velocity') {
+      const settings = await this.ensureRcon(serverId, record);
+      await withFsErrors(dir, () => ensureRconProvisioned(dir, settings));
+      proc.setRcon(settings);
+      rcon = settings;
+    }
 
     // 8. Commande et lancement
     const ctx: CommandContext = { config, launch, java, mcVersion };
@@ -304,6 +328,7 @@ export class ServerManager {
           maxRamMb: config.maxRamMb,
           minRamMb: config.minRamMb,
           mcVersion,
+          loader,
           jvmArgs: config.jvmArgs,
         });
     const { pid } = await proc.start(command);
@@ -312,8 +337,7 @@ export class ServerManager {
       startedAt: proc.startedAt ?? Date.now(),
       cmdlineKey: command.cmdlineKey,
       gamePort,
-      rconPort: rcon.port,
-      rconPassword: rcon.password,
+      ...(rcon === undefined ? {} : { rconPort: rcon.port, rconPassword: rcon.password }),
       javaPath: java.path,
       attachMode: 'attached',
     };
@@ -340,7 +364,12 @@ export class ServerManager {
     const proc = this.require(serverId);
     const record = this.options.store.getServer(serverId);
     const timeoutMs = options.timeoutMs ?? (record?.config.stopTimeoutSec ?? 120) * 1000;
-    return proc.stop({ ...options, timeoutMs });
+    // Velocity ne connaît pas `stop` : sa commande console d'arrêt propre est `shutdown`.
+    return proc.stop({
+      ...options,
+      timeoutMs,
+      ...(record?.config.loader === 'velocity' ? { stopCommand: 'shutdown' } : {}),
+    });
   }
 
   async kill(serverId: string): Promise<{ wasRunning: boolean }> {

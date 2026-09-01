@@ -19,6 +19,7 @@ import type { MmoDatabase } from '../db/client.js';
 import {
   players,
   playerSessions,
+  serverGroups,
   servers,
   watchedDirectories,
   type ServerRow,
@@ -51,6 +52,8 @@ export interface UpdateServerInput {
   crashLoopMax?: number | undefined;
   watchdogFreezeS?: number | undefined;
   provisioning?: 'ready' | 'archived' | undefined;
+  groupId?: string | null | undefined;
+  groupPosition?: number | undefined;
 }
 
 export interface ServersServiceDeps {
@@ -85,6 +88,16 @@ export class ServersService {
 
   list(): ServerRow[] {
     return this.db.select().from(servers).orderBy(asc(servers.name)).all();
+  }
+
+  /** Membres d'un groupe, dans l'ordre de démarrage (rang croissant, nom en départage). */
+  listByGroup(groupId: string): ServerRow[] {
+    return this.db
+      .select()
+      .from(servers)
+      .where(eq(servers.groupId, groupId))
+      .orderBy(asc(servers.groupPosition), asc(servers.name))
+      .all();
   }
 
   listByMachine(machineId: string): ServerRow[] {
@@ -149,6 +162,8 @@ export class ServersService {
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       reachable,
+      groupId: row.groupId,
+      groupPosition: row.groupPosition,
       ...(detection === undefined ? {} : { detection }),
     };
   }
@@ -356,7 +371,8 @@ export class ServersService {
       minRamMb: d.minRamMb?.value ?? Math.min(1024, d.maxRamMb.value),
       maxRamMb: d.maxRamMb.value,
       gamePort: d.gamePort ?? null,
-      rconEnabled: 1,
+      // Un proxy Velocity n'a pas de RCON (et le provisionner créerait un server.properties).
+      rconEnabled: d.loader.value === 'velocity' ? 0 : 1,
       rconPort: d.rconPort ?? null,
       rconPasswordEnc: null,
       eulaAccepted: d.eulaAccepted ? 1 : 0,
@@ -375,6 +391,8 @@ export class ServersService {
       detectionJson: toJson(d),
       createdAt: t,
       updatedAt: t,
+      groupId: null,
+      groupPosition: 0,
     };
     this.db.insert(servers).values(row).run();
     // Sauvegarde « prête à l'emploi » : chaque nouveau serveur reçoit la politique par défaut
@@ -469,6 +487,29 @@ export class ServersService {
         throw conflict('cannot archive a running server', { serverId: id });
       }
       patch.provisioning = input.provisioning;
+    }
+    if (input.groupId !== undefined) {
+      if (input.groupId !== null) {
+        const group = this.db
+          .select()
+          .from(serverGroups)
+          .where(eq(serverGroups.id, input.groupId))
+          .get();
+        if (!group) throw notFound('group', input.groupId);
+      }
+      patch.groupId = input.groupId;
+      // Nouveau membre sans rang explicite : en fin de groupe. Retiré du groupe : rang remis à 0.
+      if (input.groupId === null) patch.groupPosition = 0;
+      else if (input.groupPosition === undefined && input.groupId !== row.groupId) {
+        const max = this.listByGroup(input.groupId).reduce(
+          (m, r) => Math.max(m, r.groupPosition),
+          -1,
+        );
+        patch.groupPosition = max + 1;
+      }
+    }
+    if (input.groupPosition !== undefined && input.groupId !== null) {
+      patch.groupPosition = input.groupPosition;
     }
     if (input.javaMajorRequired !== undefined) {
       if (input.javaMajorRequired === null) {
@@ -587,6 +628,9 @@ export class ServersService {
       javaRuntimeId: null,
       rconPort: null,
       rconPasswordEnc: null,
+      // Le clone ne rejoint pas le groupe de la source (les rangs y entreraient en collision).
+      groupId: null,
+      groupPosition: 0,
       provisioning: 'migrating',
       runState: 'stopped',
       desiredState: 'stopped',

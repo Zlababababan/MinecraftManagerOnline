@@ -238,6 +238,32 @@ export const webEn = {
       skipped_other: '{{count}} not attempted: {{names}}',
     },
   },
+  groups: {
+    title: 'Start groups',
+    open: 'Groups',
+    hint: 'A group starts its servers in order, waiting for each one to be running before moving to the next; stopping walks the reverse order. The sequence stops at the first failure, which is notified.',
+    none: 'No group yet. Create one to start several servers in the right order.',
+    newName: 'New group',
+    namePlaceholder: 'Velocity network',
+    create: 'Create',
+    delete: 'Delete the group',
+    deleteConfirm:
+      'Delete “{{name}}”? Servers are left untouched — only the group and its order go away.',
+    start: 'Start',
+    stop: 'Stop',
+    restart: 'Restart',
+    started: 'Action started — servers run one after the other, in group order.',
+    members_one: '{{count}} server',
+    members_other: '{{count}} servers',
+    empty: 'No server in this group.',
+    add: 'Add',
+    addPlaceholder: 'Add a server…',
+    moveUp: 'Move up',
+    moveDown: 'Move down',
+    remove: 'Remove from the group',
+    velocityHint:
+      'This group contains a Velocity proxy that is not in the last position: it will start before its target servers.',
+  },
   server: {
     one: 'Server',
     tabs: {
@@ -587,6 +613,7 @@ export const webEn = {
         'Fabric has no built-in TPS command. Installing the spark mod makes it available.',
       forgeNoAnswer:
         'The /forge tps command did not answer yet (server still loading, or RCON unavailable).',
+      proxy: 'A proxy has no ticks: TPS does not exist for it.',
       unknown: 'No known method answered on this server.',
     },
     sparkLink: 'Download spark',

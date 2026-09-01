@@ -9,6 +9,7 @@ export const fr = {
       forge: 'Forge',
       neoforge: 'NeoForge',
       fabric: 'Fabric',
+      velocity: 'Velocity (proxy)',
       unknown: 'Inconnu (à configurer)',
     },
     confidence: {
@@ -222,6 +223,7 @@ export const fr = {
       ram_ambiguous: 'plusieurs réglages mémoire trouvés ({{detail}})',
       eula_accepted: 'EULA acceptée',
       eula_missing: 'EULA pas encore acceptée',
+      velocity_toml: 'velocity.toml trouvé — proxy Velocity ({{detail}})',
       marker: 'marqueur MMO trouvé ({{detail}})',
       no_loader: 'aucun signal de loader — à configurer manuellement',
       no_version: 'version Minecraft introuvable — à configurer manuellement',

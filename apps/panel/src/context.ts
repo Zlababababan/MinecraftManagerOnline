@@ -20,6 +20,7 @@ import { BackupsService } from './services/backups.js';
 import { EventBus } from './services/events.js';
 import { JavaResolver } from './services/java.js';
 import { JavaRuntimesService } from './services/java-runtimes.js';
+import { ServerGroupsService } from './services/groups.js';
 import { MigrationsService } from './services/migrations.js';
 import { RelayTokens } from './services/relay.js';
 import { DistributionService } from './services/distribution.js';
@@ -79,6 +80,8 @@ export interface AppContext {
   releases: ReleasesService;
   javaRuntimes: JavaRuntimesService;
   migrations: MigrationsService;
+  /** Groupes de démarrage (lot 7) : actions ordonnées start/stop/restart. */
+  groups: ServerGroupsService;
   /** Phase 10 : notifications (push + centre) et couche d'accès. */
   notifications: NotificationsService;
   access: AccessService;
@@ -103,6 +106,8 @@ export interface ContextOptions {
   transferReconnectWaitMs?: number;
   /** Phase 9 : TTL des listeners/jetons de migration (tests : court). */
   migrationTtlMs?: number;
+  /** Groupes : attentes d'état et cadence de relecture (tests : court). */
+  groupWait?: { startTimeoutMs?: number; stopTimeoutMs?: number; pollMs?: number };
   /** Phase 10 : options de la couche d'accès (tests : adresses locales, faux DNS/ACME, cadences). */
   access?: Partial<
     Pick<
@@ -319,6 +324,16 @@ export function createContext(options: ContextOptions): AppContext {
     },
     ...(options.migrationTtlMs === undefined ? {} : { ttlMs: options.migrationTtlMs }),
   });
+  const groups = new ServerGroupsService({
+    db,
+    now,
+    servers,
+    registry,
+    events,
+    audit,
+    logger,
+    ...(options.groupWait ?? {}),
+  });
 
   // Phase 10 : notifications (abonné au bus) et couche d'accès.
   const notifications = new NotificationsService({
@@ -383,6 +398,7 @@ export function createContext(options: ContextOptions): AppContext {
     releases,
     javaRuntimes,
     migrations,
+    groups,
     notifications,
     access,
     distribution,
