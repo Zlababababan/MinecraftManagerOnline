@@ -200,7 +200,8 @@ async function fetchChunk(
       let received = offset;
       for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
         if (options.signal?.aborted) throw new ProtocolError('E_CANCELLED', 'download cancelled');
-        if (max !== undefined && received + chunk.byteLength > max) throw tooLarge(received + chunk.byteLength);
+        if (max !== undefined && received + chunk.byteLength > max)
+          throw tooLarge(received + chunk.byteLength);
         await handle.write(chunk, 0, chunk.byteLength, received);
         received += chunk.byteLength;
         options.onProgress?.(received, expectedTotal, index);
