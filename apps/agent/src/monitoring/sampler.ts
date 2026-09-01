@@ -239,17 +239,13 @@ function runPs(args: string[]): Promise<string> {
  */
 export const CYCLES_SCRIPT = String.raw`
 $ErrorActionPreference = 'SilentlyContinue'
-$mode = 'cycles'
-try {
-  Add-Type -Namespace Mmo -Name Native -MemberDefinition '[DllImport("kernel32.dll")] public static extern bool QueryProcessCycleTime(IntPtr hProcess, out ulong cycles);' -ErrorAction Stop
-} catch { $mode = 'ticks' }
+$started = [datetime]::UtcNow
 # Fréquence et cœurs par le registre et l'environnement, JAMAIS par CIM/WMI : une requête CIM peut
 # rester pendante plusieurs dizaines de secondes sur une machine chargée (déjà vu sur process-info,
 # qui a fini par se doter d'un disjoncteur). Ici elle bloquait la poignée de main du sidecar, donc
-# son démarrage, et un dépassement privait l'agent de RSS jusqu'à son redémarrage. La valeur ~MHz du
-# registre est la fréquence relevée au boot là où CIM donnait la fréquence nominale : le CPU% par
-# cycles reste l'estimation qu'il était. (Pas d'accent grave dans ce script : il est porté par un
-# template literal.)
+# son démarrage. La valeur ~MHz du registre est la fréquence relevée au boot là où CIM donnait la
+# fréquence nominale : le CPU% par cycles reste l'estimation qu'il était. (Pas d'accent grave dans ce
+# script : il est porté par un template literal.)
 $mhz = 0
 try {
   $mhz = [int](Get-ItemProperty -Path 'HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0' -Name '~MHz' -ErrorAction Stop).'~MHz'
@@ -257,12 +253,28 @@ try {
 if ($mhz -le 0) { $mhz = 1 }
 $cores = [int]$env:NUMBER_OF_PROCESSORS
 if ($cores -le 0) { $cores = 1 }
+# Add-Type compile du C# (csc) : quelques centaines de ms sur une machine tiède, beaucoup plus à
+# froid. C'est le seul poste vraiment coûteux qui doit rester AVANT la poignée de main, puisqu'il
+# décide du mode.
+$addStart = [datetime]::UtcNow
+$mode = 'cycles'
+try {
+  Add-Type -Namespace Mmo -Name Native -MemberDefinition '[DllImport("kernel32.dll")] public static extern bool QueryProcessCycleTime(IntPtr hProcess, out ulong cycles);' -ErrorAction Stop
+} catch { $mode = 'ticks' }
+$addMs = [int]([datetime]::UtcNow - $addStart).TotalMilliseconds
+$bootMs = [int]([datetime]::UtcNow - $started).TotalMilliseconds
+[Console]::Out.WriteLine('{"ready":true,"mode":"' + $mode + '","mhz":' + $mhz + ',"cores":' + $cores + ',"bootMs":' + $bootMs + ',"addMs":' + $addMs + '}')
+# APRÈS la poignée de main : construire un PerformanceCounter lit tout le bloc de compteurs de
+# performance du système et peut prendre des dizaines de secondes sur une machine froide. Il ne
+# fournit que la charge MACHINE, dont l'agent a déjà un repli (os.cpus()) quand utility est nul :
+# rien ne justifie qu'il retarde le démarrage du sidecar.
+$counterStart = [datetime]::UtcNow
 $utilityCounter = $null
 try {
   $utilityCounter = New-Object System.Diagnostics.PerformanceCounter('Processor Information', '% Processor Utility', '_Total')
   $null = $utilityCounter.NextValue()
 } catch { $utilityCounter = $null }
-[Console]::Out.WriteLine('{"ready":true,"mode":"' + $mode + '","mhz":' + $mhz + ',"cores":' + $cores + '}')
+$initMs = [int]([datetime]::UtcNow - $counterStart).TotalMilliseconds
 while ($true) {
   $line = [Console]::In.ReadLine()
   if ($null -eq $line) { break }
@@ -283,7 +295,7 @@ while ($true) {
   }
   $utility = $null
   if ($null -ne $utilityCounter) { try { $utility = [math]::Round($utilityCounter.NextValue(), 1) } catch { $utility = $null } }
-  $out = @{ t = [int64](([datetime]::UtcNow - [datetime]'1970-01-01').TotalMilliseconds); mhz = $mhz; cores = $cores; mode = $mode; utility = $utility; procs = $procs }
+  $out = @{ t = [int64](([datetime]::UtcNow - [datetime]'1970-01-01').TotalMilliseconds); mhz = $mhz; cores = $cores; mode = $mode; utility = $utility; init = $initMs; procs = $procs }
   [Console]::Out.WriteLine(($out | ConvertTo-Json -Compress -Depth 3))
 }
 `.trim();
@@ -293,6 +305,10 @@ interface SidecarReady {
   mode: 'cycles' | 'ticks';
   mhz: number;
   cores: number;
+  /** Coût du démarrage tel que le sidecar l'a mesuré (journalisé : c'est lui qui dérape en CI). */
+  bootMs?: number;
+  /** Part de ce coût imputable à Add-Type (compilation C#). */
+  addMs?: number;
 }
 
 interface SidecarReply {
@@ -301,6 +317,8 @@ interface SidecarReply {
   cores: number;
   mode: 'cycles' | 'ticks';
   utility: number | null;
+  /** Coût du compteur `% Processor Utility`, payé après la poignée de main (journalisé une fois). */
+  init?: number;
   procs: Record<string, { cycles?: number; cpuMs?: number; rss: number } | null>;
 }
 
@@ -308,6 +326,11 @@ export interface WindowsSamplerOptions {
   logger: Logger;
   /** Exécutable PowerShell (défaut `powershell.exe`, toujours présent ; `pwsh` accepté). */
   shell?: string;
+  /**
+   * Le démarrage du sidecar (PowerShell à froid + compilation C#) dépasse allègrement 30 s sur un
+   * runner CI chargé. Généreux par choix : depuis que le repli ticks est temporaire, attendre ne
+   * coûte plus rien — l'agent mesure par ticks en attendant, puis bascule dès que le sidecar répond.
+   */
   startTimeoutMs?: number;
   requestTimeoutMs?: number;
 }
@@ -322,6 +345,7 @@ export class WindowsCyclesSampler implements ProcessSampler {
   private readonly fallbackMeter = new OsCpuMeter();
   private chain: Promise<unknown> = Promise.resolve();
   private closed = false;
+  private loggedInit = false;
 
   constructor(private readonly options: WindowsSamplerOptions) {}
 
@@ -334,6 +358,10 @@ export class WindowsCyclesSampler implements ProcessSampler {
   private async doSample(pids: number[]): Promise<Sample> {
     const info = await this.ensureStarted();
     const reply = await this.request({ pids });
+    if (!this.loggedInit) {
+      this.loggedInit = true;
+      this.options.logger.info('metrics sidecar first reply', { counterInitMs: reply.init });
+    }
     const ts = reply.t > 0 ? reply.t : Date.now();
     const cores = reply.cores > 0 ? reply.cores : info.cores;
     const mhz = reply.mhz > 0 ? reply.mhz : info.mhz;
@@ -389,6 +417,7 @@ export class WindowsCyclesSampler implements ProcessSampler {
   private start(): Promise<SidecarReady> {
     if (this.closed) return Promise.reject(new Error('sampler closed'));
     const shell = this.options.shell ?? 'powershell.exe';
+    const spawnedAt = Date.now();
     // `-EncodedCommand` : le script voyage en base64 UTF-16LE, stdin reste libre pour les requêtes.
     const encoded = Buffer.from(CYCLES_SCRIPT, 'utf16le').toString('base64');
     const child = spawn(
@@ -413,7 +442,7 @@ export class WindowsCyclesSampler implements ProcessSampler {
       const timeout = setTimeout(() => {
         reject(new Error('metrics sidecar start timeout'));
         child.kill();
-      }, this.options.startTimeoutMs ?? 30_000);
+      }, this.options.startTimeoutMs ?? 90_000);
       child.once('error', (error: Error) => {
         clearTimeout(timeout);
         this.child = undefined;
@@ -428,6 +457,9 @@ export class WindowsCyclesSampler implements ProcessSampler {
               mode: parsed.mode,
               mhz: parsed.mhz,
               cores: parsed.cores,
+              bootMs: parsed.bootMs,
+              addMs: parsed.addMs,
+              waitedMs: Date.now() - spawnedAt,
             });
             resolve({
               ready: true,
@@ -452,7 +484,7 @@ export class WindowsCyclesSampler implements ProcessSampler {
       const timeout = setTimeout(() => {
         reject(new Error('metrics sidecar timeout'));
         child.kill();
-      }, this.options.requestTimeoutMs ?? 10_000);
+      }, this.options.requestTimeoutMs ?? 30_000);
       this.waiters.push((line) => {
         clearTimeout(timeout);
         try {

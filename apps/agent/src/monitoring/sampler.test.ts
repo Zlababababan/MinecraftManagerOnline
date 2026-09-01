@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 
 import { Logger } from '../log.js';
-import { sleep } from '../test/helpers.js';
+import { sleep, testBudget } from '../test/helpers.js';
 import {
   PlatformSampler,
   ProcSampler,
@@ -106,7 +106,9 @@ describe('échantillonneurs CPU/RSS (spike n°2)', () => {
   });
 
   // Le sidecar lui-même, exercé jusque sur les runners CI (contrairement au « burner » ci-dessous) :
-  // c'est sa poignée de main qui, trop lente, faisait disparaître le RSS des métriques Windows.
+  // c'est son démarrage qui, trop lent, faisait disparaître le RSS des métriques Windows. Le premier
+  // relevé paie en plus la construction du compteur de performance (des secondes à froid), d'où le
+  // budget large : ce test dit « le sidecar finit par répondre », les délais fins sont journalisés.
   it.runIf(process.platform === 'win32')(
     'WindowsCyclesSampler : démarre et rend le RSS du processus courant',
     async () => {
@@ -114,14 +116,16 @@ describe('échantillonneurs CPU/RSS (spike n°2)', () => {
       try {
         const started = Date.now();
         const s = await sampler.sample([process.pid]);
-        logger.info('sidecar handshake + premier relevé', { ms: Date.now() - started });
+        console.log(
+          `[sidecar] poignée de main + premier relevé : ${String(Date.now() - started)} ms`,
+        );
         expect(['cycles', 'ticks']).toContain(s.cpuSource);
         expect(s.processes.get(process.pid)?.rssMb ?? 0).toBeGreaterThan(0);
       } finally {
         sampler.close();
       }
     },
-    60_000,
+    testBudget(150_000),
   );
 
   it.runIf(process.platform === 'linux')(
