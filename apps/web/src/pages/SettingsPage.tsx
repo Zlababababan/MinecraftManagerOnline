@@ -59,6 +59,8 @@ function GeneralCard({ settings }: { settings: Record<string, string> }) {
       scheduleTimezone: settings['schedule.timezone'] ?? localTimeZone(),
       restoreOnBoot: settings['agents.restoreOnBoot'] === 'true',
       autoUpdate: settings['agents.autoUpdate'] === 'true' || settings['agents.autoUpdate'] === '1',
+      // Absent tant que jamais modifié : le défaut serveur est « activé ».
+      updateCheck: settings['panel.updateCheck.enabled'] !== 'false',
     },
     validate: {
       publicUrl: (v) => (isValidOriginInput(v) ? null : t('web:errors.origin')),
@@ -78,6 +80,7 @@ function GeneralCard({ settings }: { settings: Record<string, string> }) {
               'schedule.timezone': v.scheduleTimezone,
               'agents.restoreOnBoot': v.restoreOnBoot ? 'true' : 'false',
               'agents.autoUpdate': v.autoUpdate ? '1' : '0',
+              'panel.updateCheck.enabled': v.updateCheck ? 'true' : 'false',
             },
             {
               onSuccess: () => {
@@ -146,6 +149,12 @@ function GeneralCard({ settings }: { settings: Record<string, string> }) {
             label={t('web:settings.general.autoUpdate')}
             {...form.getInputProps('autoUpdate', { type: 'checkbox' })}
             data-testid="settings-auto-update"
+          />
+          <Switch
+            label={t('web:settings.general.updateCheck')}
+            description={t('web:settings.general.updateCheckHint')}
+            {...form.getInputProps('updateCheck', { type: 'checkbox' })}
+            data-testid="settings-update-check"
           />
           <Group justify="flex-end">
             <Button

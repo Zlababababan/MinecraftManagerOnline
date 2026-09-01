@@ -24,6 +24,11 @@ export const SETTING_KEYS = {
   metricsIntervalSec: 'metrics.intervalSec',
   /** Phase 9 : mise à jour automatique des agents à la connexion. */
   autoUpdate: 'agents.autoUpdate',
+  /** Lot 2 : bannière « version X disponible » (releases.atom GitHub, au plus 1 fois/6 h). */
+  updateCheckEnabled: 'panel.updateCheck.enabled',
+  updateCheckedAt: 'panel.update.checkedAt',
+  updateLatestVersion: 'panel.update.latestVersion',
+  updateNotifiedVersion: 'panel.update.notifiedVersion',
   vapidPublicKey: 'push.vapidPublicKey',
   vapidPrivateKey: 'push.vapidPrivateKey',
   setupCompletedAt: 'setup.completedAt',
@@ -54,6 +59,7 @@ const DEFAULTS: Readonly<Record<string, string>> = {
   [SETTING_KEYS.accessHttpsPort]: '443',
   [SETTING_KEYS.dnsProvider]: 'manual',
   [SETTING_KEYS.dyndnsEnabled]: 'false',
+  [SETTING_KEYS.updateCheckEnabled]: 'true',
 };
 
 export class SettingsService {

@@ -143,6 +143,8 @@ sudo systemctl daemon-reload && sudo systemctl enable --now mmo-panel
 
 ### 1.5 Update the panel
 
+The panel tells you when an update exists: administrators see a banner as soon as a new version is published (checked against the GitHub releases feed at most every 6 hours — Settings → General turns the check off, and a notification category "New panel version published" rings the bell).
+
 Installed with a one-command installer (§1.2, Linux or Windows)? Run the same command again — it backs up the database, swaps the code, restarts the service and rolls back by itself if the new version does not start. Manual installs: stop the service, extract the new archive **on top** (the `data/` folder is never inside the archive), restart. Database migrations run at startup. The new archive embeds same-version agents: the panel publishes the agent release automatically and, if "Update agents automatically when they connect" is checked (Settings → General — unchecked by default), each agent is updated at its next connection, with automatic rollback on failure. Otherwise, update them one by one from the Agent card of each machine page.
 
 ### 1.6 When the panel does not start: `doctor`

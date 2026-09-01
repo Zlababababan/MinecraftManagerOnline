@@ -29,6 +29,7 @@ import { MachinesService } from './services/machines.js';
 import { MetricsService } from './services/metrics.js';
 import { PanelBackupService } from './services/panel-backup.js';
 import { ProcessedEventsService } from './services/processed-events.js';
+import { UpdateCheckService } from './services/update-check.js';
 import { AlertsService, DEFAULT_THRESHOLDS } from './services/alerts.js';
 import { collectConditions } from './services/alert-conditions.js';
 import { CommandCatalogService } from './services/command-catalog.js';
@@ -87,6 +88,8 @@ export interface AppContext {
   access: AccessService;
   /** Phase 11 : archives d'installation et scripts servis par le panel. */
   distribution: DistributionService;
+  /** Lot 2 : bannière « version X disponible » (releases.atom GitHub, 6 h). */
+  updateCheck: UpdateCheckService;
   /** `fetch` injectable (tests) pour les appels sortants du panel (manifest Mojang, API spark). */
   fetchImpl: typeof fetch | undefined;
   close(): void;
@@ -293,6 +296,12 @@ export function createContext(options: ContextOptions): AppContext {
     settings,
     releases,
   });
+  const updateCheck = new UpdateCheckService({
+    settings,
+    events,
+    now,
+    fetchImpl: options.fetch ?? fetch,
+  });
   const javaRuntimes = new JavaRuntimesService({
     db,
     now,
@@ -402,6 +411,7 @@ export function createContext(options: ContextOptions): AppContext {
     notifications,
     access,
     distribution,
+    updateCheck,
     fetchImpl: options.fetch,
     close: () => {
       access.stop();

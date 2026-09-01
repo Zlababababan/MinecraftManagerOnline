@@ -32,6 +32,7 @@ import {
 import { Outlet, useNavigate } from '@tanstack/react-router';
 
 import { CommandPalette } from './CommandPalette.js';
+import { UpdateBanner } from './UpdateBanner.js';
 import type { ReactNode } from 'react';
 import { useT } from '../i18n/hooks.js';
 
@@ -505,6 +506,7 @@ export function Shell({ user }: { user: UserDto }) {
       </AppShell.Navbar>
       <CommandPalette opened={palette} onClose={paletteControls.close} />
       <AppShell.Main id="main" tabIndex={-1}>
+        <UpdateBanner />
         <Outlet />
       </AppShell.Main>
       <AppShell.Footer hiddenFrom="sm" p={0}>

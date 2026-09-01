@@ -143,6 +143,8 @@ sudo systemctl daemon-reload && sudo systemctl enable --now mmo-panel
 
 ### 1.5 Mettre à jour le panel
 
+Le panel vous prévient quand une mise à jour existe : les administrateurs voient une bannière dès qu'une nouvelle version est publiée (vérifiée contre le flux des releases GitHub au plus toutes les 6 heures — Réglages → Général coupe la vérification, et une catégorie de notification « Nouvelle version du panel publiée » fait sonner la cloche).
+
 Installé avec un installeur en une commande (§1.2, Linux ou Windows) ? Relancez la même commande — elle sauvegarde la base, remplace le code, redémarre le service et revient toute seule en arrière si la nouvelle version ne démarre pas. Installation manuelle : arrêtez le service, extrayez la nouvelle archive **par-dessus** (le dossier `data/` n'est jamais dans l'archive), redémarrez. Les migrations de base se jouent au démarrage. La nouvelle archive embarque les agents de même version : le panel publie automatiquement la release d'agent et, si « Mettre à jour les agents automatiquement à la connexion » est coché (Réglages → Général — décoché par défaut), chaque agent est mis à jour à sa prochaine connexion, avec rollback automatique en cas d'échec. Sinon, mettez-les à jour un par un depuis la carte Agent de chaque page machine.
 
 ### 1.6 Quand le panel ne démarre pas : `doctor`

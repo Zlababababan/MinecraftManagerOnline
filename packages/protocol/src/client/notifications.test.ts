@@ -46,6 +46,7 @@ const BUS_EVENTS: { type: string; severity: string; payload?: unknown }[] = [
   { type: 'server.deleted', severity: 'info' },
   { type: 'server.migrated', severity: 'info' },
   { type: 'server.conflict', severity: 'warning' },
+  { type: 'panel.updateAvailable', severity: 'info', payload: { version: '1.0.6' } },
 ];
 
 describe('catalogue des notifications', () => {

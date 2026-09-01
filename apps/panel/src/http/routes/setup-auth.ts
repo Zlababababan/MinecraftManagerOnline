@@ -15,6 +15,7 @@ import type { AppContext } from '../../context.js';
 import { AppError } from '../../errors.js';
 import { completeSetup as runSetup } from '../../services/setup.js';
 import { toUserDto } from '../../services/users.js';
+import { PANEL_VERSION } from '../../version.js';
 import { RateLimiter, clientKey } from '../../util/rate-limit.js';
 import { clearSessionCookie, requireUser, setSessionCookie } from '../auth.js';
 
@@ -143,16 +144,29 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
     '/api/auth/me',
     {
       schema: {
-        response: { 200: z.object({ user: userDtoSchema, scheduleTimezone: z.string() }) },
+        response: {
+          200: z.object({
+            user: userDtoSchema,
+            scheduleTimezone: z.string(),
+            panelUpdate: z.object({ current: z.string(), latest: z.string() }).nullable(),
+          }),
+        },
       },
     },
-    (request) => ({
-      user: toUserDto(requireUser(request)),
-      // Le fuseau dans lequel les planifications sont LUES. Il voyage ici parce que tout
-      // utilisateur connecté en a besoin dès qu'il saisit une heure, alors que la route des réglages
-      // est réservée aux administrateurs.
-      scheduleTimezone: ctx.settings.timeZone(),
-    }),
+    (request) => {
+      const user = requireUser(request);
+      // Même logique que le fuseau : `/api/settings` est admin, or la bannière doit s'afficher
+      // sans requête dédiée. Réservée aux admins — eux seuls peuvent mettre le panel à jour.
+      const latest = user.role === 'admin' ? ctx.updateCheck.latestAvailable() : undefined;
+      return {
+        user: toUserDto(user),
+        // Le fuseau dans lequel les planifications sont LUES. Il voyage ici parce que tout
+        // utilisateur connecté en a besoin dès qu'il saisit une heure, alors que la route des réglages
+        // est réservée aux administrateurs.
+        scheduleTimezone: ctx.settings.timeZone(),
+        panelUpdate: latest === undefined ? null : { current: PANEL_VERSION, latest },
+      };
+    },
   );
 
   r.patch('/api/auth/me', { schema: { body: updateMeSchema } }, async (request) => {

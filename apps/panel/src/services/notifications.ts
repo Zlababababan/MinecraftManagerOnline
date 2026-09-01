@@ -73,6 +73,7 @@ const BUS_TYPES = [
   'backup.overdue',
   'alert.firing',
   'alert.resolved',
+  'panel.updateAvailable',
 ] as const;
 
 /** Au-delà : l'abonnement est considéré mort même sans 410 (iOS purge silencieusement). */
@@ -357,6 +358,7 @@ export class NotificationsService {
       kind: text(p.kind),
       action: text(p.action),
       version: text(p.version),
+      current: text(p.current),
       port: text(p.port),
       player: text(p.name),
       online: text(p.online),
@@ -493,6 +495,8 @@ export function notifyKey(event: EventDto): string | undefined {
       return 'agentUpdateApplied';
     case 'agent.updateRolledBack':
       return 'agentUpdateRolledBack';
+    case 'panel.updateAvailable':
+      return 'panelUpdateAvailable';
     case 'schedule.run':
       return event.severity === 'info' ? 'scheduleDone' : 'scheduleFailed';
     case 'port.conflict':

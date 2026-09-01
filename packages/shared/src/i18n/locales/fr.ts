@@ -71,6 +71,10 @@ export const fr = {
         title: "Mise à jour d'agent annulée : {{machine}}",
         body: 'Retour à {{version}} : {{reason}}',
       },
+      panelUpdateAvailable: {
+        title: 'Mise à jour du panel disponible',
+        body: 'La version {{version}} est publiée — vous êtes en {{current}}.',
+      },
       scheduleFailed: { title: 'Tâche planifiée échouée', body: '{{server}} · {{action}}' },
       portConflict: {
         title: 'Conflit de port sur {{machine}}',

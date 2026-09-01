@@ -64,6 +64,10 @@ export const en = {
         title: 'Agent update rolled back: {{machine}}',
         body: 'Back to {{version}}: {{reason}}',
       },
+      panelUpdateAvailable: {
+        title: 'Panel update available',
+        body: 'Version {{version}} is published — you are running {{current}}.',
+      },
       scheduleFailed: { title: 'Scheduled task failed', body: '{{server}} · {{action}}' },
       portConflict: {
         title: 'Port conflict on {{machine}}',

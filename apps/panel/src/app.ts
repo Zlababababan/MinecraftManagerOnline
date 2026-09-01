@@ -126,9 +126,20 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   }, ALERTS_INTERVAL_MS);
   alertsTick.unref();
 
+  // Bannière « version X disponible » : timer dédié plutôt que `runMaintenance` — les tests
+  // appellent runMaintenance directement et un appel au démarrage ferait sortir chaque panel de
+  // test sur GitHub. Aucun panel de test ne vit 30 min ; le service s'auto-limite à 6 h.
+  const updateTick = setInterval(() => {
+    void ctx.updateCheck.checkIfStale().catch((error: unknown) => {
+      logger.warn({ err: error }, 'panel update check failed');
+    });
+  }, UPDATE_TICK_MS);
+  updateTick.unref();
+
   app.addHook('onClose', () => {
     clearInterval(maintenance);
     clearInterval(alertsTick);
+    clearInterval(updateTick);
     ctx.close();
   });
 
@@ -148,6 +159,8 @@ const BACKUP_OVERDUE_GRACE_MS = 2 * 3_600_000;
 
 /** Cadence d'évaluation des alertes : assez fine pour être utile, assez lâche pour être gratuite. */
 const ALERTS_INTERVAL_MS = 60_000;
+/** Cadence du tick de vérification de version (le service ne sort réellement qu'une fois par 6 h). */
+const UPDATE_TICK_MS = 30 * 60_000;
 
 /** Les alertes résolues ne servent plus qu'à l'historique. */
 const ALERTS_RETENTION_MS = 7 * 24 * 3_600_000;

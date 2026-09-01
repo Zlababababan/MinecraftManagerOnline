@@ -945,6 +945,8 @@ export const EDITABLE_SETTINGS = [
   'schedule.timezone',
   /** Phase 9 : mise à jour automatique des agents à la connexion ('1'/'0'). */
   'agents.autoUpdate',
+  /** Lot 2 : vérification des nouvelles versions du panel sur GitHub ('true'/'false'). */
+  'panel.updateCheck.enabled',
   /** Phase 10 : couche d'accès (doc 03 §5). Les secrets (`access.dns.token`) ne ressortent jamais. */
   'access.domain',
   'access.httpsPort',
@@ -994,6 +996,8 @@ export const NOTIFICATION_TYPES = [
   'task.done',
   'schedule.done',
   'player.action',
+  /** Lot 2 : une nouvelle version du panel est publiée sur GitHub. */
+  'panel.update',
 ] as const;
 export const notificationTypeSchema = z.enum(NOTIFICATION_TYPES);
 export type NotificationType = z.infer<typeof notificationTypeSchema>;
@@ -1024,6 +1028,8 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<NotificationType, boolean>> 
   'task.done': false,
   'schedule.done': false,
   'player.action': false,
+  // Une release par-ci par-là, jamais la nuit : la cloche suffit, le téléphone n'a pas à sonner.
+  'panel.update': true,
 };
 
 /**
@@ -1053,6 +1059,7 @@ export const NOTIFICATION_GROUPS = [
     types: ['backup.failed', 'task.failed', 'task.done', 'schedule.failed', 'schedule.done'],
   },
   { id: 'players', types: ['player.activity', 'player.action'] },
+  { id: 'panel', types: ['panel.update'] },
 ] as const satisfies readonly { id: string; types: readonly NotificationType[] }[];
 
 /** Catégorie de notification d'un événement du bus (`undefined` = jamais notifié). */
@@ -1102,6 +1109,8 @@ export function notificationTypeOf(event: {
     case 'agent.updateApplied':
     case 'agent.updateRolledBack':
       return 'agent.update';
+    case 'panel.updateAvailable':
+      return 'panel.update';
     case 'schedule.run':
       return event.severity === 'info' ? 'schedule.done' : 'schedule.failed';
     case 'port.conflict':

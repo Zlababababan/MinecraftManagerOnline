@@ -681,6 +681,7 @@ export const webFr = {
       'task.failed': 'Tâche échouée : {{kind}}',
       'backup.rotated': 'Rotation des sauvegardes',
       'backup.overdue': 'Sauvegarde en retard',
+      'panel.updateAvailable': 'Nouvelle version du panel disponible',
       'alert.firing': 'Alerte',
       'alert.resolved': 'Alerte levée',
       'schedule.run': 'Action programmée : {{action}} ({{status}})',
@@ -987,6 +988,12 @@ export const webFr = {
     passwordChanged: 'Mot de passe modifié.',
     saved: 'Préférences enregistrées.',
   },
+  updateBanner: {
+    title: 'La version {{version}} est disponible',
+    body: 'Vous êtes en {{current}}. Mise à jour : relancez la commande d’installation, ou voyez le guide §1.5.',
+    release: 'Voir la release',
+    dismiss: 'Masquer pour cette version',
+  },
   notifications: {
     title: 'Notifications',
     open: 'Ouvrir les notifications',
@@ -1018,6 +1025,7 @@ export const webFr = {
       server_lifecycle: 'Serveur disparu, supprimé, déplacé',
       task_done: 'Tâche réussie (sauvegarde, migration…)',
       schedule_done: 'Action programmée exécutée',
+      panel_update: 'Nouvelle version du panel publiée',
     },
     channels: { inapp: 'Cloche', push: 'Téléphone' },
     groups: {
@@ -1026,6 +1034,7 @@ export const webFr = {
       resources: 'Ressources',
       tasks: 'Tâches et planifications',
       players: 'Joueurs',
+      panel: 'Panel',
     },
     push: {
       title: 'Notifications push',
@@ -1108,6 +1117,9 @@ export const webFr = {
       scheduleTimezoneHint:
         'Toutes les heures de sauvegarde et d’action programmée sont lues dans ce fuseau : {{zone}}',
       autoUpdate: 'Mettre à jour les agents automatiquement à la connexion',
+      updateCheck: 'Vérifier les nouvelles versions du panel',
+      updateCheckHint:
+        'Lit le flux des releases sur GitHub au plus toutes les 6 heures. À couper si ce panel ne doit pas parler à l’extérieur.',
     },
     push: {
       title: 'Push (côté panel)',

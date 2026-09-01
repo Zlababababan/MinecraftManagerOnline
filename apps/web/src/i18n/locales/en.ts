@@ -672,6 +672,7 @@ export const webEn = {
       'task.failed': 'Task failed: {{kind}}',
       'backup.rotated': 'Backup rotation',
       'backup.overdue': 'Backup overdue',
+      'panel.updateAvailable': 'New panel version available',
       'alert.firing': 'Alert',
       'alert.resolved': 'Alert cleared',
       'schedule.run': 'Scheduled action: {{action}} ({{status}})',
@@ -976,6 +977,12 @@ export const webEn = {
     passwordChanged: 'Password changed.',
     saved: 'Preferences saved.',
   },
+  updateBanner: {
+    title: 'Version {{version}} is available',
+    body: 'You are running {{current}}. Update: run the install command again, or see guide §1.5.',
+    release: 'Open the release',
+    dismiss: 'Hide for this version',
+  },
   notifications: {
     title: 'Notifications',
     open: 'Open notifications',
@@ -1007,6 +1014,7 @@ export const webEn = {
       server_lifecycle: 'Server gone, deleted or moved',
       task_done: 'Task succeeded (backup, migration…)',
       schedule_done: 'Scheduled task ran',
+      panel_update: 'New panel version published',
     },
     channels: { inapp: 'Bell', push: 'Phone' },
     groups: {
@@ -1015,6 +1023,7 @@ export const webEn = {
       resources: 'Resources',
       tasks: 'Tasks and schedules',
       players: 'Players',
+      panel: 'Panel',
     },
     push: {
       title: 'Push notifications',
@@ -1095,6 +1104,9 @@ export const webEn = {
       scheduleTimezone: 'Schedule time zone',
       scheduleTimezoneHint: 'Every backup and scheduled-action time is read in this zone: {{zone}}',
       autoUpdate: 'Update agents automatically when they connect',
+      updateCheck: 'Check for new panel versions',
+      updateCheckHint:
+        'Reads the releases feed on GitHub at most every 6 hours. Turn it off if this panel must not talk to the outside.',
     },
     push: {
       title: 'Push (server side)',
