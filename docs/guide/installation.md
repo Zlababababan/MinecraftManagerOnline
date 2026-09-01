@@ -25,7 +25,7 @@ Not sure which Linux you have? Run `uname -m`: `x86_64` means x64, `aarch64` mea
 
 The archive is self-contained: it carries its own Node runtime, the panel, the web interface and the agent installers for all four platforms. **There is nothing to install beforehand** — no Node, no Java, no compiler, no development package.
 
-> Want to check the download? Each release also publishes `panel-<platform>.json`, which contains the expected SHA-256. Compare it with `sha256sum <file>` (Linux/macOS) or `Get-FileHash <file>` (Windows).
+> **Want to check the download?** Each release publishes `SHA256SUMS.txt`: download it next to your archive, then run `sha256sum -c SHA256SUMS.txt --ignore-missing` (Linux), `shasum -a 256 -c SHA256SUMS.txt --ignore-missing` (macOS), or compare `Get-FileHash <file>` with the line that names your file (Windows). The per-platform `panel-<platform>.json` manifests carry the same hashes, one file at a time.
 
 ### 1.2 Extract and launch
 

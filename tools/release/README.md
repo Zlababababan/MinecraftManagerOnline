@@ -15,6 +15,33 @@ pnpm release:smoke
 pnpm release:publish -- --panel https://panel --user admin
 ```
 
+## Publier une version
+
+Le tag est la seule chose tapée à la main, et trois autres endroits doivent dire la même version : le workflow refuse la release si l'un diverge.
+
+1. Bumper `PANEL_VERSION` (`apps/panel/src/version.ts`) et `AGENT_VERSION` (`apps/agent/src/agent.ts`).
+2. Écrire la section du CHANGELOG : `## X.Y.Z — AAAA-MM-JJ`, **en anglais**, pour qui vient télécharger — pas une liste de sujets de commits.
+3. Vérifier localement, sans rien pousser : `node tools/release/check-tag.mjs vX.Y.Z`.
+4. Tagger et pousser (`git tag -a vX.Y.Z && git push origin vX.Y.Z`) **sur une CI verte**.
+
+Le workflow `Release` enchaîne alors : job `guard` (tag = constantes = section du CHANGELOG), build signé des 4 plateformes, image Docker multi-arch, puis `publish` — qui écrit les notes depuis le CHANGELOG (`--notes`), calcule `SHA256SUMS.txt` (`sha256sums.mjs`), demande à GitHub une **attestation de provenance** et téléverse le tout.
+
+| Script            | Rôle                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------ |
+| `check-tag.mjs`   | Garde-fou de version + extraction des notes du CHANGELOG (`--notes <fichier>`)              |
+| `sha256sums.mjs`  | `SHA256SUMS.txt` au format `sha256sum -c`, noms de fichier nus                              |
+| `notices.mjs`     | `THIRD-PARTY-NOTICES.md` (`--check` en CI : la liste ne peut pas vieillir en silence)       |
+
+**Deux vérifications, à ne pas confondre.** La signature Ed25519 du manifeste protège la chaîne de mise à jour de l'**agent** : c'est l'agent qui la vérifie, pas un humain. Ce qu'un humain vérifie, c'est `SHA256SUMS.txt` (intégrité du téléchargement) et, s'il le souhaite, la provenance :
+
+```bash
+gh attestation verify mmo-panel-1.0.6-linux-x64.tar.gz --repo Zlababababan/MinecraftManagerOnline
+```
+
+## Actions épinglées par SHA
+
+Toutes les actions des deux workflows sont épinglées au commit, avec le tag en commentaire. Un tag d'action est mutable : `@v5` donne à son auteur un droit d'exécution permanent dans nos jobs — dont celui qui matérialise la clé de signature. Pour bumper : `gh api repos/<owner>/<repo>/git/ref/tags/<tag> --jq .object.sha` (déréférencer si `object.type` vaut `tag`).
+
 ## Clé de signature
 
 La clé privée Ed25519 vit **chez le mainteneur, hors dépôt** (doc 03 §3) :

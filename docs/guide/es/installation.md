@@ -27,7 +27,7 @@ Abra la [página de releases](https://github.com/Zlababababan/MinecraftManagerOn
 
 El archivo es autónomo: lleva su propio runtime de Node, el panel, la interfaz web y los instaladores del agente para las cuatro plataformas. **No hay nada que instalar de antemano**: ni Node, ni Java, ni compilador, ni paquete de desarrollo.
 
-> ¿Quiere comprobar la descarga? Cada release publica también `panel-<plataforma>.json`, que contiene el SHA-256 esperado. Compárelo con `sha256sum <archivo>` (Linux/macOS) o `Get-FileHash <archivo>` (Windows).
+> **¿Quiere comprobar la descarga?** Cada release publica `SHA256SUMS.txt`: descárguelo junto a su archivo y ejecute `sha256sum -c SHA256SUMS.txt --ignore-missing` (Linux), `shasum -a 256 -c SHA256SUMS.txt --ignore-missing` (macOS), o compare `Get-FileHash <archivo>` con la línea que lleva el nombre de su archivo (Windows). Los manifiestos `panel-<plataforma>.json` llevan las mismas huellas, de uno en uno.
 
 ### 1.2 Extraer y ejecutar
 

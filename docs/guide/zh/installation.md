@@ -27,7 +27,7 @@ _本文档由社区译自英文版，如有出入以英文版为准；译文可�
 
 压缩包是自包含的：它自带 Node 运行时、面板、网页界面，以及四个平台的代理安装脚本。**事先无需安装任何东西**——不需要 Node、不需要 Java、不需要编译器、不需要开发包。
 
-> 想校验下载的文件？每个发行版本还会发布 `panel-<平台>.json`，其中包含预期的 SHA-256。用 `sha256sum <文件>`（Linux/macOS）或 `Get-FileHash <文件>`（Windows）比对即可。
+> **想校验下载的文件？** 每个发行版本都会发布 `SHA256SUMS.txt`：把它下载到压缩包旁边，然后执行 `sha256sum -c SHA256SUMS.txt --ignore-missing`（Linux）或 `shasum -a 256 -c SHA256SUMS.txt --ignore-missing`（macOS）；Windows 上则用 `Get-FileHash <文件>` 与写着你文件名的那一行比对。`panel-<平台>.json` 清单里是同样的校验值，只是一次一个文件。
 
 ### 1.2 解压并运行
 

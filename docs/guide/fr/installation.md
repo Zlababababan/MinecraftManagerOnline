@@ -25,7 +25,7 @@ Vous ne savez pas quel Linux vous avez ? Tapez `uname -m` : `x86_64` = x64, `aar
 
 L'archive se suffit à elle-même : elle embarque son propre runtime Node, le panel, l'interface web et les installeurs d'agents des quatre plateformes. **Il n'y a rien à installer au préalable** — ni Node, ni Java, ni compilateur, ni paquet de développement.
 
-> Envie de vérifier le téléchargement ? Chaque release publie aussi `panel-<plateforme>.json`, qui contient l'empreinte SHA-256 attendue. Comparez avec `sha256sum <fichier>` (Linux/macOS) ou `Get-FileHash <fichier>` (Windows).
+> **Envie de vérifier le téléchargement ?** Chaque release publie `SHA256SUMS.txt` : téléchargez-le à côté de votre archive, puis lancez `sha256sum -c SHA256SUMS.txt --ignore-missing` (Linux), `shasum -a 256 -c SHA256SUMS.txt --ignore-missing` (macOS), ou comparez `Get-FileHash <fichier>` à la ligne qui porte le nom de votre fichier (Windows). Les manifestes `panel-<plateforme>.json` portent les mêmes empreintes, un fichier à la fois.
 
 ### 1.2 Extraire et lancer
 

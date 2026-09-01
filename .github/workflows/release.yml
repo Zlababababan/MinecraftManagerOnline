@@ -20,7 +20,19 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Le tag est la seule chose qu'on tape à la main : deux constantes de version, un CHANGELOG et un
+  # tag, sans aucun contrôle jusqu'ici. Ce job coûte vingt secondes et évite de publier une archive
+  # 1.0.6 sous un tag v1.0.7 — et il refuse aussi une release dont les notes n'ont pas été écrites.
+  guard:
+    name: version et notes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - run: node tools/release/check-tag.mjs "$GITHUB_REF_NAME"
+
   build:
+    needs: guard
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     # Le conteneur ubuntu:20.04 des versions 1.0.2 → 1.0.4 n'est plus nécessaire : le panel n'a
@@ -37,9 +49,9 @@ jobs:
           - { name: ubuntu-arm, os: ubuntu-24.04-arm, panel: linux-arm64 }
           - { name: macos, os: macos-latest, panel: darwin-arm64 }
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version-file: .node-version
           cache: pnpm
@@ -56,7 +68,7 @@ jobs:
           rm -f "$RUNNER_TEMP/release.pem"
           node tools/release/smoke.mjs --panel
       - name: Artefact panel
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: panel-${{ matrix.panel }}
           # Le manifeste `panel-<hôte>.json` était produit par build.mjs puis perdu ici : sans lui,
@@ -67,7 +79,7 @@ jobs:
           if-no-files-found: error
       - name: Artefacts agents (hôte ubuntu uniquement — identiques sur tous les hôtes)
         if: matrix.agents == true
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: agents
           path: |
@@ -87,8 +99,8 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v7
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
           name: agents
           path: agents
@@ -97,9 +109,9 @@ jobs:
           mkdir -p docker/dist-agent
           cp agents/*/mmo-agent-* agents/*/agent-*.js agents/*/manifest.json docker/dist-agent/
           ls -l docker/dist-agent
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -118,19 +130,40 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+      # Attestation de provenance : GitHub signe « ces fichiers sortent de ce dépôt, de ce workflow,
+      # de ce commit », vérifiable par `gh attestation verify` sans aucune clé à gérer. À ne pas
+      # confondre avec la signature Ed25519, qui protège la chaîne de mise à jour de l'AGENT et pas
+      # l'archive qu'un humain télécharge.
+      id-token: write
+      attestations: write
     steps:
       # Checkout : install-panel.sh est publié comme asset de release (l'URL stable
       # releases/latest/download/install-panel.sh est celle du one-liner du guide §1.2).
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v7
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
           path: dist
           merge-multiple: true
-      - name: Publication GitHub
-        uses: softprops/action-gh-release@v2
+      - name: Notes de release, depuis le CHANGELOG
+        run: node tools/release/check-tag.mjs "$GITHUB_REF_NAME" --notes "$RUNNER_TEMP/notes.md"
+      # Un seul fichier d'empreintes, vérifiable d'une commande (`sha256sum -c`), là où les
+      # manifestes obligent à ouvrir un JSON par plateforme et à comparer à l'œil.
+      # Écrit HORS de `dist` : le glob de publication est `dist/**/*`, et un fichier listé deux
+      # fois ferait échouer le téléversement.
+      - name: SHA256SUMS.txt
+        run: node tools/release/sha256sums.mjs dist "$RUNNER_TEMP/SHA256SUMS.txt"
+      - name: Attestation de provenance
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
-          generate_release_notes: true
+          subject-path: |
+            dist/**/mmo-panel-*
+            dist/**/mmo-agent-*
+      - name: Publication GitHub
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          body_path: ${{ runner.temp }}/notes.md
           files: |
             dist/**/*
+            ${{ runner.temp }}/SHA256SUMS.txt
             apps/panel/install/install-panel.sh
             apps/panel/install/install-panel.ps1

@@ -27,7 +27,7 @@ Unsicher, welches Linux Sie haben? `uname -m` ausführen: `x86_64` heißt x64, `
 
 Das Archiv ist eigenständig: Es bringt seine eigene Node-Laufzeit mit, dazu das Panel, die Weboberfläche und die Agent-Installer für alle vier Plattformen. **Es muss nichts vorab installiert werden** – kein Node, kein Java, kein Compiler, kein Entwicklungspaket.
 
-> Download prüfen? Jedes Release veröffentlicht auch `panel-<plattform>.json` mit der erwarteten SHA-256. Vergleichen Sie sie mit `sha256sum <datei>` (Linux/macOS) oder `Get-FileHash <datei>` (Windows).
+> **Download prüfen?** Jedes Release veröffentlicht `SHA256SUMS.txt`: laden Sie es neben Ihr Archiv und führen Sie `sha256sum -c SHA256SUMS.txt --ignore-missing` (Linux) bzw. `shasum -a 256 -c SHA256SUMS.txt --ignore-missing` (macOS) aus, oder vergleichen Sie unter Windows `Get-FileHash <datei>` mit der Zeile, die Ihren Dateinamen trägt. Die Manifeste `panel-<plattform>.json` enthalten dieselben Prüfsummen, jeweils einzeln.
 
 ### 1.2 Entpacken und starten
 
