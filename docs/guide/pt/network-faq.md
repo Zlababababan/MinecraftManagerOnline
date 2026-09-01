@@ -61,3 +61,26 @@ Informe a URL pública e execute o teste de alcançabilidade: a linha "Seen via"
 **Somente IPv4 (sem IPv6 no roteador).** O modo Direct é impossível sem um redirecionamento de porta IPv4 público; use o Tailscale.
 
 **Portas.** Painel: 443 de entrada (somente no modo Direct). Agentes: nenhuma porta de entrada. Servidores Minecraft: 25565/TCP (e qualquer porta que você escolher) no modo Direct.
+
+## Firewall
+
+Por padrão o painel não expõe **nada**: escuta somente em `127.0.0.1`. No modo **Tailscale**, portanto, não há regra alguma a abrir, em lugar nenhum — o tailnet alcança o painel por uma conexão de saída. No modo **Direct**, abra na entrada a porta HTTPS escolhida (443 por padrão) no host — o comando exato é mostrado em Settings → Remote access → **Firewall rules** (regras de firewall).
+
+**Oracle Cloud** (a VM gratuita hospeda painéis com frequência): são duas barreiras distintas, e as duas precisam ser abertas.
+
+- Na própria VM, as regras de iptables da imagem Ubuntu da Oracle terminam com um REJECT global: a regra de abertura precisa ser **inserida antes** dele. `-I` (insert) faz exatamente isso; um `-A` (append) cai depois do REJECT e não serve para nada.
+
+  ```bash
+  sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+  sudo netfilter-persistent save
+  ```
+
+- A **Security List** da VCN é configurada no console web da Oracle, não na VM: acrescente lá também uma regra de entrada para TCP 443 (Networking → Virtual cloud networks → sua VCN → Security Lists).
+
+Com o Tailscale nada disso é necessário — nem iptables, nem Security List: essa é boa parte da razão de ser do modo padrão.
+
+## Uma via por máquina
+
+O modo é um padrão, não um muro. Uma máquina que não consegue entrar no tailnet (uma VM alugada, o servidor de um amigo) pode se ligar ao endereço **direto** enquanto as outras continuam usando o Tailscale: em Settings → Remote access, ative **«Also answer on the direct route»** (responder também pela via direta) e configure abaixo o domínio e o certificado — o painel passa então a responder pelas duas vias ao mesmo tempo.
+
+Cada agente lembra o endereço com que foi emparelhado. Quando você gera um código de emparelhamento a partir da página de uma máquina, aparece um seletor **«Panel address for this machine»** (endereço do painel para esta máquina), assim que houver escolha: escolha a URL padrão ou a via direta, e o comando de instalação é reconstruído com esse endereço. Nada a mudar nas máquinas já emparelhadas — elas mantêm a sua via.

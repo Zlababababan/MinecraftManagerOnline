@@ -61,3 +61,26 @@ Introduzca la URL pública y ejecute el test de accesibilidad: la línea «Seen 
 **Solo IPv4 (sin IPv6 en el router).** El modo Direct es imposible sin una redirección de puerto IPv4 pública; use Tailscale.
 
 **Puertos.** Panel: 443 entrante (solo en modo Direct). Agentes: ningún puerto entrante. Servidores de Minecraft: 25565/TCP (y cualquier puerto que haya elegido) en modo Direct.
+
+## Cortafuegos
+
+Por defecto el panel no expone **nada**: escucha solo en `127.0.0.1`. En modo **Tailscale**, por tanto, no hay ninguna regla que abrir en ninguna parte — el tailnet alcanza el panel mediante una conexión saliente. En modo **Direct**, abra en entrada el puerto HTTPS que haya elegido (443 por defecto) en el host — el comando exacto se muestra en Settings → Remote access → **Firewall rules** (reglas de cortafuegos).
+
+**Oracle Cloud** (la VM gratuita aloja paneles con frecuencia): son dos barreras distintas, y hay que abrir las dos.
+
+- En la propia VM, las reglas de iptables de la imagen Ubuntu de Oracle terminan con un REJECT global: la regla de apertura debe **insertarse antes** de él. `-I` (insert) hace exactamente eso; un `-A` (append) queda después del REJECT y no sirve de nada.
+
+  ```bash
+  sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+  sudo netfilter-persistent save
+  ```
+
+- La **Security List** de la VCN se configura en la consola web de Oracle, no en la VM: añada también allí una regla de entrada para TCP 443 (Networking → Virtual cloud networks → su VCN → Security Lists).
+
+Con Tailscale nada de esto hace falta — ni iptables, ni Security List: en buena medida, esa es la razón de ser del modo por defecto.
+
+## Una vía por máquina
+
+El modo es un valor por defecto, no un muro. Una máquina que no puede unirse al tailnet (una VM alquilada, el servidor de un amigo) puede engancharse a la dirección **directa** mientras las demás siguen usando Tailscale: en Settings → Remote access, active **«Also answer on the direct route»** (responder también por la vía directa) y configure debajo el dominio y el certificado — el panel responde entonces por ambas vías a la vez.
+
+Cada agente recuerda la dirección con la que se emparejó. Cuando genere un código de emparejamiento desde la página de una máquina, aparece un selector **«Panel address for this machine»** (dirección del panel para esta máquina) en cuanto hay elección: escoja la URL por defecto o la vía directa, y el comando de instalación se reconstruye con esa dirección. No hay nada que cambiar en las máquinas ya emparejadas — conservan su vía.

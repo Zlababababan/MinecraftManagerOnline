@@ -192,7 +192,7 @@ loads, the data directory (a **real** write, plus the owner compared with the cu
 database, the port and the front-end.
 
 ```powershell
-C:mmopanelmmo-panel.cmd doctor
+C:\mmo\panel\mmo-panel.cmd doctor
 ```
 
 ```bash

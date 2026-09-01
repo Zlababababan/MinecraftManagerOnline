@@ -43,3 +43,36 @@ Spieler im selben lokalen Netzwerk brauchen nichts: LAN-Adresse + Port, unabhän
 ## 6. Eine Maschine entfernen
 
 Maschinenseite → **Remove machine** (Maschine entfernen): Sie verschwindet aus dem Panel (Server und Dateien bleiben auf der Festplatte unversehrt). Auf der Maschine selbst: `install.ps1 -Uninstall` / `install.sh --uninstall` ([Installation § 2](installation.md#2-die-agents)).
+
+## 7. Sicherungen
+
+Serverseite → Reiter **Backups**. Zwei Hälften:
+
+- **Archives** (Archive): jetzt eine Sicherung erstellen (funktioniert bei laufendem Server — der Agent schreibt die Welt vorher mit `save-all` weg), sie herunterladen, mit einem Klick wiederherstellen (standardmäßig wird vorher eine Sicherung des aktuellen Stands angelegt) oder löschen. Jedes Archiv zeigt Größe, Datum und Integritäts-Hash.
+- **Policies** (Regeln): geplante Sicherungen, ausgeführt **vom Agenten**, ob das Panel online ist oder nicht. Wählen Sie die Häufigkeit und wie viele Archive aufbewahrt werden (die Rotation lässt das jüngste erfolgreiche Archiv nie verfallen). „Only if running“ (nur wenn er läuft) überspringt einen gestoppten Server. Die Zeiten folgen der Planungs-Zeitzone des Panels, die unter dem Formular angezeigt wird.
+
+Ein neuer Server erhält eine Standardregel (täglich, 7 aufbewahren). Schlägt eine geplante Sicherung fehl oder wird sie übersprungen, hält das Panel es fest und kann Sie benachrichtigen — siehe die Benachrichtigungskategorien in Ihren Kontoeinstellungen. Der Zielordner wird unter Settings → General festgelegt (pro Server in der Regel überschreibbar).
+
+## 8. Einen Server duplizieren
+
+Serverseite → **Duplicate** (duplizieren; ein Dialog öffnet sich): Das Panel kopiert den Server in einen **neuen** Server, auf derselben oder einer anderen Maschine. Der typische Fall ist ein „Vorlagen“-Server, den man auf seine eigene Maschine klont.
+
+Das Original wird nie verändert: Lief es, wird es für die Dauer der Kopie gestoppt und danach automatisch wieder gestartet — ob die Duplizierung gelingt oder scheitert. Der Klon kommt **gestoppt** an, mit dem Abzeichen „Copy“, mit eigener Identität und mit einem freien Spielport, den das Panel automatisch wählt (später unter Configuration änderbar, wenn Sie einen anderen bevorzugen). Sein RCON wird beim ersten Start neu vergeben.
+
+Darunter steckt derselbe Mechanismus wie bei einer Migration (Sicherung → Übertragung → Wiederherstellung): Beide Maschinen müssen online sein, und es dauert etwa so lange wie eine Sicherung plus eine Wiederherstellung. Scheitert etwas vor der Wiederherstellung, wird nichts angelegt; scheitert es danach, bleibt der Klon bestehen und der Fehler sagt, was zu prüfen ist (insbesondere der Port).
+
+## 9. Startgruppen
+
+Seite **Servers** (Flottenansicht) → Schaltfläche **Groups** (Gruppen, für Administratoren): Gruppe anlegen, Server hinzufügen und mit den Pfeilen ordnen. Server, die zu einer Gruppe gehören, tragen in der Liste ein Gruppenabzeichen.
+
+**Gruppe starten** startet die Server **einzeln nacheinander** in der gewählten Reihenfolge und wartet jeweils, bis einer wirklich läuft, bevor der nächste dran ist; das Stoppen geht die Reihenfolge rückwärts durch. Die Serie hält beim ersten Fehlschlag an und benachrichtigt Sie. Pro Gruppe kann immer nur eine Gruppenaktion gleichzeitig laufen.
+
+Zeitpläne zielen nicht auf Gruppen: Für einen geplanten Start in Reihenfolge staffeln Sie die Zeitpläne der einzelnen Server. Gehört ein Velocity-Proxy zur Gruppe, stellen Sie ihn beim Start ans Ende (die Oberfläche warnt Sie, wenn er es nicht ist): Die Server sollten bereit sein, wenn der Proxy anfängt, Spieler anzunehmen.
+
+## 10. Velocity-Proxys
+
+Ein Ordner mit einer `velocity.toml` wird beim Scan als **Velocity-Proxy** erkannt und wie ein Server verwaltet: starten, stoppen, Konsole, Logs.
+
+Einige Unterschiede sind Absicht: keine Minecraft-Version (ein Proxy hat keine), kein RCON und kein TPS (das Metrik-Panel erklärt, warum), das saubere Stoppen nutzt Velocitys `shutdown`-Befehl, Port und MOTD werden aus `velocity.toml` gelesen, und es gibt keine EULA zu bestätigen. Gestartet wird mit Java 17.
+
+Der Agent der Maschine muss aktuell sein, um Proxys zu erkennen — ein älterer Agent ignoriert sie schlicht.

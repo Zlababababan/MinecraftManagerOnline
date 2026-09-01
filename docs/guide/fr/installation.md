@@ -192,7 +192,7 @@ modules qu'il charge, le dossier de données (écriture **réelle**, et proprié
 l'utilisateur courant), la base, le port et le front.
 
 ```powershell
-C:mmopanelmmo-panel.cmd doctor
+C:\mmo\panel\mmo-panel.cmd doctor
 ```
 
 ```bash

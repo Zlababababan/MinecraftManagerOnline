@@ -43,3 +43,36 @@ Jogadores na mesma rede local não precisam de nada: endereço LAN + porta, seja
 ## 6. Remover uma máquina
 
 Página da máquina → **Remove machine** (remover a máquina): ela desaparece do painel (servidores e arquivos permanecem intactos no disco). Na própria máquina: `install.ps1 -Uninstall` / `install.sh --uninstall` ([Instalação § 2](installation.md#2-os-agentes)).
+
+## 7. Backups
+
+Página do servidor → aba **Backups**. Duas metades:
+
+- **Archives** (arquivos): crie um backup agora (funciona com o servidor em execução — o agente grava o mundo com `save-all` antes), baixe-o, restaure-o com um clique (por padrão é feita uma cópia de segurança do estado atual) ou apague-o. Cada arquivo mostra o seu tamanho, a data e o hash de integridade.
+- **Policies** (políticas): backups programados executados **pelo agente**, com o painel online ou não. Escolha a frequência e quantos arquivos manter (a rotação nunca expira o arquivo bem-sucedido mais recente). «Only if running» (somente se estiver em execução) ignora um servidor parado. Os horários seguem o fuso horário de agendamento do painel, exibido sob o formulário.
+
+Um servidor novo recebe uma política padrão (diária, manter 7). Se um backup programado falhar ou for ignorado, o painel registra isso e pode notificá-lo — veja as categorias de notificação nas configurações da sua conta. A pasta de destino é definida em Settings → General (com substituição por servidor na política).
+
+## 8. Duplicar um servidor
+
+Página do servidor → **Duplicate** (duplicar; abre-se uma caixa de diálogo): o painel copia o servidor para um servidor **novo**, na mesma máquina ou noutra. O caso típico é um servidor «modelo» que se clona na própria máquina.
+
+O original nunca é modificado: se estava em execução, é parado durante a cópia e reiniciado automaticamente — tanto se a duplicação der certo como se falhar. O clone chega **parado**, com um selo «Copy», com identidade própria e com uma porta de jogo livre escolhida automaticamente pelo painel (mude-a depois em Configuration, se preferir outra). O seu RCON é reatribuído no primeiro arranque.
+
+Por baixo é o mesmo mecanismo de uma migração (backup → transferência → restauração): ambas as máquinas precisam estar online, e demora mais ou menos o tempo de um backup mais uma restauração. Se algo falhar antes da restauração, nada é criado; se falhar depois, o clone é mantido e o erro diz o que verificar (a porta, em particular).
+
+## 9. Grupos de arranque
+
+Página **Servers** (visão da frota) → botão **Groups** (grupos, para administradores): crie um grupo, adicione servidores e ordene-os com as setas. Os servidores que pertencem a um grupo exibem um selo de grupo na lista.
+
+**Iniciar o grupo** lança os servidores **um a um** na ordem escolhida, esperando que cada um esteja realmente em execução antes de passar ao seguinte; a parada percorre a ordem inversa. A série para no primeiro fracasso e notifica você. Só pode haver uma ação de grupo em curso de cada vez sobre um mesmo grupo.
+
+Os agendamentos não miram grupos: para um arranque programado em sequência, escalone os agendamentos por servidor. Se um proxy Velocity pertencer ao grupo, coloque-o por último no arranque (a interface avisa se não estiver): convém que os servidores estejam prontos quando o proxy começar a aceitar jogadores.
+
+## 10. Proxies Velocity
+
+Uma pasta que contém um `velocity.toml` é reconhecida na varredura como um **proxy Velocity** e gerida como um servidor: iniciar, parar, console, logs.
+
+Algumas diferenças são propositais: nenhuma versão do Minecraft é exibida (um proxy não tem), não há RCON nem TPS (o painel de métricas explica por quê), a parada limpa usa o comando `shutdown` do Velocity, a porta e o MOTD são lidos do `velocity.toml`, e não há EULA a aceitar. Ele é lançado com Java 17.
+
+O agente da máquina precisa estar atualizado para detectar proxies — um agente antigo simplesmente os ignora.

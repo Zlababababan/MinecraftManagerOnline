@@ -43,3 +43,36 @@ Los jugadores de la misma red local no necesitan nada: dirección LAN + puerto, 
 ## 6. Quitar una máquina
 
 Página de la máquina → **Remove machine** (quitar la máquina): desaparece del panel (los servidores y los ficheros permanecen intactos en disco). En la propia máquina: `install.ps1 -Uninstall` / `install.sh --uninstall` ([Instalación § 2](installation.md#2-los-agentes)).
+
+## 7. Copias de seguridad
+
+Página del servidor → pestaña **Backups**. Dos mitades:
+
+- **Archives** (archivos): cree una copia ahora (funciona con el servidor en marcha — el agente vuelca el mundo con `save-all` antes), descárguela, restáurela con un clic (por defecto se toma una copia de seguridad del estado actual) o bórrela. Cada archivo muestra su tamaño, su fecha y su hash de integridad.
+- **Policies** (políticas): copias programadas ejecutadas **por el agente**, esté el panel en línea o no. Elija la frecuencia y cuántos archivos conservar (la rotación nunca caduca el archivo correcto más reciente). «Only if running» (solo si está en marcha) omite un servidor detenido. Las horas siguen la zona horaria de planificación del panel, que se muestra bajo el formulario.
+
+Un servidor nuevo recibe una política por defecto (diaria, conservar 7). Si una copia programada falla o se omite, el panel lo registra y puede avisarle — véanse las categorías de notificación en los ajustes de su cuenta. La carpeta de destino se define en Settings → General (con posibilidad de anularla por servidor en la política).
+
+## 8. Duplicar un servidor
+
+Página del servidor → **Duplicate** (duplicar; se abre un diálogo): el panel copia el servidor en un servidor **nuevo**, en la misma máquina o en otra. El caso típico es un servidor «plantilla» que se clona en su propia máquina.
+
+El original nunca se modifica: si estaba en marcha, se detiene durante la copia y se vuelve a arrancar automáticamente — tanto si la duplicación tiene éxito como si falla. El clon llega **detenido**, con una insignia «Copy», con su propia identidad y con un puerto de juego libre elegido automáticamente por el panel (cámbielo después en Configuration si prefiere otro). Su RCON se reasigna en el primer arranque.
+
+Por debajo es el mismo mecanismo que una migración (copia → transferencia → restauración): ambas máquinas deben estar en línea, y tarda aproximadamente lo que una copia más una restauración. Si algo falla antes de la restauración, no se crea nada; si falla después, el clon se conserva y el error indica qué comprobar (el puerto, en particular).
+
+## 9. Grupos de arranque
+
+Página **Servers** (vista de flota) → botón **Groups** (grupos, para administradores): cree un grupo, añádale servidores y ordénelos con las flechas. Los servidores que pertenecen a un grupo muestran una insignia de grupo en la lista.
+
+**Arrancar el grupo** lanza los servidores **uno a uno** en el orden elegido, esperando a que cada uno esté realmente en marcha antes de pasar al siguiente; al detener, recorre el orden inverso. La serie se detiene en el primer fallo y se lo notifica. Solo puede ejecutarse una acción de grupo a la vez sobre un mismo grupo.
+
+Las planificaciones no apuntan a grupos: para un arranque programado en secuencia, escalone las planificaciones por servidor. Si un proxy Velocity pertenece al grupo, póngalo el último para el arranque (la interfaz se lo advierte si no lo está): conviene que los servidores estén listos cuando el proxy empiece a aceptar jugadores.
+
+## 10. Proxies Velocity
+
+Una carpeta que contiene un `velocity.toml` se reconoce durante el escaneo como un **proxy Velocity** y se gestiona como un servidor: arranque, parada, consola, logs.
+
+Algunas diferencias son deliberadas: no se muestra versión de Minecraft (un proxy no tiene), no hay RCON ni TPS (el panel de métricas explica por qué), la parada limpia usa el comando `shutdown` de Velocity, el puerto y el MOTD se leen de `velocity.toml`, y no hay EULA que aceptar. Se usa Java 17 para lanzarlo.
+
+El agente de la máquina debe estar actualizado para detectar proxies — un agente antiguo simplemente los ignora.

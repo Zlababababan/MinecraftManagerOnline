@@ -61,3 +61,26 @@ Tragen Sie die öffentliche URL ein und führen Sie den Erreichbarkeitstest aus:
 **Nur IPv4 (kein IPv6 am Router).** Der Direct-Modus ist ohne öffentliche IPv4-Portweiterleitung unmöglich; verwenden Sie Tailscale.
 
 **Ports.** Panel: 443 eingehend (nur im Direct-Modus). Agents: kein eingehender Port. Minecraft-Server: 25565/TCP (und jeder von Ihnen gewählte Port) im Direct-Modus.
+
+## Firewall
+
+Standardmäßig gibt das Panel **nichts** nach außen: Es lauscht nur auf `127.0.0.1`. Im **Tailscale**-Modus gibt es daher nirgends eine Regel zu öffnen — das Tailnet erreicht das Panel über eine ausgehende Verbindung. Im **Direct**-Modus öffnen Sie den gewählten HTTPS-Port (standardmäßig 443) eingehend auf dem Host — den genauen Befehl zeigt Settings → Remote access → **Firewall rules** (Firewallregeln).
+
+**Oracle Cloud** (die kostenlose VM beherbergt häufig ein Panel): zwei getrennte Hürden, und beide müssen geöffnet werden.
+
+- Auf der VM selbst enden die iptables-Regeln des Ubuntu-Images von Oracle mit einem globalen REJECT: Die öffnende Regel muss **davor eingefügt** werden. `-I` (insert) tut genau das; ein `-A` (append) landet hinter dem REJECT und bewirkt nichts.
+
+  ```bash
+  sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+  sudo netfilter-persistent save
+  ```
+
+- Die **Security List** des VCN wird in der Oracle-Webkonsole konfiguriert, nicht auf der VM: Fügen Sie auch dort eine Ingress-Regel für TCP 443 hinzu (Networking → Virtual cloud networks → Ihr VCN → Security Lists).
+
+Mit Tailscale ist nichts davon nötig — kein iptables, keine Security List: Das ist ein großer Teil des Sinns des Standardmodus.
+
+## Ein Weg pro Maschine
+
+Der Modus ist eine Vorgabe, keine Mauer. Eine Maschine, die dem Tailnet nicht beitreten kann (eine gemietete VM, der Server eines Freundes), kann sich an die **direkte** Adresse hängen, während die anderen weiter Tailscale nutzen: Aktivieren Sie unter Settings → Remote access die Option **„Also answer on the direct route“** (auch über den direkten Weg antworten) und konfigurieren Sie darunter Domain und Zertifikat — das Panel antwortet dann auf beiden Wegen gleichzeitig.
+
+Jeder Agent merkt sich die Adresse, mit der er gekoppelt wurde. Wenn Sie auf der Seite einer Maschine einen Kopplungscode erzeugen, erscheint — sobald es eine Wahl gibt — ein Auswahlfeld **„Panel address for this machine“** (Panel-Adresse für diese Maschine): Wählen Sie die Standard-URL oder den direkten Weg, und der Installationsbefehl wird mit dieser Adresse neu gebaut. An bereits gekoppelten Maschinen ist nichts zu ändern — sie behalten ihren Weg.

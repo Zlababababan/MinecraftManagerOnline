@@ -61,3 +61,26 @@ panel.example.org {
 **只有 IPv4（路由器没有 IPv6）。** 没有公网 IPv4 端口映射就无法使用 Direct 模式；请使用 Tailscale。
 
 **端口。** 面板：443 入站（仅 Direct 模式）。代理：无入站端口。Minecraft 服务器：Direct 模式下 25565/TCP（以及你选择的任何端口）。
+
+## 防火墙
+
+默认情况下面板**什么都不暴露**：它只监听 `127.0.0.1`。因此在 **Tailscale** 模式下，任何地方都不需要开放规则——tailnet 通过一条出站连接抵达面板。在 **Direct** 模式下，请在宿主机上开放你所选的 HTTPS 入站端口（默认 443）——确切的命令显示在 Settings → Remote access → **Firewall rules**（防火墙规则）中。
+
+**Oracle Cloud**（免费云主机常被用来跑面板）：这里有两道彼此独立的关卡，两道都必须打开。
+
+- 在云主机本身，Oracle 的 Ubuntu 镜像的 iptables 规则以一条全局 REJECT 结尾：放行规则必须**插入到它前面**。`-I`（insert）正是这个作用；`-A`（append）会落在 REJECT 之后，毫无效果。
+
+  ```bash
+  sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+  sudo netfilter-persistent save
+  ```
+
+- VCN 的 **Security List** 是在 Oracle 的网页控制台里配置的，不在云主机上：请同样在那里为 TCP 443 添加一条入站规则（Networking → Virtual cloud networks → 你的 VCN → Security Lists）。
+
+用 Tailscale 就完全不需要这些——不用 iptables，也不用 Security List：这正是默认模式的意义所在。
+
+## 每台机器各走各的路
+
+模式只是默认值，不是一堵墙。无法加入 tailnet 的机器（租来的云主机、朋友的服务器）可以挂到**直连**地址上，而其他机器继续使用 Tailscale：在 Settings → Remote access 中启用 **「Also answer on the direct route」**（同时通过直连路径应答），并在下方配置域名和证书——面板就会同时在两条路径上应答。
+
+每个代理都会记住自己配对时使用的地址。当你从某台机器的页面生成配对码时，只要存在可选项，就会出现一个 **「Panel address for this machine」**（这台机器使用的面板地址）选择器：选择默认 URL 或直连路径，安装命令就会用该地址重新生成。已经配对的机器无需任何改动——它们继续走原来的路径。
