@@ -6,6 +6,51 @@ the release notes on GitHub — a release fails to publish if its section is mis
 Releases before 1.0.5 have their notes on the [releases page](https://github.com/Zlababababan/MinecraftManagerOnline/releases)
 only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archives were unusable.
 
+## 1.0.7 — 2026-09-01
+
+A small release, mostly about being able to check what you downloaded and to report a problem
+without guessing what to attach.
+
+### Verify your download
+
+Every release now publishes `SHA256SUMS.txt`. Download it next to your archive and check everything
+in one command:
+
+```bash
+sha256sum -c SHA256SUMS.txt --ignore-missing      # Linux
+shasum -a 256 -c SHA256SUMS.txt --ignore-missing  # macOS
+```
+
+On Windows, compare `Get-FileHash <file>` with the line that names your file. The per-platform
+`panel-<platform>.json` manifests still carry the same hashes, one file at a time.
+
+The archives also carry a **build provenance attestation**: GitHub signs the fact that these files
+were produced by this repository, from this commit, by this workflow. Check it with
+`gh attestation verify <file> --repo Zlababababan/MinecraftManagerOnline`. To be precise about what
+this is not: the Ed25519 signature in the release protects the agent's auto-update chain, and has
+never been something a human could verify. The attestation and the checksums are.
+
+### Report a problem in one command
+
+`mmo-panel report` writes a text file with what a bug report actually needs: versions on both sides,
+platforms, the full `doctor` output, your machines and their agents, your settings without their
+secrets, and a masked excerpt of the log. Personal paths, tokens and pairing codes are masked, and
+server folders are never listed — read it before attaching it, then drop it into the new issue form.
+
+```bash
+/opt/mmo-panel/mmo-panel.sh report      # --stdout to print it, --no-log to leave the log out
+```
+
+### Fixes
+
+- **Accessibility**: the role selector in Settings → Users had no label at all — a screen reader
+  announced an anonymous list in the middle of a table of accounts. The audit log, the user list and
+  the connection address on a phone could be scrolled with a mouse but not reached with a keyboard.
+- **Interrupted downloads resume.** Installing a mod or a plugin from a URL used to restart from
+  zero when the connection dropped; it now continues where it stopped, and retries by itself.
+- Windows: a single slow start of the metrics collector no longer costs per-process memory and CPU
+  until the agent is restarted (this one also shipped in 1.0.6).
+
 ## 1.0.6 — 2026-09-01
 
 Install the panel with **one command**, on Linux or on Windows — and update it with the same one.

@@ -73,22 +73,30 @@ describe('échantillonneurs CPU/RSS (spike n°2)', () => {
         closed = true;
       },
     };
-    const sampler = new PlatformSampler(logger, 'win32', { primary, retryDelaysMs: [40] });
-
-    const degraded = await sampler.sample([42]);
+    // Deux délais, deux échantillonneurs, aucune horloge dans les assertions : un backoff court
+    // suivi d'un `sleep` supposerait que les deux appels tiennent dedans — ce qui est faux dès que
+    // la machine est chargée (vu rouge sur cette suite). Ici, « pendant le backoff » c'est une
+    // minute (jamais atteinte) et « après le backoff » c'est zéro (toujours atteint).
+    const pendant = new PlatformSampler(logger, 'win32', { primary, retryDelaysMs: [60_000] });
+    const degraded = await pendant.sample([42]);
     expect(degraded.cpuSource).toBe('ticks');
     expect(degraded.processes.get(42)).toEqual({ cpuPct: undefined, rssMb: undefined });
     expect(closed).toBe(false); // le primaire n'est pas jeté : la panne peut être passagère
 
-    // Pendant le backoff, on ne retente pas (le primaire échouerait encore).
+    // Le primaire remarcherait, mais le backoff court toujours : on ne le retente pas.
     fail = false;
-    expect((await sampler.sample([42])).cpuSource).toBe('ticks');
+    expect((await pendant.sample([42])).cpuSource).toBe('ticks');
+    pendant.close();
 
-    await sleep(60);
-    const recovered = await sampler.sample([42]);
+    // Backoff écoulé : le primaire est retenté, et repris.
+    fail = true;
+    const apres = new PlatformSampler(logger, 'win32', { primary, retryDelaysMs: [0] });
+    expect((await apres.sample([42])).cpuSource).toBe('ticks');
+    fail = false;
+    const recovered = await apres.sample([42]);
     expect(recovered.cpuSource).toBe('cycles');
     expect(recovered.processes.get(42)).toEqual({ cpuPct: 12, rssMb: 34 });
-    sampler.close();
+    apres.close();
   });
 
   it('PlatformSampler : PowerShell introuvable = panne définitive, le primaire est fermé', async () => {
