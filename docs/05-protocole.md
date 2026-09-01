@@ -239,6 +239,8 @@ migration.export (task, source) → transfer.serve (source) → migration.import
 - `capabilities` pour l'optionnel (`rcon`, `zstd`, `direct-transfer`, futurs : carte du monde, WoL…).
 - Panel supporte N et N-1 ; tests de contrat sur fixtures des versions supportées.
 
+> **Amendement (2026-09-01) — le contrat N/N-1 devient exécutable.** « Le panel supporte N et N-1 » était une règle écrite, invoquée par toute la feuille de route, et vérifiée par rien : les fixtures de `v1` sont maintenues **avec** les schémas, donc elles suivent chaque changement au lieu de s'y opposer. Deux références **figées** à la release s'y ajoutent (`packages/protocol/test/fixtures/n-1/`) : `messages.json`, ce qu'un pair de la version précédente envoie encore, et `vocabularies.json`, les 188 valeurs d'enum qu'il connaît (loader, runState, provisioning, codes d'erreur, types de requête et d'événement, capacités, catégories de notification…). `contract-n-1.test.ts` vérifie que les schémas courants acceptent toujours les unes, et n'ont perdu aucune des autres. **Règle** : en cas d'échec, c'est le schéma qu'on corrige (un champ ajouté est optionnel), **jamais la fixture** ; on ne refige une référence que délibérément, au moment d'une release, en recopiant l'état d'alors. Éprouvé dans les deux sens à l'écriture : retirer `loader.velocity` et rendre `fs.fetch.sources` obligatoire font tomber le test en nommant le coupable.
+
 ## 12. Sécurité
 
 1. TLS : fourni par la couche d'accès (doc 03 §5) — requis de toute façon par la PWA.

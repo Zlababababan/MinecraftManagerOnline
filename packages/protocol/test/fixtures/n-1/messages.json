@@ -1,0 +1,1337 @@
+{
+  "$comment": "Charges utiles telles qu un pair N-1 les envoie — figees a la release 1.0.7 en recopiant les fixtures de reference de ce moment. REGLE : ne JAMAIS modifier ce fichier pour faire passer un test. Sil echoue, cest quun schema courant a cesse daccepter ce quun agent de la version precedente envoie encore : cest le schema quil faut corriger (champ ajoute = optionnel), pas la fixture. On la rafraichit deliberement, en la recopiant, au moment de figer une nouvelle reference.",
+  "$frozenAt": "1.0.7",
+  "requests": [
+    {
+      "type": "pair.request",
+      "request": {
+        "code": "MMOP-7F2K-9QXB",
+        "machine": {
+          "hostname": "pi5",
+          "os": "linux",
+          "arch": "arm64",
+          "cpuCores": 4,
+          "ramTotalMb": 8192
+        },
+        "agentVersion": "1.0.0",
+        "protoMin": 1,
+        "protoMax": 1
+      },
+      "response": {
+        "agentId": "01J5X8ZK3Q9WYE2R7M4T6B8N1C",
+        "secret": "5f4dcc3b5aa765d61d8327deb882cf995f4dcc3b5aa765d61d8327deb882cf99"
+      }
+    },
+    {
+      "type": "auth.hello",
+      "request": {
+        "agentId": "01J5X8ZK3Q9WYE2R7M4T6B8N1C",
+        "agentSecret": "5f4dcc3b5aa765d61d8327deb882cf995f4dcc3b5aa765d61d8327deb882cf99",
+        "agentVersion": "1.0.0",
+        "protoMin": 1,
+        "protoMax": 1,
+        "capabilities": ["rcon", "zstd"],
+        "compression": ["zstd", "gzip"],
+        "resume": {
+          "pendingTaskIds": [],
+          "lastAckedReqId": "01J5X8ZK3Q9WYE2R7M4T6B8N1D"
+        },
+        "machine": {
+          "hostname": "gaming-pc",
+          "os": "windows",
+          "arch": "x64",
+          "cpuModel": "i7-10700KF",
+          "cpuCores": 16,
+          "ramTotalMb": 32768
+        }
+      },
+      "response": {
+        "protocolVersion": 1,
+        "heartbeatIntervalSec": 15,
+        "wantFullSync": true,
+        "subscriptions": [
+          {
+            "channel": "console:srv_01",
+            "sinceSeq": 4210
+          }
+        ],
+        "compression": "zstd",
+        "serverTime": 1787330455000
+      }
+    },
+    {
+      "type": "sync.state",
+      "request": {
+        "servers": [
+          {
+            "serverId": "srv_01",
+            "path": "E:\\srv\\ATM10_6.0",
+            "runState": "running",
+            "attachMode": "detached",
+            "pid": 4242,
+            "startedAt": 1787330000000,
+            "gamePort": 25565,
+            "rconPort": 25575
+          },
+          {
+            "path": "E:\\srv\\Vanilla",
+            "runState": "stopped",
+            "attachMode": "attached"
+          }
+        ],
+        "tasks": [],
+        "seqs": {
+          "console:srv_01": 4210,
+          "metrics": 12
+        },
+        "portsInUse": [25565, 25575],
+        "javaRuntimes": [
+          {
+            "majorVersion": 21,
+            "vendor": "temurin",
+            "path": "C:\\mmo\\jre\\21",
+            "managed": true
+          }
+        ]
+      },
+      "response": {}
+    },
+    {
+      "type": "agent.info",
+      "request": {},
+      "response": {
+        "machine": {
+          "hostname": "gaming-pc",
+          "os": "windows",
+          "arch": "x64"
+        },
+        "agentVersion": "1.0.0",
+        "runtimeVersion": "24.19.0",
+        "volumes": [
+          {
+            "path": "E:\\",
+            "totalGb": 931.5,
+            "freeGb": 120.2
+          }
+        ],
+        "javaRuntimes": [],
+        "watchedDirectories": ["E:\\srv"],
+        "capabilities": ["rcon", "zstd"]
+      }
+    },
+    {
+      "type": "agent.configure",
+      "request": {
+        "watchedDirectories": [
+          {
+            "id": "dir_01",
+            "path": "E:\\srv",
+            "enabled": true
+          }
+        ],
+        "backupDestination": "E:\\backups",
+        "watchdog": [
+          {
+            "serverId": "srv_01",
+            "autoRestart": true,
+            "crashLoopMax": 3,
+            "freezeTimeoutSec": 120,
+            "freezeAction": "kill_restart"
+          }
+        ],
+        "backupSchedules": [
+          {
+            "id": "sch_01",
+            "serverId": "srv_01",
+            "cron": "0 4 * * *",
+            "keep": 7,
+            "enabled": true
+          }
+        ],
+        "servers": [
+          {
+            "serverId": "srv_01",
+            "path": "E:\\srv\\ATM10_6.0",
+            "name": "ATM10",
+            "maxRamMb": 8192,
+            "minRamMb": 4096,
+            "loader": "neoforge",
+            "mcVersion": "1.21.1",
+            "launch": {
+              "kind": "argfile",
+              "argfileDir": "libraries/net/neoforged/neoforge/21.1.219",
+              "hasWinArgs": true,
+              "hasUnixArgs": true
+            },
+            "javaMajor": 21,
+            "jvmArgs": ["-XX:+UseG1GC"],
+            "startTimeoutSec": 600
+          }
+        ],
+        "desiredStates": {
+          "srv_01": "running"
+        },
+        "restoreOnBoot": true,
+        "metricsIntervalSec": 15
+      },
+      "response": {
+        "applied": true
+      }
+    },
+    {
+      "type": "agent.rotateSecret",
+      "request": {
+        "newSecret": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "graceUntil": 1787416855000
+      },
+      "response": {}
+    },
+    {
+      "type": "agent.restart",
+      "request": {
+        "reason": "update"
+      },
+      "response": {
+        "accepted": true
+      }
+    },
+    {
+      "type": "scan.run",
+      "request": {
+        "directoryIds": ["dir_01"],
+        "paths": ["E:\\autre\\serveur"]
+      },
+      "response": {
+        "scannedPaths": ["E:\\srv", "E:\\autre\\serveur"],
+        "servers": [
+          {
+            "path": "E:\\srv\\Vanilla",
+            "name": "Vanilla",
+            "loader": {
+              "value": "vanilla",
+              "confidence": "high",
+              "source": "jar_name"
+            },
+            "mcVersion": {
+              "value": "1.20.1",
+              "confidence": "high",
+              "source": "version_json"
+            },
+            "maxRamMb": {
+              "value": 4096,
+              "confidence": "low",
+              "source": "default"
+            },
+            "eulaAccepted": true,
+            "launch": {
+              "kind": "jar",
+              "jar": "server.jar"
+            },
+            "confidence": "high",
+            "evidence": [
+              {
+                "code": "vanilla_jar",
+                "detail": "server.jar"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "server.start",
+      "request": {
+        "serverId": "srv_01"
+      },
+      "response": {
+        "alreadyRunning": false,
+        "pid": 4242
+      }
+    },
+    {
+      "type": "server.stop",
+      "request": {
+        "serverId": "srv_01",
+        "timeoutSec": 120,
+        "announce": "Restart in 1 minute",
+        "forceAfterTimeout": true
+      },
+      "response": {
+        "alreadyStopped": false,
+        "forced": false
+      }
+    },
+    {
+      "type": "server.restart",
+      "request": {
+        "serverId": "srv_01",
+        "timeoutSec": 120
+      },
+      "response": {}
+    },
+    {
+      "type": "server.kill",
+      "request": {
+        "serverId": "srv_01"
+      },
+      "response": {
+        "wasRunning": true
+      }
+    },
+    {
+      "type": "server.command",
+      "request": {
+        "serverId": "srv_01",
+        "command": "say hello"
+      },
+      "response": {
+        "via": "stdin"
+      }
+    },
+    {
+      "type": "server.rcon",
+      "request": {
+        "serverId": "srv_01",
+        "command": "list",
+        "timeoutMs": 5000
+      },
+      "response": {
+        "response": "There are 2 of a max of 20 players online: Player1, Player2"
+      }
+    },
+    {
+      "type": "server.commandHelp",
+      "request": {
+        "serverId": "srv_01",
+        "name": "whitelist",
+        "timeoutMs": 10000
+      },
+      "response": {
+        "available": true,
+        "lines": ["/whitelist (on|off|list|reload)", "/whitelist (add|remove) <targets>"],
+        "truncated": false
+      }
+    },
+    {
+      "type": "server.eulaAccept",
+      "request": {
+        "serverId": "srv_01"
+      },
+      "response": {}
+    },
+    {
+      "type": "server.setProvisioning",
+      "request": {
+        "serverId": "srv_01",
+        "provisioning": "ready"
+      },
+      "response": {}
+    },
+    {
+      "type": "player.list",
+      "request": {
+        "serverId": "srv_01"
+      },
+      "response": {
+        "online": 1,
+        "max": 20,
+        "players": [
+          {
+            "name": "Player1",
+            "uuid": "00000000-0000-4000-8000-000000000001"
+          }
+        ]
+      }
+    },
+    {
+      "type": "player.action",
+      "request": {
+        "serverId": "srv_01",
+        "action": "ban",
+        "target": "Griefer",
+        "reason": "griefing"
+      },
+      "response": {
+        "applied": "commands",
+        "response": "Banned Griefer: griefing",
+        "warnings": []
+      }
+    },
+    {
+      "type": "player.resolve",
+      "request": {
+        "serverId": "srv_01",
+        "names": ["Notch", "Unknown_Player_X"]
+      },
+      "response": {
+        "players": [
+          {
+            "name": "Notch",
+            "uuid": "069a79f4-44e9-4726-a5be-fca90e38aaf5",
+            "source": "mojang"
+          },
+          {
+            "name": "Unknown_Player_X",
+            "uuid": null,
+            "source": "unknown"
+          }
+        ],
+        "onlineMode": true
+      }
+    },
+    {
+      "type": "console.subscribe",
+      "request": {
+        "serverId": "srv_01",
+        "sinceSeq": 4200
+      },
+      "response": {
+        "lines": [
+          {
+            "seq": 4201,
+            "ts": 1787330455000,
+            "level": "INFO",
+            "text": "[20:47:27] [Server thread/INFO]: Done (5,497s)! For help, type \"help\""
+          }
+        ],
+        "truncated": false,
+        "latestSeq": 4201
+      }
+    },
+    {
+      "type": "console.unsubscribe",
+      "request": {
+        "serverId": "srv_01"
+      },
+      "response": {}
+    },
+    {
+      "type": "logs.search",
+      "request": {
+        "serverId": "srv_01",
+        "query": "joined the game",
+        "regex": false,
+        "limit": 100
+      },
+      "response": {
+        "matches": [
+          {
+            "file": "latest.log",
+            "line": 812,
+            "text": "[20:50:01] [Server thread/INFO]: Player1 joined the game"
+          }
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "type": "logs.listFiles",
+      "request": {
+        "serverId": "srv_01"
+      },
+      "response": {
+        "files": [
+          {
+            "name": "latest.log",
+            "sizeBytes": 120034,
+            "modifiedAt": 1787330455000
+          },
+          {
+            "name": "2026-08-20-1.log.gz",
+            "sizeBytes": 8012,
+            "modifiedAt": 1787244055000
+          }
+        ]
+      }
+    },
+    {
+      "type": "fs.list",
+      "request": {
+        "serverId": "srv_01",
+        "path": "config"
+      },
+      "response": {
+        "entries": [
+          {
+            "name": "jei",
+            "kind": "dir"
+          },
+          {
+            "name": "fml.toml",
+            "kind": "file",
+            "size": 512,
+            "modifiedAt": 1787330455000
+          }
+        ]
+      }
+    },
+    {
+      "type": "fs.stat",
+      "request": {
+        "serverId": "srv_01",
+        "path": "server.properties"
+      },
+      "response": {
+        "kind": "file",
+        "size": 1250,
+        "modifiedAt": 1787330455000
+      }
+    },
+    {
+      "type": "fs.mkdir",
+      "request": {
+        "serverId": "srv_01",
+        "path": "datapacks/new"
+      },
+      "response": {}
+    },
+    {
+      "type": "fs.rename",
+      "request": {
+        "serverId": "srv_01",
+        "from": "world",
+        "to": "world_old",
+        "overwrite": false
+      },
+      "response": {}
+    },
+    {
+      "type": "fs.copy",
+      "request": {
+        "serverId": "srv_01",
+        "from": "server.properties",
+        "to": "server.properties.bak"
+      },
+      "response": {}
+    },
+    {
+      "type": "fs.delete",
+      "request": {
+        "serverId": "srv_01",
+        "path": "logs/old.log"
+      },
+      "response": {
+        "trashedAs": ".mmo-trash/2026-08-21T10-00-00/logs/old.log"
+      }
+    },
+    {
+      "type": "fs.read",
+      "request": {
+        "serverId": "srv_01",
+        "path": "eula.txt",
+        "maxBytes": 524288
+      },
+      "response": {
+        "content": "eula=true\n",
+        "encoding": "utf8",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size": 10,
+        "truncated": false
+      }
+    },
+    {
+      "type": "fs.write",
+      "request": {
+        "serverId": "srv_01",
+        "path": "eula.txt",
+        "content": "eula=true\n",
+        "expectedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "response": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "type": "config.get",
+      "request": {
+        "serverId": "srv_01",
+        "file": "server.properties"
+      },
+      "response": {
+        "file": "server.properties",
+        "data": {
+          "server-port": "25565",
+          "motd": "All the Mods 10"
+        },
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source": "file"
+      }
+    },
+    {
+      "type": "config.set",
+      "request": {
+        "serverId": "srv_01",
+        "file": "whitelist.json",
+        "data": [
+          {
+            "uuid": "00000000-0000-4000-8000-000000000001",
+            "name": "Player1"
+          }
+        ]
+      },
+      "response": {
+        "applied": "commands",
+        "restartRequired": false
+      }
+    },
+    {
+      "type": "metrics.configure",
+      "request": {
+        "intervalSec": 5
+      },
+      "response": {}
+    },
+    {
+      "type": "java.list",
+      "request": {},
+      "response": {
+        "runtimes": [
+          {
+            "id": "jre_01",
+            "majorVersion": 21,
+            "fullVersion": "21.0.8+9",
+            "vendor": "temurin",
+            "path": "C:\\mmo\\jre\\21",
+            "managed": true
+          },
+          {
+            "majorVersion": 8,
+            "fullVersion": "1.8.0_281",
+            "vendor": "system",
+            "path": "D:\\Java\\jdk1.8.0_281",
+            "managed": false
+          }
+        ]
+      }
+    },
+    {
+      "type": "event.ack",
+      "request": {
+        "eventIds": ["01J5X8ZK3Q9WYE2R7M4T6B8N1E", "01J5X8ZK3Q9WYE2R7M4T6B8N1F"]
+      },
+      "response": {}
+    },
+    {
+      "type": "task.cancel",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A"
+      },
+      "response": {
+        "cancelled": true,
+        "status": "running"
+      }
+    },
+    {
+      "type": "task.ackResult",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A"
+      },
+      "response": {}
+    },
+    {
+      "type": "task.list",
+      "request": {},
+      "response": {
+        "tasks": [
+          {
+            "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+            "kind": "backup.create",
+            "serverId": "srv_01",
+            "status": "running",
+            "phase": "archiving",
+            "pct": 42.5,
+            "startedAt": 1787330455000,
+            "updatedAt": 1787330475000
+          },
+          {
+            "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2B",
+            "kind": "backup.create",
+            "serverId": "srv_01",
+            "status": "done",
+            "startedAt": 1787330000000,
+            "updatedAt": 1787330100000,
+            "finishedAt": 1787330100000,
+            "result": {
+              "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C",
+              "serverId": "srv_01",
+              "kind": "scheduled",
+              "policyId": "pol_01",
+              "createdAt": 1787330455000,
+              "codec": "zstd",
+              "archivePath": "E:\\MMO\\backups\\srv_01\\bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C.tar.zst",
+              "sizeBytes": 734003200,
+              "sha256": "a3f5e2c1d4b6a7980f1e2d3c4b5a69788796a5b4c3d2e1f00112233445566778",
+              "files": 1842,
+              "bytesRaw": 1288490188,
+              "hot": true,
+              "serverName": "Survie",
+              "mcVersion": "1.20.1",
+              "loader": "forge",
+              "agentVersion": "0.8.0"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "backup.create",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "serverId": "srv_01",
+        "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C",
+        "kind": "manual",
+        "codec": "zstd",
+        "comment": "avant mise à jour des mods"
+      },
+      "response": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C"
+      }
+    },
+    {
+      "type": "backup.list",
+      "request": {
+        "serverId": "srv_01",
+        "destinations": ["D:\\old-backups"]
+      },
+      "response": {
+        "backups": [
+          {
+            "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C",
+            "serverId": "srv_01",
+            "kind": "scheduled",
+            "policyId": "pol_01",
+            "createdAt": 1787330455000,
+            "codec": "zstd",
+            "archivePath": "E:\\MMO\\backups\\srv_01\\bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C.tar.zst",
+            "sizeBytes": 734003200,
+            "sha256": "a3f5e2c1d4b6a7980f1e2d3c4b5a69788796a5b4c3d2e1f00112233445566778",
+            "files": 1842,
+            "bytesRaw": 1288490188,
+            "hot": true,
+            "serverName": "Survie",
+            "mcVersion": "1.20.1",
+            "loader": "forge",
+            "agentVersion": "0.8.0"
+          }
+        ]
+      }
+    },
+    {
+      "type": "backup.restore",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "serverId": "srv_01",
+        "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C",
+        "safetyBackup": true,
+        "safetyBackupId": "bk_safety",
+        "restartAfter": true
+      },
+      "response": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A"
+      }
+    },
+    {
+      "type": "backup.delete",
+      "request": {
+        "serverId": "srv_01",
+        "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C"
+      },
+      "response": {
+        "deleted": true
+      }
+    },
+    {
+      "type": "fs.fetch",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "serverId": "srv_01",
+        "path": "mods/spark-1.10.53-forge.jar",
+        "url": "https://example.invalid/spark-1.10.53-forge.jar",
+        "sha1": "0123456789abcdef0123456789abcdef01234567",
+        "overwrite": false
+      },
+      "response": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A"
+      }
+    },
+    {
+      "type": "fs.download.start",
+      "request": {
+        "transferId": "0123456789abcdef0123456789abcdef",
+        "serverId": "srv_01",
+        "path": "world/region/r.0.0.mca",
+        "offset": 1048576,
+        "compression": "zstd"
+      },
+      "response": {
+        "size": 8388608,
+        "modifiedAt": 1787330455000,
+        "chunkSize": 1048576,
+        "compression": "zstd"
+      }
+    },
+    {
+      "type": "fs.upload.start",
+      "request": {
+        "transferId": "0123456789abcdef0123456789abcdef",
+        "serverId": "srv_01",
+        "path": "mods/new.jar",
+        "size": 123456,
+        "overwrite": true
+      },
+      "response": {
+        "offset": 0,
+        "chunkSize": 1048576,
+        "compression": "none"
+      }
+    },
+    {
+      "type": "fs.transfer.done",
+      "request": {
+        "transferId": "0123456789abcdef0123456789abcdef",
+        "size": 8388608,
+        "sha256": "a3f5e2c1d4b6a7980f1e2d3c4b5a69788796a5b4c3d2e1f00112233445566778"
+      },
+      "response": {
+        "verified": true
+      }
+    },
+    {
+      "type": "migration.export",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "serverId": "srv_01",
+        "migrationId": "mig_01",
+        "backupId": "bk_mig_01",
+        "announce": "Migration dans 30 s"
+      },
+      "response": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A"
+      }
+    },
+    {
+      "type": "transfer.serve",
+      "request": {
+        "serverId": "srv_01",
+        "backupId": "bk_mig_01",
+        "token": "0123456789abcdef0123456789abcdef",
+        "ttlSec": 600
+      },
+      "response": {
+        "urls": [
+          "http://192.168.1.10:49321/0123456789abcdef0123456789abcdef",
+          "http://[fd00::10]:49321/0123456789abcdef0123456789abcdef"
+        ],
+        "size": 123456,
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expiresAt": 1787331055000
+      }
+    },
+    {
+      "type": "migration.precheck",
+      "request": {
+        "serverId": "srv_01",
+        "path": "D:\\Serveurs\\Survie",
+        "gamePort": 25565,
+        "javaMajor": 17,
+        "requiredBytes": 1300000
+      },
+      "response": {
+        "ok": false,
+        "path": {
+          "ok": true
+        },
+        "port": {
+          "ok": true
+        },
+        "java": {
+          "ok": false,
+          "code": "java_missing",
+          "installable": true
+        },
+        "disk": {
+          "ok": true,
+          "freeBytes": 50000000000,
+          "requiredBytes": 1300000
+        }
+      }
+    },
+    {
+      "type": "migration.import",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2B",
+        "migrationId": "mig_01",
+        "config": {
+          "serverId": "srv_01",
+          "path": "D:\\Serveurs\\Survie",
+          "name": "Survie",
+          "maxRamMb": 4096,
+          "loader": "vanilla",
+          "mcVersion": "1.20.1",
+          "javaMajor": 17
+        },
+        "manifest": {
+          "backupId": "bk_mig_01",
+          "serverId": "srv_01",
+          "kind": "pre_migration",
+          "createdAt": 1787330455000,
+          "codec": "gzip",
+          "archivePath": "E:\\MMO\\backups\\srv_01\\bk_mig_01.tar.gz",
+          "sizeBytes": 123456,
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "files": 42,
+          "bytesRaw": 654321,
+          "hot": false,
+          "serverName": "Survie",
+          "mcVersion": "1.20.1",
+          "loader": "vanilla"
+        },
+        "sources": [
+          {
+            "url": "http://192.168.1.10:49321/0123456789abcdef0123456789abcdef",
+            "kind": "direct"
+          },
+          {
+            "url": "/api/relay/9f8e7d6c5b4a39281706f5e4d3c2b1a0",
+            "kind": "relay"
+          }
+        ],
+        "startAfter": true
+      },
+      "response": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2B"
+      }
+    },
+    {
+      "type": "migration.finalize",
+      "request": {
+        "serverId": "srv_01",
+        "migrationId": "mig_01",
+        "path": "E:\\Minecraft\\Server\\Survie",
+        "action": "rename"
+      },
+      "response": {
+        "path": "E:\\Minecraft\\Server\\Survie.migrated-20260822-1530",
+        "renamed": true,
+        "purgeAfter": 1787935255000
+      }
+    },
+    {
+      "type": "java.install",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2C",
+        "majorVersion": 17,
+        "sources": [
+          {
+            "vendor": "temurin",
+            "url": "https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jre/hotspot/normal/eclipse",
+            "archive": "zip",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "size": 45000000
+          },
+          {
+            "vendor": "temurin",
+            "url": "/api/relay/9f8e7d6c5b4a39281706f5e4d3c2b1a0",
+            "archive": "zip",
+            "relay": true
+          }
+        ]
+      },
+      "response": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2C"
+      }
+    },
+    {
+      "type": "java.remove",
+      "request": {
+        "path": "C:\\Users\\me\\AppData\\Local\\mmo-agent\\java\\17-temurin\\bin\\java.exe"
+      },
+      "response": {
+        "removed": true
+      }
+    },
+    {
+      "type": "agent.update",
+      "request": {
+        "version": "0.9.0",
+        "url": "/api/relay/9f8e7d6c5b4a39281706f5e4d3c2b1a0",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "signature": "MEUCIQDxbase64",
+        "size": 2900000,
+        "runtimeVersion": "24.19.0"
+      },
+      "response": {
+        "accepted": true,
+        "currentVersion": "0.8.0",
+        "alreadyCurrent": false
+      }
+    },
+    {
+      "type": "runtime.update",
+      "request": {
+        "version": "24.19.0",
+        "os": "windows",
+        "arch": "x64",
+        "url": "https://nodejs.org/dist/v24.19.0/node-v24.19.0-win-x64.zip",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "archive": "zip"
+      },
+      "response": {
+        "accepted": true,
+        "currentVersion": "24.13.0",
+        "pending": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "type": "agent.heartbeat",
+      "payload": {
+        "ts": 1787330455000,
+        "cpuPct": 12.5,
+        "cpuSource": "cycles",
+        "ramUsedMb": 14000,
+        "ramTotalMb": 32768,
+        "diskUsedGb": 800.1,
+        "diskTotalGb": 931.5,
+        "activeServers": 1,
+        "activeTasks": 0
+      }
+    },
+    {
+      "type": "agent.log",
+      "payload": {
+        "ts": 1787330455000,
+        "level": "WARN",
+        "message": "rcon probe failed",
+        "context": {
+          "serverId": "srv_01",
+          "attempt": 2
+        }
+      }
+    },
+    {
+      "type": "server.detected",
+      "payload": {
+        "eventId": "01J5X8ZK3Q9WYE2R7M4T6B8N1E",
+        "ts": 1787330455000,
+        "directoryId": "dir_01",
+        "server": {
+          "path": "E:\\srv\\ATM10_6.0",
+          "name": "ATM10_6.0",
+          "loader": {
+            "value": "neoforge",
+            "confidence": "high",
+            "source": "libraries"
+          },
+          "mcVersion": {
+            "value": "1.21.1",
+            "confidence": "high",
+            "source": "libraries"
+          },
+          "loaderVersion": {
+            "value": "21.1.219",
+            "confidence": "high",
+            "source": "libraries"
+          },
+          "maxRamMb": {
+            "value": 8192,
+            "confidence": "high",
+            "source": "user_jvm_args.txt"
+          },
+          "minRamMb": {
+            "value": 4096,
+            "confidence": "high",
+            "source": "user_jvm_args.txt"
+          },
+          "gamePort": 25565,
+          "rconEnabled": false,
+          "rconPort": 25575,
+          "eulaAccepted": true,
+          "javaRequirement": {
+            "majorVersion": 21,
+            "strict": false,
+            "source": "table"
+          },
+          "launch": {
+            "kind": "argfile",
+            "argfileDir": "libraries/net/neoforged/neoforge/21.1.219",
+            "hasWinArgs": true,
+            "hasUnixArgs": true
+          },
+          "modCount": 446,
+          "confidence": "high",
+          "evidence": [
+            {
+              "code": "neoforge_libraries",
+              "detail": "21.1.219"
+            },
+            {
+              "code": "user_jvm_args",
+              "detail": "-Xmx8G"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "server.removed",
+      "payload": {
+        "eventId": "01J5X8ZK3Q9WYE2R7M4T6B8N1F",
+        "ts": 1787330455000,
+        "path": "E:\\srv\\Old",
+        "serverId": "srv_09"
+      }
+    },
+    {
+      "type": "server.updated",
+      "payload": {
+        "eventId": "01J5X8ZK3Q9WYE2R7M4T6B8N1G",
+        "ts": 1787330455000,
+        "serverId": "srv_02",
+        "server": {
+          "path": "E:\\srv\\Vanilla",
+          "name": "Vanilla",
+          "loader": {
+            "value": "vanilla",
+            "confidence": "high",
+            "source": "server.jar"
+          },
+          "mcVersion": {
+            "value": "1.20.1",
+            "confidence": "high",
+            "source": "version.json"
+          },
+          "maxRamMb": {
+            "value": 4096,
+            "confidence": "low",
+            "source": "default"
+          },
+          "eulaAccepted": true,
+          "confidence": "high",
+          "evidence": [
+            {
+              "code": "vanilla_jar",
+              "detail": "server.jar"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "server.stateChanged",
+      "payload": {
+        "eventId": "01J5X8ZK3Q9WYE2R7M4T6B8N1H",
+        "serverId": "srv_01",
+        "ts": 1787330455000,
+        "state": "crashed",
+        "previous": "running",
+        "attachMode": "attached",
+        "pid": 4242,
+        "exitReason": "crash",
+        "exitCode": 1,
+        "crashReportPath": "crash-reports/crash-2026-08-21_10.00.00-server.txt"
+      }
+    },
+    {
+      "type": "player.event",
+      "payload": {
+        "eventId": "01J5X8ZK3Q9WYE2R7M4T6B8N1J",
+        "serverId": "srv_01",
+        "ts": 1787330455000,
+        "kind": "join",
+        "name": "Player1",
+        "uuid": "00000000-0000-4000-8000-000000000001",
+        "online": 1
+      }
+    },
+    {
+      "type": "console.lines",
+      "payload": {
+        "serverId": "srv_01",
+        "lines": [
+          {
+            "seq": 4202,
+            "ts": 1787330455000,
+            "level": "INFO",
+            "text": "[20:50:01] [Server thread/INFO]: Player1 joined the game"
+          },
+          {
+            "seq": 4203,
+            "ts": 1787330455100,
+            "level": "WARN",
+            "text": "[20:50:02] [Server thread/WARN]: Can't keep up! Is the server overloaded?"
+          }
+        ]
+      }
+    },
+    {
+      "type": "metrics.sample",
+      "payload": {
+        "ts": 1787330455000,
+        "machine": {
+          "cpuPct": 23.1,
+          "ramUsedMb": 14000,
+          "ramTotalMb": 32768
+        },
+        "servers": [
+          {
+            "serverId": "srv_01",
+            "cpuPct": 18.2,
+            "rssMb": 6200,
+            "tps": 19.8,
+            "mspt": 31.2,
+            "players": 2,
+            "tpsSource": "forge"
+          }
+        ],
+        "cpuSource": "ticks"
+      }
+    },
+    {
+      "type": "watchdog.alert",
+      "payload": {
+        "eventId": "01J5X8ZK3Q9WYE2R7M4T6B8N1K",
+        "serverId": "srv_01",
+        "ts": 1787330455000,
+        "kind": "freeze",
+        "action": "kill_restart",
+        "attempt": 1,
+        "detail": "3 consecutive rcon probe failures"
+      }
+    },
+    {
+      "type": "port.conflict",
+      "payload": {
+        "ts": 1787330455000,
+        "port": 25565,
+        "serverId": "srv_02",
+        "holder": "java.exe (4242)"
+      }
+    },
+    {
+      "type": "watchdog.alert",
+      "payload": {
+        "eventId": "01J5X8ZK3Q9WYE2R7M4T6B8N1M",
+        "serverId": "srv_01",
+        "ts": 1787330455000,
+        "kind": "ram",
+        "action": "none",
+        "attempt": 0,
+        "detail": "rss 9800 MB > 1.5 × maxRamMb (6144)"
+      }
+    },
+    {
+      "type": "task.progress",
+      "payload": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "kind": "backup.create",
+        "serverId": "srv_01",
+        "ts": 1787330460000,
+        "phase": "archiving",
+        "pct": 42.5,
+        "detail": "world/region",
+        "etaSec": 30
+      }
+    },
+    {
+      "type": "task.completed",
+      "payload": {
+        "eventId": "01J5X8ZK3Q9WYE2R7M4T6B8N2B",
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "kind": "backup.create",
+        "serverId": "srv_01",
+        "startedAt": 1787330455000,
+        "finishedAt": 1787330500000,
+        "result": {
+          "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C",
+          "serverId": "srv_01",
+          "kind": "scheduled",
+          "policyId": "pol_01",
+          "createdAt": 1787330455000,
+          "codec": "zstd",
+          "archivePath": "E:\\MMO\\backups\\srv_01\\bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C.tar.zst",
+          "sizeBytes": 734003200,
+          "sha256": "a3f5e2c1d4b6a7980f1e2d3c4b5a69788796a5b4c3d2e1f00112233445566778",
+          "files": 1842,
+          "bytesRaw": 1288490188,
+          "hot": true,
+          "serverName": "Survie",
+          "mcVersion": "1.20.1",
+          "loader": "forge",
+          "agentVersion": "0.8.0",
+          "durationMs": 45000
+        }
+      }
+    },
+    {
+      "type": "task.failed",
+      "payload": {
+        "eventId": "01J5X8ZK3Q9WYE2R7M4T6B8N2D",
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "kind": "backup.restore",
+        "serverId": "srv_01",
+        "startedAt": 1787330455000,
+        "finishedAt": 1787330500000,
+        "error": {
+          "code": "E_CHECKSUM_MISMATCH",
+          "message": "archive sha256 mismatch",
+          "retryable": false
+        },
+        "cancelled": false
+      }
+    },
+    {
+      "type": "backup.rotated",
+      "payload": {
+        "eventId": "01J5X8ZK3Q9WYE2R7M4T6B8N2E",
+        "serverId": "srv_01",
+        "ts": 1787330455000,
+        "policyId": "pol_01",
+        "deleted": [
+          {
+            "backupId": "bk_old",
+            "archivePath": "E:\\MMO\\backups\\srv_01\\bk_old.tar.zst"
+          }
+        ]
+      }
+    },
+    {
+      "type": "backup.skipped",
+      "payload": {
+        "serverId": "srv_01",
+        "ts": 1787330455000,
+        "policyId": "pol_01",
+        "reason": "server_stopped",
+        "detail": "le serveur est arrêté et la politique exige qu il tourne"
+      }
+    },
+    {
+      "type": "fs.transfer.ack",
+      "payload": {
+        "transferId": "0123456789abcdef0123456789abcdef",
+        "offset": 2097152
+      }
+    },
+    {
+      "type": "fs.transfer.cancel",
+      "payload": {
+        "transferId": "0123456789abcdef0123456789abcdef",
+        "reason": "user"
+      }
+    },
+    {
+      "type": "agent.updateResult",
+      "payload": {
+        "eventId": "01J5X8ZK3Q9WYE2R7M4T6B8N2F",
+        "ts": 1787330455000,
+        "kind": "agent",
+        "status": "rolled_back",
+        "version": "0.8.0",
+        "otherVersion": "0.9.0",
+        "reason": "health_timeout"
+      }
+    }
+  ]
+}
