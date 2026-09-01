@@ -196,6 +196,11 @@ export const webEn = {
       install: 'Install the agent',
       windows: 'Windows (PowerShell)',
       unix: 'Linux / macOS',
+      route: 'Panel address for this machine',
+      routeHint:
+        'The address this agent will connect to. A machine outside the tailnet uses the direct route; picking one regenerates the code.',
+      routeDefault: 'Default — {{url}}',
+      routeDirect: 'Direct route — {{url}}',
       noPublicUrl:
         'Set the public panel URL (setup or settings) to get ready-to-paste install commands. Otherwise start the agent with this code.',
       waiting: 'Waiting for the agent…',
@@ -1158,6 +1163,9 @@ export const webEn = {
       direct: 'Direct (IPv6 + your own domain)',
       manual: 'Manual (your reverse-proxy and certificates)',
     },
+    directAlso: 'Also answer on the direct route',
+    directAlsoHint:
+      'One route per machine: agents outside the tailnet attach to the direct address (domain + certificate below) while the others keep using Tailscale.',
     modeHint: {
       tailscale:
         'The panel listens on {{host}}:{{port}} only. Run this once on the panel host, then share the tailnet URL with your friends (they need the Tailscale app).',

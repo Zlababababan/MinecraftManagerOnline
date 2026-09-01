@@ -59,3 +59,26 @@ Enter the public URL and run the reachability test: the "Seen via" line of the r
 **IPv4 only (no IPv6 on the box).** Direct mode is impossible without a public IPv4 port forward; use Tailscale.
 
 **Ports.** Panel: 443 inbound (Direct mode only). Agents: no inbound port. Minecraft servers: 25565/TCP (and any port you chose) in Direct mode.
+
+## Firewall
+
+By default the panel exposes **nothing**: it listens on `127.0.0.1` only. In **Tailscale** mode there is therefore no rule to open, anywhere — the tailnet reaches the panel through an outbound connection. In **Direct** mode, open the HTTPS port you chose (443 by default) inbound on the host — the exact command is shown in Settings → Remote access → **Firewall rules**.
+
+**Oracle Cloud** (the free VM is a frequent home for a panel): two separate barriers, and both must be opened.
+
+- On the VM itself, the iptables rules of Oracle's Ubuntu image end with a global REJECT: the opening rule must be **inserted before** it. `-I` (insert) does exactly that; an `-A` (append) lands after the REJECT and does nothing.
+
+  ```bash
+  sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+  sudo netfilter-persistent save
+  ```
+
+- The **Security List** of the VCN is configured in the Oracle web console, not on the VM: add an ingress rule for TCP 443 there as well (Networking → Virtual cloud networks → your VCN → Security Lists).
+
+With Tailscale, none of this is needed — no iptables, no Security List: that is much of the point of the default mode.
+
+## One route per machine
+
+The mode is a default, not a wall. A machine that cannot join the tailnet (a rented VM, a friend's server) can attach to the **direct** address while the others keep using Tailscale: in Settings → Remote access, enable **"Also answer on the direct route"** and configure the domain and certificate below it — the panel then answers on both routes at once.
+
+Each agent remembers the address it paired with. When you generate a pairing code from a machine's page, a **"Panel address for this machine"** selector appears (as soon as there is a choice): pick the default URL or the direct route, and the install command is rebuilt with that address. Nothing to change on machines already paired — they keep their route.

@@ -150,6 +150,8 @@ export const machines = sqliteTable(
     addresses: text('addresses'),
     tailnetHost: text('tailnet_host'),
     publicHost: text('public_host'),
+    /** Lot 2 : URL du panel telle que vue par CETTE machine (null = `panel.publicUrl`). */
+    panelUrl: text('panel_url'),
   },
   (t) => [
     check('machines_os', sql`${t.os} IN ('windows','linux','macos')`),

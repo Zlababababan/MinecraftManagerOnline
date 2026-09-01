@@ -43,6 +43,11 @@ export const SETTING_KEYS = {
   acmeDirectory: 'access.acme.directory',
   dyndnsEnabled: 'access.dyndns.enabled',
   accessPublicHost: 'access.publicHost',
+  /**
+   * Lot 2 : voie « direct » activée EN PLUS du mode courant (une machine passe par Tailscale, une
+   * autre par l'accès direct — le panel répond sur les deux voies à la fois).
+   */
+  accessDirectEnabled: 'access.direct.enabled',
 } as const;
 
 const SECRET_KEYS: ReadonlySet<string> = new Set([
@@ -60,6 +65,7 @@ const DEFAULTS: Readonly<Record<string, string>> = {
   [SETTING_KEYS.dnsProvider]: 'manual',
   [SETTING_KEYS.dyndnsEnabled]: 'false',
   [SETTING_KEYS.updateCheckEnabled]: 'true',
+  [SETTING_KEYS.accessDirectEnabled]: 'false',
 };
 
 export class SettingsService {

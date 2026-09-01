@@ -51,6 +51,7 @@ export function machineDto(ctx: AppContext, row: MachineRow): MachineDto {
       : { tailnet: [], global: [] },
     tailnetHost: row.tailnetHost,
     publicHost: row.publicHost,
+    panelUrl: row.panelUrl,
     ...(hb === undefined
       ? {}
       : {
@@ -81,7 +82,10 @@ function pairingDto(
   code: string,
   expiresAt: number,
 ): PairingCodeDto {
-  const publicUrl = ctx.settings.get(SETTING_KEYS.publicUrl);
+  // Lot 2 : la machine peut avoir SA voie d'accès (une machine hors tailnet se rattache à l'URL
+  // directe pendant que les autres passent par Tailscale). C'est cette URL que l'agent mémorise.
+  const machine = ctx.machines.get(machineId);
+  const publicUrl = machine?.panelUrl ?? ctx.settings.get(SETTING_KEYS.publicUrl);
   return {
     machineId,
     code,

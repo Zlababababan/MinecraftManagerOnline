@@ -194,6 +194,11 @@ export const webFr = {
       install: 'Installer l’agent',
       windows: 'Windows (PowerShell)',
       unix: 'Linux / macOS',
+      route: 'Adresse du panel pour cette machine',
+      routeHint:
+        "L'adresse à laquelle cet agent se connectera. Une machine hors tailnet passe par la voie directe ; changer le choix régénère le code.",
+      routeDefault: 'Défaut — {{url}}',
+      routeDirect: 'Voie directe — {{url}}',
       noPublicUrl:
         'Renseignez l’URL publique du panel (assistant ou réglages) pour obtenir des commandes d’installation prêtes à coller. Sinon, démarrez l’agent avec ce code.',
       waiting: 'En attente de l’agent…',
@@ -1174,6 +1179,9 @@ export const webFr = {
       direct: 'Direct (IPv6 + votre domaine)',
       manual: 'Manuel (votre reverse-proxy et vos certificats)',
     },
+    directAlso: 'Répondre aussi sur la voie directe',
+    directAlsoHint:
+      'Une voie par machine : les agents hors tailnet se rattachent à l’adresse directe (domaine + certificat ci-dessous) pendant que les autres restent sur Tailscale.',
     modeHint: {
       tailscale:
         'Le panel n’écoute que sur {{host}}:{{port}}. Exécutez ceci une fois sur l’hôte du panel, puis donnez l’URL du tailnet à vos amis (ils ont besoin de l’application Tailscale).',

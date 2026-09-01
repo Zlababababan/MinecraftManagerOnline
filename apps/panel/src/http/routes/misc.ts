@@ -91,6 +91,11 @@ export function registerMiscRoutes(app: FastifyInstance, ctx: AppContext): void 
         action: 'settings.updated',
         details: request.body,
       });
+      // Couche d'accès réappliquée à chaud : activer la voie directe (ou changer de mode) arme les
+      // timers DynDNS/renouvellement et le listener HTTPS sans redémarrer le panel.
+      if (Object.keys(request.body).some((key) => key.startsWith('access.'))) {
+        ctx.access.restart();
+      }
       // Réglages poussés aux agents (restoreOnBoot, intervalle métriques).
       await Promise.all(ctx.registry.all().map((s) => s.pushConfig()));
       return { settings: ctx.settings.public() };

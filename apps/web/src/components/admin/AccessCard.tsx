@@ -503,7 +503,27 @@ export function AccessCard() {
         {mode === 'tailscale' && s.tailscaleServeCommand !== null && (
           <CommandBlock command={s.tailscaleServeCommand} testId="tailscale-serve-command" />
         )}
-        {mode === 'direct' && <DirectSection status={s} settings={settings.data.settings} />}
+        {mode !== 'direct' && (
+          <Switch
+            label={t('web:access.directAlso')}
+            description={t('web:access.directAlsoHint')}
+            checked={s.directEnabled === true}
+            onChange={(event) => {
+              update.mutate(
+                { 'access.direct.enabled': event.currentTarget.checked ? 'true' : 'false' },
+                {
+                  onError: (error) => {
+                    notifications.show({ color: 'red', message: describeError(i18n, error) });
+                  },
+                },
+              );
+            }}
+            data-testid="access-direct-also"
+          />
+        )}
+        {(mode === 'direct' || s.directEnabled === true) && (
+          <DirectSection status={s} settings={settings.data.settings} />
+        )}
 
         <Stack gap="xs">
           <Title order={3} size="h5">

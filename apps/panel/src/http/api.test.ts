@@ -342,6 +342,41 @@ describe('panel — API, auth, RBAC, migrations', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]!.code_hash).not.toContain(body.pairing.code.slice(5, 9));
 
+    // Lot 2 : voie d'accès PAR machine — son URL de rattachement remplace panel.publicUrl dans
+    // les one-liners du prochain code ; origine invalide refusée ; null = retour à l'URL publique.
+    res = await panel.app.inject({
+      method: 'PATCH',
+      url: `/api/machines/${body.machine.id}`,
+      payload: { panelUrl: 'direct.example:8443' },
+      headers: { cookie: admin },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json<{ machine: { panelUrl: string | null } }>().machine.panelUrl).toBe(
+      'https://direct.example:8443',
+    );
+    res = await panel.app.inject({
+      method: 'POST',
+      url: `/api/machines/${body.machine.id}/pairing-codes`,
+      headers: { cookie: admin },
+    });
+    const routed = res.json<{ pairing: { install: { unix: string; windows: string } } }>().pairing;
+    expect(routed.install.unix).toContain('https://direct.example:8443/install.sh');
+    expect(routed.install.windows).toContain('https://direct.example:8443/install.ps1');
+    res = await panel.app.inject({
+      method: 'PATCH',
+      url: `/api/machines/${body.machine.id}`,
+      payload: { panelUrl: 'pas une origine' },
+      headers: { cookie: admin },
+    });
+    expect(res.statusCode).toBe(400);
+    res = await panel.app.inject({
+      method: 'PATCH',
+      url: `/api/machines/${body.machine.id}`,
+      payload: { panelUrl: null },
+      headers: { cookie: admin },
+    });
+    expect(res.json<{ machine: { panelUrl: string | null } }>().machine.panelUrl).toBeNull();
+
     res = await panel.app.inject({
       method: 'POST',
       url: '/api/machines',

@@ -411,6 +411,7 @@ export function useUpdateMachine(machineId: string) {
       disabled?: boolean;
       tailnetHost?: string | null;
       publicHost?: string | null;
+      panelUrl?: string | null;
     }) => api.patch<{ machine: MachineDto }>(`/api/machines/${machineId}`, body),
     onSuccess: () => invalidateAll(qc),
   });

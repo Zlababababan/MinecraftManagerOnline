@@ -176,6 +176,8 @@ export const machineDtoSchema = z.object({
   addresses: z.object({ tailnet: z.array(z.string()), global: z.array(z.string()) }).optional(),
   tailnetHost: z.string().nullable().optional(),
   publicHost: z.string().nullable().optional(),
+  /** Lot 2 : URL du panel telle que vue par cette machine (null = `panel.publicUrl`). */
+  panelUrl: z.string().nullable().optional(),
   heartbeat: machineHeartbeatDtoSchema.optional(),
   watchedDirectories: z.array(
     z.object({
@@ -195,6 +197,8 @@ export const updateMachineSchema = z.object({
   /** Phase 10 : nom MagicDNS / IP tailnet et hôte public (domaine ou IPv6) — null = détection. */
   tailnetHost: z.string().max(253).nullable().optional(),
   publicHost: z.string().max(253).nullable().optional(),
+  /** Lot 2 : adresse de rattachement de la machine (origine http(s)) — null = URL publique. */
+  panelUrl: z.string().max(255).nullable().optional(),
 });
 export const pairingCodeDtoSchema = z.object({
   machineId: z.string(),
@@ -958,6 +962,8 @@ export const EDITABLE_SETTINGS = [
   'access.acme.directory',
   'access.dyndns.enabled',
   'access.publicHost',
+  /** Lot 2 : voie directe activée EN PLUS du mode courant (une voie d'accès par machine). */
+  'access.direct.enabled',
 ] as const;
 export const settingsPatchSchema = z.partialRecord(z.enum(EDITABLE_SETTINGS), z.string());
 
@@ -1242,7 +1248,11 @@ export const accessStatusDtoSchema = z.object({
   https: z.object({ listening: z.boolean(), port: z.int().nullable() }),
   /** Mode tailscale : commande `tailscale serve` à exécuter une fois. */
   tailscaleServeCommand: z.string().nullable(),
-  /** Mode direct. */
+  /** Lot 2 : la voie directe répond (mode direct, OU seconde voie activée en plus du tailnet). */
+  directEnabled: z.boolean().optional(),
+  /** URL publique de la voie directe (dérivée du domaine + port HTTPS), si configurée. */
+  directUrl: z.string().nullable().optional(),
+  /** Voie directe (mode direct ou seconde voie). */
   direct: z
     .object({
       domain: z.string().nullable(),

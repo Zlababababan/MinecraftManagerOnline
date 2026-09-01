@@ -1,0 +1,1 @@
+ALTER TABLE `machines` ADD `panel_url` text;

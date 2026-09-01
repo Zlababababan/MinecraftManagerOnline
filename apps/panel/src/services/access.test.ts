@@ -174,6 +174,36 @@ describe('AccessService', () => {
     expect(viaTs.json<{ access: AccessStatusDto }>().access.requestVia).toBe('tailscale');
   });
 
+  it('seconde voie (lot 2) : la voie directe répond EN PLUS du mode tailscale', async () => {
+    // Une machine hors tailnet a besoin de l'adresse directe pendant que les autres restent sur
+    // Tailscale : `access.direct.enabled` arme la voie directe sans changer de mode.
+    await patchSettings({
+      'access.direct.enabled': 'true',
+      'access.domain': 'panel.example.net',
+      'access.httpsPort': '8443',
+    });
+    let s = await status();
+    expect(s.mode).toBe('tailscale');
+    expect(s.tailscaleServeCommand).not.toBeNull();
+    expect(s.directEnabled).toBe(true);
+    expect(s.direct).not.toBeNull();
+    expect(s.directUrl).toBe('https://panel.example.net:8443');
+
+    // Le pare-feu du panel concerne la voie directe, plus seulement le mode direct.
+    const fw = await panel.app.inject({
+      method: 'GET',
+      url: '/api/access/firewall',
+      headers: { cookie: admin },
+    });
+    expect(fw.json<{ rules: { panel: { port: number } | null } }>().rules.panel?.port).toBe(8443);
+
+    // Coupée : tout redisparaît (et le PATCH réapplique la couche d'accès à chaud).
+    await patchSettings({ 'access.direct.enabled': 'false' });
+    s = await status();
+    expect(s.directEnabled).toBe(false);
+    expect(s.direct).toBeNull();
+  });
+
   it('test de joignabilité à travers un reverse-proxy : HTTP, WS et frame binaire intacts', async () => {
     const proxy = await startProxy(Number(new URL(panel.baseUrl).port));
     try {
@@ -311,9 +341,11 @@ describe('AccessService', () => {
     });
     expect(res.statusCode, res.body).toBe(200);
     expect(res.json()).toEqual({ address: '2001:db8::1' });
-    expect(duck).toHaveLength(1);
-    expect(duck[0]?.searchParams.get('domains')).toBe('mmo');
-    expect(duck[0]?.searchParams.get('ipv6')).toBe('2001:db8::1');
+    // Le PATCH réapplique la couche d'accès à chaud (lot 2) : une publication DynDNS a pu partir
+    // toute seule avant le POST — on vérifie le contenu du dernier appel, pas leur nombre exact.
+    expect(duck.length).toBeGreaterThanOrEqual(1);
+    expect(duck.at(-1)?.searchParams.get('domains')).toBe('mmo');
+    expect(duck.at(-1)?.searchParams.get('ipv6')).toBe('2001:db8::1');
     const st = await status();
     expect(st.direct?.dyndns).toMatchObject({
       enabled: true,

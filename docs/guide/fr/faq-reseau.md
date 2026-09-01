@@ -59,3 +59,26 @@ Renseignez l'URL publique et lancez le test de joignabilité : la ligne « Vu vi
 **IPv4 seulement (pas d'IPv6 sur la box).** Le mode Direct est impossible sans redirection de port IPv4 publique ; utilisez Tailscale.
 
 **Ports.** Panel : 443 entrant (Direct uniquement). Agents : aucun port entrant. Serveurs Minecraft : 25565/TCP (et le port choisi) si mode Direct.
+
+## Pare-feu
+
+Par défaut le panel n'expose **rien** : il n'écoute que sur `127.0.0.1`. En mode **Tailscale**, il n'y a donc aucune règle à ouvrir, nulle part — le tailnet atteint le panel par une connexion sortante. En mode **Direct**, ouvrez le port HTTPS choisi (443 par défaut) en entrée sur l'hôte — la commande exacte est affichée dans Réglages → Accès distant → **Règles pare-feu**.
+
+**Oracle Cloud** (la VM gratuite héberge souvent un panel) : deux barrières distinctes, et il faut ouvrir les deux.
+
+- Sur la VM elle-même, les règles iptables de l'image Ubuntu d'Oracle se terminent par un REJECT global : la règle d'ouverture doit être **insérée avant** lui. `-I` (insertion) fait exactement cela ; un `-A` (ajout en fin) atterrit après le REJECT et ne sert à rien.
+
+  ```bash
+  sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+  sudo netfilter-persistent save
+  ```
+
+- La **Security List** du VCN se règle dans la console web d'Oracle, pas sur la VM : ajoutez-y aussi une règle entrante TCP 443 (Networking → Virtual cloud networks → votre VCN → Security Lists).
+
+Avec Tailscale, rien de tout cela n'est nécessaire — ni iptables, ni Security List : c'est tout l'intérêt du mode par défaut.
+
+## Une voie par machine
+
+Le mode est un défaut, pas un mur. Une machine qui ne peut pas rejoindre le tailnet (VM louée, serveur d'un ami) peut se rattacher à l'adresse **directe** pendant que les autres restent sur Tailscale : dans Réglages → Accès distant, activez **« Répondre aussi sur la voie directe »** et configurez le domaine et le certificat en dessous — le panel répond alors sur les deux voies à la fois.
+
+Chaque agent mémorise l'adresse avec laquelle il s'est appairé. Quand vous générez un code d'appairage depuis la page d'une machine, un sélecteur **« Adresse du panel pour cette machine »** apparaît (dès qu'il y a un choix) : prenez l'URL par défaut ou la voie directe, et la commande d'installation est refaite avec cette adresse. Rien à changer sur les machines déjà appairées — elles gardent leur voie.

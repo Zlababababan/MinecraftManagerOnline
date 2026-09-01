@@ -6,6 +6,7 @@ import {
   Group,
   Loader,
   Modal,
+  Select,
   SimpleGrid,
   Stack,
   Table,
@@ -39,6 +40,7 @@ import {
   useUpdateMachine,
   type ScanResult,
 } from '../api/queries.js';
+import { useAccessStatus } from '../api/phase10.js';
 import { ConflictsPanel } from '../components/ConflictsPanel.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { MachineHeader } from '../components/MachineHeader.js';
@@ -80,11 +82,14 @@ export function MachinePage({ machineId }: { machineId: string }) {
     initialValues: { path: '', name: '' },
     validate: { path: (v) => (v.trim() === '' ? t('web:errors.validation') : null) },
   });
+  const isAdmin = me.data !== undefined && hasRole(me.data.user.role, 'admin');
+  // Lot 2 : voie d'accès de la machine — le choix se présente au moment de générer un code.
+  // Avant les early returns : c'est un hook.
+  const access = useAccessStatus(isAdmin);
 
   if (machine.isPending) return <Loader />;
   if (machine.error) return <ErrorAlert error={machine.error} />;
   const m = machine.data.machine;
-  const isAdmin = me.data !== undefined && hasRole(me.data.user.role, 'admin');
   const canOperate = me.data !== undefined && hasRole(me.data.user.role, 'operator');
   const mine = servers.data?.servers.filter((s) => s.machineId === m.id) ?? [];
   const myConflicts = conflicts.data?.conflicts.filter((c) => c.found.machineId === m.id) ?? [];
@@ -388,7 +393,65 @@ export function MachinePage({ machineId }: { machineId: string }) {
         title={t('web:machine.pairing.title')}
         size="lg"
       >
-        {pairing !== undefined && <PairingCodeCard pairing={pairing} />}
+        {pairing !== undefined && (
+          <Stack gap="md">
+            {(() => {
+              // Voie d'accès de CETTE machine (lot 2) : proposé seulement quand il y a un choix —
+              // une URL directe configurée en plus de l'URL publique. Changer la voie régénère le
+              // code : les one-liners affichés sont calculés côté panel à la création du code.
+              const a = access.data?.access;
+              const defaultUrl = a?.publicUrl ?? null;
+              const directUrl = a?.directUrl ?? null;
+              const current = m.panelUrl ?? '';
+              const choices = [
+                {
+                  value: '',
+                  label: t('web:machine.pairing.routeDefault', { url: defaultUrl ?? '—' }),
+                },
+                ...(directUrl !== null && directUrl !== defaultUrl
+                  ? [
+                      {
+                        value: directUrl,
+                        label: t('web:machine.pairing.routeDirect', { url: directUrl }),
+                      },
+                    ]
+                  : []),
+                ...(current !== '' && current !== directUrl
+                  ? [{ value: current, label: current }]
+                  : []),
+              ];
+              if (choices.length < 2) return null;
+              return (
+                <Select
+                  label={t('web:machine.pairing.route')}
+                  description={t('web:machine.pairing.routeHint')}
+                  value={current}
+                  allowDeselect={false}
+                  data={choices}
+                  onChange={(value) => {
+                    if (value === null || value === current) return;
+                    update.mutate(
+                      { panelUrl: value === '' ? null : value },
+                      {
+                        onSuccess: () => {
+                          newCode.mutate(undefined, {
+                            onSuccess: (data) => {
+                              setPairing(data.pairing);
+                            },
+                            onError: fail,
+                          });
+                        },
+                        onError: fail,
+                      },
+                    );
+                  }}
+                  data-testid="pairing-route"
+                />
+              );
+            })()}
+            <PairingCodeCard pairing={pairing} />
+          </Stack>
+        )}
       </Modal>
 
       <Modal

@@ -140,6 +140,8 @@ CREATE INDEX idx_java_machine ON java_runtimes(machine_id, major_version);
 ```
 
 > **Implémentation (phase 10)** — amendements : `machines` gagne `addresses TEXT` (JSON `{ tailnet: string[], global: string[] }` remonté par l'agent à l'appairage et à chaque `auth.hello`, doc 05 §3), `tailnet_host TEXT` et `public_host TEXT` (surcharges manuelles de « l'adresse à donner aux amis », `PATCH /api/machines/:id`). Migration `0003_phase10`.
+>
+> **Lot 2 (2026-09-01)** — `machines.panel_url TEXT` (migration `0012_machine_panel_url`, simple ADD COLUMN) : URL du panel telle que vue par CETTE machine (voie d'accès par machine) — `NULL` = `panel.publicUrl`. Origine http(s) stricte validée au `PATCH /api/machines/:id`, injectée dans les one-liners d'appairage. Ne pas confondre avec `tailnet_host`/`public_host`, qui concernent l'adresse **joueurs**.
 
 > **Implémentation (phase 9)** — amendements : `machines` gagne `runtime_version TEXT` (`auth.hello.runtimeVersion`) ; `java_runtimes` est alimentée par `sync.state.javaRuntimes` / `java.list` (`JavaRuntimesService.sync` : lignes identifiées par `(machine_id, path)`, disparues ⇒ supprimées) et par `java.install` ; `agent_releases` est alimentée par la publication admin (`bundle_path` = `<dataDir>/releases/agent-<version>.js`, sha256 et taille calculés par le panel, signature fournie). Migration `0002_phase9`.
 

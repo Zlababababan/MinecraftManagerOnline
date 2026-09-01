@@ -103,10 +103,10 @@ export class AccessService {
 
   // --- Cycle de vie -------------------------------------------------------------------------------
 
-  /** Après `listen` : HTTPS si un certificat existe (mode direct), DynDNS et renouvellement périodiques. */
+  /** Après `listen` : HTTPS si un certificat existe (voie directe), DynDNS et renouvellement périodiques. */
   start(server: http.Server): void {
     this.httpServer = server;
-    if (this.mode() === 'direct') {
+    if (this.directEnabled()) {
       if (this.certificatePem() !== undefined) {
         void this.ensureHttps().catch((error: unknown) => {
           this.deps.logger.warn({ err: error }, 'https listener failed');
@@ -139,9 +139,34 @@ export class AccessService {
     this.httpsServer = undefined;
   }
 
+  /** Réapplique les réglages d'accès à chaud (PATCH /api/settings) : timers et listener HTTPS. */
+  restart(): void {
+    const server = this.httpServer;
+    if (server === undefined) return;
+    this.stop();
+    this.start(server);
+  }
+
   mode(): AccessMode {
     const v = this.deps.settings.get(SETTING_KEYS.accessMode);
     return v === 'direct' || v === 'manual' ? v : 'tailscale';
+  }
+
+  /**
+   * Lot 2 : la voie « direct » répond — soit c'est le mode, soit elle est activée EN PLUS
+   * (`access.direct.enabled`) pour qu'une machine hors tailnet ait sa propre adresse de
+   * rattachement pendant que les autres passent par Tailscale.
+   */
+  directEnabled(): boolean {
+    return this.mode() === 'direct' || this.deps.settings.getBool(SETTING_KEYS.accessDirectEnabled);
+  }
+
+  /** URL publique de la voie directe, dérivée du domaine et du port HTTPS. */
+  directUrl(): string | undefined {
+    const domain = nonEmpty(this.deps.settings.get('access.domain'));
+    if (domain === undefined) return undefined;
+    const port = this.httpsPort();
+    return port === 443 ? `https://${domain}` : `https://${domain}:${String(port)}`;
   }
 
   // --- Statut --------------------------------------------------------------------------------------
@@ -160,26 +185,27 @@ export class AccessService {
         port: this.httpsServer?.listening ? this.httpsPort() : null,
       },
       tailscaleServeCommand: mode === 'tailscale' ? this.tailscaleServeCommand() : null,
-      direct:
-        mode === 'direct'
-          ? {
-              domain,
-              dnsProvider: this.dnsProvider(),
-              dnsTokenSet: Boolean(this.deps.settings.get('access.dns.token')),
-              acmeEmail: nonEmpty(this.deps.settings.get('access.acme.email')) ?? null,
-              acmeDirectory: this.acmeDirectory(),
-              certificate: cert,
-              certificateError: this.state.certificateError,
-              dyndns: {
-                enabled: this.deps.settings.getBool('access.dyndns.enabled'),
-                currentAddress: this.currentAddress() ?? null,
-                publishedAddress: this.state.publishedAddress,
-                lastUpdateAt: this.state.lastUpdateAt,
-                lastError: this.state.lastError,
-              },
-              pendingChallenge: this.pendingChallenge,
-            }
-          : null,
+      directEnabled: this.directEnabled(),
+      directUrl: this.directUrl() ?? null,
+      direct: this.directEnabled()
+        ? {
+            domain,
+            dnsProvider: this.dnsProvider(),
+            dnsTokenSet: Boolean(this.deps.settings.get('access.dns.token')),
+            acmeEmail: nonEmpty(this.deps.settings.get('access.acme.email')) ?? null,
+            acmeDirectory: this.acmeDirectory(),
+            certificate: cert,
+            certificateError: this.state.certificateError,
+            dyndns: {
+              enabled: this.deps.settings.getBool('access.dyndns.enabled'),
+              currentAddress: this.currentAddress() ?? null,
+              publishedAddress: this.state.publishedAddress,
+              lastUpdateAt: this.state.lastUpdateAt,
+              lastError: this.state.lastError,
+            },
+            pendingChallenge: this.pendingChallenge,
+          }
+        : null,
       lastTest: this.state.lastTest,
       requestVia: requestVia(requestHeaders),
     };
@@ -227,10 +253,10 @@ export class AccessService {
   }
 
   private async doIssue(): Promise<CertificateDto> {
-    if (this.mode() !== 'direct') {
+    if (!this.directEnabled()) {
       throw new AppError(
         'E_ACCESS_NOT_CONFIGURED',
-        'certificate requests require access.mode=direct',
+        'certificate requests require the direct route (access.mode=direct, or access.direct.enabled)',
       );
     }
     const domain = this.deps.settings.get('access.domain');
@@ -425,7 +451,7 @@ export class AccessService {
   // --- Pare-feu ------------------------------------------------------------------------------------
 
   firewallRules(): FirewallRulesDto {
-    const mode = this.mode();
+    const direct = this.directEnabled();
     const panelOs =
       process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'macos' : 'linux';
     const servers: FirewallRulesDto['servers'] = [];
@@ -444,16 +470,15 @@ export class AccessService {
       });
     }
     return {
-      panel:
-        mode === 'direct'
-          ? {
-              os: panelOs,
-              port: this.httpsPort(),
-              commands: firewallCommands(panelOs, this.httpsPort(), 'MMO panel HTTPS'),
-            }
-          : null,
+      panel: direct
+        ? {
+            os: panelOs,
+            port: this.httpsPort(),
+            commands: firewallCommands(panelOs, this.httpsPort(), 'MMO panel HTTPS'),
+          }
+        : null,
       servers,
-      boxNote: mode === 'direct' || servers.length > 0,
+      boxNote: direct || servers.length > 0,
     };
   }
 

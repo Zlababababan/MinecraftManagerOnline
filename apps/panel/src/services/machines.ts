@@ -15,7 +15,8 @@ import {
   type MachineRow,
   type WatchedDirectoryRow,
 } from '../db/schema.js';
-import { conflict, notFound } from '../errors.js';
+import { AppError, conflict, notFound } from '../errors.js';
+import { coerceOrigin } from '../util/origin.js';
 import { RateLimiter, clientKey } from '../util/rate-limit.js';
 import {
   generateAgentSecret,
@@ -89,6 +90,7 @@ export class MachinesService {
       addresses: null,
       tailnetHost: null,
       publicHost: null,
+      panelUrl: null,
     };
     this.db.insert(machines).values(row).run();
     return row;
@@ -101,12 +103,27 @@ export class MachinesService {
       disabled?: boolean | undefined;
       tailnetHost?: string | null | undefined;
       publicHost?: string | null | undefined;
+      panelUrl?: string | null | undefined;
     },
   ) {
     const current = this.require(id);
     const set: Partial<MachineRow> = {};
     if (patch.tailnetHost !== undefined) set.tailnetHost = emptyToNull(patch.tailnetHost);
     if (patch.publicHost !== undefined) set.publicHost = emptyToNull(patch.publicHost);
+    if (patch.panelUrl !== undefined) {
+      // Adresse de rattachement de CETTE machine (lot 2) : origine stricte, comme panel.publicUrl —
+      // elle est injectée telle quelle dans les commandes d'installation.
+      const raw = emptyToNull(patch.panelUrl);
+      if (raw === null) {
+        set.panelUrl = null;
+      } else {
+        const origin = coerceOrigin(raw);
+        if (origin === undefined) {
+          throw new AppError('E_VALIDATION', 'panelUrl must be an http(s) origin');
+        }
+        set.panelUrl = origin;
+      }
+    }
     if (patch.name !== undefined && patch.name !== current.name) {
       if (this.db.select().from(machines).where(eq(machines.name, patch.name)).get()) {
         throw conflict(`machine name ${patch.name} already exists`, { name: patch.name });
