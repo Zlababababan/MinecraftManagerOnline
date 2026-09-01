@@ -58,7 +58,10 @@ Aucune dépendance à installer : chaque archive embarque son runtime Node épin
 - **Guide utilisateur** : [Installation](docs/guide/fr/installation.md) · [Ajouter une machine](docs/guide/fr/ajouter-une-machine.md) · [FAQ réseau](docs/guide/fr/faq-reseau.md) — aussi disponible en [English](docs/guide/installation.md), [Español](docs/guide/es/installation.md), [Deutsch](docs/guide/de/installation.md), [Português](docs/guide/pt/installation.md), [Русский](docs/guide/ru/installation.md) et [中文](docs/guide/zh/installation.md)
 - Conception : [Présentation](docs/01-presentation.md) · [Fonctionnalités](docs/02-fonctionnalites.md) · [Socle technique](docs/03-socle-technique.md) · [Base de données](docs/04-base-de-donnees.md) · [Protocole panel-agent](docs/05-protocole.md) · [Serveurs Minecraft](docs/06-minecraft.md) · [Plan de développement](docs/07-plan-de-developpement.md)
 - [Pipeline de release](tools/release/README.md) — archives, signature, publication
-- [Contribuer](CONTRIBUTING.fr.md) — prérequis, commandes, conventions
+- [Architecture](ARCHITECTURE.md) (en anglais) — comment les pièces s'emboîtent, et les cinq invariants à connaître avant de toucher au code
+- [Contribuer](CONTRIBUTING.fr.md) — prérequis, commandes, conventions, et ce qui est volontairement écarté
+- [Politique de sécurité](SECURITY.fr.md) — comment signaler une vulnérabilité en privé, et ce qui est dans le périmètre
+- [Notices tierces](THIRD-PARTY-NOTICES.md) — les composants que les archives redistribuent, et leurs licences
 
 ## Développement
 

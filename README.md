@@ -58,7 +58,10 @@ No dependency to install: each archive embeds its pinned Node runtime, and since
 - **User guide**: [Installation](docs/guide/installation.md) · [Add a machine](docs/guide/add-a-machine.md) · [Network FAQ](docs/guide/network-faq.md) — also available in [Français](docs/guide/fr/installation.md), [Español](docs/guide/es/installation.md), [Deutsch](docs/guide/de/installation.md), [Português](docs/guide/pt/installation.md), [Русский](docs/guide/ru/installation.md) and [中文](docs/guide/zh/installation.md)
 - Design documents (in French): [Présentation](docs/01-presentation.md) · [Fonctionnalités](docs/02-fonctionnalites.md) · [Socle technique](docs/03-socle-technique.md) · [Base de données](docs/04-base-de-donnees.md) · [Protocole panel-agent](docs/05-protocole.md) · [Serveurs Minecraft](docs/06-minecraft.md) · [Plan de développement](docs/07-plan-de-developpement.md)
 - [Release pipeline](tools/release/README.md) (in French) — archives, signing, publication
-- [Contributing](CONTRIBUTING.md) — prerequisites, commands, conventions
+- [Architecture](ARCHITECTURE.md) (in English) — how the pieces fit, and the five invariants to know before changing anything
+- [Contributing](CONTRIBUTING.md) — prerequisites, commands, conventions, and what is deliberately out of scope
+- [Security policy](SECURITY.md) — how to report a vulnerability privately, and what is in scope
+- [Third-party notices](THIRD-PARTY-NOTICES.md) — the components the archives redistribute, and their licenses
 
 ## Development
 

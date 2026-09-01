@@ -2,7 +2,7 @@
 
 **English** · [Français](CONTRIBUTING.fr.md)
 
-Project conventions, settled in phase 1 (doc 07). The design reference remains `docs/` (in French): this file only sets the working rules.
+Project conventions, settled in phase 1 (doc 07). The design reference remains `docs/` (in French): this file only sets the working rules. For a map of the codebase in English, start with [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Prerequisites
 
@@ -83,3 +83,76 @@ CI (`.github/workflows/ci.yml`) runs format, build, typecheck, lint and tests on
 ## Spikes
 
 Validation notes live in `docs/spikes/` (one note per spike, reproducible scripts in `docs/spikes/scripts/`, outside the pnpm workspace). They are authoritative on the points they settle and are referenced from docs 03–06.
+
+## Deliberately out of scope
+
+These come up regularly, and they are all reasonable ideas. They are refused here on purpose, with
+the reason — a refusal written down in advance is a policy, not a personal answer to your pull
+request. If you disagree, open an issue and argue the case; what will not happen is a large branch
+landing unannounced.
+
+**Storage and runtime**
+
+- _`node-sqlite3-wasm` as a safety net_ — measured: `PRAGMA journal_mode = WAL` silently stays on
+  `delete`, there is no array mode, no transaction, and errors carry no code. A third code path
+  exactly where support is hardest.
+- _Waiting for an official `node:sqlite` driver in Drizzle_ — the published version has none.
+  Waiting on upstream is not a strategy; twenty-five lines of hand-written session are.
+- _musl build targets_ — Node publishes no official musl binary. With the native modules gone,
+  Alpine is served by the Docker image or by the distribution's own Node.
+
+**Distribution**
+
+- _Panel self-update like the agent's launcher_ — an XL restructuring of the archive plus a new
+  failure surface at startup, for something updated three times a year by one command.
+- _`.deb`, Homebrew, winget packages_ — three channels to re-test at every release, for a need the
+  one-command installer and Docker already cover.
+- _A published OpenAPI specification_ — the contract deliberately puts `/api` out of scope for
+  compatibility. Publishing it would freeze a surface we want to keep free.
+- _CycloneDX SBOM_ — close to zero value for this audience. An hour's work the day an organization
+  actually evaluates the project, and not before.
+
+**Backups and integrations**
+
+- _S3 / Backblaze destinations_ — roughly 200 lines of SigV4 to maintain for a need that replicating
+  to another machine on the tailnet already covers, for free.
+- _SFTP_ — no acceptable SSH stack without a heavy dependency. The honest escape hatch is an
+  optional post-backup command passed as argv, never through a shell, for people who already run
+  `rclone` or `restic`.
+- _A two-way Discord bot_ — it depends entirely on per-server permissions to be safe, and adds a
+  permanent connection to maintain. Outgoing webhooks cover 80% of the value for 20% of the cost.
+- _SMTP e-mail notifications_ — writing an SMTP client that tolerates real-world servers is a pit
+  with no bottom, while push already works, encrypted and localized.
+
+**Project and community**
+
+- _A public demo instance, or a read-only mode_ — a server to run and defend, for a project whose
+  whole promise is self-hosting. A 15-second GIF and `docker compose up` give 90% of the value.
+- _A generated documentation site_ — GitHub renders the 21 pages correctly as they are. Half a day
+  the day the demand shows up.
+- _Translating the application into five languages_ — the translated docs diverged within five days,
+  without a single outside contributor. The signal to wait for is a native speaker contributing at
+  least once; it has not happened yet.
+- _Weblate / Crowdin_ — one more integration to maintain, for zero volunteer translators.
+- _Rewriting git history_ — it breaks every clone and every commit reference while repairing
+  nothing: what is in the history stays in forks and caches.
+
+**Product scope**
+
+- _Writing a world map renderer_ — BlueMap already does it for every loader we target. The only
+  legitimate piece of work is an "install the map" button plus a proxy so the map inherits the
+  panel's authentication.
+- _Automatic modpack updates_ — merging user configuration silently breaks worlds. A separate piece
+  of work, not something to bolt onto installation.
+- _Multi-panel federation, a marketplace, a plugin system_ — none of it helps someone hosting for
+  their friends, and each one is maintenance for life.
+- _Wake-on-LAN_ — the magic packet requires another machine on the same subnet to have an agent
+  online. In the real use case, there is usually nobody there to send it.
+
+**Tooling**
+
+- _A blocking coverage threshold in CI_ — mostly noise on plumbing files. Publishing the report as
+  an artifact is the useful part.
+- _Adding the `doctor` codes to the protocol error codes_ — those are closed enums crossing the
+  protocol; widening them for codes that never travel over the wire would break parsing on an N-1
+  peer for nothing.

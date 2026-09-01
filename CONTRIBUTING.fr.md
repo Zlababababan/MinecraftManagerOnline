@@ -2,7 +2,7 @@
 
 [English](CONTRIBUTING.md) · **Français**
 
-Conventions du projet, actées en phase 1 (doc 07). La référence de conception reste `docs/` : ce fichier ne fait que fixer les règles de travail.
+Conventions du projet, actées en phase 1 (doc 07). La référence de conception reste `docs/` : ce fichier ne fait que fixer les règles de travail. Pour une carte du code en anglais, commencer par [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Prérequis
 
@@ -83,3 +83,80 @@ La CI (`.github/workflows/ci.yml`) exécute format, build, typecheck, lint et te
 ## Spikes
 
 Les notes de validation vivent dans `docs/spikes/` (une note par spike, scripts reproductibles dans `docs/spikes/scripts/`, hors workspace pnpm). Elles font autorité sur les points qu'elles tranchent et sont référencées depuis les docs 03–06.
+
+## Écarté volontairement
+
+Ces idées reviennent régulièrement, et elles sont toutes raisonnables. Elles sont refusées ici
+délibérément, avec leur raison — un refus écrit d'avance est une politique, pas une réponse
+personnelle à votre pull request. Si vous n'êtes pas d'accord, ouvrez une issue et défendez le
+dossier ; ce qui n'arrivera pas, c'est qu'une grosse branche atterrisse sans prévenir.
+
+**Stockage et runtime**
+
+- _`node-sqlite3-wasm` en filet de sécurité_ — mesuré : `PRAGMA journal_mode = WAL` reste
+  silencieusement à `delete`, pas de mode tableau, pas de transaction, des erreurs sans code. Un
+  troisième chemin de code précisément là où le support est le plus difficile.
+- _Attendre un driver `node:sqlite` officiel dans Drizzle_ — la version publiée n'en a pas. Attendre
+  l'amont n'est pas une stratégie ; vingt-cinq lignes de session écrites à la main, si.
+- _Cibles musl dans les plateformes de build_ — Node ne publie pas de binaire musl officiel. Une
+  fois les modules natifs partis, Alpine est servi par l'image Docker ou par le Node de la
+  distribution.
+
+**Distribution**
+
+- _Auto-mise à jour du panel façon launcher d'agent_ — un chantier XL pour restructurer l'archive,
+  plus une surface de panne au démarrage, pour un panel qu'une seule commande met à jour trois fois
+  par an.
+- _Paquets `.deb`, Homebrew, winget_ — trois canaux à re-tester à chaque release, pour un besoin que
+  l'installeur en une commande et Docker couvrent déjà.
+- _Spécification OpenAPI publiée_ — le contrat déclare justement `/api` hors périmètre de
+  compatibilité. La publier figerait une surface qu'on veut garder libre.
+- _SBOM CycloneDX_ — valeur proche de zéro pour le public visé. Une heure le jour où une
+  organisation évalue vraiment le projet, pas avant.
+
+**Sauvegardes et intégrations**
+
+- _Destinations S3 / Backblaze_ — environ 200 lignes de SigV4 à maintenir pour un besoin que la
+  réplication vers une autre machine du tailnet couvre déjà, gratuitement.
+- _SFTP_ — aucune pile SSH acceptable sans dépendance lourde. L'échappatoire honnête est une
+  commande post-sauvegarde optionnelle passée en argv, jamais par un shell, pour ceux qui ont déjà
+  `rclone` ou `restic`.
+- _Bot Discord bidirectionnel_ — il dépend entièrement des permissions par serveur pour être sûr, et
+  ajoute une connexion permanente à maintenir. Les webhooks sortants couvrent 80 % de la valeur pour
+  20 % du coût.
+- _Notifications e-mail SMTP_ — écrire un client SMTP qui tolère les serveurs réels est un puits sans
+  fond, alors que le push fonctionne, chiffré et localisé.
+
+**Projet et communauté**
+
+- _Instance de démo publique, ou mode lecture seule_ — un serveur à exploiter et à défendre, pour un
+  projet dont toute la promesse est l'auto-hébergement. Un GIF de 15 s et un `docker compose up`
+  donnent 90 % de la valeur.
+- _Site de documentation généré_ — GitHub rend correctement les 21 pages telles quelles. Une
+  demi-journée le jour où la demande se présente.
+- _Traduire l'application en cinq langues_ — les docs traduites ont divergé en cinq jours, sans un
+  seul contributeur extérieur. Le signal à attendre est qu'un locuteur natif contribue au moins une
+  fois ; il n'est pas venu.
+- _Weblate / Crowdin_ — une intégration de plus à maintenir, pour zéro traducteur bénévole.
+- _Réécrire l'historique git_ — casse tous les clones et toutes les références de commits sans rien
+  réparer : ce qui est dans l'historique reste dans les forks et les caches.
+
+**Périmètre produit**
+
+- _Écrire un moteur de carte du monde_ — BlueMap le fait déjà pour tous les loaders visés. Le seul
+  chantier légitime est un bouton « Installer la carte » plus un mandataire pour que la carte hérite
+  de l'authentification du panel.
+- _Mise à jour automatique d'un modpack_ — la fusion des configurations utilisateur casse
+  silencieusement des mondes. Chantier distinct, à ne pas greffer sur l'installation.
+- _Fédération multi-panel, marketplace, système de plugins_ — rien de tout cela n'aide quelqu'un qui
+  héberge pour ses amis, et chacun est une maintenance à vie.
+- _Wake-on-LAN_ — le paquet magique exige qu'une autre machine du même sous-réseau ait un agent en
+  ligne. Dans le cas d'usage réel, il n'y a généralement personne pour l'envoyer.
+
+**Outillage**
+
+- _Seuil de couverture bloquant en CI_ — surtout du bruit sur les fichiers de plomberie. Publier le
+  rapport en artefact est la partie utile.
+- _Ajouter les codes du `doctor` aux codes d'erreur du protocole_ — ce sont des enums fermés qui
+  traversent le protocole ; les élargir pour des codes qui ne passent jamais sur le fil casserait le
+  parse chez un pair N-1 pour rien.
