@@ -24,7 +24,15 @@ export interface DownloadOptions {
   /** Origine HTTP du panel (`http(s)://host[:port]`) pour résoudre les URLs relatives. */
   panelOrigin?: string | undefined;
   sha256?: string | undefined;
+  /** Empreinte sha1 attendue : c'est celle que publient les API de mods (Modrinth, CurseForge). */
+  sha1?: string | undefined;
   size?: number | undefined;
+  /**
+   * Plafond de taille (doc 03 §6). Vérifié sur la taille annoncée ET sur le flux réel : un
+   * en-tête menteur ne doit pas remplir le disque. Sans lui, `fs.fetch` perdrait sa borne en
+   * passant par ici.
+   */
+  maxBytes?: number | undefined;
   signal?: AbortSignal | undefined;
   /** Délai d'établissement de la connexion (défaut 5 s pour les sources directes, 30 s sinon). */
   connectTimeoutMs?: number | undefined;
@@ -37,6 +45,7 @@ export interface DownloadOptions {
 export interface DownloadResult {
   size: number;
   sha256: string;
+  sha1: string;
   sourceIndex: number;
   /** Échecs par source avant celle retenue. */
   failures: { index: number; code: string; message: string }[];
@@ -86,7 +95,7 @@ export async function downloadWithResume(options: DownloadOptions): Promise<Down
       try {
         const done = await fetchChunk(fetchImpl, url, source, options, index, total);
         if (done === 'complete') {
-          const result = await verify(options.partPath, options.sha256, total);
+          const result = await verify(options.partPath, options.sha256, options.sha1, total);
           return { ...result, sourceIndex: index, failures };
         }
         // `interrupted` : on repart de la taille du `.part` sur la même source.
@@ -99,7 +108,9 @@ export async function downloadWithResume(options: DownloadOptions): Promise<Down
         if (
           perr?.code === 'E_UNREACHABLE' ||
           perr?.code === 'E_NOT_FOUND' ||
-          perr?.code === 'E_CHECKSUM_MISMATCH'
+          perr?.code === 'E_CHECKSUM_MISMATCH' ||
+          // Trop gros ne devient pas plus petit en réessayant.
+          perr?.code === 'E_TOO_LARGE'
         ) {
           break;
         }
@@ -174,12 +185,22 @@ async function fetchChunk(
       (response.status === 206
         ? parseContentRangeTotal(response.headers.get('content-range'))
         : lengthOf(response.headers.get('content-length')));
+    const max = options.maxBytes;
+    const tooLarge = (size: number): ProtocolError =>
+      new ProtocolError('E_TOO_LARGE', 'file exceeds the allowed size', {
+        details: { size, max, url },
+      });
+    if (max !== undefined && expectedTotal !== undefined && expectedTotal > max) {
+      await response.body.cancel().catch(() => undefined);
+      throw tooLarge(expectedTotal);
+    }
     const handle = await open(options.partPath, offset > 0 ? 'r+' : 'w');
     try {
       if (offset > 0) await handle.truncate(offset);
       let received = offset;
       for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
         if (options.signal?.aborted) throw new ProtocolError('E_CANCELLED', 'download cancelled');
+        if (max !== undefined && received + chunk.byteLength > max) throw tooLarge(received + chunk.byteLength);
         await handle.write(chunk, 0, chunk.byteLength, received);
         received += chunk.byteLength;
         options.onProgress?.(received, expectedTotal, index);
@@ -212,18 +233,25 @@ function parseContentRangeTotal(header: string | null): number | undefined {
 async function verify(
   partPath: string,
   expectedSha256: string | undefined,
+  expectedSha1: string | undefined,
   expectedSize: number | undefined,
-): Promise<{ size: number; sha256: string }> {
+): Promise<{ size: number; sha256: string; sha1: string }> {
   const hash = createHash('sha256');
+  // sha1 systématique, dans la MÊME passe de lecture : il est demandé par les catalogues de mods,
+  // et le calculer plus tard voudrait dire relire le fichier entier.
+  const hash1 = createHash('sha1');
   let size = 0;
   const stream = createReadStream(partPath, { highWaterMark: 1024 * 1024 });
   for await (const chunk of stream) {
     hash.update(chunk as Buffer);
+    hash1.update(chunk as Buffer);
     size += (chunk as Buffer).byteLength;
   }
   const sha256 = hash.digest('hex');
+  const sha1 = hash1.digest('hex');
   if (
     (expectedSha256 !== undefined && expectedSha256.toLowerCase() !== sha256) ||
+    (expectedSha1 !== undefined && expectedSha1.toLowerCase() !== sha1) ||
     (expectedSize !== undefined && expectedSize !== size)
   ) {
     await rm(partPath, { force: true });
@@ -231,13 +259,15 @@ async function verify(
       retryable: true,
       details: {
         sha256,
+        sha1,
         size,
         expectedSha256: expectedSha256 ?? null,
+        expectedSha1: expectedSha1 ?? null,
         expectedSize: expectedSize ?? null,
       },
     });
   }
-  return { size, sha256 };
+  return { size, sha256, sha1 };
 }
 
 /** Hash d'un fichier existant. */

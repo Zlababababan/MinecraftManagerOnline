@@ -228,6 +228,14 @@ export const fsFetchSchema = z.object({
   /** Destination relative, jailée (ex. `mods/spark-forge.jar`). */
   path: relativePathSchema.refine((p) => p !== '', { message: 'path expected' }),
   url: z.url(),
+  /**
+   * Sources de repli, essayées dans l'ordre APRÈS `url` : un miroir, ou le relais du panel pour une
+   * machine sans accès direct. Ajout pur — un agent N-1 les ignore et se contente de `url`.
+   */
+  sources: z
+    .array(z.object({ url: z.url(), kind: z.enum(['direct', 'relay']).optional() }))
+    .max(8)
+    .optional(),
   sha256: z.string().length(64).optional(),
   sha1: z.string().length(40).optional(),
   size: z.int().nonnegative().optional(),
@@ -237,4 +245,9 @@ export const fsFetchResultSchema = z.object({
   path: z.string(),
   size: z.int().nonnegative(),
   sha256: z.string().length(64),
+  /**
+   * Empreinte sha1 du fichier obtenu : c'est celle qu'utilisent les catalogues de mods pour
+   * identifier un jar. Optionnelle, donc un agent N-1 qui ne la renvoie pas reste valide.
+   */
+  sha1: z.string().length(40).optional(),
 });

@@ -597,6 +597,8 @@ describe('phase 8 : tasks, backups, transferts de bout en bout', () => {
         path: 'mods/spark-forge.jar',
         size: payload.byteLength,
         sha256: sha256(payload),
+        // Le sha1 remonte aussi : c'est l'empreinte des catalogues de mods.
+        sha1: createHash('sha1').update(payload).digest('hex'),
       });
       expect(
         (await readFile(path.join(serverDir, 'mods', 'spark-forge.jar'))).equals(payload),
@@ -649,6 +651,81 @@ describe('phase 8 : tasks, backups, transferts de bout en bout', () => {
           url: `http://127.0.0.1:${String(port)}/spark.jar`,
         }),
       ).rejects.toMatchObject({ code: 'E_INVALID_PAYLOAD' });
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => {
+        server.close(() => {
+          resolve();
+        });
+      });
+    }
+  });
+
+  it('fs.fetch reprend un téléchargement coupé au lieu de tout recommencer, et refuse au-delà du plafond', async () => {
+    const payload = randomBytes(300_000);
+    const half = 150_000;
+    const requests: { range: string | undefined }[] = [];
+    const server = http.createServer((req, res) => {
+      if (req.url === '/huge') {
+        // Taille annoncée au-delà du plafond de 8 Gio : refus AVANT d'écrire quoi que ce soit.
+        res.writeHead(200, { 'content-length': '9999999999' });
+        res.end(Buffer.alloc(10));
+        return;
+      }
+      const range = req.headers.range;
+      requests.push({ range: typeof range === 'string' ? range : undefined });
+      if (range === undefined) {
+        // Première tentative : on annonce la taille complète puis on coupe à mi-chemin.
+        res.writeHead(200, { 'content-length': String(payload.byteLength) });
+        res.write(payload.subarray(0, half));
+        setTimeout(() => {
+          res.destroy();
+        }, 20);
+        return;
+      }
+      const start = Number(/bytes=(\d+)-/.exec(range)?.[1] ?? 0);
+      res.writeHead(206, {
+        'content-length': String(payload.byteLength - start),
+        'content-range': `bytes ${String(start)}-${String(payload.byteLength - 1)}/${String(payload.byteLength)}`,
+      });
+      res.end(payload.subarray(start));
+    });
+    await new Promise<void>((resolve) => {
+      server.listen(0, '127.0.0.1', resolve);
+    });
+    const port = (server.address() as { port: number }).port;
+    try {
+      const peer = await bootAgent();
+      await configure(peer);
+
+      const taskId = ulid();
+      await peer.request('fs.fetch', {
+        taskId,
+        serverId: 'srv_1',
+        path: 'mods/big.jar',
+        url: `http://127.0.0.1:${String(port)}/big.jar`,
+        sha256: sha256(payload),
+      });
+      await waitFor(() => cap.completed.some((c) => c.taskId === taskId), 20_000);
+
+      // Le fichier est complet et juste…
+      expect((await readFile(path.join(serverDir, 'mods', 'big.jar'))).equals(payload)).toBe(true);
+      // …et il a fallu DEUX requêtes, la seconde reprenant à l'octet où la première s'est arrêtée.
+      expect(requests).toHaveLength(2);
+      expect(requests[0]?.range).toBeUndefined();
+      expect(requests[1]?.range).toBe(`bytes=${String(half)}-`);
+
+      // Plafond : une taille annoncée trop grande échoue sans rien écrire.
+      const hugeId = ulid();
+      await peer.request('fs.fetch', {
+        taskId: hugeId,
+        serverId: 'srv_1',
+        path: 'mods/huge.jar',
+        url: `http://127.0.0.1:${String(port)}/huge`,
+      });
+      await waitFor(() => cap.failed.some((c) => c.taskId === hugeId), 10_000);
+      expect(cap.failed.find((c) => c.taskId === hugeId)?.error.code).toBe('E_TOO_LARGE');
+      await expect(stat(path.join(serverDir, 'mods', 'huge.jar'))).rejects.toThrow();
     } finally {
       server.closeAllConnections();
       await new Promise<void>((resolve) => {

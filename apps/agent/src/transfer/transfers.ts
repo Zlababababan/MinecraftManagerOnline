@@ -30,6 +30,7 @@ import type { AgentPeer } from '../connection/connection.js';
 import { assertNotReserved } from '../files/fs-service.js';
 import { normalizeRelative } from '../files/jail.js';
 import { errorMessage, type Logger } from '../log.js';
+import { downloadWithResume } from '../util/download.js';
 import type { ServerManager } from '../minecraft/server-manager.js';
 import type { BackupService } from '../backup/backup-service.js';
 import type { TaskContext } from '../tasks/runner.js';
@@ -331,17 +332,31 @@ export class AgentTransfers {
 
   // --- fs.fetch (task) ----------------------------------------------------------------------------
 
-  /** Exécuteur de la task `fs.fetch` : télécharge `url` vers `path` (jailé), vérifie sha256/sha1 si fournis. */
+  /**
+   * Exécuteur de la task `fs.fetch` : télécharge `url` vers `path` (jailé), vérifie sha256/sha1 si
+   * fournis, et **reprend** un téléchargement coupé.
+   *
+   * Posé sur `downloadWithResume` (le même que `java.install`, la migration et la mise à jour de
+   * l'agent) plutôt que sur un `fetch` unique : un mod de 300 Mo coupé à 90 % recommençait à zéro,
+   * sans le moindre réessai. Les garde-fous ne changent pas de main pour autant — le plafond de
+   * taille (annoncé PUIS réel) et les empreintes sont désormais des options du téléchargeur, et le
+   * jail, les chemins réservés et le refus des URL non http(s) restent ici.
+   */
   async fetchToServer(
     req: Omit<ParsedRequestPayload<'fs.fetch'>, 'taskId'>,
     ctx: TaskContext,
-  ): Promise<{ path: string; size: number; sha256: string }> {
+  ): Promise<{ path: string; size: number; sha256: string; sha1: string }> {
     assertNotReserved(normalizeRelative(req.path), 'fetch to');
     const maxBytes = this.options.maxFetchBytes ?? DEFAULT_MAX_FETCH_BYTES;
-    if (!/^https?:$/i.test(new URL(req.url).protocol)) {
-      throw new ProtocolError('E_INVALID_PAYLOAD', 'only http(s) URLs can be fetched', {
-        details: { url: req.url },
-      });
+    // `url` d'abord, puis les sources de repli éventuelles : le panel peut proposer un miroir ou
+    // son propre relais sans que l'agent ait à connaître l'un ou l'autre.
+    const sources = [{ url: req.url, kind: 'direct' }, ...(req.sources ?? [])];
+    for (const source of sources) {
+      if (!/^https?:$/i.test(new URL(source.url).protocol)) {
+        throw new ProtocolError('E_INVALID_PAYLOAD', 'only http(s) URLs can be fetched', {
+          details: { url: source.url },
+        });
+      }
     }
     if (req.size !== undefined && req.size > maxBytes) {
       throw new ProtocolError('E_TOO_LARGE', 'file exceeds the allowed size', {
@@ -356,71 +371,34 @@ export class AgentTransfers {
     ctx.artifact(partPath);
     await ctx.checkpoint();
     ctx.progress('downloading', 0, req.url);
-    const fetchImpl = this.options.fetchImpl ?? fetch;
-    let response: Response;
+    let result;
     try {
-      response = await fetchImpl(req.url, { signal: ctx.signal, redirect: 'follow' });
+      result = await downloadWithResume({
+        partPath,
+        sources,
+        sha256: req.sha256,
+        sha1: req.sha1,
+        size: req.size,
+        maxBytes,
+        signal: ctx.signal,
+        fetchImpl: this.options.fetchImpl,
+        onProgress: (received: number, total: number | undefined) => {
+          ctx.progress(
+            'downloading',
+            total !== undefined && total > 0 ? Math.min(99, (received / total) * 100) : undefined,
+            `${String(received)} B`,
+          );
+        },
+      });
     } catch (error) {
       if (ctx.isCancelled) throw new ProtocolError('E_CANCELLED', 'fetch cancelled');
-      throw new ProtocolError('E_IO', `download failed: ${errorMessage(error)}`, { cause: error });
-    }
-    if (!response.ok || !response.body) {
-      throw new ProtocolError('E_IO', `download failed: HTTP ${String(response.status)}`, {
-        details: { status: response.status, url: req.url },
-      });
-    }
-    const total = req.size ?? Number(response.headers.get('content-length') ?? 0);
-    const tooLarge = (size: number): ProtocolError =>
-      new ProtocolError('E_TOO_LARGE', 'file exceeds the allowed size', {
-        details: { size, max: maxBytes, url: req.url },
-      });
-    if (total > maxBytes) {
-      await response.body.cancel().catch(() => undefined);
-      throw tooLarge(total);
-    }
-    const sha256 = createHash('sha256');
-    const sha1 = createHash('sha1');
-    let size = 0;
-    const handle = await open(partPath, 'w');
-    try {
-      for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
-        ctx.throwIfCancelled();
-        if (size + chunk.byteLength > maxBytes) {
-          await handle.close();
-          await rm(partPath, { force: true }).catch(() => undefined);
-          throw tooLarge(size + chunk.byteLength);
-        }
-        await handle.write(chunk);
-        sha256.update(chunk);
-        sha1.update(chunk);
-        size += chunk.byteLength;
-        ctx.progress(
-          'downloading',
-          total > 0 ? Math.min(99, (size / total) * 100) : undefined,
-          `${String(size)} B`,
-        );
-      }
-    } finally {
-      await handle.close().catch(() => undefined);
-    }
-    const digest256 = sha256.digest('hex');
-    const digest1 = sha1.digest('hex');
-    if (
-      (req.sha256 !== undefined && req.sha256.toLowerCase() !== digest256) ||
-      (req.sha1 !== undefined && req.sha1.toLowerCase() !== digest1) ||
-      (req.size !== undefined && req.size !== size)
-    ) {
-      await rm(partPath, { force: true });
-      throw new ProtocolError('E_CHECKSUM_MISMATCH', 'downloaded file does not match', {
-        retryable: true,
-        details: { sha256: digest256, sha1: digest1, size },
-      });
+      throw error;
     }
     ctx.progress('finalizing', 99);
     await rm(finalPath, { force: true });
     await rename(partPath, finalPath);
     ctx.keep(partPath);
-    return { path: req.path, size, sha256: digest256 };
+    return { path: req.path, size: result.size, sha256: result.sha256, sha1: result.sha1 };
   }
 
   private negotiate(requested: Compression | undefined): Compression {
