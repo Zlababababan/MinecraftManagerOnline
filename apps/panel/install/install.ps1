@@ -1,4 +1,4 @@
-<#
+﻿<#
 MinecraftManagerOnline — installation de l'agent sous Windows (service via shawl, compte de l'utilisateur).
 Compatible Windows PowerShell 5.1 et PowerShell 7.
 

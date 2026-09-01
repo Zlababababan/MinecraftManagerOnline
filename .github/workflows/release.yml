@@ -97,3 +97,4 @@ jobs:
           files: |
             dist/**/*
             apps/panel/install/install-panel.sh
+            apps/panel/install/install-panel.ps1

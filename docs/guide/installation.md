@@ -37,7 +37,15 @@ curl -fsSL https://github.com/Zlababababan/MinecraftManagerOnline/releases/lates
 
 Run the **same command again to update**: the database is backed up first, and if the new version does not start, the previous one is put back. `--uninstall` removes it (`--purge` also deletes the data), `--help` lists the other options (offline `--archive`, `--dir`, `--data-dir`…). If you prefer to see every step, the manual path below remains fully supported — the installer and the manual path lead to the same result.
 
-**Windows.** Right-click the `.zip` → **Extract All**, into a folder you intend to keep, for example `C:\mmo\panel` (avoid Downloads and the Desktop). Open that folder and double-click **`mmo-panel.cmd`**. A black window opens and stays open: that is the panel running, and closing it stops the panel — §1.4 turns it into a proper service. From a terminal:
+**Windows, one command.** Same idea, in a PowerShell (it asks for elevation by itself) — code in `C:\Program Files\mmo-panel`, data in `C:\ProgramData\mmo-panel`, a Windows service with delayed automatic start:
+
+```powershell
+& ([scriptblock]::Create((irm https://github.com/Zlababababan/MinecraftManagerOnline/releases/latest/download/install-panel.ps1)))
+```
+
+Run it again to update (backup first, rollback if the new version does not start). Options: `-Port`, `-Archive` (offline), `-MigrateFrom C:\old\panel` (copies the data of a previous manual install, checked with `integrity_check`, without touching the original), `-ServiceAccount User` (if backups target a network drive), `-Uninstall` (`-Purge` also deletes data). Your choices are remembered for the next update.
+
+**Windows, manual path.** Right-click the `.zip` → **Extract All**, into a folder you intend to keep, for example `C:\mmo\panel` (avoid Downloads and the Desktop). Open that folder and double-click **`mmo-panel.cmd`**. A black window opens and stays open: that is the panel running, and closing it stops the panel — §1.4 turns it into a proper service. From a terminal:
 
 ```powershell
 C:\mmo\panel\mmo-panel.cmd
@@ -83,7 +91,7 @@ it as an argument, the command line is visible to every process on the machine. 
 
 ### 1.4 Start at boot (service)
 
-> Installed with the Linux one-command installer (§1.2)? The service already exists — this section is for manual installs.
+> Installed with a one-command installer (§1.2, Linux or Windows)? The service already exists — this section is for manual installs.
 
 **Windows** (shawl ships in the archive) — in an **administrator** PowerShell:
 
@@ -127,7 +135,7 @@ sudo systemctl daemon-reload && sudo systemctl enable --now mmo-panel
 
 ### 1.5 Update the panel
 
-Installed with the Linux one-command installer (§1.2)? Run the same command again — it backs up the database, swaps the code, restarts the service and rolls back by itself if the new version does not start. Manual installs: stop the service, extract the new archive **on top** (the `data/` folder is never inside the archive), restart. Database migrations run at startup. The new archive embeds same-version agents: the panel publishes the agent release automatically and, if "Update agents automatically when they connect" is checked (Settings → General — unchecked by default), each agent is updated at its next connection, with automatic rollback on failure. Otherwise, update them one by one from the Agent card of each machine page.
+Installed with a one-command installer (§1.2, Linux or Windows)? Run the same command again — it backs up the database, swaps the code, restarts the service and rolls back by itself if the new version does not start. Manual installs: stop the service, extract the new archive **on top** (the `data/` folder is never inside the archive), restart. Database migrations run at startup. The new archive embeds same-version agents: the panel publishes the agent release automatically and, if "Update agents automatically when they connect" is checked (Settings → General — unchecked by default), each agent is updated at its next connection, with automatic rollback on failure. Otherwise, update them one by one from the Agent card of each machine page.
 
 ### 1.6 When the panel does not start: `doctor`
 

@@ -37,7 +37,15 @@ curl -fsSL https://github.com/Zlababababan/MinecraftManagerOnline/releases/lates
 
 Relancez la **même commande pour mettre à jour** : la base est sauvegardée d'abord, et si la nouvelle version ne démarre pas, la précédente est remise en place. `--uninstall` désinstalle (`--purge` supprime aussi les données), `--help` liste les autres options (`--archive` hors ligne, `--dir`, `--data-dir`…). Si vous préférez voir chaque étape, le parcours manuel ci-dessous reste entièrement pris en charge — installeur et parcours manuel mènent au même résultat.
 
-**Windows.** Clic droit sur le `.zip` → **Extraire tout**, dans un dossier que vous garderez, par exemple `C:\mmo\panel` (évitez Téléchargements et le Bureau). Ouvrez ce dossier et double-cliquez sur **`mmo-panel.cmd`**. Une fenêtre noire s'ouvre et reste ouverte : c'est le panel qui tourne, la fermer l'arrête — le §1.4 en fait un vrai service. Depuis un terminal :
+**Windows, une seule commande.** Même idée, dans un PowerShell (il demande l'élévation tout seul) — code dans `C:\Program Files\mmo-panel`, données dans `C:\ProgramData\mmo-panel`, service Windows en démarrage automatique différé :
+
+```powershell
+& ([scriptblock]::Create((irm https://github.com/Zlababababan/MinecraftManagerOnline/releases/latest/download/install-panel.ps1)))
+```
+
+Relancez-la pour mettre à jour (sauvegarde d'abord, retour arrière si la nouvelle version ne démarre pas). Options : `-Port`, `-Archive` (hors ligne), `-MigrateFrom C:\ancien\panel` (copie les données d'une ancienne installation manuelle, vérifiées par `integrity_check`, sans toucher à l'original), `-ServiceAccount User` (si les sauvegardes visent un lecteur réseau), `-Uninstall` (`-Purge` supprime aussi les données). Vos choix sont mémorisés pour la mise à jour suivante.
+
+**Windows, parcours manuel.** Clic droit sur le `.zip` → **Extraire tout**, dans un dossier que vous garderez, par exemple `C:\mmo\panel` (évitez Téléchargements et le Bureau). Ouvrez ce dossier et double-cliquez sur **`mmo-panel.cmd`**. Une fenêtre noire s'ouvre et reste ouverte : c'est le panel qui tourne, la fermer l'arrête — le §1.4 en fait un vrai service. Depuis un terminal :
 
 ```powershell
 C:\mmo\panel\mmo-panel.cmd
@@ -83,7 +91,7 @@ passez jamais en argument, la ligne de commande est visible de tous les processu
 
 ### 1.4 Démarrer au boot (service)
 
-> Installé avec l'installeur Linux en une commande (§1.2) ? Le service existe déjà — cette section concerne les installations manuelles.
+> Installé avec un installeur en une commande (§1.2, Linux ou Windows) ? Le service existe déjà — cette section concerne les installations manuelles.
 
 **Windows** (shawl est fourni dans l'archive) — dans un PowerShell **administrateur** :
 
@@ -127,7 +135,7 @@ sudo systemctl daemon-reload && sudo systemctl enable --now mmo-panel
 
 ### 1.5 Mettre à jour le panel
 
-Installé avec l'installeur Linux en une commande (§1.2) ? Relancez la même commande — elle sauvegarde la base, remplace le code, redémarre le service et revient toute seule en arrière si la nouvelle version ne démarre pas. Installation manuelle : arrêtez le service, extrayez la nouvelle archive **par-dessus** (le dossier `data/` n'est jamais dans l'archive), redémarrez. Les migrations de base se jouent au démarrage. La nouvelle archive embarque les agents de même version : le panel publie automatiquement la release d'agent et, si « Mettre à jour les agents automatiquement à la connexion » est coché (Réglages → Général — décoché par défaut), chaque agent est mis à jour à sa prochaine connexion, avec rollback automatique en cas d'échec. Sinon, mettez-les à jour un par un depuis la carte Agent de chaque page machine.
+Installé avec un installeur en une commande (§1.2, Linux ou Windows) ? Relancez la même commande — elle sauvegarde la base, remplace le code, redémarre le service et revient toute seule en arrière si la nouvelle version ne démarre pas. Installation manuelle : arrêtez le service, extrayez la nouvelle archive **par-dessus** (le dossier `data/` n'est jamais dans l'archive), redémarrez. Les migrations de base se jouent au démarrage. La nouvelle archive embarque les agents de même version : le panel publie automatiquement la release d'agent et, si « Mettre à jour les agents automatiquement à la connexion » est coché (Réglages → Général — décoché par défaut), chaque agent est mis à jour à sa prochaine connexion, avec rollback automatique en cas d'échec. Sinon, mettez-les à jour un par un depuis la carte Agent de chaque page machine.
 
 ### 1.6 Quand le panel ne démarre pas : `doctor`
 
