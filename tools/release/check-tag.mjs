@@ -26,8 +26,11 @@ export function constantOf(file, name) {
 }
 
 /**
- * La section `## <version>` du CHANGELOG, titre compris, jusqu'au titre suivant. `undefined` si la
+ * Le corps de la section `## <version>` du CHANGELOG, jusqu'au titre suivant. `undefined` si la
  * version n'y figure pas — c'est un échec de release, pas un détail de mise en forme.
+ *
+ * Le titre de section est **retiré** : GitHub affiche déjà le tag en titre de la release, et
+ * l'y répéter en gros ne dit rien de plus (vu sur la 1.0.7).
  */
 export function changelogSection(markdown, version) {
   const lines = markdown.split('\n');
@@ -37,7 +40,7 @@ export function changelogSection(markdown, version) {
   if (start < 0) return undefined;
   const rest = lines.slice(start + 1);
   const end = rest.findIndex((l) => l.startsWith('## '));
-  return [lines[start], ...(end < 0 ? rest : rest.slice(0, end))].join('\n').trim();
+  return (end < 0 ? rest : rest.slice(0, end)).join('\n').trim();
 }
 
 function main(argv) {
