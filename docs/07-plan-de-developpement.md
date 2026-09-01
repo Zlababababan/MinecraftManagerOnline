@@ -185,9 +185,23 @@ Construite avec les correctifs post-tag (course update-result de la session 3, c
 - **CI exécutée pour la première fois** (elle n'avait jamais tourné faute de remote) et stabilisée jusqu'au vert sur les 4 OS — détail des remèdes en doc 03 §9 ; deux tests restent tolérants-CI (`[flaky-ci]`), débogage à prévoir.
 - README refait en vitrine (badges CI/release/licence, fonctionnalités, tableau des plateformes, démarrage rapide).
 
-### Chantier suivant — utilisation en conditions réelles
+### Utilisation en conditions réelles — **faite (2026-08-25 → 09-01)**
 
-Passe d'amélioration des docs (guide vérifié contre le code, obsolescences purgées), puis l'utilisateur déroule l'utilisation réelle : panel de production installé depuis l'archive 1.0.1, accès Tailscale, mobile, amis, adoption de copies de vrais serveurs — chaque accroc = vrai bug utilisateur.
+Panel de production installé depuis une archive de release, accès Tailscale, PWA mobile, ami sur VM Oracle Ubuntu ARM, adoption des 53 serveurs réels. Chaque accroc a produit un correctif : voir les releases 1.0.2 → 1.0.6.
+
+### Carnet post-1.0 — 9 lots, 93 chantiers (audit du 2026-08-30)
+
+Périmètre et détail de chaque chantier : artefact « MMO après la 1.0 » ; avancement : artefact « Tableau de marche » (republié à chaque chantier terminé). Le présent doc ne garde que l'**ordre d'exécution** et les décisions qui le fixent.
+
+**Ordre retenu** — 1 lot 7 *Piloter 56 serveurs* (**livré**), 2 lot 2 *Installer comme un produit* (**livré**), 3 lot 3 *Ce que voit un inconnu*, 4 lot 9 *Le socle qui vieillit bien*, 5 lot 4 *Ne jamais perdre un monde*, 6 lot 8 *Partager avec des amis*, 7 lot 5 *Créer un serveur depuis le panel*, 8 lot 6 *Mods, crashs, mondes*. Le lot 1 (*Zéro compilation*) a été livré avec la 1.0.5.
+
+**Décision du 2026-09-01 — les deux lots d'installation (5 et 6) passent en dernier.** Motif : rien avant eux n'en dépend, alors qu'eux gagnent à arriver après — les e2e en CI (lot 3) protègent un assistant en cinq écrans, et les droits par serveur (lot 8) décident qui a le droit de créer un serveur. Trois conséquences actées :
+
+1. **Le lot 5 se coupe en deux.** Vanilla et Fabric n'exigent aucun installeur tiers et emportent pourtant tout le squelette (assistant, planificateur, `install_failed` terminal, mode « réparer ») ; Forge/NeoForge, les modpacks, CurseForge et Paper viennent ensuite.
+2. **Un spike précède le lot 5** sur `runJar` seul (Forge 1.12, Forge 1.20, NeoForge, sur des copies) : c'est le seul inconnu réel — un programme Java tiers qui télécharge de lui-même, dure des minutes et exige strictement Java 8 jusqu'en 1.16.5.
+3. **La reprise de `fs.fetch` sort du lot 6 et passe devant.** C'est aujourd'hui un `fetch` unique sans reprise ni réessai (`transfer/transfers.ts`) là où `downloadWithResume` existe à côté : un défaut réel dès aujourd'hui pour spark en un clic, et la dette bloquante de tout le lot 6.
+
+La question du `loaderSchema` fermé, que l'audit posait comme préalable à Paper/Purpur, **est tranchée depuis** : `velocity` y a été ajouté en connaissance de cause (un agent N−1 ne détecte pas les proxys et rejette proprement une config velocity, doc 06 §1). Le précédent s'applique aux valeurs futures.
 
 ## Règles de conduite du projet
 
