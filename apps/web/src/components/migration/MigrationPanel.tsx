@@ -13,6 +13,7 @@ import {
   Group,
   List,
   Modal,
+  NumberInput,
   Progress,
   Select,
   Stack,
@@ -24,12 +25,23 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconArrowsExchange, IconCheck, IconX } from '@tabler/icons-react';
+import { IconArrowsExchange, IconCheck, IconCopy, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
 
-import type { MigrationDto, MigrationPrecheckDto, ServerDto } from '@mmo/protocol/client';
+import type {
+  DuplicatePrecheckDto,
+  MigrationDto,
+  MigrationPrecheckDto,
+  ServerDto,
+} from '@mmo/protocol/client';
 
-import { useMigrationPrecheck, useMigrations, useStartMigration } from '../../api/phase9.js';
+import {
+  useDuplicatePrecheck,
+  useMigrationPrecheck,
+  useMigrations,
+  useStartDuplicate,
+  useStartMigration,
+} from '../../api/phase9.js';
 import { useMachines, useMe } from '../../api/queries.js';
 import { useT } from '../../i18n/hooks.js';
 import { tDynamic } from '../../i18n/index.js';
@@ -308,6 +320,238 @@ export function MigrationModal({
   );
 }
 
+/**
+ * Duplication : même chaîne que la migration mais vers un NOUVEAU serveur — la cible peut être la
+ * machine actuelle, le clone reçoit un nom et un port de jeu libres, la source est arrêtée le temps
+ * de la sauvegarde puis relancée si elle tournait.
+ */
+export function DuplicateModal({
+  server,
+  opened,
+  onClose,
+}: {
+  server: ServerDto;
+  opened: boolean;
+  onClose: () => void;
+}) {
+  const { t, i18n } = useT();
+  const machines = useMachines();
+  const precheck = useDuplicatePrecheck(server.id);
+  const start = useStartDuplicate(server.id);
+  const [result, setResult] = useState<DuplicatePrecheckDto | undefined>(undefined);
+  const form = useForm<{
+    toMachineId: string;
+    toDirectoryId: string;
+    toPath: string;
+    customPath: boolean;
+    name: string;
+    gamePort: number | '';
+    installJava: boolean;
+    announce: string;
+  }>({
+    initialValues: {
+      toMachineId: server.machineId,
+      toDirectoryId: '',
+      toPath: '',
+      customPath: false,
+      name: `${server.name}${t('web:migration.duplicateNameSuffix')}`,
+      gamePort: '',
+      installJava: false,
+      announce: '',
+    },
+    validate: {
+      toMachineId: (v) => (v === '' ? t('web:errors.validation') : null),
+      name: (v) => (v.trim() === '' ? t('web:errors.validation') : null),
+      toPath: (v, values) =>
+        values.customPath && v.trim() === '' ? t('web:errors.validation') : null,
+    },
+  });
+  const targets = (machines.data?.machines ?? []).filter((m) => m.connected);
+  const target = targets.find((m) => m.id === form.values.toMachineId);
+  const directories = target?.watchedDirectories ?? [];
+  const input = () => ({
+    toMachineId: form.values.toMachineId,
+    name: form.values.name.trim(),
+    ...(form.values.customPath
+      ? { toPath: form.values.toPath.trim() }
+      : form.values.toDirectoryId === ''
+        ? {}
+        : { toDirectoryId: form.values.toDirectoryId }),
+    ...(form.values.gamePort === '' ? {} : { gamePort: form.values.gamePort }),
+  });
+  const fail = (error: unknown): void => {
+    notifications.show({ color: 'red', message: describeError(i18n, error) });
+  };
+  const close = (): void => {
+    setResult(undefined);
+    form.reset();
+    precheck.reset();
+    start.reset();
+    onClose();
+  };
+  const canStart =
+    result !== undefined &&
+    result.path.ok &&
+    result.port.ok &&
+    result.disk.ok &&
+    (result.java.ok || (form.values.installJava && result.java.installable === true));
+
+  return (
+    <Modal opened={opened} onClose={close} title={t('web:migration.duplicateTitle')} size="lg">
+      <form
+        onSubmit={form.onSubmit(() => {
+          start.mutate(
+            {
+              ...input(),
+              installJava: form.values.installJava,
+              ...(form.values.announce.trim() === ''
+                ? {}
+                : { announce: form.values.announce.trim() }),
+            },
+            {
+              onSuccess: () => {
+                notifications.show({
+                  color: 'teal',
+                  message: t('web:migration.duplicateStarted'),
+                });
+                close();
+              },
+              onError: fail,
+            },
+          );
+        })}
+      >
+        <Stack gap="sm">
+          <Text size="sm" c="dimmed">
+            {t('web:migration.duplicateHint')}
+          </Text>
+          {server.runState !== 'stopped' && (
+            <Alert color="yellow">{t('web:migration.duplicateStopWarning')}</Alert>
+          )}
+          {targets.length === 0 && <Alert color="yellow">{t('web:migration.noTarget')}</Alert>}
+          <TextInput
+            label={t('web:migration.duplicateName')}
+            required
+            data-testid="duplicate-name"
+            {...form.getInputProps('name')}
+            onChange={(e) => {
+              form.setFieldValue('name', e.currentTarget.value);
+              setResult(undefined);
+            }}
+          />
+          <Select
+            label={t('web:migration.targetMachine')}
+            data={targets.map((m) => ({ value: m.id, label: m.name }))}
+            required
+            data-testid="duplicate-target"
+            {...form.getInputProps('toMachineId')}
+            onChange={(v) => {
+              form.setFieldValue('toMachineId', v ?? '');
+              form.setFieldValue('toDirectoryId', '');
+              setResult(undefined);
+            }}
+          />
+          <Switch
+            label={t('web:migration.customPath')}
+            checked={form.values.customPath}
+            onChange={(e) => {
+              form.setFieldValue('customPath', e.currentTarget.checked);
+              setResult(undefined);
+            }}
+          />
+          {form.values.customPath ? (
+            <TextInput
+              label={t('web:migration.targetPath')}
+              placeholder={t('web:machine.directoryPlaceholder')}
+              data-testid="duplicate-path"
+              {...form.getInputProps('toPath')}
+            />
+          ) : (
+            <Select
+              label={t('web:migration.targetDirectory')}
+              description={t('web:migration.duplicateDirectoryHint')}
+              data={directories.map((d) => ({ value: d.id, label: d.path }))}
+              disabled={target === undefined}
+              placeholder={directories[0]?.path}
+              data-testid="duplicate-directory"
+              value={form.values.toDirectoryId === '' ? null : form.values.toDirectoryId}
+              onChange={(v) => {
+                form.setFieldValue('toDirectoryId', v ?? '');
+                setResult(undefined);
+              }}
+            />
+          )}
+          <NumberInput
+            label={t('web:migration.duplicatePort')}
+            description={t('web:migration.duplicatePortHint')}
+            min={1}
+            max={65535}
+            allowDecimal={false}
+            value={form.values.gamePort}
+            onChange={(v) => {
+              form.setFieldValue('gamePort', typeof v === 'number' ? v : '');
+              setResult(undefined);
+            }}
+            data-testid="duplicate-port"
+          />
+          <Checkbox
+            label={t('web:migration.installJava')}
+            {...form.getInputProps('installJava', { type: 'checkbox' })}
+          />
+          <TextInput
+            label={t('web:migration.announce')}
+            placeholder={t('web:migration.announcePlaceholder')}
+            {...form.getInputProps('announce')}
+          />
+          <Group gap="xs">
+            <Button
+              type="button"
+              variant="light"
+              loading={precheck.isPending}
+              disabled={form.values.toMachineId === ''}
+              data-testid="duplicate-precheck"
+              onClick={() => {
+                if (form.validate().hasErrors) return;
+                precheck.mutate(input(), {
+                  onSuccess: (data) => {
+                    setResult(data.precheck);
+                  },
+                  onError: fail,
+                });
+              }}
+            >
+              {t('web:migration.precheck')}
+            </Button>
+          </Group>
+          {result !== undefined && (
+            <Stack gap={4}>
+              <PrecheckList precheck={result} />
+              <Text size="sm" data-testid="duplicate-port-chosen">
+                {t('web:migration.duplicatePortChosen', { port: result.gamePort })}
+              </Text>
+            </Stack>
+          )}
+          <ErrorAlert error={start.error} />
+          <Group justify="flex-end">
+            <Button type="button" variant="subtle" onClick={close}>
+              {t('web:common.cancel')}
+            </Button>
+            <Button
+              type="submit"
+              loading={start.isPending}
+              disabled={!canStart}
+              leftSection={<IconCopy size={14} />}
+              data-testid="duplicate-start"
+            >
+              {t('web:migration.duplicateStart')}
+            </Button>
+          </Group>
+        </Stack>
+      </form>
+    </Modal>
+  );
+}
+
 /** Carte de suivi : migration active (barre) + historique. */
 export function MigrationsCard({ server }: { server: ServerDto }) {
   const { t, i18n } = useT();
@@ -316,9 +560,11 @@ export function MigrationsCard({ server }: { server: ServerDto }) {
   const migrations = useMigrations(server.id);
   const statusLabel = useMigrationStatusLabel();
   const [open, setOpen] = useState(false);
+  const [openDuplicate, setOpenDuplicate] = useState(false);
   const isAdmin = me.data !== undefined && hasRole(me.data.user.role, 'admin');
   const rows = migrations.data?.migrations ?? [];
   const active = rows.find(isActiveMigration);
+  const busy = active !== undefined || server.provisioning !== 'ready';
   const machineName = (id: string): string =>
     machines.data?.machines.find((m) => m.id === id)?.name ?? id;
   return (
@@ -329,19 +575,34 @@ export function MigrationsCard({ server }: { server: ServerDto }) {
             {t('web:migration.title')}
           </Title>
           {isAdmin && (
-            <Button
-              type="button"
-              size="xs"
-              variant="light"
-              leftSection={<IconArrowsExchange size={14} />}
-              disabled={active !== undefined || server.provisioning !== 'ready'}
-              onClick={() => {
-                setOpen(true);
-              }}
-              data-testid="migration-open"
-            >
-              {t('web:migration.migrate')}
-            </Button>
+            <Group gap="xs">
+              <Button
+                type="button"
+                size="xs"
+                variant="light"
+                leftSection={<IconCopy size={14} />}
+                disabled={busy}
+                onClick={() => {
+                  setOpenDuplicate(true);
+                }}
+                data-testid="duplicate-open"
+              >
+                {t('web:migration.duplicate')}
+              </Button>
+              <Button
+                type="button"
+                size="xs"
+                variant="light"
+                leftSection={<IconArrowsExchange size={14} />}
+                disabled={busy}
+                onClick={() => {
+                  setOpen(true);
+                }}
+                data-testid="migration-open"
+              >
+                {t('web:migration.migrate')}
+              </Button>
+            </Group>
           )}
         </Group>
         {active !== undefined && (
@@ -386,6 +647,11 @@ export function MigrationsCard({ server }: { server: ServerDto }) {
                   <Table.Td>{formatDateTime(m.startedAt, i18n.language)}</Table.Td>
                   <Table.Td>
                     {machineName(m.fromMachineId)} → {machineName(m.toMachineId)}
+                    {m.kind === 'duplicate' && (
+                      <Badge size="xs" variant="outline" ml={6}>
+                        {t('web:migration.kindDuplicate')}
+                      </Badge>
+                    )}
                   </Table.Td>
                   <Table.Td>
                     <Badge
@@ -416,6 +682,13 @@ export function MigrationsCard({ server }: { server: ServerDto }) {
         opened={open}
         onClose={() => {
           setOpen(false);
+        }}
+      />
+      <DuplicateModal
+        server={server}
+        opened={openDuplicate}
+        onClose={() => {
+          setOpenDuplicate(false);
         }}
       />
     </Card>

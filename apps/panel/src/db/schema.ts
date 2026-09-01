@@ -578,6 +578,16 @@ export const serverMigrations = sqliteTable(
     exportTaskId: text('export_task_id'),
     importTaskId: text('import_task_id'),
     restartAfter: integer('restart_after').notNull().default(1),
+    /**
+     * Duplication (amendement doc 04 §5) : `duplicate` = même chaîne export→import mais vers un
+     * NOUVEAU serveur (`targetServerId`), la source restant en place (jamais de finalize).
+     */
+    kind: text('kind', { enum: ['migrate', 'duplicate'] })
+      .notNull()
+      .default('migrate'),
+    targetServerId: text('target_server_id').references(() => servers.id, {
+      onDelete: 'set null',
+    }),
   },
   (t) => [index('idx_migr_server').on(t.serverId, t.startedAt)],
 );

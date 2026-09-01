@@ -557,6 +557,67 @@ export class ServersService {
     return this.require(id);
   }
 
+  /**
+   * Duplication : crée la ligne du clone AVANT l'import — l'UI le voit tout de suite, et un scan
+   * qui découvrirait le dossier en cours d'extraction retombe sur cette ligne (`findByPath`) au
+   * lieu d'adopter un doublon. Réglages copiés de la source ; le RCON n'est pas copié (l'agent en
+   * réattribue un au premier démarrage), le runtime Java est re-résolu sur la cible.
+   */
+  insertDuplicate(
+    source: ServerRow,
+    target: {
+      id: string;
+      machineId: string;
+      directoryId: string | null;
+      path: string;
+      name: string;
+      gamePort: number;
+    },
+  ): ServerRow {
+    const t = this.now();
+    const row: ServerRow = {
+      ...source,
+      id: target.id,
+      machineId: target.machineId,
+      directoryId: target.directoryId,
+      path: target.path,
+      name: target.name,
+      gamePort: target.gamePort,
+      detected: 0,
+      javaRuntimeId: null,
+      rconPort: null,
+      rconPasswordEnc: null,
+      provisioning: 'migrating',
+      runState: 'stopped',
+      desiredState: 'stopped',
+      attachMode: 'attached',
+      lastExitReason: null,
+      pid: null,
+      startedAt: null,
+      stoppedAt: null,
+      createdAt: t,
+      updatedAt: t,
+    };
+    this.db.insert(servers).values(row).run();
+    try {
+      this.deps.seedBackupPolicy?.(row.id);
+    } catch {
+      // la politique pourra être créée à la main
+    }
+    return row;
+  }
+
+  /** Fin de duplication : le clone est en place sur la cible, prêt et arrêté. */
+  confirmDuplicated(id: string, gamePort: number | null): ServerRow {
+    const t = this.now();
+    this.db
+      .update(servers)
+      .set({ provisioning: 'ready', detected: 1, gamePort, stoppedAt: t, updatedAt: t })
+      .where(eq(servers.id, id))
+      .run();
+    return this.require(id);
+  }
+
   // --- Configuration poussée à l'agent -----------------------------------------------------------
 
   /** `agent.configure` complet pour une machine (liste complète : un serveur absent est oublié par l'agent). */

@@ -53,6 +53,8 @@ export const en = {
       backupFailed: { title: 'Backup failed: {{server}}', body: '{{reason}}' },
       migrationDone: { title: 'Migration done: {{server}}', body: 'Now hosted on {{machine}}.' },
       migrationFailed: { title: 'Migration failed: {{server}}', body: '{{reason}}' },
+      duplicationDone: { title: 'Copy done: {{server}}', body: 'New server ready on {{machine}}.' },
+      duplicationFailed: { title: 'Copy failed: {{server}}', body: '{{reason}}' },
       agentUpdateApplied: {
         title: 'Agent updated: {{machine}}',
         body: 'Version {{version}} is running.',

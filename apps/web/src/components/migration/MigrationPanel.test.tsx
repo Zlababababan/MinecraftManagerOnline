@@ -100,6 +100,8 @@ const done: MigrationDto = {
   finishedAt: 1_787_330_600_000,
   error: null,
   createdBy: 'u1',
+  kind: 'migrate',
+  targetServerId: null,
 };
 
 function json(status: number, body: unknown): Response {
@@ -133,7 +135,38 @@ function installFetch(calls: Call[]): void {
         return json(200, { machines: [machine('m1', 'Tour'), machine('m2', 'Pi')] });
       }
       if (path === '/api/servers/s1/migrations' && method === 'GET') {
-        return json(200, { migrations: [done] });
+        return json(200, {
+          migrations: [
+            done,
+            { ...done, id: 'dup0', kind: 'duplicate', targetServerId: 's2', toMachineId: 'm1' },
+          ],
+        });
+      }
+      if (path === '/api/servers/s1/duplicate/precheck') {
+        return json(200, {
+          precheck: {
+            ok: true,
+            toPath: '/srv/Tour/Survie (copie)',
+            gamePort: 25_566,
+            path: { ok: true },
+            port: { ok: true },
+            java: { ok: true },
+            disk: { ok: true, freeBytes: 50_000_000_000, requiredBytes: 1_000_000 },
+          },
+        });
+      }
+      if (path === '/api/servers/s1/duplicate' && method === 'POST') {
+        return json(202, {
+          migration: {
+            ...done,
+            id: 'dup1',
+            toMachineId: 'm1',
+            status: 'pending',
+            progressPct: 0,
+            kind: 'duplicate',
+            targetServerId: 's2',
+          },
+        });
       }
       if (path === '/api/servers/s1/migrations/precheck') {
         return json(200, {
@@ -233,5 +266,36 @@ describe('MigrationsCard', () => {
     expect(active.textContent).toContain('relayé');
     // Migration en cours : le bouton « Migrer » est désactivé.
     expect(screen.getByTestId('migration-open')).toBeDisabled();
+  });
+
+  it('duplication : nom pré-rempli, machine actuelle par défaut, port retenu, POST avec le nom', async () => {
+    const user = userEvent.setup();
+    renderCard();
+    // L'historique distingue une copie d'une migration.
+    expect((await screen.findByTestId('migration-dup0')).textContent).toContain('Copie');
+
+    await user.click(await screen.findByTestId('duplicate-open'));
+    const name = await screen.findByTestId('duplicate-name');
+    expect(name).toHaveValue('Survie (copie)');
+    await user.click(screen.getByTestId('duplicate-precheck'));
+    await screen.findByTestId('precheck-list');
+    // La machine actuelle est la cible par défaut (dupliquer sur place = cas nominal).
+    expect(calls.find((c) => c.path === '/api/servers/s1/duplicate/precheck')?.body).toEqual({
+      toMachineId: 'm1',
+      name: 'Survie (copie)',
+    });
+    expect(screen.getByTestId('duplicate-port-chosen').textContent).toContain('25566');
+
+    const start = screen.getByTestId('duplicate-start');
+    expect(start).toBeEnabled();
+    await user.click(start);
+    await waitFor(() => {
+      expect(
+        calls.find((c) => c.path === '/api/servers/s1/duplicate' && c.method === 'POST'),
+      ).toBeDefined();
+    });
+    expect(
+      calls.find((c) => c.path === '/api/servers/s1/duplicate' && c.method === 'POST')?.body,
+    ).toEqual({ toMachineId: 'm1', name: 'Survie (copie)', installJava: false });
   });
 });

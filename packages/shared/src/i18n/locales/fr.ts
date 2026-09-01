@@ -57,6 +57,11 @@ export const fr = {
         body: 'Désormais hébergé sur {{machine}}.',
       },
       migrationFailed: { title: 'Migration échouée : {{server}}', body: '{{reason}}' },
+      duplicationDone: {
+        title: 'Copie terminée : {{server}}',
+        body: 'Nouveau serveur prêt sur {{machine}}.',
+      },
+      duplicationFailed: { title: 'Copie échouée : {{server}}', body: '{{reason}}' },
       agentUpdateApplied: {
         title: 'Agent mis à jour : {{machine}}',
         body: 'La version {{version}} est en service.',

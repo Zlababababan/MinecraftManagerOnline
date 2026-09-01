@@ -329,6 +329,113 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
   );
 
   it(
+    'duplication sur la même machine : nouvel ID, nouveau port, source intacte et relancée',
+    async () => {
+      client = await connectClient(panel.wsUrl, admin);
+      const msgs = client.messages as Msg[];
+      await api('POST', `/api/servers/${server.id}/start`);
+      await waitFor(() => panel.ctx.servers.require(server.id).runState === 'running', 15_000);
+      const sourcePort = panel.ctx.servers.require(server.id).gamePort;
+      // Chemin tel que détecté par l'agent (séparateurs mixtes possibles) : il doit rester intact.
+      const sourcePath = panel.ctx.servers.require(server.id).path;
+
+      // Pré-check sans port explicite : chemin dérivé du nom, port auto ≠ port de la source
+      // (l'occupation OS du port auto n'est pas garantie sur un runner, donc pas de `ok` ici).
+      let res = await api('POST', `/api/servers/${server.id}/duplicate/precheck`, {
+        toMachineId: machineA,
+        name: 'Survie (copie)',
+      });
+      expect(res.statusCode).toBe(200);
+      const auto = res.json<{ precheck: { toPath: string; gamePort: number } }>().precheck;
+      expect(auto.toPath).toBe(path.join(rootA, 'Survie (copie)'));
+      expect(auto.gamePort).not.toBe(sourcePort);
+
+      // Lancement avec un port libre explicite (déterministe sur les runners).
+      const clonePort = await freePort();
+      res = await api('POST', `/api/servers/${server.id}/duplicate`, {
+        toMachineId: machineA,
+        name: 'Survie (copie)',
+        gamePort: clonePort,
+        announce: 'Copie !',
+      });
+      expect(res.statusCode).toBe(202);
+      const started = res.json<{ migration: MigrationDto }>().migration;
+      expect(started.kind).toBe('duplicate');
+      expect(started.targetServerId).not.toBeNull();
+      const cloneId = started.targetServerId!;
+      expect(cloneId).not.toBe(server.id);
+      // La ligne du clone existe tout de suite (un scan concurrent retombe dessus), la source
+      // est verrouillée le temps de la copie.
+      expect(panel.ctx.servers.require(cloneId).provisioning).toBe('migrating');
+      expect(panel.ctx.servers.require(server.id).provisioning).toBe('migrating');
+      res = await api('POST', `/api/servers/${server.id}/duplicate`, {
+        toMachineId: machineA,
+        name: 'Survie (copie 2)',
+      });
+      expect(res.statusCode).toBe(409);
+
+      const done = await waitMigration(started.id);
+      expect(done.status, JSON.stringify(done.error)).toBe('done');
+      expect(done.kind).toBe('duplicate');
+
+      // Le clone : prêt, arrêté, port réécrit dans server.properties, marqueur au nouvel ID.
+      const clone = panel.ctx.servers.require(cloneId);
+      expect(clone.machineId).toBe(machineA);
+      expect(clone.path).toBe(path.join(rootA, 'Survie (copie)'));
+      expect(clone.provisioning).toBe('ready');
+      expect(clone.detected).toBe(1);
+      expect(clone.runState).toBe('stopped');
+      expect(clone.desiredState).toBe('stopped');
+      expect(clone.gamePort).toBe(clonePort);
+      const props = await readFile(path.join(rootA, 'Survie (copie)', 'server.properties'), 'utf8');
+      expect(props).toContain(`server-port=${String(clonePort)}`);
+      const marker = JSON.parse(
+        await readFile(path.join(rootA, 'Survie (copie)', '.mmo-server.json'), 'utf8'),
+      ) as { serverId: string };
+      expect(marker.serverId).toBe(cloneId);
+      expect(
+        (await readFile(path.join(rootA, 'Survie (copie)', 'world', 'region', 'r.0.0.mca')))
+          .byteLength,
+      ).toBe(300_000);
+
+      // La source : intacte, toujours enregistrée sur l'agent, relancée après la copie.
+      const src = panel.ctx.servers.require(server.id);
+      expect(src.provisioning).toBe('ready');
+      expect(src.path).toBe(sourcePath);
+      expect(src.desiredState).toBe('running');
+      await waitFor(() => panel.ctx.servers.require(server.id).runState === 'running', 15_000);
+      expect(agents[0]!.store.getServer(server.id)?.config.path).toBe(sourcePath);
+      expect(agents[0]!.store.getServer(cloneId)?.config.path).toBe(
+        path.join(rootA, 'Survie (copie)'),
+      );
+
+      // Backup pre_migration côté source, jeton relais consommé, étapes diffusées.
+      expect(
+        panel.ctx.backups
+          .list(server.id)
+          .some((b) => b.kind === 'pre_migration' && b.status === 'success'),
+      ).toBe(true);
+      expect(panel.ctx.relayTokens.size).toBe(0);
+      await waitFor(() =>
+        msgs.some(
+          (m) => m.type === 'migration.update' && (m.migration as MigrationDto).status === 'done',
+        ),
+      );
+
+      // Un scan après coup ne crée pas de doublon : toujours exactement 2 serveurs sur A.
+      res = await api('POST', `/api/machines/${machineA}/scan`, {});
+      expect(res.statusCode).toBe(200);
+      expect(panel.ctx.servers.listByMachine(machineA)).toHaveLength(2);
+
+      // Arrêt propre de la source : un process encore vivant verrouillerait le dossier temporaire
+      // (Windows) et ferait dérailler le nettoyage de l'afterEach.
+      await api('POST', `/api/servers/${server.id}/stop`, {});
+      await waitFor(() => panel.ctx.servers.require(server.id).runState === 'stopped', 15_000);
+    },
+    testBudget(120_000),
+  );
+
+  it(
     'java.install : chaîne Temurin (404) → Zulu, puis relais panel avec Range',
     async () => {
       // L'agent extrait selon `archiveFor(os)` : zip sous Windows, tar.gz ailleurs (CI Linux/macOS).

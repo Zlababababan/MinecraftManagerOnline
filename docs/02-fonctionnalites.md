@@ -12,6 +12,7 @@ Liste de référence, validée avant le développement. Chaque fonctionnalité e
 | Refus propre des commandes vers une machine hors ligne | V1 |
 | Mise à jour des agents poussée depuis le panel (protocole versionné) | V1 |
 | Migration d'un serveur d'une machine à une autre (backup → transfert → restauration) | V1 |
+| Duplication d'un serveur (même chaîne que la migration, nouvel identifiant, nouveau port ; la source reste en place — cible = même machine ou une autre) | V1 (post-1.0, 2026-09-01) |
 | Wake-on-LAN : allumer une machine à distance | Futur |
 
 ## 2. Serveurs — cycle de vie

@@ -1,0 +1,2 @@
+ALTER TABLE `server_migrations` ADD `kind` text DEFAULT 'migrate' NOT NULL;--> statement-breakpoint
+ALTER TABLE `server_migrations` ADD `target_server_id` text REFERENCES servers(id) ON DELETE SET NULL;

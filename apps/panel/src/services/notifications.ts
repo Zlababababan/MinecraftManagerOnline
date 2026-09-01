@@ -484,10 +484,11 @@ export function notifyKey(event: EventDto): string | undefined {
         : 'taskFailed';
     case 'task.completed':
       return typeof p.kind === 'string' && p.kind.startsWith('backup.') ? 'backupDone' : 'taskDone';
+    // Une duplication emprunte les événements de migration (`payload.kind`), pas leur libellé.
     case 'migration.done':
-      return 'migrationDone';
+      return p.kind === 'duplicate' ? 'duplicationDone' : 'migrationDone';
     case 'migration.failed':
-      return 'migrationFailed';
+      return p.kind === 'duplicate' ? 'duplicationFailed' : 'migrationFailed';
     case 'agent.updateApplied':
       return 'agentUpdateApplied';
     case 'agent.updateRolledBack':

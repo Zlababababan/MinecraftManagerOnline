@@ -7,6 +7,8 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/r
 
 import type {
   AgentReleaseDto,
+  DuplicatePrecheckDto,
+  DuplicateServerInput,
   InstallJavaInput,
   JavaRuntimeDto,
   MigrationDto,
@@ -77,6 +79,36 @@ export function useStartMigration(serverId: string) {
   return useMutation({
     mutationFn: (input: StartMigrationInput) =>
       api.post<{ migration: MigrationDto }>(`/api/servers/${serverId}/migrations`, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: phase9Keys.migrations(serverId) });
+      void queryClient.invalidateQueries({ queryKey: keys.server(serverId) });
+      void queryClient.invalidateQueries({ queryKey: keys.servers });
+    },
+  });
+}
+
+// --- Duplication (même chaîne que la migration, vers un nouveau serveur) ---------------------------
+
+export function useDuplicatePrecheck(serverId: string) {
+  return useMutation({
+    mutationFn: (
+      input: Pick<
+        DuplicateServerInput,
+        'toMachineId' | 'toDirectoryId' | 'toPath' | 'name' | 'gamePort'
+      >,
+    ) =>
+      api.post<{ precheck: DuplicatePrecheckDto }>(
+        `/api/servers/${serverId}/duplicate/precheck`,
+        input,
+      ),
+  });
+}
+
+export function useStartDuplicate(serverId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: DuplicateServerInput) =>
+      api.post<{ migration: MigrationDto }>(`/api/servers/${serverId}/duplicate`, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: phase9Keys.migrations(serverId) });
       void queryClient.invalidateQueries({ queryKey: keys.server(serverId) });

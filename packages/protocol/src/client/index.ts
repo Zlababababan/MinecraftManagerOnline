@@ -713,6 +713,10 @@ export const migrationDtoSchema = z.object({
   finishedAt: epochMsSchema.nullable(),
   error: apiErrorSchema.nullable(),
   createdBy: z.string().nullable(),
+  /** `migrate` = déménagement (même serveur) ; `duplicate` = copie sous un nouvel ID. */
+  kind: z.enum(['migrate', 'duplicate']).default('migrate'),
+  /** Duplication : ID du serveur créé sur la cible. */
+  targetServerId: z.string().nullable().default(null),
 });
 export type MigrationDto = z.infer<typeof migrationDtoSchema>;
 
@@ -738,6 +742,41 @@ export const migrationPrecheckDtoSchema = migrationPrecheckResponseSchema.extend
   toPath: z.string(),
 });
 export type MigrationPrecheckDto = z.infer<typeof migrationPrecheckDtoSchema>;
+
+/**
+ * Duplication d'un serveur : même chaîne que la migration (export → transfert → import) mais vers
+ * un NOUVEL identifiant — la source reste en place (jamais de `migration.finalize`) et redémarre
+ * si elle tournait. La cible peut être la machine du serveur source.
+ */
+export const duplicateServerSchema = z.object({
+  toMachineId: z.string().min(1),
+  /** Répertoire surveillé cible (le dossier sera `<dir>/<nom>`) ou chemin absolu explicite. */
+  toDirectoryId: z.string().min(1).optional(),
+  toPath: z.string().min(1).optional(),
+  /** Nom du nouveau serveur — sert aussi de nom de dossier par défaut. */
+  name: z.string().trim().min(1).max(120),
+  /** Port de jeu du clone ; choisi parmi les ports libres de la cible si absent. */
+  gamePort: z.int().min(1).max(65535).optional(),
+  /** Installer le JRE manquant sur la cible avant import (task `java.install`). */
+  installJava: z.boolean().default(false),
+  /** Message envoyé aux joueurs de la source avant son arrêt. */
+  announce: z.string().max(200).optional(),
+});
+export type DuplicateServerInput = z.infer<typeof duplicateServerSchema>;
+
+export const duplicatePrecheckRequestSchema = duplicateServerSchema.pick({
+  toMachineId: true,
+  toDirectoryId: true,
+  toPath: true,
+  name: true,
+  gamePort: true,
+});
+export const duplicatePrecheckDtoSchema = migrationPrecheckResponseSchema.extend({
+  toPath: z.string(),
+  /** Port de jeu retenu pour le clone (celui que le pré-check a vérifié). */
+  gamePort: z.int().min(1).max(65535),
+});
+export type DuplicatePrecheckDto = z.infer<typeof duplicatePrecheckDtoSchema>;
 
 export const javaRuntimeDtoSchema = z.object({
   id: z.string(),

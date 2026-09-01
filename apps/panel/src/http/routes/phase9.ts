@@ -13,6 +13,8 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 
 import {
+  duplicatePrecheckRequestSchema,
+  duplicateServerSchema,
   installJavaSchema,
   migrationPrecheckRequestSchema,
   publishReleaseQuerySchema,
@@ -83,6 +85,30 @@ export function registerPhase9Routes(app: FastifyInstance, ctx: AppContext): voi
     async (request, reply) => {
       const user = requireUser(request);
       const row = await ctx.migrations.start(request.params.id, request.body, user.id);
+      return reply.code(202).send({ migration: ctx.migrations.toDto(row) });
+    },
+  );
+
+  // --- Duplication (même chaîne, nouvel identifiant, la source reste en place) --------------------
+
+  r.post(
+    '/api/servers/:id/duplicate/precheck',
+    {
+      config: { role: 'operator' },
+      schema: { params: idParams, body: duplicatePrecheckRequestSchema },
+    },
+    async (request) => {
+      ctx.servers.require(request.params.id);
+      return { precheck: await ctx.migrations.duplicatePrecheck(request.params.id, request.body) };
+    },
+  );
+
+  r.post(
+    '/api/servers/:id/duplicate',
+    { config: { role: 'admin' }, schema: { params: idParams, body: duplicateServerSchema } },
+    async (request, reply) => {
+      const user = requireUser(request);
+      const row = await ctx.migrations.startDuplicate(request.params.id, request.body, user.id);
       return reply.code(202).send({ migration: ctx.migrations.toDto(row) });
     },
   );
