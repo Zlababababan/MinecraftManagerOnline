@@ -1,0 +1,22 @@
+# MinecraftManagerOnline — panel en conteneur.
+#
+#   docker compose up -d
+#   docker compose exec panel /app/entrypoint.sh doctor
+#
+# Le panel écoute dans le conteneur sur 0.0.0.0 (opt-in MMO_ALLOW_ANY_INTERFACE de l'image) :
+# c'est la ligne `ports` qui décide de l'exposition réelle. `127.0.0.1:3000:3000` = accès local
+# seulement (puis `tailscale serve` sur l'hôte, guide §3) ; `3000:3000` = exposé au réseau.
+services:
+  panel:
+    image: ghcr.io/zlababababan/minecraftmanageronline:latest
+    # build: . # pour construire localement plutôt que tirer l'image officielle
+    ports:
+      - '127.0.0.1:3000:3000'
+    volumes:
+      # Volume nommé, PAS un bind `./data` : créé par root au premier `up`, un bind reproduirait
+      # exactement le SQLITE_CANTOPEN (le conteneur tourne sous l'utilisateur `node`, uid 1000).
+      - mmo-data:/data
+    restart: unless-stopped
+
+volumes:
+  mmo-data:

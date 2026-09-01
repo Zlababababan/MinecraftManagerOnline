@@ -1,0 +1,13 @@
+# Contexte de build Docker : le strict nécessaire (le builder refait `pnpm install` + `pnpm build`).
+.git
+node_modules
+**/node_modules
+**/dist
+**/.turbo
+release
+data
+*.log
+.claude
+docs/spikes
+# Les agents embarqués de l'image officielle passent par docker/dist-agent/ (release.yml) — tout
+# le reste de docker/ est copié ; ne pas exclure ce dossier ici.

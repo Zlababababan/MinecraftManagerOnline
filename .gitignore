@@ -23,3 +23,7 @@ apps/panel/data/
 
 # phase 11 : artefacts de release
 /release/
+
+# lot 2 : agents embarqués dans l'image Docker (déposés par release.yml avant le build)
+docker/dist-agent/*
+!docker/dist-agent/.gitkeep

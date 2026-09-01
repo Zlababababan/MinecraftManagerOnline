@@ -32,6 +32,13 @@ export async function boot(config: PanelConfig): Promise<void> {
     throw error;
   });
 
+  if (config.allowAnyInterface) {
+    app.log.warn(
+      { host: config.host },
+      'MMO_ALLOW_ANY_INTERFACE is set: the panel may listen on ALL interfaces — meant for containers, where port publishing is the access layer; anywhere else, prefer 127.0.0.1 and the access layer (doc §3)',
+    );
+  }
+
   try {
     await app.listen({ port: config.port, host: config.host });
     app.log.info(

@@ -19,6 +19,12 @@ export interface PanelConfig {
   webDir: string | undefined;
   /** Phase 11 : archives d'installation servies (`/dist`, `install.*`) ; défaut `<dataDir>/dist`. */
   distDir: string | undefined;
+  /**
+   * Autorise `0.0.0.0`/`::` (conteneurs : la publication de port EST la couche d'accès).
+   * Opt-in explicite (`MMO_ALLOW_ANY_INTERFACE=1`) et bruyant (warn au boot) — jamais déduit
+   * d'une détection de conteneur, qui échoue en Podman rootless.
+   */
+  allowAnyInterface: boolean;
 }
 
 /** `apps/web/dist` relatif à ce fichier (valable depuis `src/` comme depuis `dist/`). */
@@ -46,9 +52,12 @@ export function defaultConfig(overrides: Partial<PanelConfig> = {}): PanelConfig
     mojangManifest: true,
     webDir: DEFAULT_WEB_DIR,
     distDir: undefined,
+    allowAnyInterface: false,
     ...overrides,
   };
-  assertListenHost(config.host);
+  if (!config.allowAnyInterface) {
+    assertListenHost(config.host);
+  }
   return config;
 }
 
@@ -60,6 +69,8 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): PanelConfig
     port: Number(env.MMO_PORT ?? 3000),
     ...(secure === undefined ? {} : { cookieSecure: secure === '1' || secure === 'true' }),
     mojangManifest: env.MMO_MOJANG_MANIFEST !== '0',
+    allowAnyInterface:
+      env.MMO_ALLOW_ANY_INTERFACE === '1' || env.MMO_ALLOW_ANY_INTERFACE === 'true',
     webDir: env.MMO_WEB_DIR === undefined ? DEFAULT_WEB_DIR : path.resolve(env.MMO_WEB_DIR),
     distDir: env.MMO_DIST_DIR === undefined ? undefined : path.resolve(env.MMO_DIST_DIR),
   });

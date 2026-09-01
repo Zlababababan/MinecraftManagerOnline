@@ -77,7 +77,7 @@ case "$(uname -m)" in
   *) die "architecture non prise en charge : $(uname -m)" ;;
 esac
 if ls /lib/ld-musl-* >/dev/null 2>&1 || { command -v ldd >/dev/null 2>&1 && ldd --version 2>&1 | grep -qi musl; }; then
-  die "libc musl détectée (Alpine ?) : le runtime Node embarqué exige la glibc — utilisez une distribution glibc (Debian, Ubuntu, Fedora…) ou votre propre Node ≥ 24 (guide §1.1)"
+  die "libc musl détectée (Alpine ?) : le runtime Node embarqué exige la glibc — utilisez l'image Docker officielle (guide §1.2), une distribution glibc, ou votre propre Node ≥ 24 (guide §1.1)"
 fi
 
 # --- Droits (jamais de prompt : sudo parle au terminal, pas à stdin) --------------------------

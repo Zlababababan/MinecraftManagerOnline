@@ -6,7 +6,7 @@ Guide utilisateur — installer le **panel** (une seule machine, celle qui reste
 
 Plateformes packagées : **Windows x64**, **Linux x64**, **Linux ARM64** (Raspberry Pi 4/5, serveurs ARM), **macOS Apple Silicon**. Windows ARM64 fonctionne avec l'archive x64 (émulation). macOS Intel n'est pas packagé.
 
-**Quelles distributions Linux ?** Depuis la 1.0.5, le panel ne contient plus aucun module compilé : **toute distribution à base de glibc fonctionne** — Ubuntu 20.04 et suivantes, Debian 11 et suivantes, Fedora, Rocky/Alma/RHEL 9, openSUSE, Raspberry Pi OS, Oracle Linux, Arch… Rien à installer, ni compilateur, ni paquet de développement. Seule exception : **Alpine** et les systèmes à base de musl, que le runtime Node embarqué ne gère pas — utilisez une distribution à glibc, ou lancez le panel avec votre propre Node ≥ 24 (`node app/dist/main.js` depuis le dossier extrait).
+**Quelles distributions Linux ?** Depuis la 1.0.5, le panel ne contient plus aucun module compilé : **toute distribution à base de glibc fonctionne** — Ubuntu 20.04 et suivantes, Debian 11 et suivantes, Fedora, Rocky/Alma/RHEL 9, openSUSE, Raspberry Pi OS, Oracle Linux, Arch… Rien à installer, ni compilateur, ni paquet de développement. Seule exception : **Alpine** et les systèmes à base de musl, que le runtime Node embarqué ne gère pas — utilisez l'image Docker officielle (§1.2 — elle emporte sa propre libc), une distribution à glibc, ou lancez le panel avec votre propre Node ≥ 24 (`node app/dist/main.js` depuis le dossier extrait).
 
 ## 1. Le panel
 
@@ -36,6 +36,14 @@ curl -fsSL https://github.com/Zlababababan/MinecraftManagerOnline/releases/lates
 ```
 
 Relancez la **même commande pour mettre à jour** : la base est sauvegardée d'abord, et si la nouvelle version ne démarre pas, la précédente est remise en place. `--uninstall` désinstalle (`--purge` supprime aussi les données), `--help` liste les autres options (`--archive` hors ligne, `--dir`, `--data-dir`…). Si vous préférez voir chaque étape, le parcours manuel ci-dessous reste entièrement pris en charge — installeur et parcours manuel mènent au même résultat.
+
+**Docker.** L'image officielle (multi-arch x64/ARM64, agents embarqués) est la réponse quand la machine tourne sous Alpine/musl, ou quand tout passe déjà par des conteneurs chez vous. Téléchargez [docker-compose.yml](https://github.com/Zlababababan/MinecraftManagerOnline/blob/main/docker-compose.yml), puis :
+
+```bash
+docker compose up -d
+```
+
+Le panel répond sur `http://127.0.0.1:3000`. Les données vivent dans le **volume nommé** `mmo-data` — résistez au bind `./data` : créé par root au premier `up`, il reproduit exactement l'erreur de droits « cannot open the database », le conteneur tournant sous l'utilisateur `node` (uid 1000). Dans le conteneur, le panel écoute sur toutes les interfaces (opt-in explicite de l'image) : c'est la ligne `ports:` qui décide de l'exposition réelle — gardez `127.0.0.1:3000:3000` et mettez `tailscale serve` (§3) sur l'hôte, ou exposez en connaissance de cause. CLI : `docker compose exec panel /app/entrypoint.sh doctor` (idem `setup`, `restore`).
 
 **Windows, une seule commande.** Même idée, dans un PowerShell (il demande l'élévation tout seul) — code dans `C:\Program Files\mmo-panel`, données dans `C:\ProgramData\mmo-panel`, service Windows en démarrage automatique différé :
 

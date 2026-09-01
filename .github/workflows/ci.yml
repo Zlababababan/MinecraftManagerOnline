@@ -123,3 +123,29 @@ jobs:
           name: mmo-agent-archives
           path: release/
           retention-days: 7
+
+  # L'image Docker est construite ET DÉMARRÉE sur chaque PR — même garde-fou que pour l'archive
+  # du panel : une image qui ne démarre pas ne doit jamais atteindre une release.
+  docker:
+    name: docker (image construite et démarrée)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build de l'image
+        run: docker build -t mmo-panel-ci .
+      - name: Démarrage + /api/health + doctor
+        run: |
+          set -eu
+          docker run -d --name panel -p 127.0.0.1:3000:3000 mmo-panel-ci
+          ok=''
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/api/health > /tmp/health.json; then ok=1; break; fi
+            sleep 1
+          done
+          if [ -z "$ok" ]; then docker logs panel; exit 1; fi
+          cat /tmp/health.json
+          # L'avertissement « toutes les interfaces » doit être bruyant, et le CLI accessible.
+          docker logs panel 2>&1 | grep -q 'MMO_ALLOW_ANY_INTERFACE'
+          docker run --rm mmo-panel-ci doctor || test $? -eq 1
+          docker rm -f panel
