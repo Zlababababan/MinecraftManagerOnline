@@ -53,6 +53,8 @@ The panel answers on `http://127.0.0.1:3000`. The data lives in the **named volu
 
 Run it again to update (backup first, rollback if the new version does not start). Options: `-Port`, `-Archive` (offline), `-MigrateFrom C:\old\panel` (copies the data of a previous manual install, checked with `integrity_check`, without touching the original), `-ServiceAccount User` (if backups target a network drive), `-Uninstall` (`-Purge` also deletes data). Your choices are remembered for the next update.
 
+The installer also puts **MinecraftManagerOnline** in the Start menu: a small icon near the clock — left-click opens the interface, right-click offers open, logs, start/stop/restart, "start with Windows" and quit. The icon drives the service (it never launches a second panel); on an install without a service, it launches the panel itself and quitting stops it.
+
 **Windows, manual path.** Right-click the `.zip` → **Extract All**, into a folder you intend to keep, for example `C:\mmo\panel` (avoid Downloads and the Desktop). Open that folder and double-click **`mmo-panel.cmd`**. A black window opens and stays open: that is the panel running, and closing it stops the panel — §1.4 turns it into a proper service. From a terminal:
 
 ```powershell

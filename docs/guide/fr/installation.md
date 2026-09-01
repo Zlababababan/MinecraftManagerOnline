@@ -53,6 +53,8 @@ Le panel répond sur `http://127.0.0.1:3000`. Les données vivent dans le **volu
 
 Relancez-la pour mettre à jour (sauvegarde d'abord, retour arrière si la nouvelle version ne démarre pas). Options : `-Port`, `-Archive` (hors ligne), `-MigrateFrom C:\ancien\panel` (copie les données d'une ancienne installation manuelle, vérifiées par `integrity_check`, sans toucher à l'original), `-ServiceAccount User` (si les sauvegardes visent un lecteur réseau), `-Uninstall` (`-Purge` supprime aussi les données). Vos choix sont mémorisés pour la mise à jour suivante.
 
+L'installeur pose aussi **MinecraftManagerOnline** dans le menu Démarrer : une petite icône près de l'horloge — clic gauche pour ouvrir l'interface, clic droit pour ouvrir, journaux, démarrer/arrêter/redémarrer, « démarrer avec Windows » et quitter. L'icône pilote le service (elle ne lance jamais un second panel) ; sur une installation sans service, elle lance le panel elle-même et « Quitter » l'arrête.
+
 **Windows, parcours manuel.** Clic droit sur le `.zip` → **Extraire tout**, dans un dossier que vous garderez, par exemple `C:\mmo\panel` (évitez Téléchargements et le Bureau). Ouvrez ce dossier et double-cliquez sur **`mmo-panel.cmd`**. Une fenêtre noire s'ouvre et reste ouverte : c'est le panel qui tourne, la fermer l'arrête — le §1.4 en fait un vrai service. Depuis un terminal :
 
 ```powershell

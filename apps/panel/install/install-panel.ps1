@@ -47,6 +47,7 @@ $ProgressPreference = 'SilentlyContinue'
 $ServiceName = 'mmo-panel'
 $Platform = 'win-x64'
 $ReleaseBase = "https://github.com/$Repo/releases"
+$StartMenuLnk = Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs\MinecraftManagerOnline.lnk'
 
 $InstallLog = Join-Path $env:TEMP 'mmo-panel-install.log'
 
@@ -121,6 +122,10 @@ if ($Uninstall) {
   Stop-PanelService
   Remove-PanelService
   foreach ($d in @($InstallDir, "$InstallDir.old", "$InstallDir.failed")) { if (Test-Path $d) { Remove-Item -Recurse -Force $d } }
+  # Raccourcis de l'icône de zone de notification (menu Démarrer + démarrage automatique).
+  foreach ($lnk in @($StartMenuLnk, (Join-Path ([Environment]::GetFolderPath('Startup')) 'MinecraftManagerOnline.lnk'))) {
+    if (Test-Path -LiteralPath $lnk) { Remove-Item -LiteralPath $lnk -Force -ErrorAction SilentlyContinue }
+  }
   if ($Purge) { if (Test-Path $DataDir) { Remove-Item -Recurse -Force $DataDir }; Say "données supprimées ($DataDir) — les serveurs Minecraft eux-mêmes ne sont jamais touchés" }
   else { Say "données conservées dans $DataDir (ajoutez -Purge pour les supprimer)" }
   Say 'désinstallation terminée'
@@ -311,10 +316,24 @@ try {
     Fail "le panel n'a pas démarré — diagnostic : `$env:MMO_DATA_DIR = `"$effectiveData`" ; & `"$nodeExe`" `"$mainJs`" doctor"
   }
 
-  # --- Choix mémorisés + fin ---------------------------------------------------------------------
+  # --- Choix mémorisés + raccourci + fin ---------------------------------------------------------
   @{ port = $Port; host = $ListenHost; serviceAccount = $ServiceAccount; installDir = $InstallDir } |
     ConvertTo-Json | Set-Content -Path $SettingsPath -Encoding UTF8
+  # Menu Démarrer → « MinecraftManagerOnline » : l'icône de zone de notification (pilote le service).
+  $tray = Join-Path $InstallDir 'app\install\mmo-panel-tray.ps1'
+  if (Test-Path -LiteralPath $tray) {
+    try {
+      $shell = New-Object -ComObject WScript.Shell
+      $lnk = $shell.CreateShortcut($StartMenuLnk)
+      $lnk.TargetPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+      $lnk.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$tray`""
+      $lnk.WorkingDirectory = $InstallDir
+      $lnk.Description = 'MinecraftManagerOnline'
+      $lnk.Save()
+    } catch { Say "raccourci du menu Démarrer non créé ($($_.Exception.Message)) — lancez $tray à la main" }
+  }
   Say "panel $($health.version) en service — http://$($ListenHost):$Port"
+  Say "icône près de l'horloge : menu Démarrer → MinecraftManagerOnline (ouvrir, journaux, redémarrer)"
   Say ''
   Say 'depuis un autre appareil :'
   Say "  Tailscale : tailscale serve --bg --https=443 http://127.0.0.1:$Port"
