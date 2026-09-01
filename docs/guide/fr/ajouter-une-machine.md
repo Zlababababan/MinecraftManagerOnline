@@ -50,3 +50,27 @@ Page serveur → onglet **Sauvegardes**. Deux moitiés :
 - **Politiques** : sauvegardes planifiées exécutées **par l'agent**, panel allumé ou non. Choisissez la fréquence et le nombre d'archives à garder (la rotation ne périme jamais l'archive réussie la plus récente). « Seulement si le serveur tourne » saute un serveur arrêté. Les horaires suivent le fuseau de planification du panel, affiché sous le formulaire.
 
 Un nouveau serveur reçoit une politique par défaut (quotidienne, 7 conservées). Si une sauvegarde planifiée échoue ou est sautée, le panel l'enregistre et peut vous prévenir — voir les catégories de notifications dans les réglages de votre compte. Le dossier de destination se règle dans Réglages → Général (remplaçable par politique).
+
+## 8. Dupliquer un serveur
+
+Fiche serveur → **Dupliquer** (une fenêtre s'ouvre) : le panel copie le serveur vers un **nouveau** serveur, sur la même machine ou sur une autre. Le cas classique : un serveur « modèle » que l'on clone sur sa propre machine.
+
+L'original n'est jamais modifié : s'il tournait, il est arrêté le temps de la copie puis relancé automatiquement — que la duplication réussisse ou échoue. Le clone arrive **arrêté**, avec un badge « Copie », sa propre identité et un port de jeu libre choisi automatiquement par le panel (modifiable ensuite dans la Configuration). Son RCON est réattribué à son premier démarrage.
+
+Sous le capot, c'est la même mécanique qu'une migration (sauvegarde → transfert → restauration) : les deux machines doivent être en ligne, et cela prend à peu près le temps d'une sauvegarde plus une restauration. En cas d'échec avant la restauration, rien n'est créé ; après, le clone est conservé et l'erreur vous dit quoi vérifier (le port, notamment).
+
+## 9. Groupes de démarrage
+
+Page **Serveurs** (vue de flotte) → bouton **Groupes** (admin) : créez un groupe, ajoutez-y des serveurs, ordonnez-les avec les flèches. Les serveurs d'un groupe portent un badge de groupe dans la liste.
+
+**Démarrer le groupe** lance les serveurs **un par un** dans l'ordre choisi, en attendant que chacun soit réellement en marche avant de passer au suivant ; l'arrêt parcourt l'ordre inverse. La série s'arrête au premier échec et vous le signale (notification). Une seule action de groupe à la fois sur un même groupe.
+
+Les planifications ne ciblent pas les groupes : pour un démarrage en série planifié, décalez des planifications par serveur. Si un proxy Velocity fait partie du groupe, placez-le en dernier au démarrage (l'interface avertit si ce n'est pas le cas) : les serveurs doivent être prêts quand le proxy accepte les joueurs.
+
+## 10. Proxys Velocity
+
+Un dossier contenant un `velocity.toml` est reconnu au scan comme **proxy Velocity** et géré comme un serveur : démarrage, arrêt, console, journaux.
+
+Quelques différences sont assumées : pas de version Minecraft affichée (un proxy n'en a pas), pas de RCON ni de TPS (le panneau de métriques l'explique), l'arrêt propre passe par la commande `shutdown` de Velocity, le port et le MOTD sont lus dans `velocity.toml`, et il n'y a pas d'EULA à accepter. Le lancement utilise Java 17.
+
+L'agent de la machine doit être à jour pour détecter les proxys — un agent plus ancien les ignore proprement.

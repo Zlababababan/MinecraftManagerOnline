@@ -50,3 +50,27 @@ Server page → **Backups** tab. Two halves:
 - **Policies**: scheduled backups executed **by the agent**, panel online or not. Pick the frequency and how many archives to keep (rotation never expires the most recent successful archive). "Only if running" skips a stopped server. Times follow the panel's schedule time zone, shown under the form.
 
 A new server gets a default policy (daily, keep 7). If a scheduled backup fails or is skipped, the panel records it and can notify you — see the notification categories in your account settings. The destination folder is set in Settings → General (per-server override on the policy).
+
+## 8. Duplicate a server
+
+Server page → **Duplicate** (a dialog opens): the panel copies the server into a **new** server, on the same machine or another one. The typical case is a "template" server you clone on its own machine.
+
+The original is never modified: if it was running, it is stopped for the duration of the copy then restarted automatically — whether the duplication succeeds or fails. The clone arrives **stopped**, with a "Copy" badge, its own identity, and a free game port picked automatically by the panel (change it later in Configuration if you prefer another). Its RCON is reassigned on its first start.
+
+Under the hood this is the same mechanism as a migration (backup → transfer → restore): both machines must be online, and it takes about as long as a backup plus a restore. If something fails before the restore, nothing is created; if it fails after, the clone is kept and the error tells you what to check (the port, in particular).
+
+## 9. Start groups
+
+**Servers** page (fleet view) → **Groups** button (admin): create a group, add servers to it, and order them with the arrows. Servers that belong to a group show a group badge in the list.
+
+**Start the group** launches the servers **one by one** in the chosen order, waiting for each one to be actually running before moving to the next; stopping walks the order in reverse. The series stops at the first failure and notifies you. Only one group action can run at a time on a given group.
+
+Schedules do not target groups: for a scheduled start in sequence, stagger per-server schedules. If a Velocity proxy belongs to the group, put it last for start-up (the interface warns you if it is not): the servers should be ready by the time the proxy starts accepting players.
+
+## 10. Velocity proxies
+
+A folder containing a `velocity.toml` is recognized at scan time as a **Velocity proxy** and managed like a server: start, stop, console, logs.
+
+A few differences are by design: no Minecraft version is shown (a proxy has none), no RCON and no TPS (the metrics panel explains why), the clean stop uses Velocity's `shutdown` command, the port and MOTD are read from `velocity.toml`, and there is no EULA to accept. Java 17 is used to launch it.
+
+The machine's agent must be up to date to detect proxies — an older agent simply ignores them.
