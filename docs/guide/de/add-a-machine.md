@@ -2,7 +2,7 @@
 
 [English](../add-a-machine.md) · [Français](../fr/ajouter-une-machine.md) · [Español](../es/add-a-machine.md) · **Deutsch** · [Português](../pt/add-a-machine.md) · [Русский](../ru/add-a-machine.md) · [中文](../zh/add-a-machine.md)
 
-_Übersetzung der englischen Version, die maßgeblich ist. Die Benutzeroberfläche der Anwendung ist auf Englisch und Französisch verfügbar._
+_Community-Übersetzung der englischen Version, die maßgeblich ist: sie kann veraltet sein — im Zweifel gilt die [englische Fassung](../add-a-machine.md). Die Benutzeroberfläche der Anwendung ist auf Englisch und Französisch verfügbar._
 
 Eine **Maschine** = ein Computer, der Minecraft-Server hostet, gesteuert von einem Agent. Der Panel-Host selbst kann eine sein (der häufigste Fall: alles läuft auf dem Gaming-PC).
 

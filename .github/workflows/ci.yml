@@ -44,6 +44,13 @@ jobs:
       - name: Formatage
         run: pnpm format:check
 
+      # Les archives redistribuent du code tiers (runtime Node, shawl, dépendances npm) : la liste
+      # des licences est générée, donc elle vieillirait en silence sans ce garde-fou. Un seul OS
+      # suffit — c'est l'arbre de dépendances qui est vérifié, pas la plateforme.
+      - name: Notices tierces à jour
+        if: matrix.name == 'ubuntu'
+        run: pnpm release:notices --check
+
       - name: Build
         run: pnpm build
 

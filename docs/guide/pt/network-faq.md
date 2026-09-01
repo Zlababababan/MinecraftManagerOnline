@@ -2,7 +2,7 @@
 
 [English](../network-faq.md) · [Français](../fr/faq-reseau.md) · [Español](../es/network-faq.md) · [Deutsch](../de/network-faq.md) · **Português** · [Русский](../ru/network-faq.md) · [中文](../zh/network-faq.md)
 
-_Tradução da versão em inglês, que é a referência. A interface do aplicativo está disponível em inglês e em francês._
+_Tradução comunitária da versão em inglês, que é a referência: pode estar desatualizada — em caso de dúvida, consulte a [versão em inglês](../network-faq.md). A interface do aplicativo está disponível em inglês e em francês._
 
 O painel escuta **apenas** em `127.0.0.1` (ou em um endereço específico via `MMO_HOST`). Três maneiras de alcançá-lo de fora; uma basta.
 

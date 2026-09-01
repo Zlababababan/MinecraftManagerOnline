@@ -20,7 +20,8 @@
     "format:check": "prettier --check .",
     "release:build": "node tools/release/build.mjs",
     "release:smoke": "node tools/release/smoke.mjs",
-    "release:publish": "node tools/release/publish.mjs"
+    "release:publish": "node tools/release/publish.mjs",
+    "release:notices": "node tools/release/notices.mjs"
   },
   "devDependencies": {
     "@mmo/config": "workspace:*",

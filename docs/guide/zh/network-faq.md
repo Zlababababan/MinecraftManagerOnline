@@ -2,7 +2,7 @@
 
 [English](../network-faq.md) · [Français](../fr/faq-reseau.md) · [Español](../es/network-faq.md) · [Deutsch](../de/network-faq.md) · [Português](../pt/network-faq.md) · [Русский](../ru/network-faq.md) · **中文**
 
-_本文档译自英文版，如有出入以英文版为准。应用界面提供英语和法语两种语言。_
+_本文档由社区译自英文版，如有出入以英文版为准；译文可能滞后，存疑时请查阅[英文版](../network-faq.md)。应用界面提供英语和法语两种语言。_
 
 面板**只**监听 `127.0.0.1`（或通过 `MMO_HOST` 指定的某个具体地址）。从外部访问它有三种方式；选一种即可。
 

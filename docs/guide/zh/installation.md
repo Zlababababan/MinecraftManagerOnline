@@ -2,7 +2,7 @@
 
 [English](../installation.md) · [Français](../fr/installation.md) · [Español](../es/installation.md) · [Deutsch](../de/installation.md) · [Português](../pt/installation.md) · [Русский](../ru/installation.md) · **中文**
 
-_本文档译自英文版，如有出入以英文版为准。应用界面提供英语和法语两种语言。_
+_本文档由社区译自英文版，如有出入以英文版为准；译文可能滞后，存疑时请查阅[英文版](../installation.md)。应用界面提供英语和法语两种语言。_
 
 用户指南——先安装**面板**（panel，装在一台常开的机器上），再在每台托管 Minecraft 服务器的机器上安装**代理**（agent，两者常常是同一台机器）。一切都以自包含压缩包的形式分发：无需预先安装 Node、Java 或 Python。
 

@@ -6,6 +6,8 @@
 
 [English](README.md) · [Français](README.fr.md) · [Español](README.es.md) · **Deutsch** · [Português](README.pt.md) · [Русский](README.ru.md) · [中文](README.zh.md)
 
+> Community-Übersetzung der [englischen README](README.md), die maßgeblich ist: sie kann veraltet sein.
+
 Steuern Sie Ihre selbst gehosteten Minecraft-Server aus dem Browser — am Desktop oder am Telefon — selbst dann, wenn der Rechner, auf dem sie laufen, zu Hause hinter einem Router ohne öffentliche IP steht.
 
 Ein zentrales Web-**Panel** (die Maschine, die durchläuft) + ein leichtgewichtiger **Agent** auf jeder Maschine, die Server hostet. Agents verbinden sich ausgehend: Auf den Spielmaschinen muss nichts geöffnet werden.

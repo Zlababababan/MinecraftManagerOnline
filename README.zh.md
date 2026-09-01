@@ -6,6 +6,8 @@
 
 [English](README.md) · [Français](README.fr.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Português](README.pt.md) · [Русский](README.ru.md) · **中文**
 
+> 本文档由社区译自[英文 README](README.md)，如有出入以英文版为准；译文可能滞后。
+
 通过浏览器（电脑或手机）远程管理你自托管的 Minecraft 服务器——即使运行服务器的机器就放在家里、位于没有公网 IP 的路由器后面。
 
 一个中央 Web **面板**（panel，装在常开的那台机器上）+ 每台托管服务器的机器上一个轻量级**代理**（agent）。代理主动向外连接：游戏机器上无需开放任何端口。

@@ -2,7 +2,7 @@
 
 [English](../installation.md) · [Français](../fr/installation.md) · [Español](../es/installation.md) · **Deutsch** · [Português](../pt/installation.md) · [Русский](../ru/installation.md) · [中文](../zh/installation.md)
 
-_Übersetzung der englischen Version, die maßgeblich ist. Die Benutzeroberfläche der Anwendung ist auf Englisch und Französisch verfügbar._
+_Community-Übersetzung der englischen Version, die maßgeblich ist: sie kann veraltet sein — im Zweifel gilt die [englische Fassung](../installation.md). Die Benutzeroberfläche der Anwendung ist auf Englisch und Französisch verfügbar._
 
 Benutzerhandbuch — installieren Sie das **Panel** (eine einzige Maschine, die durchläuft), dann einen **Agent** auf jeder Maschine, die Minecraft-Server hostet (oft dieselbe). Alles wird als eigenständige Archive ausgeliefert: Node, Java oder Python müssen vorher nicht installiert werden.
 

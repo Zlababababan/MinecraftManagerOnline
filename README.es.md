@@ -6,6 +6,8 @@
 
 [English](README.md) · [Français](README.fr.md) · **Español** · [Deutsch](README.de.md) · [Português](README.pt.md) · [Русский](README.ru.md) · [中文](README.zh.md)
 
+> Traducción comunitaria del [README en inglés](README.md), que es la referencia: puede ir con retraso.
+
 Controle sus servidores de Minecraft autoalojados desde un navegador — en el ordenador o en el teléfono — incluso cuando la máquina que los ejecuta está en casa, detrás de un router sin IP pública.
 
 Un **panel** web central (la máquina que permanece encendida) + un **agente** ligero en cada máquina que aloja servidores. Los agentes se conectan de forma saliente: no hay que abrir nada en las máquinas de juego.

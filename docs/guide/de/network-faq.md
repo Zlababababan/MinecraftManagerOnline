@@ -2,7 +2,7 @@
 
 [English](../network-faq.md) · [Français](../fr/faq-reseau.md) · [Español](../es/network-faq.md) · **Deutsch** · [Português](../pt/network-faq.md) · [Русский](../ru/network-faq.md) · [中文](../zh/network-faq.md)
 
-_Übersetzung der englischen Version, die maßgeblich ist. Die Benutzeroberfläche der Anwendung ist auf Englisch und Französisch verfügbar._
+_Community-Übersetzung der englischen Version, die maßgeblich ist: sie kann veraltet sein — im Zweifel gilt die [englische Fassung](../network-faq.md). Die Benutzeroberfläche der Anwendung ist auf Englisch und Französisch verfügbar._
 
 Das Panel lauscht **nur** auf `127.0.0.1` (oder auf einer bestimmten Adresse via `MMO_HOST`). Drei Wege, es von außen zu erreichen; einer genügt.
 

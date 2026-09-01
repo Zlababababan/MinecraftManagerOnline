@@ -2,7 +2,7 @@
 
 [English](../add-a-machine.md) · [Français](../fr/ajouter-une-machine.md) · [Español](../es/add-a-machine.md) · [Deutsch](../de/add-a-machine.md) · [Português](../pt/add-a-machine.md) · [Русский](../ru/add-a-machine.md) · **中文**
 
-_本文档译自英文版，如有出入以英文版为准。应用界面提供英语和法语两种语言。_
+_本文档由社区译自英文版，如有出入以英文版为准；译文可能滞后，存疑时请查阅[英文版](../add-a-machine.md)。应用界面提供英语和法语两种语言。_
 
 **机器**（machine）= 一台托管 Minecraft 服务器、由代理驱动的电脑。面板主机本身也可以是其中之一（最常见的情况：一切都跑在游戏 PC 上）。
 

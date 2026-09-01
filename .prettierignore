@@ -17,3 +17,5 @@ apps/panel/drizzle/**
 apps/web/test-results/**
 apps/web/playwright-report/**
 apps/web/dev-dist/**
+# Généré par `pnpm release:notices` : la mise en forme vient du générateur
+THIRD-PARTY-NOTICES.md
