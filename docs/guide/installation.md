@@ -29,6 +29,14 @@ The archive is self-contained: it carries its own Node runtime, the panel, the w
 
 ### 1.2 Extract and launch
 
+**Linux, one command.** On a machine with systemd (Ubuntu, Debian, Fedora, Raspberry Pi OS…), one copy-paste does everything §1.1 to §1.4 describe — download, SHA-256 check, code in `/opt/mmo-panel`, data in `/var/lib/mmo-panel`, settings in `/etc/mmo-panel/panel.env`, hardened systemd service, then it waits for the panel to answer:
+
+```bash
+curl -fsSL https://github.com/Zlababababan/MinecraftManagerOnline/releases/latest/download/install-panel.sh | sh
+```
+
+Run the **same command again to update**: the database is backed up first, and if the new version does not start, the previous one is put back. `--uninstall` removes it (`--purge` also deletes the data), `--help` lists the other options (offline `--archive`, `--dir`, `--data-dir`…). If you prefer to see every step, the manual path below remains fully supported — the installer and the manual path lead to the same result.
+
 **Windows.** Right-click the `.zip` → **Extract All**, into a folder you intend to keep, for example `C:\mmo\panel` (avoid Downloads and the Desktop). Open that folder and double-click **`mmo-panel.cmd`**. A black window opens and stays open: that is the panel running, and closing it stops the panel — §1.4 turns it into a proper service. From a terminal:
 
 ```powershell
@@ -75,6 +83,8 @@ it as an argument, the command line is visible to every process on the machine. 
 
 ### 1.4 Start at boot (service)
 
+> Installed with the Linux one-command installer (§1.2)? The service already exists — this section is for manual installs.
+
 **Windows** (shawl ships in the archive) — in an **administrator** PowerShell:
 
 ```powershell
@@ -117,7 +127,7 @@ sudo systemctl daemon-reload && sudo systemctl enable --now mmo-panel
 
 ### 1.5 Update the panel
 
-Stop the service, extract the new archive **on top** (the `data/` folder is never inside the archive), restart. Database migrations run at startup. The new archive embeds same-version agents: the panel publishes the agent release automatically and, if "Update agents automatically when they connect" is checked (Settings → General — unchecked by default), each agent is updated at its next connection, with automatic rollback on failure. Otherwise, update them one by one from the Agent card of each machine page.
+Installed with the Linux one-command installer (§1.2)? Run the same command again — it backs up the database, swaps the code, restarts the service and rolls back by itself if the new version does not start. Manual installs: stop the service, extract the new archive **on top** (the `data/` folder is never inside the archive), restart. Database migrations run at startup. The new archive embeds same-version agents: the panel publishes the agent release automatically and, if "Update agents automatically when they connect" is checked (Settings → General — unchecked by default), each agent is updated at its next connection, with automatic rollback on failure. Otherwise, update them one by one from the Agent card of each machine page.
 
 ### 1.6 When the panel does not start: `doctor`
 

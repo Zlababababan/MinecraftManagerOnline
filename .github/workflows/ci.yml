@@ -97,6 +97,27 @@ jobs:
             ldd --version | head -1
             "$(ls /tmp/mmo-panel/runtime/*/bin/node)" tools/release/smoke.mjs --host --panel
           '
+
+      # install-panel.sh exercé sur la même image nue (sans systemd ni curl : mode --no-service,
+      # hors ligne) : pose des fichiers, gabarit d'unit embarqué, doctor, puis mise à jour
+      # par-dessus avec des données à l'ancien emplacement (elles doivent être préservées
+      # et sauvegardées, et l'ancien code rester en .old).
+      - name: install-panel.sh (debian:11, hors ligne, pose + mise à jour)
+        run: |
+          docker run --rm -v "$PWD:/w" -w /w debian:11 bash -c '
+            set -eu
+            sh -n apps/panel/install/install-panel.sh
+            archive="$(ls release/*/mmo-panel-*-linux-x64.tar.gz)"
+            sh apps/panel/install/install-panel.sh --archive "$archive" --no-service
+            test -f /opt/mmo-panel/app/install/mmo-panel.service.tmpl
+            mkdir -p /var/lib/mmo-panel
+            MMO_DATA_DIR=/var/lib/mmo-panel /opt/mmo-panel/mmo-panel.sh doctor
+            mkdir -p /opt/mmo-panel/data && echo fake > /opt/mmo-panel/data/mmo.db
+            sh apps/panel/install/install-panel.sh --archive "$archive" --no-service --update
+            test -f /opt/mmo-panel/data/mmo.db
+            ls /opt/mmo-panel/data/backups/panel/mmo-pre-update-*.db
+            test -d /opt/mmo-panel.old
+          '
       - uses: actions/upload-artifact@v6
         with:
           name: mmo-agent-archives
