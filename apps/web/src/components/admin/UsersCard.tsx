@@ -85,6 +85,11 @@ function UserRow({
           disabled={self}
           allowDeselect={false}
           w={160}
+          // Un en-tête de colonne ne nomme pas un contrôle : sans ceci, axe le signale en
+          // « critical » (champ sans étiquette) et un lecteur d'écran annonce une liste anonyme au
+          // milieu d'un tableau de comptes. Le nom de l'utilisateur y est repris, sinon toutes les
+          // lignes s'annoncent pareil.
+          aria-label={`${t('web:settings.users.role')} — ${user.username}`}
           data-testid={`user-role-${user.username}`}
         />
       </Table.Td>
@@ -96,7 +101,7 @@ function UserRow({
             update.mutate({ isActive: e.currentTarget.checked }, { onError });
           }}
           disabled={self}
-          aria-label={t('web:settings.users.active')}
+          aria-label={`${t('web:settings.users.active')} — ${user.username}`}
           data-testid={`user-active-${user.username}`}
         />
       </Table.Td>
@@ -211,7 +216,10 @@ export function UsersCard() {
         </Title>
         <ErrorAlert error={users.error} />
         {users.data !== undefined && (
-          <Table.ScrollContainer minWidth={560}>
+          <Table.ScrollContainer
+            minWidth={560}
+            scrollAreaProps={{ viewportProps: { tabIndex: 0 } }}
+          >
             <Table striped>
               <Table.Thead>
                 <Table.Tr>

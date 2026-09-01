@@ -23,9 +23,11 @@ async function audit(page: Page, label: string): Promise<void> {
       .map(
         (n) =>
           n.target.join(' ') +
-          (v.id === 'color-contrast' || v.id === 'aria-allowed-attr'
-            ? ' ' + JSON.stringify(n.any[0]?.data ?? n.html.slice(0, 160))
-            : ''),
+          // Le sélecteur seul est un identifiant Mantine généré : il ne dit pas QUEL champ est en
+          // cause, et retrouver le coupable demande alors de rejouer la page à la main. Le fragment
+          // de HTML, lui, le nomme.
+          ' ' +
+          JSON.stringify(n.any[0]?.data ?? n.html.slice(0, 200)),
       )
       .join(' | ')}`;
   const others = results.violations.filter((v) => !blocking.includes(v));

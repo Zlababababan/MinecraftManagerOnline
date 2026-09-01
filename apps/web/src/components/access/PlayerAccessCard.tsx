@@ -82,6 +82,9 @@ export function PlayerAccessCard({ server }: { server: ServerDto }) {
             <Group gap="xs" wrap="nowrap">
               <Code
                 data-testid="player-address"
+                // Sur un téléphone, une adresse longue déborde et défile : sans tabIndex, elle est
+                // illisible au clavier (axe « scrollable-region-focusable », serious).
+                tabIndex={0}
                 style={{ fontSize: 'var(--mantine-font-size-md)' }}
               >
                 {a.address}

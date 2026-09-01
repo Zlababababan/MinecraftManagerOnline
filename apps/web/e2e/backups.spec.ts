@@ -20,6 +20,9 @@ const BACKUP_TEXT = {
     ok: 'OK',
     schedule: 'Programmer une action',
     restart: 'Redémarrer',
+    // Une politique s'affiche en clair depuis le Planificateur v2, jamais en expression cron.
+    dailyAt3: 'Tous les jours à 03:00',
+    dailyAt4: 'Tous les jours à 04:00',
   },
   en: {
     create: 'Create backup',
@@ -29,6 +32,8 @@ const BACKUP_TEXT = {
     ok: 'OK',
     schedule: 'Schedule an action',
     restart: 'Restart',
+    dailyAt3: 'Every day at 03:00',
+    dailyAt4: 'Every day at 04:00',
   },
 } as const;
 
@@ -111,10 +116,11 @@ test('sauvegarde à chaud, restauration, planning, téléchargement, action prog
 
   // Planning de backup (préréglage quotidien) : poussé à l'agent, listé avec la rotation.
   await page.getByTestId('policy-new').click();
-  await page.getByTestId('policy-cron-hour').fill('3');
+  // ScheduleInput (Planificateur v2) : préréglage quotidien par défaut, l'heure est un champ time.
+  await page.getByTestId('policy-cron-time-0').fill('03:00');
   await page.getByTestId('policy-save').click();
   const policy = page.getByTestId('backup-policies').locator('[data-testid^="policy-"]').filter({
-    hasText: '0 3 * * *',
+    hasText: b.dailyAt3,
   });
   await expect(policy.first()).toBeVisible({ timeout: 15_000 });
 
@@ -128,7 +134,7 @@ test('sauvegarde à chaud, restauration, planning, téléchargement, action prog
     hasText: b.restart,
   });
   await expect(schedule.first()).toBeVisible({ timeout: 15_000 });
-  await expect(schedule.first()).toContainText('0 4 * * *');
+  await expect(schedule.first()).toContainText(b.dailyAt4);
 
   // Arrêt depuis l'UI (état initial pour les projets suivants) ; le reste du nettoyage est en afterEach.
   await page.getByTestId('action-stop').click();

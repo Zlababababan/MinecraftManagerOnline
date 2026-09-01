@@ -133,6 +133,41 @@ jobs:
 
   # L'image Docker est construite ET DÉMARRÉE sur chaque PR — même garde-fou que pour l'archive
   # du panel : une image qui ne démarre pas ne doit jamais atteindre une release.
+  # Neuf specs Playwright existaient, `pnpm e2e` était déclaré, et aucun job ne les lançait : du
+  # travail déjà payé jamais encaissé. Elles avaient d'ailleurs rouillé — six attentes portaient sur
+  # une interface changée depuis, et un vrai défaut d'accessibilité s'était installé sans bruit.
+  # Chromium seul, projets setup + desktop-fr + mobile-fr : la couverture utile en un quart d'heure.
+  e2e:
+    name: e2e (playwright, chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Le stack e2e importe les SOURCES du panel et de l'agent via tsx, mais passe par les dists de
+      # @mmo/protocol et @mmo/shared : sans build, les specs échouent sur un import, pas sur l'UI.
+      - run: pnpm build
+      - name: Navigateur Playwright (chromium seul)
+        run: pnpm --filter @mmo/web exec playwright install --with-deps chromium
+      - name: E2E
+        run: pnpm --filter @mmo/web exec playwright test --project=setup --project=desktop-fr --project=mobile-fr
+      # Traces et captures : sans elles, un échec en CI ne se diagnostique qu'en le rejouant à
+      # l'aveugle sur sa propre machine.
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
   docker:
     name: docker (image construite et démarrée)
     runs-on: ubuntu-latest

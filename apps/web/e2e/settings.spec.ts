@@ -36,7 +36,12 @@ async function unreadCount(page: Page): Promise<number> {
 async function prefServerState(page: Page): Promise<boolean> {
   const res = await page.request.get('/api/notifications/prefs');
   expect(res.ok()).toBeTruthy();
-  return ((await res.json()) as { prefs: Record<string, boolean> }).prefs['server.state'] ?? false;
+  const body = (await res.json()) as {
+    channels: Record<string, Record<string, boolean>>;
+  };
+  // Depuis les 21 catégories, la cloche du panel (canal inapp) et le téléphone (push) se règlent
+  // séparément : c'est la cloche que ce test observe.
+  return body.channels.inapp?.['server.state'] ?? false;
 }
 
 /** Le Switch Mantine cache son input : on clique sur la piste (label for=id). */
@@ -81,10 +86,10 @@ test('notifications : préférence activée → démarrage → cloche → centre
   await login(page, lang);
   await page.goto('/account');
   await expect(page.getByTestId('account-page')).toBeVisible();
-  const pref = page.getByTestId('pref-server.state');
+  const pref = page.getByTestId('pref-inapp-server.state');
   await expect(pref).toBeEnabled();
   await expect(pref).not.toBeChecked();
-  await toggleSwitch(page, 'pref-server.state');
+  await toggleSwitch(page, 'pref-inapp-server.state');
   await expect(pref).toBeChecked();
   await expect.poll(() => prefServerState(page)).toBe(true);
 
@@ -128,7 +133,7 @@ test('notifications : préférence activée → démarrage → cloche → centre
   // Préférence désactivée : l'arrêt ne notifie plus.
   await page.goto('/account');
   await expect(pref).toBeChecked();
-  await toggleSwitch(page, 'pref-server.state');
+  await toggleSwitch(page, 'pref-inapp-server.state');
   await expect(pref).not.toBeChecked();
   await expect.poll(() => prefServerState(page)).toBe(false);
   expect((await page.request.post(`/api/servers/${server.id}/stop`, { data: {} })).ok()).toBe(true);

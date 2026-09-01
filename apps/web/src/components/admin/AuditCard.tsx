@@ -90,7 +90,13 @@ export function AuditCard() {
             </Text>
           ) : (
             // Hauteur bornée : 200 entrées ne doivent pas allonger la page des Réglages.
-            <Table.ScrollContainer minWidth={640} maxHeight={380}>
+            <Table.ScrollContainer
+              minWidth={640}
+              maxHeight={380}
+              // Une zone qui défile doit être focusable, sinon elle est inatteignable au clavier
+              // (axe « scrollable-region-focusable », serious) — visible seulement en écran étroit.
+              scrollAreaProps={{ viewportProps: { tabIndex: 0 } }}
+            >
               <Table striped highlightOnHover fz="sm" stickyHeader>
                 <Table.Thead>
                   <Table.Tr>

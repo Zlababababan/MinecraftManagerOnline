@@ -13,8 +13,8 @@ import { TEXT, langOf, login, waitForServerState } from './helpers.js';
 
 const WHITELIST_TEXT = {
   fr: {
-    off: 'Liste blanche désactivée',
-    on: 'Liste blanche activée',
+    off: 'Whitelist désactivée',
+    on: 'Whitelist activée',
     offlineHint: 'mode hors ligne',
   },
   en: {
