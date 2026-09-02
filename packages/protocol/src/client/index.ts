@@ -580,6 +580,9 @@ export const backupDtoSchema = z.object({
   comment: z.string().nullable(),
   /** Task associée (création ou restauration en cours). */
   taskId: z.string().nullable(),
+  /** Lot 4 : dernière relecture complète de l'archive par l'agent, et son verdict. */
+  verifiedAt: epochMsSchema.nullable(),
+  verifyStatus: z.enum(['ok', 'corrupted']).nullable(),
 });
 export type BackupDto = z.infer<typeof backupDtoSchema>;
 
@@ -1116,8 +1119,10 @@ export function notificationTypeOf(event: {
         ? 'backup.failed'
         : 'task.failed';
     // Une politique qui ne tourne plus relève de la même préoccupation qu'une sauvegarde ratée :
-    // on réutilise la catégorie plutôt que d'ajouter une case à cocher de plus.
+    // on réutilise la catégorie plutôt que d'ajouter une case à cocher de plus. Lot 4 : idem pour
+    // une archive qui ne correspond plus à son manifeste — on ne peut plus compter dessus.
     case 'backup.overdue':
+    case 'backup.corrupted':
       return 'backup.failed';
     case 'task.completed':
       return 'task.done';

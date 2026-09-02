@@ -95,6 +95,10 @@ export const fr = {
         title: 'Aucune sauvegarde de {{server}}',
         body: 'Une sauvegarde planifiée n’a pas eu lieu à l’heure attendue.',
       },
+      backupCorrupted: {
+        title: 'Sauvegarde corrompue : {{server}}',
+        body: 'Une archive ne correspond plus à son manifeste — ne comptez plus dessus : {{path}}',
+      },
       serverRunning: { title: '{{server}} est en marche', body: 'Démarré sur {{machine}}.' },
       serverStopped: { title: '{{server}} est arrêté', body: 'Arrêté sur {{machine}}.' },
       playerJoined: {

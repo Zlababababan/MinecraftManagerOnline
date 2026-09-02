@@ -6,7 +6,7 @@
  * (`start`, `announce`), `stalled` → réconciliation, `VACUUM INTO` du panel.
  */
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -129,6 +129,9 @@ describe('phase 8 — panel ↔ agent réels', () => {
       trashPurgeIntervalMs: 0,
       metricsIntervalMs: 0,
       backupSchedulerTickMs: 0,
+      // Lot 4 : passes déclenchées à la main (`runPass`), toute archive relue à chaque passe.
+      backupVerifierTickMs: 0,
+      backupVerifier: { recheckAfterMs: 0 },
       saveSettleMs: 200,
       restrictPermissions: false,
       backoff: { baseMs: 50, maxMs: 200 },
@@ -397,6 +400,102 @@ describe('phase 8 — panel ↔ agent réels', () => {
     res = await api('DELETE', `/api/servers/${server.id}/backup-policies/${policy.id}`);
     expect(res.statusCode).toBe(200);
     await waitFor(() => agent!.store.get().backupSchedules.length === 0, 5000);
+  });
+
+  it('lot 4 : vérification des archives — manifeste réinscrit, archive altérée → corrompue une seule fois, rattrapage par backup.list', async () => {
+    const res = await api('POST', `/api/servers/${server.id}/backups`, { comment: 'à vérifier' });
+    expect(res.statusCode).toBe(200);
+    const created = res.json<{ task: TaskDto; backup: BackupDto }>();
+    expect((await waitTask(created.task.id)).status).toBe('done');
+    const fresh = panel.ctx.backups.toDto(panel.ctx.backups.require(created.backup.id));
+    expect(fresh).toMatchObject({ status: 'success', verifiedAt: null, verifyStatus: null });
+    const archivePath = fresh.archivePath!;
+    const manifestFile = path.join(path.dirname(archivePath), `${created.backup.id}.json`);
+
+    // Première passe : archive saine → verdict dans le manifeste ET dans la table (backup.verified).
+    let pass = await agent!.backupVerifier.runPass();
+    expect(pass).toMatchObject({ verified: 1, corrupted: 0, busy: 0 });
+    await waitFor(() => panel.ctx.backups.require(created.backup.id).verifyStatus === 'ok', 10_000);
+    const ok = panel.ctx.backups.toDto(panel.ctx.backups.require(created.backup.id));
+    expect(ok.verifiedAt).toBeGreaterThan(0);
+    expect(JSON.parse(await readFile(manifestFile, 'utf8'))).toMatchObject({
+      verifyStatus: 'ok',
+      verifiedAt: ok.verifiedAt,
+    });
+    expect(panel.ctx.events.list({ serverId: server.id, type: 'backup.corrupted' })).toHaveLength(
+      0,
+    );
+
+    // Archive altérée sur le disque : la passe suivante la déclare corrompue, UN événement,
+    // notification qui nomme le serveur et le fichier.
+    await appendFile(archivePath, Buffer.from('octets en trop'));
+    pass = await agent!.backupVerifier.runPass();
+    expect(pass).toMatchObject({ verified: 0, corrupted: 1 });
+    await waitFor(
+      () => panel.ctx.backups.require(created.backup.id).verifyStatus === 'corrupted',
+      10_000,
+    );
+    let corrupted = panel.ctx.events.list({ serverId: server.id, type: 'backup.corrupted' });
+    expect(corrupted).toHaveLength(1);
+    expect(corrupted[0]).toMatchObject({ severity: 'error', machineId });
+    expect(corrupted[0]?.payload).toMatchObject({ backupId: created.backup.id, path: archivePath });
+    const text = panel.ctx.notifications.render(corrupted[0]!, 'fr');
+    expect(text?.title).toBe('Sauvegarde corrompue : Survie');
+    expect(text?.body).toContain(created.backup.id);
+
+    // Une archive corrompue n'est plus relue, et le panel ne republie pas.
+    pass = await agent!.backupVerifier.runPass();
+    expect(pass).toMatchObject({ verified: 0, corrupted: 0 });
+    expect(panel.ctx.events.list({ serverId: server.id, type: 'backup.corrupted' })).toHaveLength(
+      1,
+    );
+
+    // Restaurer quand même : refusé avant de toucher au serveur (E_CHECKSUM_MISMATCH). Cette
+    // relecture est un second verdict « corrompue » (backup.verified) : la date de vérification
+    // avance, l'événement n'est PAS republié — une archive n'est déclarée corrompue qu'une fois.
+    const firstVerdictAt = panel.ctx.backups.require(created.backup.id).verifiedAt!;
+    await sleep(5);
+    const restoreRes = await api(
+      'POST',
+      `/api/servers/${server.id}/backups/${created.backup.id}/restore`,
+      { safetyBackup: false },
+    );
+    expect(restoreRes.statusCode, restoreRes.body).toBe(200);
+    const restoreTask = await waitTask(restoreRes.json<{ task: TaskDto }>().task.id);
+    expect(restoreTask.status).toBe('failed');
+    expect(JSON.stringify(restoreTask.error)).toContain('E_CHECKSUM_MISMATCH');
+    await waitFor(
+      () => panel.ctx.backups.require(created.backup.id).verifiedAt! > firstVerdictAt,
+      10_000,
+    );
+    expect(panel.ctx.backups.require(created.backup.id).verifyStatus).toBe('corrupted');
+    expect(panel.ctx.events.list({ serverId: server.id, type: 'backup.corrupted' })).toHaveLength(
+      1,
+    );
+
+    // Reconnexion : `backup.list` relit le manifeste — même verdict, rien de nouveau.
+    await agent!.stop();
+    await bootAgent();
+    await sleep(500);
+    expect(panel.ctx.backups.require(created.backup.id).verifyStatus).toBe('corrupted');
+    expect(panel.ctx.events.list({ serverId: server.id, type: 'backup.corrupted' })).toHaveLength(
+      1,
+    );
+
+    // Verdict perdu côté panel (backup.verified est non critique) : le manifeste le rétablit à la
+    // reconnexion suivante, et c'est alors la première fois que le panel l'apprend → événement.
+    panel.ctx.sqlite
+      .prepare('UPDATE backups SET verified_at = NULL, verify_status = NULL WHERE id = ?')
+      .run(created.backup.id);
+    await agent!.stop();
+    await bootAgent();
+    await waitFor(
+      () => panel.ctx.backups.require(created.backup.id).verifyStatus === 'corrupted',
+      15_000,
+    );
+    corrupted = panel.ctx.events.list({ serverId: server.id, type: 'backup.corrupted' });
+    expect(corrupted).toHaveLength(2);
+    expect(panel.ctx.backups.require(created.backup.id).verifiedAt).toBeGreaterThan(0);
   });
 
   it('planificateur du panel : start programmé, annonce, avertissement avant stop, CRUD', async () => {

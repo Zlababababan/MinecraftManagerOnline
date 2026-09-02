@@ -73,6 +73,8 @@ export const agentStateSchema = z.object({
   backupSchedules: z.array(backupScheduleSchema).default([]),
   /** Dernière exécution par planning (évite les doublons, pas de rattrapage des occurrences manquées). */
   backupScheduleRuns: z.record(z.string(), z.int().nonnegative()).default({}),
+  /** Lot 4 : début de la dernière passe de vérification des archives (`BackupVerifier`). */
+  backupVerifyAt: z.int().nonnegative().optional(),
   /** Phase 9 : dossiers sources renommés par `migration.finalize`, purgés après `purgeAfter`. */
   migratedDirs: z
     .array(z.object({ path: z.string(), purgeAfter: z.int().nonnegative() }))

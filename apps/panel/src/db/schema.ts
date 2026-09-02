@@ -499,6 +499,12 @@ export const backups = sqliteTable(
     /** Phase 8 (amendement doc 04 §5) : manifeste agent (codec, hot, files, bytesRaw, comment) et task associée. */
     manifestJson: text('manifest_json'),
     taskId: text('task_id'),
+    /**
+     * Lot 4 (migration 0013) : dernière relecture complète de l'archive par l'agent et son verdict
+     * (`ok` | `corrupted`). Pas de CHECK : une contrainte ajoutée reconstruirait la table.
+     */
+    verifiedAt: integer('verified_at'),
+    verifyStatus: text('verify_status'),
   },
   (t) => [
     index('idx_backups_server').on(t.serverId, t.startedAt),

@@ -32,6 +32,7 @@ import {
 import type { WebSocketFactory } from './connection/ws-transport.js';
 import { BackupService } from './backup/backup-service.js';
 import { BackupScheduler } from './backup/scheduler.js';
+import { BackupVerifier, type BackupVerifierOptions } from './backup/verifier.js';
 import { JavaInstaller } from './java/installer.js';
 import { AgentMigration } from './migration/migration.js';
 import { AgentUpdater, detectAgentHome } from './update/updater.js';
@@ -119,6 +120,13 @@ export interface AgentOptions {
   backoff?: { baseMs?: number; maxMs?: number };
   /** Période d'évaluation des plannings de backups (défaut 30 s ; 0 = désactivé). */
   backupSchedulerTickMs?: number;
+  /** Lot 4 : période d'évaluation du vérificateur d'archives (défaut 60 s ; 0 = désactivé). */
+  backupVerifierTickMs?: number;
+  /** Lot 4 : cadence, délai initial, fraîcheur et budget du vérificateur (tests : courts). */
+  backupVerifier?: Pick<
+    BackupVerifierOptions,
+    'intervalMs' | 'initialDelayMs' | 'recheckAfterMs' | 'byteBudget'
+  >;
   /** Attente de confirmation console après `save-all` en stdin (tests : court). */
   saveSettleMs?: number;
   /** `fetch` pour `fs.fetch`, `java.install`, `migration.import`, `agent.update` (tests : serveur local). */
@@ -163,6 +171,7 @@ export class Agent {
   readonly tasks: TaskRunner;
   readonly backups: BackupService;
   readonly backupScheduler: BackupScheduler;
+  readonly backupVerifier: BackupVerifier;
   readonly transfers: AgentTransfers;
   readonly javaInstaller: JavaInstaller;
   readonly migration: AgentMigration;
@@ -267,6 +276,29 @@ export class Agent {
           deleted,
         }));
       },
+      onVerified: (v) => {
+        this.emit('backup.verified', {
+          serverId: v.serverId,
+          backupId: v.backupId,
+          ts: v.ts,
+          ok: v.ok,
+          sizeBytes: v.sizeBytes,
+          sha256: v.sha256,
+          expectedSizeBytes: v.expectedSizeBytes,
+          expectedSha256: v.expectedSha256,
+          archivePath: v.archivePath,
+        });
+      },
+    });
+    this.backupVerifier = new BackupVerifier({
+      store: this.store,
+      backups: this.backups,
+      tasks: this.tasks,
+      logger: this.logger.child('verify'),
+      ...(options.backupVerifierTickMs === undefined || options.backupVerifierTickMs <= 0
+        ? {}
+        : { tickMs: options.backupVerifierTickMs }),
+      ...options.backupVerifier,
     });
     this.backupScheduler = new BackupScheduler({
       store: this.store,
@@ -439,6 +471,7 @@ export class Agent {
       this.watchdog.onStateChanged(target.serverId, target.state);
     }
     if ((this.options.backupSchedulerTickMs ?? 30_000) > 0) this.backupScheduler.start();
+    if ((this.options.backupVerifierTickMs ?? 60_000) > 0) this.backupVerifier.start();
   }
 
   async stop(): Promise<void> {
@@ -449,6 +482,7 @@ export class Agent {
     if (this.trashTimer !== undefined) clearInterval(this.trashTimer);
     this.trashTimer = undefined;
     this.backupScheduler.stop();
+    this.backupVerifier.stop();
     this.metrics.stop();
     this.watchdog.dispose();
     await this.tasks.dispose();

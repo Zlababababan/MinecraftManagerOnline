@@ -46,7 +46,7 @@ Machine page → **Remove machine**: it disappears from the panel (servers and f
 
 Server page → **Backups** tab. Two halves:
 
-- **Archives**: create a backup now (works on a running server — the agent flushes the world with `save-all` first), download it, restore it in one click (a safety backup of the current state is taken by default), or delete it. Each archive shows its size, date and integrity hash.
+- **Archives**: create a backup now (works on a running server — the agent flushes the world with `save-all` first), download it, restore it in one click (a safety backup of the current state is taken by default), or delete it. Each archive shows its size, date and integrity hash. The agent also **re-reads every archive periodically** (one pass a day, oldest first, up to 8 GiB per pass, never while a backup or restore is running on that server) and the tab shows when each one was last verified. An archive that no longer matches its manifest is flagged **Corrupted**, with an event and a notification: delete it and take a new backup — do not restore from it.
 - **Policies**: scheduled backups executed **by the agent**, panel online or not. Pick the frequency and how many archives to keep (rotation never expires the most recent successful archive). "Only if running" skips a stopped server. Times follow the panel's schedule time zone, shown under the form.
 
 A new server gets a default policy (daily, keep 7). If a scheduled backup fails or is skipped, the panel records it and can notify you — see the notification categories in your account settings. The destination folder is set in Settings → General (per-server override on the policy).

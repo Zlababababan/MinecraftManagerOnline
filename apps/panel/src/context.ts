@@ -237,6 +237,23 @@ export function createContext(options: ContextOptions): AppContext {
     broadcast: (backup) => {
       hub.broadcast({ type: 'backup.update', backup });
     },
+    // Lot 4 : archive déclarée corrompue par la relecture de l'agent — une fois par archive.
+    onCorrupted: (row) => {
+      const server = servers.get(row.serverId);
+      events.publish({
+        type: 'backup.corrupted',
+        severity: 'error',
+        serverId: row.serverId,
+        machineId: row.machineId,
+        payload: {
+          backupId: row.id,
+          path: row.archivePath,
+          sizeBytes: row.sizeBytes,
+          sha256: row.sha256,
+          serverName: server?.name ?? row.serverId,
+        },
+      });
+    },
   });
   // Rattrapage unique (recette 1.0) : les serveurs d'avant la politique par défaut en reçoivent
   // une s'ils n'en ont aucune. Jamais rejoué ensuite — supprimer la politique reste définitif.

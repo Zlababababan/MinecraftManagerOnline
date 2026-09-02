@@ -29,6 +29,7 @@ const BUS_EVENTS: { type: string; severity: string; payload?: unknown }[] = [
   { type: 'task.failed', severity: 'error', payload: { kind: 'java.install' } },
   { type: 'task.completed', severity: 'info', payload: { kind: 'backup.create' } },
   { type: 'backup.overdue', severity: 'warning' },
+  { type: 'backup.corrupted', severity: 'error' },
   { type: 'migration.done', severity: 'info' },
   { type: 'migration.failed', severity: 'error' },
   { type: 'agent.updateApplied', severity: 'info' },
@@ -54,6 +55,15 @@ describe('catalogue des notifications', () => {
     const reached = new Set(BUS_EVENTS.map((e) => notificationTypeOf(e)).filter(Boolean));
     const dead = NOTIFICATION_TYPES.filter((type) => !reached.has(type));
     expect(dead, 'catégories qu’aucun événement ne produit').toEqual([]);
+  });
+
+  it('aucun événement muet : chaque événement notifiable du bus atteint une catégorie', () => {
+    // La garde inverse de la précédente : sans elle, retirer un `case` de `notificationTypeOf`
+    // laisse un événement publié mais jamais notifié, et aucun test ne le dit (vécu, lot 4).
+    const silent = BUS_EVENTS.filter((e) => notificationTypeOf(e) === undefined).map(
+      (e) => `${e.type}/${e.severity}`,
+    );
+    expect(silent, 'événements du bus sans catégorie').toEqual([]);
   });
 
   it('chaque catégorie a un défaut et apparaît dans exactement un groupe', () => {
@@ -96,6 +106,7 @@ describe('catalogue des notifications', () => {
     expect(of('alert.firing', 'warning', { rule: 'tps.low' })).toBe('resource.tps');
     expect(of('task.completed', 'info', { kind: 'backup.create' })).toBe('task.done');
     expect(of('task.failed', 'error', { kind: 'backup.create' })).toBe('backup.failed');
+    expect(of('backup.corrupted', 'error')).toBe('backup.failed');
     expect(of('schedule.run', 'info')).toBe('schedule.done');
     expect(of('schedule.run', 'warning')).toBe('schedule.failed');
   });

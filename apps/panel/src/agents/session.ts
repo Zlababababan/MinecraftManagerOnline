@@ -283,6 +283,11 @@ export class AgentSession {
         reason: p.detail === undefined ? p.reason : `${p.reason}: ${p.detail}`,
       });
     });
+    // Lot 4 — non critique aussi : le manifeste porte le verdict, `backup.list` le rattrape.
+    peer.on('backup.verified', (p) => {
+      this.requireAuth();
+      this.deps.backups.recordVerification(p.backupId, { ok: p.ok, at: p.ts });
+    });
     peer.on('backup.rotated', (p, ctx) => {
       this.critical(ctx, () => {
         const machineId = this.requireAuth();

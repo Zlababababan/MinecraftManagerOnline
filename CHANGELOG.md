@@ -65,6 +65,17 @@ browser tab (they are stored and shown by the graphs). Three measurements of the
 test are now budgets that fail the build: the size of the server list, the number of SQL
 statements it takes, and what an idle tab receives.
 
+### Backups are re-read, not just written
+
+A backup was only ever proven the day you restored it — too late to learn that the disk had
+silently damaged it. The agent now re-reads its archives on its own: one pass a day, oldest and
+never-verified archives first, up to 8 GiB per pass, never while a backup or restore is running on
+that server. Each archive on the **Backups** tab shows when it was last verified, and an archive
+that no longer matches its manifest is flagged **Corrupted**, with an event and a notification (same
+category as a failed backup). The verdict is written next to the archive, so a panel that was
+offline at the time learns it when the agent reconnects. Agents older than this release do not
+verify anything: their archives simply show "not verified yet".
+
 ## 1.0.7 — 2026-09-01
 
 A small release, mostly about being able to check what you downloaded and to report a problem

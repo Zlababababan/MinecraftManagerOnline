@@ -71,6 +71,7 @@ const BUS_TYPES = [
   'player.joined',
   'player.left',
   'backup.overdue',
+  'backup.corrupted',
   'alert.firing',
   'alert.resolved',
   'panel.updateAvailable',
@@ -507,6 +508,8 @@ export function notifyKey(event: EventDto): string | undefined {
       return 'playerLeft';
     case 'backup.overdue':
       return 'backupOverdue';
+    case 'backup.corrupted':
+      return 'backupCorrupted';
     // Le message vient de l'agent, en anglais technique : il est repris tel quel dans le corps
     // plutôt que traduit — c'est lui qui nomme le fichier ou le compte en cause.
     case 'agent.log':

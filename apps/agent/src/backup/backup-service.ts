@@ -55,6 +55,24 @@ export interface BackupServiceOptions {
   }) => void;
   /** Attente après `save-all` en stdin quand aucune confirmation console n'arrive (défaut 3 s). */
   saveSettleMs?: number;
+  /**
+   * Lot 4 : résultat d'une relecture complète d'archive (passe périodique du `BackupVerifier`,
+   * ou contrôle préalable d'une restauration) — après écriture du manifeste.
+   */
+  onVerified?: (event: BackupVerification) => void;
+}
+
+/** Ce que la vérification d'une archive a mesuré, et ce que son manifeste annonçait. */
+export interface BackupVerification {
+  serverId: string;
+  backupId: string;
+  archivePath: string;
+  ts: number;
+  ok: boolean;
+  sizeBytes: number;
+  sha256: string;
+  expectedSizeBytes: number;
+  expectedSha256: string;
 }
 
 export type BackupCreateRequest = Omit<ParsedRequestPayload<'backup.create'>, 'taskId'>;
@@ -327,6 +345,81 @@ export class BackupService {
     return true;
   }
 
+  // --- Vérification (lot 4) -----------------------------------------------------------------
+
+  /**
+   * Toutes les archives de tous les serveurs connus, destinations de leurs plannings comprises
+   * (une politique peut viser un autre dossier que la destination globale).
+   */
+  async listAll(): Promise<BackupManifest[]> {
+    const state = this.options.store.get();
+    const out: BackupManifest[] = [];
+    for (const serverId of Object.keys(state.servers)) {
+      const extra = state.backupSchedules.flatMap((s) =>
+        s.serverId === serverId && s.destination !== undefined ? [s.destination] : [],
+      );
+      out.push(...(await this.list(serverId, extra)));
+    }
+    return out;
+  }
+
+  /**
+   * Relit l'archive en entier (taille + sha256 contre le manifeste), écrit le résultat dans le
+   * manifeste (`verifiedAt`, `verifyStatus`) et le signale. `undefined` si l'archive a disparu
+   * entre-temps (la rotation ou l'utilisateur sont passés par là : rien à dire).
+   */
+  async verify(
+    manifest: BackupManifest,
+    options: { shouldAbort?: () => boolean } = {},
+  ): Promise<BackupVerification | undefined> {
+    if (!(await exists(manifest.archivePath))) return undefined;
+    const check = await verifyArchive(manifest.archivePath, manifest, options);
+    return this.recordVerification(manifest, check);
+  }
+
+  private async recordVerification(
+    manifest: BackupManifest,
+    check: { ok: boolean; sizeBytes: number; sha256: string },
+  ): Promise<BackupVerification> {
+    const ts = this.now();
+    const updated: BackupManifest = {
+      ...manifest,
+      verifiedAt: ts,
+      verifyStatus: check.ok ? 'ok' : 'corrupted',
+    };
+    try {
+      await writeFile(manifestPathFor(manifest), JSON.stringify(updated, null, 2) + '\n');
+    } catch (error) {
+      // Un manifeste non réinscriptible (destination en lecture seule) n'invalide pas la mesure.
+      this.options.logger.warn('could not record the verification in the manifest', {
+        backupId: manifest.backupId,
+        error: errorMessage(error),
+      });
+    }
+    const event: BackupVerification = {
+      serverId: manifest.serverId,
+      backupId: manifest.backupId,
+      archivePath: manifest.archivePath,
+      ts,
+      ok: check.ok,
+      sizeBytes: check.sizeBytes,
+      sha256: check.sha256,
+      expectedSizeBytes: manifest.sizeBytes,
+      expectedSha256: manifest.sha256,
+    };
+    if (!check.ok) {
+      this.options.logger.warn('backup archive does not match its manifest', {
+        serverId: manifest.serverId,
+        backupId: manifest.backupId,
+        archivePath: manifest.archivePath,
+        expectedSizeBytes: manifest.sizeBytes,
+        sizeBytes: check.sizeBytes,
+      });
+    }
+    this.options.onVerified?.(event);
+    return event;
+  }
+
   /** Rotation : voir `selectForRotation` pour la règle de sélection. */
   async rotate(
     serverId: string,
@@ -378,6 +471,9 @@ export class BackupService {
         ctx.progress('verifying', (bytes / Math.max(1, manifest.sizeBytes)) * 10);
       },
     });
+    // Une restauration relit l'archive en entier : autant que ce contrôle compte comme une
+    // vérification (le manifeste et le panel en gardent la trace, corrompue ou non).
+    if (!ctx.isCancelled) await this.recordVerification(manifest, check);
     if (!check.ok) {
       throw new ProtocolError('E_CHECKSUM_MISMATCH', 'archive does not match its manifest', {
         retryable: false,

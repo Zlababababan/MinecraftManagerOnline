@@ -85,6 +85,8 @@ const backup: BackupDto = {
   bytesRaw: 1_288_490_188,
   comment: 'avant modpack',
   taskId: 't0',
+  verifiedAt: null,
+  verifyStatus: null,
 };
 
 const policy: BackupPolicyDto = {
@@ -117,7 +119,7 @@ interface Call {
   body: unknown;
 }
 
-function installFetch(calls: Call[]): void {
+function installFetch(calls: Call[], backups: BackupDto[] = [backup]): void {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
@@ -132,7 +134,7 @@ function installFetch(calls: Call[]): void {
       await Promise.resolve();
       if (path === '/api/auth/me') return json(200, { user: admin });
       if (path === '/api/servers/s1/backups' && method === 'GET') {
-        return json(200, { backups: [backup], policies: [policy] });
+        return json(200, { backups, policies: [policy] });
       }
       if (path === '/api/servers/s1/backups' && method === 'POST') {
         return json(200, {
@@ -192,6 +194,25 @@ describe('BackupsPanel', () => {
     expect(screen.getByTestId('policy-pol1')).toHaveTextContent('Tous les jours à 04:00');
     expect(screen.getByTestId('policy-pol1')).not.toHaveTextContent('0 4 * * *');
     expect(screen.getByTestId('policy-pol1')).toHaveTextContent('garde les 7 dernières');
+  });
+
+  it('lot 4 : vérification — « pas encore vérifiée », date de relecture, ou badge « Corrompue »', async () => {
+    vi.unstubAllGlobals();
+    installFetch(calls, [
+      backup,
+      { ...backup, id: 'bk2', verifiedAt: 1_787_400_000_000, verifyStatus: 'ok' },
+      { ...backup, id: 'bk3', verifiedAt: 1_787_400_000_000, verifyStatus: 'corrupted' },
+    ]);
+    renderPanel();
+    await waitFor(() => {
+      expect(screen.getByTestId('backup-bk3')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('backup-verified-bk1')).toHaveTextContent('Pas encore vérifiée');
+    expect(screen.getByTestId('backup-verified-bk2')).toHaveTextContent('Vérifiée');
+    expect(screen.getByTestId('backup-verified-bk2')).not.toHaveTextContent('Pas encore');
+    expect(screen.queryByTestId('backup-corrupted-bk2')).not.toBeInTheDocument();
+    expect(screen.getByTestId('backup-corrupted-bk3')).toHaveTextContent('Corrompue');
+    expect(screen.queryByTestId('backup-verified-bk3')).not.toBeInTheDocument();
   });
 
   it('crée une sauvegarde (modal → POST avec commentaire) et affiche la task active', async () => {

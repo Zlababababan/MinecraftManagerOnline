@@ -88,6 +88,10 @@ export const en = {
         title: 'No backup for {{server}}',
         body: 'A scheduled backup has not run when expected.',
       },
+      backupCorrupted: {
+        title: 'Corrupted backup: {{server}}',
+        body: 'An archive no longer matches its manifest — do not rely on it: {{path}}',
+      },
       serverRunning: { title: '{{server}} is running', body: 'Started on {{machine}}.' },
       serverStopped: { title: '{{server}} stopped', body: 'Stopped on {{machine}}.' },
       playerJoined: { title: '{{player}} joined {{server}}', body: '{{online}} player(s) online.' },

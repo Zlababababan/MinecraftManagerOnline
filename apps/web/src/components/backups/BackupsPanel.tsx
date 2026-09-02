@@ -316,6 +316,27 @@ export function BackupsPanel({ server }: { server: ServerDto }) {
                           {t(`web:backups.statuses.${b.status}`)}
                         </Badge>
                       </Tooltip>
+                      {b.status === 'success' && b.verifyStatus === 'corrupted' && (
+                        <Tooltip label={t('web:backups.corruptedHint')} multiline maw={320}>
+                          <Badge
+                            size="sm"
+                            color="red"
+                            ml={6}
+                            data-testid={`backup-corrupted-${b.id}`}
+                          >
+                            {t('web:backups.corrupted')}
+                          </Badge>
+                        </Tooltip>
+                      )}
+                      {b.status === 'success' && b.verifyStatus !== 'corrupted' && (
+                        <Text size="xs" c="dimmed" data-testid={`backup-verified-${b.id}`}>
+                          {b.verifiedAt === null
+                            ? t('web:backups.notVerified')
+                            : t('web:backups.verified', {
+                                date: formatDateTime(b.verifiedAt, i18n.language),
+                              })}
+                        </Text>
+                      )}
                     </Table.Td>
                     <Table.Td>
                       <Text size="sm" c="dimmed" truncate maw={220}>

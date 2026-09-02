@@ -22,6 +22,12 @@ export interface BackupsServiceDeps {
   now: () => number;
   settings: SettingsService;
   broadcast: (backup: BackupDto) => void;
+  /**
+   * Lot 4 : une archive vient d'être déclarée corrompue (elle ne l'était pas avant) — par
+   * `backup.verified` en direct ou par un manifeste relu à la reconnexion. Une seule fois par
+   * archive : le verdict ne change plus tant qu'elle n'est pas supprimée.
+   */
+  onCorrupted?: (row: BackupRow) => void;
 }
 
 interface ManifestExtras {
@@ -37,6 +43,10 @@ export const DEFAULT_POLICY = { cron: '0 4 * * *', keepLast: 7, onlyIfRunning: t
 /** Les colonnes d'état n'ont pas de CHECK (une contrainte ajoutée reconstruirait la table). */
 function isPolicyStatus(value: string | null): value is 'success' | 'failed' | 'skipped' {
   return value === 'success' || value === 'failed' || value === 'skipped';
+}
+
+function isVerifyStatus(value: string | null): value is 'ok' | 'corrupted' {
+  return value === 'ok' || value === 'corrupted';
 }
 
 export class BackupsService {
@@ -92,6 +102,8 @@ export class BackupsService {
       bytesRaw: extras.bytesRaw ?? null,
       comment: extras.comment ?? null,
       taskId: row.taskId,
+      verifiedAt: row.verifiedAt,
+      verifyStatus: isVerifyStatus(row.verifyStatus) ? row.verifyStatus : null,
     };
   }
 
@@ -160,6 +172,11 @@ export class BackupsService {
       manifestJson: toJson(extras),
       policyId: manifest.policyId ?? existing?.policyId ?? null,
       ...(options.taskId === undefined ? {} : { taskId: options.taskId }),
+      // Le manifeste fait foi quand il porte un verdict ; un manifeste d'agent N-1 n'en a pas et
+      // ne doit pas effacer ce que le panel a appris par `backup.verified`.
+      ...(manifest.verifiedAt === undefined
+        ? {}
+        : { verifiedAt: manifest.verifiedAt, verifyStatus: manifest.verifyStatus ?? null }),
     };
     if (existing) {
       this.deps.db.update(backups).set(values).where(eq(backups.id, existing.id)).run();
@@ -179,7 +196,36 @@ export class BackupsService {
     }
     const row = this.require(manifest.backupId);
     this.deps.broadcast(this.toDto(row));
+    this.noteCorruption(existing, row);
     return row;
+  }
+
+  /**
+   * Lot 4 : verdict d'une relecture d'archive (`backup.verified`, non critique — voir le
+   * manifeste pour le rattrapage). Une archive inconnue du panel est ignorée : `backup.list` la
+   * fera connaître à la prochaine reconnexion, verdict compris.
+   */
+  recordVerification(
+    backupId: string,
+    verdict: { ok: boolean; at: number },
+  ): BackupRow | undefined {
+    const existing = this.get(backupId);
+    if (existing?.status !== 'success') return undefined;
+    this.deps.db
+      .update(backups)
+      .set({ verifiedAt: verdict.at, verifyStatus: verdict.ok ? 'ok' : 'corrupted' })
+      .where(eq(backups.id, backupId))
+      .run();
+    const row = this.require(backupId);
+    this.deps.broadcast(this.toDto(row));
+    this.noteCorruption(existing, row);
+    return row;
+  }
+
+  private noteCorruption(before: BackupRow | undefined, after: BackupRow): void {
+    if (after.verifyStatus === 'corrupted' && before?.verifyStatus !== 'corrupted') {
+      this.deps.onCorrupted?.(after);
+    }
   }
 
   fail(id: string, error: string): BackupRow | undefined {
@@ -254,7 +300,15 @@ export class BackupsService {
       const m = parsed.data;
       seen.add(m.backupId);
       const existing = this.get(m.backupId);
-      if (existing?.status === 'success' && existing.sha256 === m.sha256) continue;
+      if (
+        existing?.status === 'success' &&
+        existing.sha256 === m.sha256 &&
+        (m.verifiedAt === undefined ||
+          (existing.verifiedAt === m.verifiedAt &&
+            existing.verifyStatus === (m.verifyStatus ?? null)))
+      ) {
+        continue;
+      }
       changed.push(this.applyManifest(m, machineId));
     }
     for (const row of this.list(serverId)) {

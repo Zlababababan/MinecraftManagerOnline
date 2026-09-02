@@ -147,6 +147,14 @@ export const backupManifestSchema = z.object({
   loader: loaderSchema.optional(),
   agentVersion: z.string().optional(),
   comment: z.string().optional(),
+  /**
+   * Lot 4 (2026-09-02) — vérification périodique par l'agent : relecture complète de l'archive
+   * (taille + sha256) et résultat **écrit dans le manifeste**, pour que `backup.list` le porte à
+   * la reconnexion même si l'événement `backup.verified` (non critique) s'est perdu. Optionnels :
+   * un manifeste d'agent N-1 n'en a pas, il vaut « jamais vérifié ».
+   */
+  verifiedAt: epochMsSchema.optional(),
+  verifyStatus: z.enum(['ok', 'corrupted']).optional(),
 });
 export type BackupManifest = z.infer<typeof backupManifestSchema>;
 
@@ -209,6 +217,29 @@ export const backupSkippedSchema = z.object({
   /** Chaîne libre volontairement : le panel l'affiche, il ne branche pas dessus. */
   reason: z.enum(['server_stopped', 'task_running', 'invalid_cron', 'start_failed']),
   detail: z.string().max(500).optional(),
+});
+
+/**
+ * Lot 4 (2026-09-02) — résultat d'une vérification d'archive par l'agent (passe périodique :
+ * relecture complète, taille + sha256 contre le manifeste). `ok: false` = archive corrompue ou
+ * tronquée ; le panel publie `backup.corrupted` et l'affiche sur la fiche.
+ *
+ * **Non critique**, comme `backup.skipped` (un panel N-1 ignore le type sans acquitter) : la
+ * durabilité vient du manifeste (`verifiedAt`/`verifyStatus`), relu par `backup.list` à chaque
+ * reconnexion — un résultat perdu en route est rattrapé là.
+ */
+export const backupVerifiedSchema = z.object({
+  serverId: serverIdSchema,
+  backupId: z.string().min(1),
+  ts: epochMsSchema,
+  ok: z.boolean(),
+  /** Mesuré sur le disque à la vérification. */
+  sizeBytes: z.int().nonnegative(),
+  sha256: z.string().length(64),
+  /** Attendu (manifeste) — présent pour que le panel puisse nommer l'écart sans relire sa table. */
+  expectedSizeBytes: z.int().nonnegative(),
+  expectedSha256: z.string().length(64),
+  archivePath: z.string().optional(),
 });
 
 /** Rotation locale (agent) : archives supprimées — synchronise la table `backups` du panel. */

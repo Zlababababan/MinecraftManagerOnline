@@ -1346,6 +1346,20 @@
       }
     },
     {
+      "type": "backup.verified",
+      "payload": {
+        "serverId": "srv_01",
+        "backupId": "bk_01",
+        "ts": 1787330455000,
+        "ok": false,
+        "sizeBytes": 1048570,
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000001",
+        "expectedSizeBytes": 1048576,
+        "expectedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "archivePath": "/var/lib/mmo-agent/backups/srv_01/bk_01.tar.zst"
+      }
+    },
+    {
       "type": "fs.transfer.ack",
       "payload": {
         "transferId": "0123456789abcdef0123456789abcdef",
