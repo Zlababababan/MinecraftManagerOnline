@@ -21,6 +21,7 @@ import {
   transferIdFromBytes,
   ulid,
   type BackupManifest,
+  type BackupRestorePathsResult,
   type ParsedEventPayload,
 } from '@mmo/protocol';
 import { chunkCodec, sha256Hasher } from '@mmo/shared/node';
@@ -464,6 +465,185 @@ describe('phase 8 : tasks, backups, transferts de bout en bout', () => {
     } finally {
       await cleanup();
     }
+  });
+
+  it('lot 4 : restauration partielle — parcours sans extraction, côte à côte sans arrêt, gardes, en place avec sécurité', async () => {
+    const peer = await bootAgent();
+    await configure(peer);
+    await writeFile(path.join(serverDir, 'mods', 'a.jar'), 'jar-a');
+    await peer.request('server.start', { serverId: 'srv_1' });
+    await waitState('running');
+    const original = await readFile(path.join(serverDir, 'world', 'region', 'r.0.0.mca'));
+    const createId = ulid();
+    await peer.request('backup.create', { taskId: createId, serverId: 'srv_1', backupId: 'bk_p' });
+    await waitFor(() => cap.completed.some((c) => c.taskId === createId), 20_000);
+
+    // Parcours : dossiers agrégés (dossiers d'abord), fichiers listés, exclusions absentes.
+    const browsed = await peer.request('backup.browse', { serverId: 'srv_1', backupId: 'bk_p' });
+    const byPath = new Map(browsed.entries.map((e) => [e.path, e]));
+    expect(byPath.get('world/region/r.0.0.mca')).toMatchObject({
+      kind: 'file',
+      size: original.byteLength,
+    });
+    expect(byPath.get('world/region')).toMatchObject({
+      kind: 'dir',
+      files: 1,
+      size: original.byteLength,
+    });
+    expect(byPath.get('world')?.files).toBeGreaterThanOrEqual(2);
+    expect(byPath.get('mods/a.jar')).toMatchObject({ kind: 'file', size: 5 });
+    expect(byPath.has('logs')).toBe(false);
+    expect(byPath.has('.mmo-server.json')).toBe(false);
+    expect(browsed.truncated).toBe(false);
+    expect(browsed.totalFiles).toBe(browsed.entries.filter((e) => e.kind === 'file').length);
+    const lastDir = browsed.entries.map((e) => e.kind).lastIndexOf('dir');
+    expect(browsed.entries.findIndex((e) => e.kind === 'file')).toBeGreaterThan(lastDir);
+
+    // Chemin réservé ou hors jail : refusé à la requête, avant toute task.
+    await expect(
+      peer.request('backup.restorePaths', {
+        taskId: ulid(),
+        serverId: 'srv_1',
+        backupId: 'bk_p',
+        paths: ['logs/latest.log'],
+      }),
+    ).rejects.toMatchObject({ code: 'E_INVALID_PAYLOAD' });
+
+    // Côte à côte (défaut) : le serveur n'est pas arrêté, rien n'est remplacé.
+    await writeFile(path.join(serverDir, 'mods', 'a.jar'), 'jar-a-modified');
+    const sideId = ulid();
+    await peer.request('backup.restorePaths', {
+      taskId: sideId,
+      serverId: 'srv_1',
+      backupId: 'bk_p',
+      paths: ['world/region', 'mods/a.jar', 'mods'],
+    });
+    await waitFor(() => cap.completed.some((c) => c.taskId === sideId), 30_000);
+    const side = cap.completed.find((c) => c.taskId === sideId)!
+      .result as unknown as BackupRestorePathsResult;
+    expect(side).toMatchObject({
+      backupId: 'bk_p',
+      mode: 'side_by_side',
+      paths: ['mods', 'world/region'],
+      files: 2,
+      restarted: false,
+      wasRunning: true,
+    });
+    expect(side.destination).toMatch(/^restored-\d{8}-\d{6}$/);
+    const restoredDir = path.join(serverDir, side.destination!);
+    expect(
+      (await readFile(path.join(restoredDir, 'world', 'region', 'r.0.0.mca'))).equals(original),
+    ).toBe(true);
+    expect(await readFile(path.join(restoredDir, 'mods', 'a.jar'), 'utf8')).toBe('jar-a');
+    await expect(stat(path.join(restoredDir, 'world', 'level.dat'))).rejects.toThrow();
+    expect(await readFile(path.join(serverDir, 'mods', 'a.jar'), 'utf8')).toBe('jar-a-modified');
+    expect(cap.states.filter((s) => s.state === 'stopped')).toHaveLength(0);
+    expect([
+      ...new Set(cap.progress.filter((p) => p.taskId === sideId).map((p) => p.phase)),
+    ]).toEqual(['verifying', 'listing', 'preparing', 'extracting']);
+
+    // Une nouvelle sauvegarde n'archive pas le dossier restauré.
+    const create2 = ulid();
+    await peer.request('backup.create', { taskId: create2, serverId: 'srv_1', backupId: 'bk_p2' });
+    await waitFor(() => cap.completed.some((c) => c.taskId === create2), 20_000);
+    const browsed2 = await peer.request('backup.browse', { serverId: 'srv_1', backupId: 'bk_p2' });
+    expect(browsed2.entries.some((e) => e.path.startsWith('restored-'))).toBe(false);
+
+    // Chemin absent de l'archive : refusé AVANT tout arrêt, rien n'est touché.
+    await writeFile(path.join(serverDir, 'world', 'region', 'r.0.0.mca'), randomBytes(500));
+    const missingId = ulid();
+    await peer.request('backup.restorePaths', {
+      taskId: missingId,
+      serverId: 'srv_1',
+      backupId: 'bk_p',
+      paths: ['world/nope.dat', 'world/region'],
+      mode: 'in_place',
+    });
+    await waitFor(() => cap.failed.some((f) => f.taskId === missingId), 20_000);
+    const missingErr = cap.failed.find((f) => f.taskId === missingId)!.error;
+    expect(missingErr.code).toBe('E_NOT_FOUND');
+    expect(missingErr.details).toMatchObject({
+      reason: 'PATHS_NOT_IN_ARCHIVE',
+      paths: ['world/nope.dat'],
+    });
+    expect(cap.states.filter((s) => s.state === 'stopped')).toHaveLength(0);
+    expect((await readFile(path.join(serverDir, 'world', 'region', 'r.0.0.mca'))).byteLength).toBe(
+      500,
+    );
+
+    // Archive altérée : E_CHECKSUM_MISMATCH avant la liste, aucun dossier `restored-` créé.
+    const m2 = cap.completed.find((c) => c.taskId === create2)!.result as BackupManifest;
+    const bytes2 = await readFile(m2.archivePath);
+    const tampered = Buffer.from(bytes2);
+    const mid2 = Math.floor(tampered.byteLength / 2);
+    tampered[mid2] = (tampered[mid2] ?? 0) ^ 0xff;
+    await writeFile(m2.archivePath, tampered);
+    const badId = ulid();
+    await peer.request('backup.restorePaths', {
+      taskId: badId,
+      serverId: 'srv_1',
+      backupId: 'bk_p2',
+      paths: ['mods'],
+    });
+    await waitFor(() => cap.failed.some((f) => f.taskId === badId), 20_000);
+    expect(cap.failed.find((f) => f.taskId === badId)?.error.code).toBe('E_CHECKSUM_MISMATCH');
+    expect((await readdir(serverDir)).filter((n) => n.startsWith('restored-'))).toEqual([
+      side.destination,
+    ]);
+
+    // En place : un seul dossier remplacé (voisins intacts), sécurité, arrêt puis relance.
+    await writeFile(path.join(serverDir, 'world', 'region', 'r.1.0.mca'), 'extra');
+    await writeFile(path.join(serverDir, 'mods', 'b.jar'), 'jar-b');
+    const inId = ulid();
+    await peer.request('backup.restorePaths', {
+      taskId: inId,
+      serverId: 'srv_1',
+      backupId: 'bk_p',
+      paths: ['world/region'],
+      mode: 'in_place',
+      safetyBackupId: 'bk_psafe',
+      restartAfter: true,
+    });
+    await waitFor(() => cap.completed.some((c) => c.taskId === inId), 40_000);
+    const inPlace = cap.completed.find((c) => c.taskId === inId)!
+      .result as unknown as BackupRestorePathsResult;
+    expect(inPlace).toMatchObject({
+      mode: 'in_place',
+      paths: ['world/region'],
+      files: 1,
+      restarted: true,
+      wasRunning: true,
+    });
+    expect(inPlace.destination).toBeUndefined();
+    expect(inPlace.safetyBackup).toMatchObject({ backupId: 'bk_psafe', kind: 'pre_restore' });
+    expect(
+      (await readFile(path.join(serverDir, 'world', 'region', 'r.0.0.mca'))).equals(original),
+    ).toBe(true);
+    await expect(stat(path.join(serverDir, 'world', 'region', 'r.1.0.mca'))).rejects.toThrow();
+    expect(await readFile(path.join(serverDir, 'mods', 'b.jar'), 'utf8')).toBe('jar-b');
+    expect(await readFile(path.join(serverDir, 'mods', 'a.jar'), 'utf8')).toBe('jar-a-modified');
+    expect(await readFile(path.join(restoredDir, 'mods', 'a.jar'), 'utf8')).toBe('jar-a');
+    expect(cap.states.map((s) => s.state)).toContain('stopped');
+    await waitState('running');
+    expect([...new Set(cap.progress.filter((p) => p.taskId === inId).map((p) => p.phase))]).toEqual(
+      [
+        'verifying',
+        'listing',
+        'stopping',
+        'safety_backup',
+        'preparing',
+        'inventory',
+        'archiving',
+        'finalizing',
+        'clearing',
+        'extracting',
+        'restarting',
+      ],
+    );
+    // La sauvegarde de sécurité n'a pas emporté le dossier restauré côte à côte.
+    const safe = await peer.request('backup.browse', { serverId: 'srv_1', backupId: 'bk_psafe' });
+    expect(safe.entries.some((e) => e.path.startsWith('restored-'))).toBe(false);
+    expect(safe.entries.some((e) => e.path === 'mods/b.jar')).toBe(true);
   });
 
   it('download avec coupure puis reprise par offset ; sha256 vérifié de bout en bout', async () => {

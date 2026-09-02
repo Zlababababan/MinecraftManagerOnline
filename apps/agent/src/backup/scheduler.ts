@@ -108,7 +108,13 @@ export class BackupScheduler {
           this.skip(schedule, t, 'server_stopped');
           continue;
         }
-        if (this.options.tasks.activeFor(schedule.serverId, ['backup.create', 'backup.restore'])) {
+        if (
+          this.options.tasks.activeFor(schedule.serverId, [
+            'backup.create',
+            'backup.restore',
+            'backup.restorePaths',
+          ])
+        ) {
           this.options.logger.info('scheduled backup skipped: another task is running', {
             id: schedule.id,
             serverId: schedule.serverId,

@@ -329,6 +329,9 @@ describe('détection — cas synthétiques (FS mémoire)', () => {
         '.mmo-trash': { Old: { 'eula.txt': 'eula=true' } },
         backups: { Snap: { 'eula.txt': 'eula=true' } },
         TooDeep: { a: { b: { 'eula.txt': 'eula=true' } } },
+        // Lot 4 : restauration partielle côte à côte — le dossier a tout d'un serveur, il n'en est pas un.
+        'restored-20260902-101530': { 'eula.txt': 'eula=true', 'server.properties': props },
+        'restored-20260902-101530-2': { 'server.properties': props },
       },
     });
     const found = await scanForServers(fs, '/root', { excludePaths: ['/root/backups'] });

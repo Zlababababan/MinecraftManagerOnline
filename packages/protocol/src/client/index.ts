@@ -32,7 +32,12 @@ import {
 import { javaVendorSchema } from '../messages/java.js';
 import { migrationPrecheckResponseSchema } from '../messages/migration.js';
 import { metricsSampleSchema } from '../messages/monitoring.js';
-import { backupCodecSchema, backupKindSchema } from '../messages/tasks.js';
+import {
+  backupCodecSchema,
+  backupKindSchema,
+  restoreModeSchema,
+  restorePathListSchema,
+} from '../messages/tasks.js';
 import {
   detectedServerSchema,
   playerActionResponseSchema,
@@ -591,6 +596,18 @@ export const restoreBackupSchema = z.object({
   safetyBackup: z.boolean().default(true),
   restartAfter: z.boolean().default(false),
 });
+
+/** Lot 4 : restauration partielle — corps de `POST …/backups/:backupId/restore-paths`. */
+export const restorePathsSchema = z.object({
+  paths: restorePathListSchema,
+  mode: restoreModeSchema.default('side_by_side'),
+  /** `in_place` seulement. */
+  safetyBackup: z.boolean().default(true),
+  /** `in_place` seulement. */
+  restartAfter: z.boolean().default(false),
+});
+export type RestorePathsInput = z.input<typeof restorePathsSchema>;
+export type { BackupBrowseEntry, BackupBrowseResponse, RestoreMode } from '../messages/tasks.js';
 
 export const backupPolicyDtoSchema = z.object({
   id: z.string(),

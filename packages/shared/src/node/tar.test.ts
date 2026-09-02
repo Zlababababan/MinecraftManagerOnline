@@ -6,7 +6,7 @@ import { Readable } from 'node:stream';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { extractTar, safeRelative, tarEntries, walkTree } from './tar.js';
+import { extractTar, listTar, safeRelative, tarEntries, walkTree } from './tar.js';
 
 async function tmpDir(prefix: string): Promise<{ dir: string; cleanup: () => Promise<void> }> {
   const dir = await mkdtemp(path.join(os.tmpdir(), prefix));
@@ -120,5 +120,67 @@ describe('tar maison', () => {
     await expect(extractTar(Readable.from([tar.subarray(0, 50_000)]), dest)).rejects.toThrow(
       /unexpected end/,
     );
+  });
+
+  it('lot 4 : listTar lit les en-têtes sans rien écrire (pax compris) et signale une archive tronquée', async () => {
+    const src = path.join(dir, 'src');
+    const longName = 'x'.repeat(120) + '.dat';
+    await mkdir(path.join(src, 'world', 'region'), { recursive: true });
+    await mkdir(path.join(src, 'empty'), { recursive: true });
+    await writeFile(path.join(src, 'world', 'region', 'r.0.0.mca'), randomBytes(70_000));
+    await writeFile(path.join(src, 'world', 'level.dat'), randomBytes(1_000));
+    await writeFile(path.join(src, longName), 'long');
+    await writeFile(path.join(src, 'server.properties'), 'a=b\n');
+    const tree = await walkTree(src, () => false);
+    const tar = await collect(tarEntries(tree.entries));
+    const seen: string[] = [];
+    // Deux morceaux coupés au milieu d'un en-tête : le tampon interne doit recoller.
+    const listing = await listTar(Readable.from([tar.subarray(0, 700), tar.subarray(700)]), {
+      onEntry: (e) => seen.push(e.rel),
+    });
+    expect(listing.entries.map((e) => [e.rel, e.kind, e.size])).toEqual([
+      ['empty', 'dir', 0],
+      ['server.properties', 'file', 4],
+      ['world', 'dir', 0],
+      ['world/level.dat', 'file', 1_000],
+      ['world/region', 'dir', 0],
+      ['world/region/r.0.0.mca', 'file', 70_000],
+      [longName, 'file', 4],
+    ]);
+    expect(seen).toEqual(listing.entries.map((e) => e.rel));
+    expect(listing.skipped).toEqual([]);
+    expect(listing.entries[3]?.mtimeMs).toBeGreaterThan(0);
+    // Rien n'a été écrit : le dossier de travail ne contient toujours que la source.
+    expect(await readdir(dir)).toEqual(['src']);
+    await expect(listTar(Readable.from([tar.subarray(0, 40_000)]))).rejects.toThrow(
+      /unexpected end/,
+    );
+    await expect(listTar(Readable.from([tar]), { maxEntries: 3 })).rejects.toMatchObject({
+      code: 'E_TOO_LARGE',
+    });
+  });
+
+  it('lot 4 : extractTar avec un prédicat d’inclusion n’écrit que les chemins retenus', async () => {
+    const src = path.join(dir, 'src');
+    await mkdir(path.join(src, 'world', 'region'), { recursive: true });
+    await mkdir(path.join(src, 'config'), { recursive: true });
+    await writeFile(path.join(src, 'world', 'region', 'r.0.0.mca'), randomBytes(5_000));
+    await writeFile(path.join(src, 'world', 'level.dat'), 'level');
+    await writeFile(path.join(src, 'config', 'a.toml'), 'a');
+    await writeFile(path.join(src, 'server.properties'), 'a=b\n');
+    const tree = await walkTree(src, () => false);
+    const tar = await collect(tarEntries(tree.entries));
+    const dest = path.join(dir, 'dest');
+    const wanted = ['world/region', 'server.properties'];
+    const include = (rel: string): boolean =>
+      wanted.some((p) => rel === p || rel.startsWith(p + '/'));
+    const result = await extractTar(Readable.from([tar]), dest, { include });
+    expect(result).toMatchObject({ files: 2, bytes: 5_004, skipped: [] });
+    expect(Object.keys(await digestTree(dest)).sort()).toEqual([
+      'server.properties',
+      'world/',
+      'world/region/',
+      'world/region/r.0.0.mca',
+    ]);
   });
 });

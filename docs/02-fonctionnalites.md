@@ -81,6 +81,7 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 |---|---|
 | Backups manuels et planifiés, avec rotation automatique | V1 |
 | Restauration en un clic | V1 |
+| Restauration partielle : parcourir une archive sans l'extraire, restaurer un dossier ou un fichier (un monde seul, une région, `server.properties`), côte à côte par défaut — jamais d'écrasement sans le demander | V1 (lot 4, 2026-09-02) |
 | Emplacement de stockage configurable (autre disque, NAS), rétention par serveur | V1 |
 
 ## 8. Planificateur

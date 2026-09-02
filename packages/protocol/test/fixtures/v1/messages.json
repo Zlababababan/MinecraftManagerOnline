@@ -780,6 +780,55 @@
       }
     },
     {
+      "type": "backup.browse",
+      "request": {
+        "serverId": "srv_01",
+        "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C"
+      },
+      "response": {
+        "entries": [
+          {
+            "path": "world",
+            "kind": "dir",
+            "size": 734003200,
+            "modifiedAt": 1787330455000,
+            "files": 1842
+          },
+          {
+            "path": "world/region",
+            "kind": "dir",
+            "size": 733995008,
+            "files": 1841,
+            "truncated": true
+          },
+          {
+            "path": "world/level.dat",
+            "kind": "file",
+            "size": 8192,
+            "modifiedAt": 1787330455000
+          }
+        ],
+        "totalFiles": 1843,
+        "totalBytes": 734011392,
+        "truncated": true
+      }
+    },
+    {
+      "type": "backup.restorePaths",
+      "request": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",
+        "serverId": "srv_01",
+        "backupId": "bk_01J5X8ZK3Q9WYE2R7M4T6B8N2C",
+        "paths": ["world/region/r.0.0.mca", "server.properties"],
+        "mode": "side_by_side",
+        "safetyBackup": true,
+        "restartAfter": false
+      },
+      "response": {
+        "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A"
+      }
+    },
+    {
       "type": "fs.fetch",
       "request": {
         "taskId": "01J5X8ZK3Q9WYE2R7M4T6B8N2A",

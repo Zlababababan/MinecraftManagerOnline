@@ -10,7 +10,7 @@ import { appendFile, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/p
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { BackupDto, ServerDto, TaskDto } from '@mmo/protocol/client';
+import type { BackupBrowseResponse, BackupDto, ServerDto, TaskDto } from '@mmo/protocol/client';
 
 import { Agent } from '../../../agent/src/agent.js';
 import { runMaintenance } from '../app.js';
@@ -496,6 +496,107 @@ describe('phase 8 — panel ↔ agent réels', () => {
     corrupted = panel.ctx.events.list({ serverId: server.id, type: 'backup.corrupted' });
     expect(corrupted).toHaveLength(2);
     expect(panel.ctx.backups.require(created.backup.id).verifiedAt).toBeGreaterThan(0);
+  });
+
+  it('lot 4 : restauration partielle — parcours de l’archive, côte à côte sans arrêt, en place avec sécurité, refus', async () => {
+    await api('POST', `/api/servers/${server.id}/start`);
+    await waitFor(() => panel.ctx.servers.require(server.id).runState === 'running', 15_000);
+    await writeFile(path.join(dir, 'mods', 'a.jar'), 'jar-a');
+    let res = await api('POST', `/api/servers/${server.id}/backups`, {});
+    const created = res.json<{ task: TaskDto; backup: BackupDto }>();
+    expect((await waitTask(created.task.id)).status).toBe('done');
+    const backup = created.backup;
+    const region = await readFile(path.join(dir, 'world', 'region', 'r.0.0.mca'));
+
+    // Parcours relayé tel quel : dossiers agrégés, fichiers listés.
+    res = await api('GET', `/api/servers/${server.id}/backups/${backup.id}/browse`);
+    expect(res.statusCode).toBe(200);
+    const browsed = res.json<BackupBrowseResponse>();
+    expect(browsed.entries.find((e) => e.path === 'world')).toMatchObject({ kind: 'dir' });
+    expect(browsed.entries.find((e) => e.path === 'mods/a.jar')).toMatchObject({
+      kind: 'file',
+      size: 5,
+    });
+    expect(browsed.truncated).toBe(false);
+
+    // Côte à côte (défaut) : le serveur tourne toujours, rien n'est remplacé, pas de sécurité.
+    await writeFile(path.join(dir, 'mods', 'a.jar'), 'jar-a-2');
+    res = await api('POST', `/api/servers/${server.id}/backups/${backup.id}/restore-paths`, {
+      paths: ['mods'],
+    });
+    expect(res.statusCode).toBe(200);
+    let task = await waitTask(res.json<{ task: TaskDto }>().task.id);
+    expect(task.status).toBe('done');
+    expect(task.result).toMatchObject({
+      mode: 'side_by_side',
+      paths: ['mods'],
+      files: 1,
+      restarted: false,
+    });
+    const destination = (task.result as { destination: string }).destination;
+    expect(destination).toMatch(/^restored-\d{8}-\d{6}$/);
+    expect(await readFile(path.join(dir, destination, 'mods', 'a.jar'), 'utf8')).toBe('jar-a');
+    expect(await readFile(path.join(dir, 'mods', 'a.jar'), 'utf8')).toBe('jar-a-2');
+    expect(panel.ctx.servers.require(server.id).runState).toBe('running');
+    expect(panel.ctx.backups.list(server.id).filter((b) => b.kind === 'pre_restore')).toHaveLength(
+      0,
+    );
+
+    // En place : sécurité enregistrée, dossier remplacé, serveur arrêté puis relancé.
+    await writeFile(path.join(dir, 'world', 'region', 'r.0.0.mca'), randomBytes(10));
+    res = await api('POST', `/api/servers/${server.id}/backups/${backup.id}/restore-paths`, {
+      paths: ['world/region'],
+      mode: 'in_place',
+      restartAfter: true,
+    });
+    expect(res.statusCode).toBe(200);
+    task = await waitTask(res.json<{ task: TaskDto }>().task.id, 40_000);
+    expect(task.status).toBe('done');
+    expect(task.result).toMatchObject({
+      mode: 'in_place',
+      paths: ['world/region'],
+      restarted: true,
+      wasRunning: true,
+    });
+    expect((await readFile(path.join(dir, 'world', 'region', 'r.0.0.mca'))).equals(region)).toBe(
+      true,
+    );
+    const safety = panel.ctx.backups
+      .list(server.id)
+      .map((b) => panel.ctx.backups.toDto(b))
+      .find((b) => b.kind === 'pre_restore');
+    expect(safety).toMatchObject({
+      status: 'success',
+      taskId: task.id,
+      comment: `before partial restore of ${backup.id}`,
+    });
+    await waitFor(() => panel.ctx.servers.require(server.id).runState === 'running', 15_000);
+    expect(
+      panel.ctx.events
+        .list({ serverId: server.id, type: 'task.completed' })
+        .some((e) => JSON.stringify(e.payload).includes('"kind":"backup.restorePaths"')),
+    ).toBe(true);
+    expect(
+      panel.ctx.audit
+        .list()
+        .some((a) => a.action === 'backup.restorePaths' && a.targetId === server.id),
+    ).toBe(true);
+
+    // Chemin réservé : 400 immédiat, aucune task ni ligne de sauvegarde laissée en cours.
+    const before = panel.ctx.tasks.list({ serverId: server.id }).length;
+    res = await api('POST', `/api/servers/${server.id}/backups/${backup.id}/restore-paths`, {
+      paths: ['logs/latest.log'],
+      mode: 'in_place',
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json<{ code: string; details: { reason?: string } }>()).toMatchObject({
+      code: 'E_INVALID_PAYLOAD',
+      details: { reason: 'RESERVED_PATH' },
+    });
+    const after = panel.ctx.tasks.list({ serverId: server.id });
+    expect(after).toHaveLength(before + 1);
+    expect(after.find((t) => t.status === 'running' || t.status === 'pending')).toBeUndefined();
+    expect(panel.ctx.backups.list(server.id).find((b) => b.status === 'running')).toBeUndefined();
   });
 
   it('planificateur du panel : start programmé, annonce, avertissement avant stop, CRUD', async () => {

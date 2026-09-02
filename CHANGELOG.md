@@ -109,6 +109,25 @@ every reconnection. If the folder really is the right one, create an empty file 
 its root, or clear and set the destination again. Agents older than this release keep their
 previous behaviour.
 
+### Restore one world, or one file, from a backup
+
+A restore used to be all or nothing: to get back a corrupted region or yesterday's
+`server.properties`, the whole server folder was replaced. The archive's menu now has _Restore
+files…_: the agent reads the archive's table of contents on the machine without extracting it,
+and you tick the folders or files to bring back — a ticked folder brings back everything below it.
+
+By default the files land next to the current ones, in a new `restored-<date>` folder inside the
+server folder: nothing is replaced, the server keeps running, and you move what you need from
+there. That folder is never backed up, never detected as a server, and survives a full restore;
+delete it when you are done. Choose _Replace the current files_ to restore in place — the selected
+paths are deleted and rewritten from the archive, the server is stopped first, and a safety backup
+is taken by default, as for a full restore.
+
+Every check happens before anything is touched: the archive must match its manifest, every path
+you asked for must exist in it, paths the agent manages itself (logs, the trash, the marker file)
+are refused outright, and the disk must have room. Agents older than this release answer "not
+supported": the panel says so and asks you to update the agent.
+
 ## 1.0.7 — 2026-09-01
 
 A small release, mostly about being able to check what you downloaded and to report a problem

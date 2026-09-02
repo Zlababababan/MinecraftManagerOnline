@@ -338,7 +338,7 @@ export class AgentSession {
             });
           }
         }
-      } else if (row.kind === 'backup.restore') {
+      } else if (row.kind === 'backup.restore' || row.kind === 'backup.restorePaths') {
         const safety = backupManifestSchema.safeParse(result.safetyBackup);
         if (safety.success && this.deps.servers.get(safety.data.serverId)) {
           this.deps.backups.applyManifest(safety.data, machineId, {
@@ -763,6 +763,20 @@ function summarizeResult(kind: string, result: Record<string, unknown>): Record<
     const safety = result.safetyBackup as { backupId?: string } | undefined;
     return {
       backupId: result.backupId ?? null,
+      safetyBackupId: safety?.backupId ?? null,
+      restarted: result.restarted ?? null,
+    };
+  }
+  if (kind === 'backup.restorePaths') {
+    const safety = result.safetyBackup as { backupId?: string } | undefined;
+    const paths = Array.isArray(result.paths) ? (result.paths as unknown[]) : [];
+    return {
+      backupId: result.backupId ?? null,
+      mode: result.mode ?? null,
+      pathCount: paths.length,
+      paths: paths.slice(0, 20),
+      destination: result.destination ?? null,
+      files: result.files ?? null,
       safetyBackupId: safety?.backupId ?? null,
       restarted: result.restarted ?? null,
     };

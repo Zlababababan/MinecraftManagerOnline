@@ -63,6 +63,7 @@ export const AGENT_CAPABILITIES = [
   'java',
   'update',
   'diagnostics',
+  'partial-restore',
 ];
 
 export function currentOs(): Os {
@@ -914,6 +915,7 @@ export class Agent {
     const active = this.tasks.activeFor(serverId, [
       'backup.create',
       'backup.restore',
+      'backup.restorePaths',
       'migration.export',
     ]);
     if (active && active.taskId !== taskId) {
@@ -956,6 +958,22 @@ export class Agent {
         await this.tasks.start(
           { taskId, kind: 'backup.restore', serverId: req.serverId, payload: req },
           (ctx) => this.backups.restore(req, ctx),
+        );
+        return { taskId };
+      })
+      // Lot 4 — restauration partielle : lecture d'archive sans extraction, puis task filtrée.
+      .handle('backup.browse', ({ serverId, backupId, archivePath }) =>
+        this.backups.browse(serverId, backupId, archivePath),
+      )
+      .handle('backup.restorePaths', async ({ taskId, ...req }) => {
+        this.ensureServerIdle(req.serverId, taskId);
+        // Chemin réservé ou hors jail : refus immédiat (400 côté panel), pas une task en échec.
+        this.backups.restorablePaths(req.serverId, req.paths);
+        // Côte à côte, le serveur n'est pas arrêté : le watchdog garde sa surveillance.
+        if (req.mode === 'in_place') this.watchdog.cancel(req.serverId);
+        await this.tasks.start(
+          { taskId, kind: 'backup.restorePaths', serverId: req.serverId, payload: req },
+          (ctx) => this.backups.restorePaths(req, ctx),
         );
         return { taskId };
       })

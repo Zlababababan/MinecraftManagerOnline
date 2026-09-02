@@ -31,6 +31,7 @@ import type { BackupService, BackupVerification } from './backup-service.js';
 const CONFLICTING_TASKS = [
   'backup.create',
   'backup.restore',
+  'backup.restorePaths',
   'migration.export',
   'migration.import',
 ];

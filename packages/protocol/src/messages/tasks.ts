@@ -17,6 +17,7 @@ export const taskIdSchema = ulidSchema;
 export const TASK_KINDS = [
   'backup.create',
   'backup.restore',
+  'backup.restorePaths',
   'fs.fetch',
   'migration.export',
   'migration.import',
@@ -200,6 +201,89 @@ export const backupDeleteSchema = z.object({
   archivePath: z.string().optional(),
 });
 export const backupDeleteResponseSchema = z.object({ deleted: z.boolean() });
+
+// --- Restauration partielle (lot 4, 2026-09-02 — ajouts sans bump) ------------------------------
+
+/**
+ * `backup.browse` : contenu d'une archive lu **sans extraction** (une passe sur les en-têtes tar).
+ * Les dossiers portent la taille et le nombre de fichiers qu'ils contiennent ; au plus
+ * `BROWSE_FILES_PER_DIR` fichiers sont listés par dossier (`truncated` sur le dossier, puis sur la
+ * réponse) — un dossier se restaure entier quel que soit ce qui est listé dessous. Un agent N-1
+ * répond `E_UNSUPPORTED_TYPE` : l'UI dit de le mettre à jour.
+ */
+export const BROWSE_FILES_PER_DIR = 2000;
+export const BROWSE_MAX_ENTRIES = 50_000;
+
+export const backupBrowseSchema = z.object({
+  serverId: serverIdSchema,
+  backupId: z.string().min(1),
+  archivePath: z.string().optional(),
+});
+export const backupBrowseEntrySchema = z.object({
+  /** Chemin relatif jailé, séparateur `/`. */
+  path: z.string().min(1),
+  kind: z.enum(['file', 'dir']),
+  /** Fichier : sa taille ; dossier : somme des fichiers qu'il contient (listés ou non). */
+  size: z.int().nonnegative(),
+  modifiedAt: epochMsSchema.optional(),
+  /** Dossier : nombre de fichiers contenus (récursif). */
+  files: z.int().nonnegative().optional(),
+  /** Dossier : une partie de ses fichiers directs n'est pas listée. */
+  truncated: z.boolean().optional(),
+});
+export type BackupBrowseEntry = z.infer<typeof backupBrowseEntrySchema>;
+export const backupBrowseResponseSchema = z.object({
+  entries: z.array(backupBrowseEntrySchema),
+  totalFiles: z.int().nonnegative(),
+  totalBytes: z.int().nonnegative(),
+  /** Au moins un fichier de l'archive n'est pas listé. */
+  truncated: z.boolean(),
+});
+export type BackupBrowseResponse = z.infer<typeof backupBrowseResponseSchema>;
+
+/** Chemins à restaurer : relatifs, jailés, non vides ; un dossier vaut tout son contenu. */
+export const restorePathListSchema = z
+  .array(relativePathSchema.refine((p) => p !== '', { message: 'path expected' }))
+  .min(1)
+  .max(500);
+
+/**
+ * `side_by_side` (défaut) : extraction dans `restored-<date>/` à la racine du serveur — rien n'est
+ * remplacé, le serveur continue de tourner. `in_place` : les chemins choisis sont supprimés puis
+ * réécrits depuis l'archive, serveur arrêté, sauvegarde de sécurité d'abord.
+ */
+export const restoreModeSchema = z.enum(['side_by_side', 'in_place']);
+export type RestoreMode = z.infer<typeof restoreModeSchema>;
+
+export const backupRestorePathsSchema = z.object({
+  taskId: taskIdSchema,
+  serverId: serverIdSchema,
+  backupId: z.string().min(1),
+  archivePath: z.string().optional(),
+  paths: restorePathListSchema,
+  mode: restoreModeSchema.default('side_by_side'),
+  /** `in_place` seulement : sauvegarde de sécurité avant de remplacer (défaut : oui). */
+  safetyBackup: z.boolean().default(true),
+  safetyBackupId: z.string().min(1).optional(),
+  /** `in_place` seulement : relancer le serveur arrêté pour la restauration. */
+  restartAfter: z.boolean().default(false),
+});
+
+/** Résultat de `backup.restorePaths`. */
+export const backupRestorePathsResultSchema = z.object({
+  backupId: z.string(),
+  mode: restoreModeSchema,
+  /** Chemins effectivement restaurés (normalisés, dédoublonnés). */
+  paths: z.array(z.string()),
+  /** `side_by_side` : dossier créé à la racine du serveur (`restored-<date>`). */
+  destination: z.string().optional(),
+  files: z.int().nonnegative(),
+  bytes: z.int().nonnegative(),
+  safetyBackup: backupManifestSchema.optional(),
+  restarted: z.boolean(),
+  wasRunning: z.boolean(),
+});
+export type BackupRestorePathsResult = z.infer<typeof backupRestorePathsResultSchema>;
 
 /**
  * Occurrence de planning volontairement NON exécutée (serveur arrêté et `onlyIfRunning`, autre

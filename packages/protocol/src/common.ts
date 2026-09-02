@@ -58,6 +58,8 @@ export const KNOWN_CAPABILITIES = [
   'update',
   /** Lot 9 : `agent.diagnostics` (journal fichier + état borné). */
   'diagnostics',
+  /** Lot 4 : `backup.browse` + `backup.restorePaths` (restauration partielle). */
+  'partial-restore',
 ] as const;
 export const capabilitySchema = z.string().min(1);
 

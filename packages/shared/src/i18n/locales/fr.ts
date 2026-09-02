@@ -150,6 +150,11 @@ export const fr = {
     E_UNSUPPORTED_TYPE: 'Opération non supportée par l’agent (nécessite un agent plus récent).',
     E_INVALID_PAYLOAD: 'Contenu de requête invalide.',
     E_NOT_FOUND: 'Ressource introuvable.',
+    E_NOT_FOUND_PATHS_NOT_IN_ARCHIVE: 'Absent de cette archive : {{list}}. Rien n’a été modifié.',
+    E_INVALID_PAYLOAD_RESERVED_PATH:
+      'Ce chemin est géré par l’agent et n’est jamais restauré : {{path}}.',
+    E_IO_ARCHIVE_UNREADABLE:
+      'L’archive ne peut pas être lue (corrompue ou tronquée) : ne restaurez pas depuis elle — supprimez-la et refaites une sauvegarde.',
     E_CONFLICT: 'Conflit : la ressource a été modifiée entre-temps.',
     E_BUSY: 'L’agent est occupé, réessayez.',
     E_TIMEOUT: 'L’opération a expiré.',

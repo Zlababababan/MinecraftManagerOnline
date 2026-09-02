@@ -26,6 +26,7 @@ import {
   IconCalendarClock,
   IconDotsVertical,
   IconDownload,
+  IconFolderSearch,
   IconPlus,
   IconRestore,
   IconTrash,
@@ -51,6 +52,7 @@ import { ErrorAlert } from '../ErrorAlert.js';
 import { HelpLink } from '../HelpLink.js';
 import { ScheduleInput, describeWhen, isScheduleValid } from '../schedule/ScheduleInput.js';
 import { TaskProgressRow, isActiveTask } from '../tasks/TaskProgress.js';
+import { PartialRestoreModal } from './PartialRestoreModal.js';
 
 function kindColor(kind: BackupDto['kind']): string {
   switch (kind) {
@@ -86,6 +88,7 @@ export function BackupsPanel({ server }: { server: ServerDto }) {
   const create = useCreateBackup(server.id);
   const restore = useRestoreBackup(server.id);
   const remove = useDeleteBackup(server.id);
+  const [partial, setPartial] = useState<BackupDto | undefined>(undefined);
   const canAct =
     me.data !== undefined && hasRole(me.data.user.role, 'operator') && server.reachable;
   const fail = (error: unknown) => {
@@ -378,6 +381,16 @@ export function BackupsPanel({ server }: { server: ServerDto }) {
                                 >
                                   {t('web:backups.restore')}
                                 </Menu.Item>
+                                <Menu.Item
+                                  leftSection={<IconFolderSearch size={14} />}
+                                  disabled={busy}
+                                  onClick={() => {
+                                    setPartial(b);
+                                  }}
+                                  data-testid={`backup-restore-paths-${b.id}`}
+                                >
+                                  {t('web:backups.partial.menu')}
+                                </Menu.Item>
                                 <Menu.Divider />
                                 <Menu.Item
                                   color="red"
@@ -402,6 +415,15 @@ export function BackupsPanel({ server }: { server: ServerDto }) {
           </Table.ScrollContainer>
         )}
       </Card>
+      {partial !== undefined && (
+        <PartialRestoreModal
+          server={server}
+          backup={partial}
+          onClose={() => {
+            setPartial(undefined);
+          }}
+        />
+      )}
       <PoliciesCard server={server} policies={q.data?.policies ?? []} canAct={canAct} />
     </Stack>
   );

@@ -711,6 +711,7 @@ export const webFr = {
     kinds: {
       backup_create: 'Sauvegarde',
       backup_restore: 'Restauration',
+      backup_restorePaths: 'Restauration partielle',
       fs_fetch: 'Téléchargement',
       migration_export: 'Export de migration',
       migration_import: 'Import de migration',
@@ -727,6 +728,7 @@ export const webFr = {
       safety_backup: 'Sauvegarde de sécurité',
       clearing: 'Nettoyage du dossier',
       extracting: 'Extraction',
+      listing: 'Lecture de l’archive',
       restarting: 'Redémarrage',
       downloading: 'Téléchargement',
       probing: 'Vérification du runtime',
@@ -799,6 +801,29 @@ export const webFr = {
       overdue: 'En retard',
     },
     localTimeHint: 'Heure locale de la machine de l’agent. Aide :',
+    partial: {
+      menu: 'Restaurer des fichiers…',
+      title: 'Restaurer des fichiers de la sauvegarde du {{date}}',
+      hint: 'Cochez les dossiers et fichiers à récupérer. Un dossier coché récupère tout ce qu’il contient.',
+      loading: 'Lecture de l’archive sur la machine…',
+      filter: 'Filtrer par nom',
+      truncated:
+        'Tous les fichiers ne sont pas listés ({{listed}} sur {{total}}) : un dossier coché se restaure quand même en entier.',
+      dirTruncated: 'd’autres fichiers non listés',
+      none: 'Rien de sélectionné.',
+      selected: '{{paths}} sélectionné(s) · {{files}} fichiers · {{size}}',
+      mode: 'Comment',
+      sideBySide: 'À côté des fichiers actuels (rien n’est remplacé)',
+      sideBySideHint:
+        'Extraits dans un nouveau dossier restored-<date> du dossier serveur ; le serveur continue de tourner. Déplacez ensuite ce dont vous avez besoin.',
+      inPlace: 'Remplacer les fichiers actuels',
+      inPlaceHint:
+        'Les chemins choisis sont supprimés puis réécrits depuis l’archive. Le serveur est arrêté d’abord.',
+      needsNewerAgent:
+        'Parcourir une archive demande un agent de cette version ou plus récent : mettez à jour l’agent de cette machine, puis réessayez.',
+      confirm: 'Restaurer la sélection',
+      started: 'Restauration partielle lancée.',
+    },
   },
   schedule: {
     title: 'Actions programmées',

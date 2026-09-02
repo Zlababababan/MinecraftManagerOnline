@@ -10,14 +10,18 @@ import { rename, rm, stat } from 'node:fs/promises';
 import { Readable, Transform, pipeline } from 'node:stream';
 import { promisify } from 'node:util';
 
+import { RESTORED_DIR } from '@mmo/shared';
 import { createCompressStream, createDecompressStream, hasZstd } from '@mmo/shared/node';
 
 import {
   extractTar,
+  listTar,
   tarEntries,
   walkTree,
   type ExcludeFn,
   type ExtractResult,
+  type ListOptions,
+  type TarListing,
   type TreeSummary,
 } from '@mmo/shared/node';
 
@@ -42,6 +46,9 @@ export function defaultExclude(extra: string[] = []): ExcludeFn {
   const names = new Set([...DEFAULT_EXCLUDES, ...extra]);
   return (rel) => {
     if (names.has(rel)) return true;
+    // Lot 4 : fichiers restaurés côte à côte, à la racine — jamais ré-archivés, jamais effacés
+    // par une restauration complète (comme les journaux) ; l'utilisateur en dispose.
+    if (!rel.includes('/') && RESTORED_DIR.test(rel)) return true;
     // `world/session.lock` & co : verrou du monde, inutile et parfois verrouillé sous Windows
     return rel.endsWith('/session.lock') || rel.endsWith('.part');
   };
@@ -173,6 +180,8 @@ export async function extractArchive(
   options: {
     onProgress?: (p: { bytes: number; files: number; current: string }) => void;
     shouldAbort?: () => boolean;
+    /** Lot 4 : restauration partielle — seuls les chemins acceptés sont écrits. */
+    include?: (rel: string, kind: 'file' | 'dir') => boolean;
   } = {},
 ): Promise<ExtractResult> {
   const input = createReadStream(archivePath, { highWaterMark: 1024 * 1024 });
@@ -181,6 +190,27 @@ export async function extractArchive(
   input.on('error', (error) => decompress.destroy(error));
   try {
     return await extractTar(stream as AsyncIterable<Uint8Array>, dest, options);
+  } finally {
+    input.destroy();
+  }
+}
+
+/**
+ * Lot 4 : liste les entrées de l'archive **sans rien extraire** — une passe de décompression, seuls
+ * les en-têtes tar sont lus, les données sont sautées. C'est la base de `backup.browse` et du
+ * contrôle « chaque chemin demandé existe » qui précède toute restauration partielle.
+ */
+export async function listArchive(
+  archivePath: string,
+  codec: ArchiveCodec,
+  options: ListOptions = {},
+): Promise<TarListing> {
+  const input = createReadStream(archivePath, { highWaterMark: 1024 * 1024 });
+  const decompress = createDecompressStream(codec);
+  const stream = input.pipe(decompress);
+  input.on('error', (error) => decompress.destroy(error));
+  try {
+    return await listTar(stream as AsyncIterable<Uint8Array>, options);
   } finally {
     input.destroy();
   }

@@ -124,6 +124,11 @@ export const en = {
     E_UNSUPPORTED_TYPE: 'This operation is not supported by the agent (requires a newer agent).',
     E_INVALID_PAYLOAD: 'Invalid request payload.',
     E_NOT_FOUND: 'Resource not found.',
+    E_NOT_FOUND_PATHS_NOT_IN_ARCHIVE: 'Not in this archive: {{list}}. Nothing was changed.',
+    E_INVALID_PAYLOAD_RESERVED_PATH:
+      'This path is managed by the agent and is never restored: {{path}}.',
+    E_IO_ARCHIVE_UNREADABLE:
+      'The archive cannot be read (corrupted or truncated): do not restore from it — delete it and take a new backup.',
     E_CONFLICT: 'Conflict: the resource changed in the meantime.',
     E_BUSY: 'The agent is busy, please retry.',
     E_TIMEOUT: 'The operation timed out.',

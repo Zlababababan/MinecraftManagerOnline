@@ -6,11 +6,13 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type {
+  BackupBrowseResponse,
   BackupDto,
   BackupPolicyDto,
   BackupPolicyInput,
   PanelBackupDto,
   PanelBackupStatus,
+  RestorePathsInput,
   ScheduledTaskDto,
   ScheduledTaskInput,
   SparkStatus,
@@ -124,6 +126,37 @@ export function useRestoreBackup(serverId: string) {
       safetyBackup: boolean;
       restartAfter: boolean;
     }) => api.post<{ task: TaskDto }>(`/api/servers/${serverId}/backups/${backupId}/restore`, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: phase8Keys.backups(serverId) });
+      void qc.invalidateQueries({ queryKey: phase8Keys.tasks });
+    },
+  });
+}
+
+/**
+ * Lot 4 : contenu d'une archive lu par l'agent sans extraction. Une passe de décompression par
+ * appel côté agent — la réponse est gardée 5 min ; jamais réessayée (un 501 « agent trop ancien »
+ * ne change pas en insistant).
+ */
+export const backupBrowseQuery = (serverId: string, backupId: string) =>
+  queryOptions({
+    queryKey: [...phase8Keys.backups(serverId), 'browse', backupId] as const,
+    queryFn: ({ signal }) =>
+      api.get<BackupBrowseResponse>(`/api/servers/${serverId}/backups/${backupId}/browse`, signal),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+export const useBackupBrowse = (serverId: string, backupId: string) =>
+  useQuery(backupBrowseQuery(serverId, backupId));
+
+export function useRestorePaths(serverId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ backupId, ...body }: RestorePathsInput & { backupId: string }) =>
+      api.post<{ task: TaskDto }>(
+        `/api/servers/${serverId}/backups/${backupId}/restore-paths`,
+        body,
+      ),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: phase8Keys.backups(serverId) });
       void qc.invalidateQueries({ queryKey: phase8Keys.tasks });

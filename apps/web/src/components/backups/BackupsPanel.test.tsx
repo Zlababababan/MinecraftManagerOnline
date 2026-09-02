@@ -145,6 +145,14 @@ function installFetch(calls: Call[], backups: BackupDto[] = [backup]): void {
       if (path === '/api/servers/s1/backups/bk1/restore') {
         return json(200, { task: { id: 't2', kind: 'backup.restore', status: 'running' } });
       }
+      if (path === '/api/servers/s1/backups/bk1/browse') {
+        return json(200, {
+          entries: [{ path: 'world', kind: 'dir', size: 10, files: 1 }],
+          totalFiles: 1,
+          totalBytes: 10,
+          truncated: false,
+        });
+      }
       if (path.startsWith('/api/tasks')) return json(200, { tasks: [] });
       if (path === '/api/servers/s1/backup-policies' && method === 'POST') {
         return json(200, { policy: { ...policy, id: 'pol2' } });
@@ -281,6 +289,19 @@ describe('BackupsPanel', () => {
       safetyBackup: true,
       restartAfter: true,
     });
+  });
+
+  it('lot 4 : « Restaurer des fichiers… » ouvre la modale de restauration partielle et lit l’archive', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    await waitFor(() => {
+      expect(screen.getByTestId('backup-actions-bk1')).toBeInTheDocument();
+    });
+    await user.click(screen.getByTestId('backup-actions-bk1'));
+    await user.click(await screen.findByTestId('backup-restore-paths-bk1'));
+    expect(await screen.findByTestId('partial-restore')).toBeInTheDocument();
+    expect(await screen.findByTestId('restore-path-world')).toBeInTheDocument();
+    expect(calls.some((c) => c.path === '/api/servers/s1/backups/bk1/browse')).toBe(true);
   });
 
   it('ajoute une politique avec le préréglage quotidien', async () => {

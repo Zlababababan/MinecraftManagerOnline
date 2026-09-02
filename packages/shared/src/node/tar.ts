@@ -8,7 +8,9 @@
  *
  * - `walkTree()` inventorie un dossier (fichiers, dossiers, tailles) avec exclusions ;
  * - `tarEntries()` produit les blocs tar (générateur : `Readable.from()` + `pipeline()`) ;
- * - `extractTar()` consomme un flux tar et écrit dans un dossier, chemins jailés (`..` refusé).
+ * - `extractTar()` consomme un flux tar et écrit dans un dossier, chemins jailés (`..` refusé) ;
+ * - `listTar()` (lot 4, restauration partielle) : la même lecture d'en-têtes SANS rien écrire —
+ *   les données de chaque entrée sont sautées, l'archive n'est jamais extraite pour être parcourue.
  */
 import { ProtocolError } from '@mmo/protocol';
 import { createReadStream } from 'node:fs';
@@ -310,6 +312,13 @@ export interface ExtractOptions {
   maxBytes?: number;
   /** Phase 12 : plafond d'entrées (défaut 2 000 000). */
   maxEntries?: number;
+  /**
+   * Lot 4 (restauration partielle) : prédicat d'inclusion appliqué au chemin relatif **jailé**
+   * (après `stripComponents`). Une entrée refusée est sautée sans être comptée ni signalée — c'est
+   * un filtre voulu, pas un refus. Un dossier refusé n'empêche pas ses fichiers acceptés d'être
+   * écrits (leurs dossiers parents sont créés à la volée).
+   */
+  include?: (rel: string, kind: 'file' | 'dir') => boolean;
 }
 
 export const DEFAULT_EXTRACT_MAX_BYTES = 64 * 1024 ** 3;
@@ -389,6 +398,20 @@ export async function extractTar(
     const pad = size % TAR_BLOCK === 0 ? 0 : TAR_BLOCK - (size % TAR_BLOCK);
     if (rel === undefined) {
       if (name !== '' && (strip === 0 || safeRelative(name) === undefined)) skipped.push(name);
+      current = {
+        header: h,
+        rel: undefined,
+        remaining: size,
+        padding: pad,
+        handle: undefined,
+        abs: undefined,
+      };
+      return;
+    }
+    if (
+      options.include !== undefined &&
+      !options.include(rel, h.typeflag === '5' ? 'dir' : 'file')
+    ) {
       current = {
         header: h,
         rel: undefined,
@@ -526,4 +549,131 @@ export async function extractTar(
     if (current?.handle) await current.handle.close().catch(() => undefined);
   }
   return { files, bytes, skipped };
+}
+
+// --- Parcours sans extraction (lot 4, restauration partielle) --------------------------------------------
+
+export type TarEntryKind = 'file' | 'dir' | 'symlink' | 'other';
+
+export interface TarListEntry {
+  /** Chemin relatif jailé (`safeRelative`), séparateur `/`, sans `/` final. */
+  rel: string;
+  kind: TarEntryKind;
+  size: number;
+  mtimeMs: number;
+}
+
+export interface TarListing {
+  entries: TarListEntry[];
+  /** Entrées au chemin refusé (absolu, `..`) — présentes dans l'archive, jamais restaurables. */
+  skipped: string[];
+}
+
+export interface ListOptions {
+  shouldAbort?: () => boolean;
+  /** Plafond d'entrées (défaut 2 000 000) — `E_TOO_LARGE` au-delà, comme à l'extraction. */
+  maxEntries?: number;
+  /** Appelé pour chaque entrée acceptée, dans l'ordre de l'archive. */
+  onEntry?: (entry: TarListEntry) => void;
+}
+
+/**
+ * Lit les en-têtes d'un flux tar (pax et GNU longname compris) sans écrire un octet : les données
+ * de chaque entrée sont sautées. Même détection d'archive tronquée qu'`extractTar` — une archive
+ * coupée au milieu d'un fichier est signalée, pas listée comme complète.
+ */
+export async function listTar(
+  source: AsyncIterable<Uint8Array>,
+  options: ListOptions = {},
+): Promise<TarListing> {
+  const maxEntries = options.maxEntries ?? DEFAULT_EXTRACT_MAX_ENTRIES;
+  const entries: TarListEntry[] = [];
+  const skipped: string[] = [];
+  let count = 0;
+  let pending: Buffer = Buffer.alloc(0);
+  let paxOverrides: Record<string, string> | undefined;
+  /** Octets de données + bourrage encore à sauter pour l'entrée courante. */
+  let toSkip = 0;
+  let meta:
+    | { kind: 'pax' | 'longname' | 'ignore'; size: number; padding: number; chunks: Buffer[] }
+    | undefined;
+  const flow = { done: false };
+
+  const consume = (): void => {
+    for (;;) {
+      if (options.shouldAbort?.()) throw new Error('aborted');
+      if (meta) {
+        if (pending.byteLength === 0) return;
+        const take = Math.min(pending.byteLength, meta.size + meta.padding);
+        const slice = pending.subarray(0, take);
+        const dataPart = Math.min(slice.byteLength, meta.size);
+        if (dataPart > 0) meta.chunks.push(Buffer.from(slice.subarray(0, dataPart)));
+        meta.size -= dataPart;
+        meta.padding -= slice.byteLength - dataPart;
+        pending = pending.subarray(take);
+        if (meta.size === 0 && meta.padding === 0) {
+          const payload = Buffer.concat(meta.chunks);
+          if (meta.kind === 'pax') paxOverrides = parsePax(payload);
+          else if (meta.kind === 'longname') {
+            const nul = payload.indexOf(0);
+            paxOverrides = {
+              path: payload.subarray(0, nul === -1 ? payload.byteLength : nul).toString('utf8'),
+            };
+          }
+          meta = undefined;
+        }
+        continue;
+      }
+      if (toSkip > 0) {
+        if (pending.byteLength === 0) return;
+        const take = Math.min(pending.byteLength, toSkip);
+        toSkip -= take;
+        pending = pending.subarray(take);
+        continue;
+      }
+      if (pending.byteLength < TAR_BLOCK) return;
+      const block = pending.subarray(0, TAR_BLOCK);
+      pending = pending.subarray(TAR_BLOCK);
+      const h = parseHeader(block);
+      if (!h) {
+        flow.done = true;
+        return;
+      }
+      if (h.typeflag === 'x' || h.typeflag === 'g' || h.typeflag === 'L') {
+        const pad = h.size % TAR_BLOCK === 0 ? 0 : TAR_BLOCK - (h.size % TAR_BLOCK);
+        const kind = h.typeflag === 'x' ? 'pax' : h.typeflag === 'L' ? 'longname' : 'ignore';
+        meta = { kind, size: h.size, padding: pad, chunks: [] };
+        continue;
+      }
+      const name = paxOverrides?.path ?? h.name;
+      const size = paxOverrides?.size === undefined ? h.size : Number(paxOverrides.size);
+      paxOverrides = undefined;
+      count++;
+      assertExtractBudget(0, count, Number.POSITIVE_INFINITY, maxEntries);
+      toSkip = size + (size % TAR_BLOCK === 0 ? 0 : TAR_BLOCK - (size % TAR_BLOCK));
+      const rel = safeRelative(name);
+      if (rel === undefined) {
+        if (name !== '') skipped.push(name);
+        continue;
+      }
+      // `parseHeader` rend `'0'` pour un typeflag vide (vieux tars) : pas de cas `''` ici.
+      let kind: TarEntryKind = 'other';
+      if (h.typeflag === '5' || name.endsWith('/')) kind = 'dir';
+      else if (h.typeflag === '0' || h.typeflag === '7') kind = 'file';
+      else if (h.typeflag === '2') kind = 'symlink';
+      const entry: TarListEntry = { rel, kind, size, mtimeMs: h.mtimeSec * 1000 };
+      entries.push(entry);
+      options.onEntry?.(entry);
+    }
+  };
+
+  for await (const chunk of source) {
+    if (flow.done) break;
+    pending = pending.byteLength === 0 ? Buffer.from(chunk) : Buffer.concat([pending, chunk]);
+    consume();
+  }
+  if (!flow.done && (toSkip > 0 || meta !== undefined)) {
+    throw new Error('tar: unexpected end of archive');
+  }
+  return { entries, skipped };
 }

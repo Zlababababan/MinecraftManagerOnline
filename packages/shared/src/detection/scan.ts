@@ -20,6 +20,13 @@ export interface ScanOptions extends DetectOptions {
 /** `<nom>.migrated-<yyyymmdd-hhmm>` : renommage fait par `migration.finalize` (doc 05 §8). */
 export const MIGRATED_DIR = /\.migrated-\d{8}-\d{4}$/i;
 
+/**
+ * `restored-<yyyymmdd>-<hhmmss>[-n]` : dossier créé à la racine d'un serveur par une restauration
+ * partielle côte à côte (lot 4, doc 05 §6). Il peut contenir `server.properties` et un jar : jamais
+ * redétecté comme un serveur, jamais archivé par une sauvegarde (voir `defaultExclude` de l'agent).
+ */
+export const RESTORED_DIR = /^restored-\d{8}-\d{6}(-\d+)?$/i;
+
 const DEFAULT_EXCLUDED = new Set([
   '.mmo-trash',
   '.git',
@@ -54,6 +61,8 @@ export async function scanForServers(
       if (e.kind !== 'dir' || excludedNames.has(e.name.toLowerCase())) continue;
       // Phase 9 : dossier source d'une migration terminée (purge différée par l'agent) — jamais redétecté.
       if (MIGRATED_DIR.test(e.name)) continue;
+      // Lot 4 : fichiers restaurés côte à côte — un `server.properties` s'y trouve souvent.
+      if (RESTORED_DIR.test(e.name)) continue;
       await visit(joinPath(dir, e.name), depth + 1);
     }
   }

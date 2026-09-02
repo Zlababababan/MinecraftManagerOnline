@@ -702,6 +702,7 @@ export const webEn = {
     kinds: {
       backup_create: 'Backup',
       backup_restore: 'Restore',
+      backup_restorePaths: 'Partial restore',
       fs_fetch: 'Download',
       migration_export: 'Migration export',
       migration_import: 'Migration import',
@@ -718,6 +719,7 @@ export const webEn = {
       safety_backup: 'Safety backup',
       clearing: 'Clearing folder',
       extracting: 'Extracting',
+      listing: 'Reading the archive',
       restarting: 'Restarting',
       downloading: 'Downloading',
       probing: 'Checking the runtime',
@@ -788,6 +790,29 @@ export const webEn = {
       overdue: 'Overdue',
     },
     localTimeHint: 'Local time of the agent machine. Help:',
+    partial: {
+      menu: 'Restore files…',
+      title: 'Restore files from the backup of {{date}}',
+      hint: 'Tick the folders and files to bring back. A ticked folder brings back everything below it.',
+      loading: 'Reading the archive on the machine…',
+      filter: 'Filter by name',
+      truncated:
+        'Not every file is listed ({{listed}} of {{total}}): a ticked folder is still restored whole.',
+      dirTruncated: 'more files not listed',
+      none: 'Nothing selected.',
+      selected: '{{paths}} selected · {{files}} files · {{size}}',
+      mode: 'How',
+      sideBySide: 'Next to the current files (nothing is replaced)',
+      sideBySideHint:
+        'Extracted into a new restored-<date> folder inside the server folder; the server keeps running. Move what you need from there.',
+      inPlace: 'Replace the current files',
+      inPlaceHint:
+        'The selected paths are deleted, then rewritten from the archive. The server is stopped first.',
+      needsNewerAgent:
+        'Browsing an archive requires an agent from this release or newer: update the agent on this machine, then try again.',
+      confirm: 'Restore selection',
+      started: 'Partial restore started.',
+    },
   },
   schedule: {
     title: 'Scheduled actions',

@@ -85,12 +85,15 @@ import {
   serverUpdatedSchema,
 } from './messages/server.js';
 import {
+  backupBrowseResponseSchema,
+  backupBrowseSchema,
   backupCreateResponseSchema,
   backupCreateSchema,
   backupDeleteResponseSchema,
   backupDeleteSchema,
   backupListResponseSchema,
   backupListSchema,
+  backupRestorePathsSchema,
   backupRestoreSchema,
   backupRotatedSchema,
   backupSkippedSchema,
@@ -215,6 +218,9 @@ export const REQUESTS = {
   'backup.list': req('p2a', backupListSchema, backupListResponseSchema),
   'backup.restore': req('p2a', backupRestoreSchema, taskAcceptedSchema),
   'backup.delete': req('p2a', backupDeleteSchema, backupDeleteResponseSchema),
+  // Lot 4 — restauration partielle (ajout sans bump : un agent N-1 répond E_UNSUPPORTED_TYPE)
+  'backup.browse': req('p2a', backupBrowseSchema, backupBrowseResponseSchema),
+  'backup.restorePaths': req('p2a', backupRestorePathsSchema, taskAcceptedSchema),
   'fs.fetch': req('p2a', fsFetchSchema, taskAcceptedSchema),
   // Jalon C — transferts binaires (phase 8)
   'fs.download.start': req('p2a', fsDownloadStartSchema, fsDownloadStartResponseSchema),

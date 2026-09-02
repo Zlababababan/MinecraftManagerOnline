@@ -15,15 +15,27 @@
 import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { walkTree } from '@mmo/shared/node';
+import {
+  safeRelative,
+  walkTree,
+  type ExcludeFn,
+  type ExtractResult,
+  type TarListEntry,
+  type TarListing,
+} from '@mmo/shared/node';
 
 import {
+  BROWSE_FILES_PER_DIR,
+  BROWSE_MAX_ENTRIES,
   ProtocolError,
   backupManifestSchema,
   ulid,
+  type BackupBrowseEntry,
+  type BackupBrowseResponse,
   type BackupCodec,
   type BackupKind,
   type BackupManifest,
+  type BackupRestorePathsResult,
   type ParsedRequestPayload,
 } from '@mmo/protocol';
 
@@ -39,9 +51,16 @@ import {
   createArchive,
   defaultExclude,
   extractArchive,
+  listArchive,
   verifyArchive,
 } from './archive.js';
-import { DESTINATION_MARKER, estimateArchiveBytes, hasMarker, writeMarker } from './guards.js';
+import {
+  DESTINATION_MARKER,
+  SPACE_HEADROOM_BYTES,
+  estimateArchiveBytes,
+  hasMarker,
+  writeMarker,
+} from './guards.js';
 
 /** Jamais archivé ni effacé par une restauration : le marqueur d'identité du dossier. */
 const MARKER = '.mmo-server.json';
@@ -86,6 +105,7 @@ export interface BackupVerification {
 
 export type BackupCreateRequest = Omit<ParsedRequestPayload<'backup.create'>, 'taskId'>;
 export type BackupRestoreRequest = Omit<ParsedRequestPayload<'backup.restore'>, 'taskId'>;
+export type BackupRestorePathsRequest = Omit<ParsedRequestPayload<'backup.restorePaths'>, 'taskId'>;
 
 export class BackupService {
   private readonly now: () => number;
@@ -340,25 +360,11 @@ export class BackupService {
     const history = await this.list(serverId, requested === undefined ? [] : [requested]);
     const estimate = estimateArchiveBytes(bytesRaw, history);
     if (free >= estimate.requiredBytes) return;
-    const mb = (n: number): number => Math.ceil(n / 1_048_576);
-    throw new ProtocolError(
-      'E_IO',
-      `not enough free space for the backup on ${destDir}: about ${String(mb(estimate.requiredBytes))} MB needed (estimated from ${String(bytesRaw)} raw bytes), ${String(mb(free))} MB free`,
-      {
-        retryable: false,
-        details: {
-          reason: 'INSUFFICIENT_SPACE',
-          path: destDir,
-          requiredBytes: estimate.requiredBytes,
-          freeBytes: free,
-          requiredMb: mb(estimate.requiredBytes),
-          freeMb: mb(free),
-          bytesRaw,
-          ratio: estimate.ratio,
-          ...(estimate.basedOn === undefined ? {} : { basedOn: estimate.basedOn }),
-        },
-      },
-    );
+    throw insufficientSpace(destDir, estimate.requiredBytes, free, {
+      bytesRaw,
+      ratio: estimate.ratio,
+      ...(estimate.basedOn === undefined ? {} : { basedOn: estimate.basedOn }),
+    });
   }
 
   /**
@@ -589,30 +595,7 @@ export class BackupService {
     const record = this.options.store.getServer(serverId);
     if (!record) throw new ProtocolError('E_NOT_FOUND', `unknown server ${serverId}`);
     const manifest = await this.find(serverId, req.backupId, req.archivePath);
-
-    ctx.progress('verifying', 0);
-    const check = await verifyArchive(manifest.archivePath, manifest, {
-      shouldAbort: () => ctx.isCancelled,
-      onProgress: (bytes) => {
-        ctx.progress('verifying', (bytes / Math.max(1, manifest.sizeBytes)) * 10);
-      },
-    });
-    // Une restauration relit l'archive en entier : autant que ce contrôle compte comme une
-    // vérification (le manifeste et le panel en gardent la trace, corrompue ou non).
-    if (!ctx.isCancelled) await this.recordVerification(manifest, check);
-    if (!check.ok) {
-      throw new ProtocolError('E_CHECKSUM_MISMATCH', 'archive does not match its manifest', {
-        retryable: false,
-        details: {
-          backupId: manifest.backupId,
-          expectedSha256: manifest.sha256,
-          actualSha256: check.sha256,
-          expectedSize: manifest.sizeBytes,
-          actualSize: check.sizeBytes,
-        },
-      });
-    }
-    ctx.throwIfCancelled();
+    await this.verifyBeforeRestore(manifest, ctx);
 
     const proc = this.options.manager.get(serverId);
     const wasRunning = proc?.isRunning ?? false;
@@ -683,6 +666,429 @@ export class BackupService {
       wasRunning,
     };
   }
+
+  /**
+   * Relit l'archive en entier avant toute restauration (`E_CHECKSUM_MISMATCH` sans rien modifier).
+   * Ce contrôle compte comme une vérification : le manifeste et le panel en gardent la trace,
+   * corrompue ou non.
+   */
+  private async verifyBeforeRestore(manifest: BackupManifest, ctx: TaskContext): Promise<void> {
+    ctx.progress('verifying', 0);
+    const check = await verifyArchive(manifest.archivePath, manifest, {
+      shouldAbort: () => ctx.isCancelled,
+      onProgress: (bytes) => {
+        ctx.progress('verifying', (bytes / Math.max(1, manifest.sizeBytes)) * 10);
+      },
+    });
+    if (!ctx.isCancelled) await this.recordVerification(manifest, check);
+    if (!check.ok) {
+      throw new ProtocolError('E_CHECKSUM_MISMATCH', 'archive does not match its manifest', {
+        retryable: false,
+        details: {
+          backupId: manifest.backupId,
+          expectedSha256: manifest.sha256,
+          actualSha256: check.sha256,
+          expectedSize: manifest.sizeBytes,
+          actualSize: check.sizeBytes,
+        },
+      });
+    }
+    ctx.throwIfCancelled();
+  }
+
+  // --- Restauration partielle (lot 4) ---------------------------------------------------------
+
+  /** Ce qu'aucune restauration partielle ne touche : les exclusions d'archive du serveur. */
+  private reservedFor(sourceDir: string): ExcludeFn {
+    return defaultExclude([
+      MARKER,
+      relativeIfInside(sourceDir, this.destinationFor(undefined)) ?? '',
+    ]);
+  }
+
+  /**
+   * Validation **synchrone** des chemins d'une restauration partielle, avant même de créer la
+   * task (le panel reçoit un 400, pas une task en échec) : jailés, jamais réservés, dédoublonnés.
+   * Rejouée par l'exécuteur.
+   */
+  restorablePaths(serverId: string, paths: readonly string[]): string[] {
+    const record = this.options.store.getServer(serverId);
+    if (!record) throw new ProtocolError('E_NOT_FOUND', `unknown server ${serverId}`);
+    return normalizeRestorePaths(paths, this.reservedFor(record.config.path));
+  }
+
+  /** Exécuteur de `backup.browse` : une passe de lecture d'en-têtes, aucun octet extrait. */
+  async browse(
+    serverId: string,
+    backupId: string,
+    archivePath?: string,
+  ): Promise<BackupBrowseResponse> {
+    const manifest = await this.find(serverId, backupId, archivePath);
+    const listing = await this.listing(manifest);
+    return summarizeListing(listing.entries);
+  }
+
+  private async listing(
+    manifest: BackupManifest,
+    shouldAbort?: () => boolean,
+  ): Promise<TarListing> {
+    try {
+      return await listArchive(manifest.archivePath, manifest.codec, {
+        ...(shouldAbort === undefined ? {} : { shouldAbort }),
+      });
+    } catch (error) {
+      if (error instanceof ProtocolError) throw error;
+      throw new ProtocolError(
+        'E_IO',
+        `cannot read archive ${manifest.backupId}: ${errorMessage(error)}`,
+        {
+          cause: error,
+          retryable: false,
+          details: { reason: 'ARCHIVE_UNREADABLE', backupId: manifest.backupId },
+        },
+      );
+    }
+  }
+
+  /**
+   * Exécuteur de la task `backup.restorePaths`. Ordre des gardes, toutes AVANT le premier geste
+   * irréversible : chemins normalisés et jamais réservés → archive conforme à son manifeste →
+   * **chaque chemin demandé existe dans l'archive** (sinon, en place, on aurait supprimé le dossier
+   * courant pour ne rien remettre à la place) → espace libre (côte à côte). Côte à côte, le serveur
+   * n'est ni arrêté ni touché : tout va dans `restored-<date>/` à sa racine.
+   */
+  async restorePaths(
+    req: BackupRestorePathsRequest,
+    ctx: TaskContext,
+  ): Promise<BackupRestorePathsResult> {
+    const { serverId } = req;
+    const record = this.options.store.getServer(serverId);
+    if (!record) throw new ProtocolError('E_NOT_FOUND', `unknown server ${serverId}`);
+    const sourceDir = record.config.path;
+    const paths = normalizeRestorePaths(req.paths, this.reservedFor(sourceDir));
+    const include = includePredicate(paths);
+    const manifest = await this.find(serverId, req.backupId, req.archivePath);
+    await this.verifyBeforeRestore(manifest, ctx);
+
+    ctx.progress('listing', 10);
+    let listing: TarListing;
+    try {
+      listing = await this.listing(manifest, () => ctx.isCancelled);
+    } catch (error) {
+      if (ctx.isCancelled)
+        throw new ProtocolError('E_CANCELLED', 'restore cancelled', { cause: error });
+      throw error;
+    }
+    const missing = paths.filter(
+      (p) => !listing.entries.some((e) => e.rel === p || e.rel.startsWith(`${p}/`)),
+    );
+    if (missing.length > 0) {
+      throw new ProtocolError(
+        'E_NOT_FOUND',
+        `not in archive ${manifest.backupId}: ${missing.join(', ')}`,
+        {
+          retryable: false,
+          details: {
+            reason: 'PATHS_NOT_IN_ARCHIVE',
+            backupId: manifest.backupId,
+            paths: missing,
+            list: missing.join(', '),
+          },
+        },
+      );
+    }
+    const bytesSelected = listing.entries
+      .filter((e) => e.kind === 'file' && include(e.rel, 'file'))
+      .reduce((n, e) => n + e.size, 0);
+    ctx.throwIfCancelled();
+
+    const proc = this.options.manager.get(serverId);
+    const wasRunning = proc?.isRunning ?? false;
+
+    if (req.mode === 'side_by_side') {
+      ctx.progress('preparing', 15);
+      const free = await this.freeBytes(sourceDir);
+      if (free !== undefined && free < bytesSelected + SPACE_HEADROOM_BYTES) {
+        throw insufficientSpace(sourceDir, bytesSelected + SPACE_HEADROOM_BYTES, free, {
+          bytesRaw: bytesSelected,
+        });
+      }
+      const destination = await allocateRestoredDir(sourceDir, this.now());
+      const destDir = path.join(sourceDir, destination);
+      ctx.artifact(destDir);
+      await ctx.checkpoint();
+      ctx.progress('extracting', 20);
+      const extracted = await this.extractSelection(
+        manifest,
+        destDir,
+        include,
+        bytesSelected,
+        ctx,
+        {
+          from: 20,
+          span: 78,
+        },
+      );
+      ctx.keep(destDir);
+      return {
+        backupId: manifest.backupId,
+        mode: 'side_by_side',
+        paths,
+        destination,
+        files: extracted.files,
+        bytes: extracted.bytes,
+        restarted: false,
+        wasRunning,
+      };
+    }
+
+    if (wasRunning) {
+      ctx.progress('stopping', 15);
+      await this.options.manager.stop(serverId, { forceAfterTimeout: true });
+    }
+    ctx.throwIfCancelled();
+    let safetyBackup: BackupManifest | undefined;
+    if (req.safetyBackup) {
+      ctx.progress('safety_backup', 20);
+      const safetyId = req.safetyBackupId ?? ulid(this.now());
+      safetyBackup = await this.createInternal(serverId, safetyId, 'pre_restore', ctx, {
+        comment: `before partial restore of ${manifest.backupId}`,
+      });
+      ctx.progress('safety_backup', 45);
+    }
+    ctx.throwIfCancelled();
+    // À partir d'ici l'opération est irréversible (hors backup de sécurité) : journal écrit d'abord.
+    await ctx.checkpoint();
+    ctx.progress('clearing', 50);
+    for (const p of paths) {
+      await rm(path.join(sourceDir, ...p.split('/')), {
+        recursive: true,
+        force: true,
+        maxRetries: 3,
+      });
+    }
+    ctx.progress('extracting', 55);
+    const extracted = await this.extractSelection(
+      manifest,
+      sourceDir,
+      include,
+      bytesSelected,
+      ctx,
+      {
+        from: 55,
+        span: 40,
+      },
+    );
+    let restarted = false;
+    if (req.restartAfter) {
+      ctx.progress('restarting', 97);
+      await this.options.manager.start(serverId);
+      restarted = true;
+    }
+    return {
+      backupId: manifest.backupId,
+      mode: 'in_place',
+      paths,
+      files: extracted.files,
+      bytes: extracted.bytes,
+      ...(safetyBackup === undefined ? {} : { safetyBackup }),
+      restarted,
+      wasRunning,
+    };
+  }
+
+  private async extractSelection(
+    manifest: BackupManifest,
+    dest: string,
+    include: ExcludeFn,
+    bytesTotal: number,
+    ctx: TaskContext,
+    range: { from: number; span: number },
+  ): Promise<ExtractResult> {
+    try {
+      return await extractArchive(manifest.archivePath, manifest.codec, dest, {
+        include,
+        shouldAbort: () => ctx.isCancelled,
+        onProgress: (p) => {
+          ctx.progress(
+            'extracting',
+            range.from + (p.bytes / Math.max(1, bytesTotal)) * range.span,
+            p.current,
+          );
+        },
+      });
+    } catch (error) {
+      if (ctx.isCancelled)
+        throw new ProtocolError('E_CANCELLED', 'restore cancelled', { cause: error });
+      throw new ProtocolError('E_IO', `restore failed: ${errorMessage(error)}`, {
+        cause: error,
+        details: { backupId: manifest.backupId },
+      });
+    }
+  }
+}
+
+// --- Restauration partielle : fonctions pures (lot 4) ---------------------------------------------
+
+/**
+ * Chemins normalisés (`safeRelative`), dédoublonnés, sans ceux qu'un autre chemin de la liste couvre
+ * déjà (`world` + `world/region` → `world`). Un chemin que l'agent n'archive jamais (marqueur,
+ * journaux, corbeille, dossiers restaurés…) est refusé : en place, on l'aurait supprimé pour ne
+ * rien remettre.
+ */
+export function normalizeRestorePaths(raw: readonly string[], reserved: ExcludeFn): string[] {
+  const out = new Set<string>();
+  for (const p of raw) {
+    const rel = safeRelative(p);
+    if (rel === undefined) {
+      throw new ProtocolError('E_INVALID_PAYLOAD', `invalid path ${p}`, { details: { path: p } });
+    }
+    if (isReservedPath(rel, reserved)) {
+      throw new ProtocolError(
+        'E_INVALID_PAYLOAD',
+        `${rel} is managed by the agent and is never restored`,
+        { retryable: false, details: { reason: 'RESERVED_PATH', path: rel } },
+      );
+    }
+    out.add(rel);
+  }
+  const all = [...out].sort();
+  return all.filter((p) => !all.some((q) => q !== p && p.startsWith(`${q}/`)));
+}
+
+function isReservedPath(rel: string, exclude: ExcludeFn): boolean {
+  const parts = rel.split('/');
+  for (let i = 1; i <= parts.length; i++) {
+    const prefix = parts.slice(0, i).join('/');
+    if (exclude(prefix, 'dir') || exclude(prefix, 'file')) return true;
+  }
+  return false;
+}
+
+/** Prédicat d'inclusion : un chemin choisi vaut lui-même et tout ce qu'il contient. */
+export function includePredicate(paths: readonly string[]): ExcludeFn {
+  return (rel) => paths.some((p) => rel === p || rel.startsWith(`${p}/`));
+}
+
+/** Nom d'un dossier `restored-<yyyymmdd>-<hhmmss>` libre à la racine du serveur (suffixe `-n` si pris). */
+export async function allocateRestoredDir(sourceDir: string, now: number): Promise<string> {
+  const d = new Date(now);
+  const pad = (n: number): string => String(n).padStart(2, '0');
+  const stamp = `${String(d.getFullYear())}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  for (let n = 1; n < 1000; n++) {
+    const name = n === 1 ? `restored-${stamp}` : `restored-${stamp}-${String(n)}`;
+    try {
+      await mkdir(path.join(sourceDir, name));
+      return name;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+    }
+  }
+  throw new ProtocolError('E_IO', 'cannot allocate a restore folder', { retryable: false });
+}
+
+function parentOf(p: string): string {
+  const i = p.lastIndexOf('/');
+  return i === -1 ? '' : p.slice(0, i);
+}
+
+/**
+ * Réponse de `backup.browse` à partir des entrées brutes du tar : chaque dossier porte la taille et
+ * le nombre de fichiers qu'il contient (récursif, listés ou non) ; au plus `perDir` fichiers sont
+ * listés par dossier, `maxEntries` entrées en tout — les dossiers passent toujours en premier, un
+ * dossier se restaure entier quoi qu'il en soit. Un dossier parent absent de l'archive (archive
+ * étrangère) est synthétisé.
+ */
+export function summarizeListing(
+  entries: readonly TarListEntry[],
+  limits: { perDir: number; maxEntries: number } = {
+    perDir: BROWSE_FILES_PER_DIR,
+    maxEntries: BROWSE_MAX_ENTRIES,
+  },
+): BackupBrowseResponse {
+  interface DirAgg {
+    entry: BackupBrowseEntry;
+    listed: number;
+  }
+  const root: DirAgg = { entry: { path: '', kind: 'dir', size: 0, files: 0 }, listed: 0 };
+  const dirs = new Map<string, DirAgg>();
+  const files: BackupBrowseEntry[] = [];
+  let totalFiles = 0;
+  let totalBytes = 0;
+  let truncated = false;
+  const dirOf = (p: string): DirAgg => {
+    if (p === '') return root;
+    let agg = dirs.get(p);
+    if (agg === undefined) {
+      agg = { entry: { path: p, kind: 'dir', size: 0, files: 0 }, listed: 0 };
+      dirs.set(p, agg);
+      dirOf(parentOf(p));
+    }
+    return agg;
+  };
+  for (const e of entries) {
+    if (e.kind === 'dir') {
+      const agg = dirOf(e.rel);
+      if (e.mtimeMs > 0) agg.entry.modifiedAt = e.mtimeMs;
+      continue;
+    }
+    if (e.kind !== 'file') continue;
+    totalFiles++;
+    totalBytes += e.size;
+    const parent = parentOf(e.rel);
+    for (let a = parent; a !== ''; a = parentOf(a)) {
+      const agg = dirOf(a);
+      agg.entry.size += e.size;
+      agg.entry.files = (agg.entry.files ?? 0) + 1;
+    }
+    const holder = dirOf(parent);
+    if (holder.listed >= limits.perDir) {
+      holder.entry.truncated = true;
+      truncated = true;
+      continue;
+    }
+    holder.listed++;
+    files.push({
+      path: e.rel,
+      kind: 'file',
+      size: e.size,
+      ...(e.mtimeMs > 0 ? { modifiedAt: e.mtimeMs } : {}),
+    });
+  }
+  const byPath = (a: BackupBrowseEntry, b: BackupBrowseEntry): number =>
+    a.path < b.path ? -1 : a.path > b.path ? 1 : 0;
+  let out = [...[...dirs.values()].map((d) => d.entry).sort(byPath), ...files.sort(byPath)];
+  if (out.length > limits.maxEntries) {
+    out = out.slice(0, limits.maxEntries);
+    truncated = true;
+  }
+  return { entries: out, totalFiles, totalBytes, truncated };
+}
+
+/** `E_IO` non réessayable `INSUFFICIENT_SPACE`, avec les chiffres que l'UI affiche. */
+function insufficientSpace(
+  dir: string,
+  requiredBytes: number,
+  freeBytes: number,
+  extra: Record<string, unknown>,
+): ProtocolError {
+  const mb = (n: number): number => Math.ceil(n / 1_048_576);
+  return new ProtocolError(
+    'E_IO',
+    `not enough free space on ${dir}: about ${String(mb(requiredBytes))} MB needed, ${String(mb(freeBytes))} MB free`,
+    {
+      retryable: false,
+      details: {
+        reason: 'INSUFFICIENT_SPACE',
+        path: dir,
+        requiredBytes,
+        freeBytes,
+        requiredMb: mb(requiredBytes),
+        freeMb: mb(freeBytes),
+        ...extra,
+      },
+    },
+  );
 }
 
 function manifestPathFor(m: BackupManifest): string {

@@ -15,6 +15,7 @@ import {
   createBackupSchema,
   fsPathQuerySchema,
   restoreBackupSchema,
+  restorePathsSchema,
   scheduledTaskInputSchema,
   tasksQuerySchema,
   uploadQuerySchema,
@@ -49,7 +50,12 @@ export function registerTaskRoutes(app: FastifyInstance, ctx: AppContext): void 
   const ensureIdle = (row: ServerRow): void => {
     const active = ctx.tasks
       .list({ serverId: row.id, active: true })
-      .find((t) => t.kind === 'backup.create' || t.kind === 'backup.restore');
+      .find(
+        (t) =>
+          t.kind === 'backup.create' ||
+          t.kind === 'backup.restore' ||
+          t.kind === 'backup.restorePaths',
+      );
     if (active) {
       throw new AppError('E_BUSY', 'a backup task is already running for this server', {
         details: { taskId: active.id, kind: active.kind },
@@ -222,6 +228,110 @@ export function registerTaskRoutes(app: FastifyInstance, ctx: AppContext): void 
         targetId: row.id,
         targetLabel: row.name,
         details: { backupId: backup.id, taskId, ...request.body },
+      });
+      return { task: ctx.tasks.toDto(ctx.tasks.require(task.id)) };
+    },
+  );
+
+  // --- Lot 4 : restauration partielle ---------------------------------------------------------
+
+  /**
+   * Contenu d'une archive, lu par l'agent sans extraction (`backup.browse`). Lecture seule, donc
+   * ouverte à qui voit l'onglet. Un agent N-1 répond `E_UNSUPPORTED_TYPE` (501) : l'UI dit de le
+   * mettre à jour.
+   */
+  r.get(
+    '/api/servers/:id/backups/:backupId/browse',
+    { schema: { params: backupParams } },
+    async (request) => {
+      const { row, peer } = session(request.params.id);
+      const backup = ctx.backups.require(request.params.backupId);
+      if (backup.serverId !== row.id) throw conflict('backup belongs to another server');
+      if (backup.status !== 'success')
+        throw conflict('backup is not restorable', { status: backup.status });
+      return peer.request('backup.browse', {
+        serverId: row.id,
+        backupId: backup.id,
+        ...(backup.archivePath === null ? {} : { archivePath: backup.archivePath }),
+      });
+    },
+  );
+
+  r.post(
+    '/api/servers/:id/backups/:backupId/restore-paths',
+    { config: { role: 'operator' }, schema: { params: backupParams, body: restorePathsSchema } },
+    async (request) => {
+      const user = requireUser(request);
+      const { row, peer } = session(request.params.id);
+      const backup = ctx.backups.require(request.params.backupId);
+      if (backup.serverId !== row.id) throw conflict('backup belongs to another server');
+      if (backup.status !== 'success')
+        throw conflict('backup is not restorable', { status: backup.status });
+      ensureIdle(row);
+      const { mode, paths } = request.body;
+      // Côte à côte, rien n'est remplacé ni arrêté : ni sauvegarde de sécurité, ni relance.
+      const safetyBackup = mode === 'in_place' && request.body.safetyBackup;
+      const restartAfter = mode === 'in_place' && request.body.restartAfter;
+      const taskId = ulid(ctx.now());
+      const safetyBackupId = ulid(ctx.now());
+      const task = ctx.tasks.create({
+        id: taskId,
+        kind: 'backup.restorePaths',
+        machineId: row.machineId,
+        serverId: row.id,
+        refId: backup.id,
+        createdBy: user.id,
+        request: { backupId: backup.id, paths, mode, safetyBackup, restartAfter, safetyBackupId },
+      });
+      if (safetyBackup) {
+        ctx.backups.start({
+          id: safetyBackupId,
+          serverId: row.id,
+          machineId: row.machineId,
+          kind: 'pre_restore',
+          taskId,
+          createdBy: user.id,
+          comment: `before partial restore of ${backup.id}`,
+        });
+      }
+      try {
+        await peer.request(
+          'backup.restorePaths',
+          {
+            taskId,
+            serverId: row.id,
+            backupId: backup.id,
+            ...(backup.archivePath === null ? {} : { archivePath: backup.archivePath }),
+            paths,
+            mode,
+            safetyBackup,
+            safetyBackupId,
+            restartAfter,
+          },
+          { userId: user.id },
+        );
+      } catch (error) {
+        const err = AppError.from(error);
+        ctx.tasks.fail(taskId, err.toJSON());
+        if (safetyBackup) ctx.backups.fail(safetyBackupId, err.message);
+        throw err;
+      }
+      ctx.tasks.markRunning(taskId);
+      ctx.audit.record({
+        ...auditMeta(request),
+        action: 'backup.restorePaths',
+        targetType: 'server',
+        targetId: row.id,
+        targetLabel: row.name,
+        details: {
+          backupId: backup.id,
+          taskId,
+          mode,
+          safetyBackup,
+          restartAfter,
+          pathCount: paths.length,
+          paths: paths.slice(0, 20),
+        },
       });
       return { task: ctx.tasks.toDto(ctx.tasks.require(task.id)) };
     },
