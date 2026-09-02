@@ -971,6 +971,9 @@ export const webFr = {
     diagnostics: 'Fichier de diagnostic',
     diagnosticsHint:
       'État de l’agent, serveurs, tâches et les 200 dernières lignes de son journal, masqués (ni nom d’utilisateur, ni jeton, ni adresse complète). À joindre à un signalement.',
+    process: 'Processus agent',
+    processHint:
+      'Ce que l’agent coûte lui-même à cette machine : mémoire résidente et CPU (100 % = un cœur entier), d’après son dernier heartbeat.',
   },
   releases: {
     title: 'Releases d’agent',

@@ -150,6 +150,9 @@ export const machineHeartbeatDtoSchema = z.object({
   diskTotalGb: z.number().optional(),
   activeServers: z.int(),
   activeTasks: z.int(),
+  /** Lot 9 (`agent.self`) : coût du processus agent — RSS en Mio, CPU en cœurs (100 = un cœur). */
+  agentRssMb: z.number().optional(),
+  agentCpuPct: z.number().optional(),
 });
 
 export const machineDtoSchema = z.object({

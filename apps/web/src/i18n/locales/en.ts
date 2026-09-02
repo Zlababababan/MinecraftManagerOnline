@@ -960,6 +960,9 @@ export const webEn = {
     diagnostics: 'Diagnostic file',
     diagnosticsHint:
       'Agent state, servers, tasks and the last 200 lines of its log, masked (no user names, tokens or full addresses). Attach it to a bug report.',
+    process: 'Agent process',
+    processHint:
+      'What the agent itself costs this machine: resident memory and CPU (100 % = one full core), from its last heartbeat.',
   },
   releases: {
     title: 'Agent releases',

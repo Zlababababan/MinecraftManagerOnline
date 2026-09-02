@@ -66,6 +66,8 @@ export function machineDto(ctx: AppContext, row: MachineRow): MachineDto {
             ...(hb.diskTotalGb === undefined ? {} : { diskTotalGb: hb.diskTotalGb }),
             activeServers: hb.activeServers,
             activeTasks: hb.activeTasks,
+            ...(hb.agentRssMb === undefined ? {} : { agentRssMb: hb.agentRssMb }),
+            ...(hb.agentCpuPct === undefined ? {} : { agentCpuPct: hb.agentCpuPct }),
           },
         }),
     watchedDirectories: ctx.machines.directories(row.id).map((d) => ({

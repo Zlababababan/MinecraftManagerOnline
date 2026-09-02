@@ -43,6 +43,12 @@ export interface SqliteHandle {
   pragma(source: string, options?: { simple?: boolean }): unknown;
   transaction<A extends unknown[], R>(fn: (...args: A) => R): SqliteTransaction<A, R>;
   close(): void;
+  /**
+   * Lot 9 (budgets de performance) : nombre d'exécutions d'instruction (`run/get/all`, `exec`)
+   * depuis l'ouverture — un test mesure « combien de requêtes pour rendre la liste » et refuse
+   * qu'un N+1 s'installe.
+   */
+  readonly stats: { statements: number };
 }
 
 /** Codes primaires SQLite (les 8 bits de poids faible d'`errcode`). */
@@ -141,18 +147,24 @@ function plain(row: unknown): unknown {
 class Statement implements SqliteStatement {
   #arrays = false;
 
-  constructor(private readonly stmt: StatementSync) {}
+  constructor(
+    private readonly stmt: StatementSync,
+    private readonly stats: { statements: number },
+  ) {}
 
   run(...params: unknown[]): RunResult {
+    this.stats.statements += 1;
     return call(() => this.stmt.run(...(params as SQLInputValue[]))) as RunResult;
   }
 
   all(...params: unknown[]): unknown[] {
+    this.stats.statements += 1;
     const rows = call(() => this.stmt.all(...(params as SQLInputValue[]))) as unknown[];
     return this.#arrays ? rows : rows.map(plain);
   }
 
   get(...params: unknown[]): unknown {
+    this.stats.statements += 1;
     const row = call(() => this.stmt.get(...(params as SQLInputValue[])));
     return this.#arrays ? row : plain(row);
   }
@@ -166,6 +178,7 @@ class Statement implements SqliteStatement {
 
 class Handle implements SqliteHandle {
   #savepoint = 0;
+  readonly stats = { statements: 0 };
 
   constructor(private readonly db: DatabaseSync) {}
 
@@ -179,10 +192,14 @@ class Handle implements SqliteHandle {
   }
 
   prepare(sql: string): SqliteStatement {
-    return new Statement(call(() => this.db.prepare(sql)));
+    return new Statement(
+      call(() => this.db.prepare(sql)),
+      this.stats,
+    );
   }
 
   exec(sql: string): void {
+    this.stats.statements += 1;
     call(() => {
       this.db.exec(sql);
     });

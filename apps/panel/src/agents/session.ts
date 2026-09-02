@@ -654,6 +654,8 @@ export class AgentSession {
         ...(p.diskTotalGb === undefined ? {} : { diskTotalGb: p.diskTotalGb }),
         activeServers: p.activeServers,
         activeTasks: p.activeTasks,
+        ...(p.agentRssMb === undefined ? {} : { agentRssMb: p.agentRssMb }),
+        ...(p.agentCpuPct === undefined ? {} : { agentCpuPct: p.agentCpuPct }),
       },
     });
   }

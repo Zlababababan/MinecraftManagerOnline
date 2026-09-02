@@ -56,6 +56,15 @@ Privacy: looking up player names at Mojang (agents only use the server's `userca
 off) and loading player avatars from mc-heads.net (initials instead). Agents older than this
 release keep asking Mojang until updated.
 
+### What the agent itself costs, and a panel that does not flood idle tabs
+
+The machine page shows the agent's own footprint (resident memory, CPU) from its heartbeat, so
+"the agent slows my server down" can be checked rather than guessed. An agent reconnecting after
+an outage replays up to an hour of metrics; those replayed points no longer go to every open
+browser tab (they are stored and shown by the graphs). Three measurements of the 56-server scale
+test are now budgets that fail the build: the size of the server list, the number of SQL
+statements it takes, and what an idle tab receives.
+
 ## 1.0.7 — 2026-09-01
 
 A small release, mostly about being able to check what you downloaded and to report a problem

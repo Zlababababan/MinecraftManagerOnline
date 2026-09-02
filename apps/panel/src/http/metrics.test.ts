@@ -97,10 +97,13 @@ describe('API phase 7 — métriques et alertes watchdog', () => {
         cpuSource: 'ticks',
       });
     }
+    // Lot 9 (budgets de performance) : seuls les échantillons « vivants » (< 60 s) partent aux
+    // navigateurs — les quatre derniers du lot ; les quatre plus anciens sont un rejeu, ils vont en
+    // base et les graphiques les reliront. Les huit sont bien ingérés (vérifié par l'API ci-dessous).
     await waitFor(
       () =>
         client.messages.filter((m) => (m as { type: string }).type === 'metrics.sample').length ===
-        8,
+        4,
     );
     const live = client.messages.find((m) => (m as { type: string }).type === 'metrics.sample') as {
       machineId: string;

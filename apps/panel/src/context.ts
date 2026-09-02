@@ -155,6 +155,9 @@ export interface ContextOptions {
   >;
 }
 
+/** Un échantillon plus vieux que ça est un rejeu de tampon, pas un point à afficher en direct. */
+const LIVE_SAMPLE_WINDOW_MS = 60_000;
+
 export function createContext(options: ContextOptions): AppContext {
   const { config, logger } = options;
   const now = options.now ?? (() => Date.now());
@@ -208,7 +211,13 @@ export function createContext(options: ContextOptions): AppContext {
     sqlite: metrics.sqlite,
     now,
     onSample: (machineId, sample) => {
-      hub.broadcast({ type: 'metrics.sample', machineId, sample });
+      // Budget de performance (lot 9) : seuls les échantillons « vivants » vont aux navigateurs.
+      // Un agent qui se reconnecte rejoue jusqu'à une heure de tampon (240 échantillons) : les
+      // diffuser tous coûtait 240 messages par navigateur pour des points qu'aucune vue n'affiche
+      // en direct — ils partent en base et les graphiques les reliront.
+      if (sample.ts >= now() - LIVE_SAMPLE_WINDOW_MS) {
+        hub.broadcast({ type: 'metrics.sample', machineId, sample });
+      }
     },
   });
 

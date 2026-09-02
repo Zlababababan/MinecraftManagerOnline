@@ -76,6 +76,19 @@ export function AgentCard({ machine }: { machine: MachineDto }) {
           <Text size="sm">
             {t('web:agentUpdate.latest')} : <b>{machine.latestRelease ?? t('web:common.none')}</b>
           </Text>
+          {machine.heartbeat?.agentRssMb !== undefined && (
+            <Tooltip label={t('web:agentUpdate.processHint')} withArrow multiline w={300}>
+              <Text size="sm" data-testid="agent-self">
+                {t('web:agentUpdate.process')} :{' '}
+                <b>
+                  {Math.round(machine.heartbeat.agentRssMb)} Mio
+                  {machine.heartbeat.agentCpuPct === undefined
+                    ? ''
+                    : ` · ${machine.heartbeat.agentCpuPct.toFixed(1)} %`}
+                </b>
+              </Text>
+            </Tooltip>
+          )}
         </SimpleGrid>
         {isAdmin && (
           <Group>

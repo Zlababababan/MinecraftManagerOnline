@@ -115,6 +115,9 @@ export const agentHeartbeatSchema = z.object({
   diskTotalGb: z.number().positive().optional(),
   activeServers: z.int().nonnegative(),
   activeTasks: z.int().nonnegative(),
+  /** Lot 9 (`agent.self`, sans bump) : coût du processus agent lui-même — RSS et CPU en cœurs. */
+  agentRssMb: z.number().nonnegative().optional(),
+  agentCpuPct: z.number().min(0).optional(),
 });
 
 // --- agent.info (P→A) -----------------------------------------------------------------------------

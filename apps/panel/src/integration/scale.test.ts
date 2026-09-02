@@ -18,6 +18,7 @@ import { Agent } from '../../../agent/src/agent.js';
 import { Logger } from '../../../agent/src/log.js';
 import { HOUR, RETENTION } from '../services/metrics.js';
 import {
+  connectClient,
   createTestPanel,
   freePort,
   setupAdmin,
@@ -34,6 +35,20 @@ const FIXTURES = path.resolve(
 );
 const TARGET = 56;
 const STEP = 15_000;
+
+/**
+ * Budgets de performance (lot 9), mesurés ici et élevés au rang d'assertions. Les valeurs
+ * mesurées le 2026-09-02 sont dans le journal du test (`[budget]`) ; les bornes laissent une
+ * marge de ~2× pour que le test dise « ça a enflé », pas « le runner est lent ».
+ */
+/** Liste complète des 56 serveurs : un DTO par serveur, sans détection ni journal embarqués (mesuré 105 227 o). */
+const SERVERS_LIST_MAX_BYTES = 160 * 1024;
+/** Un rendu de liste = quelques requêtes, jamais une par serveur (mesuré 3). */
+const SERVERS_LIST_MAX_STATEMENTS = 8;
+/** Un navigateur inactif ne doit pas recevoir le rejeu de 48 h de métriques : seuls les points vivants (mesuré 4 sur 11 520). */
+const IDLE_CLIENT_MAX_SAMPLE_MESSAGES = 20;
+/** Un échantillon `metrics.sample` de 56 serveurs, sérialisé pour un navigateur (mesuré 6 499 o). */
+const SAMPLE_MESSAGE_MAX_BYTES = 12 * 1024;
 
 describe('phase 12 — échelle', () => {
   let panel: TestPanel;
@@ -159,10 +174,21 @@ describe('phase 12 — échelle', () => {
         expect(s.mcVersion, s.name).toBeTruthy();
       }
       // Liste complète et page machine rapides (< 250 ms) ; aucun conflit.
+      // Budgets de performance (lot 9) : la liste de 56 serveurs pèse et coûte un nombre borné
+      // d'instructions SQL — un DTO qui enfle ou un N+1 qui s'installe font échouer ce test.
+      const statementsBefore = panel.ctx.sqlite.stats.statements;
       const t1 = performance.now();
       res = await api('GET', '/api/servers');
+      const listMs = performance.now() - t1;
+      const listStatements = panel.ctx.sqlite.stats.statements - statementsBefore;
+      const listBytes = Buffer.byteLength(res.body);
       expect(res.json<{ servers: ServerDto[] }>().servers).toHaveLength(TARGET);
-      expect(performance.now() - t1).toBeLessThan(250);
+      expect(listMs).toBeLessThan(250);
+      console.info(
+        `[budget] GET /api/servers × ${String(TARGET)} : ${String(listBytes)} o, ${String(listStatements)} instructions SQL, ${listMs.toFixed(1)} ms`,
+      );
+      expect(listBytes).toBeLessThan(SERVERS_LIST_MAX_BYTES);
+      expect(listStatements).toBeLessThanOrEqual(SERVERS_LIST_MAX_STATEMENTS);
       res = await api('GET', '/api/servers/conflicts');
       expect(res.json<{ conflicts: unknown[] }>().conflicts).toHaveLength(0);
       // Un second scan ne crée rien (ré-identification par marqueur).
@@ -207,6 +233,10 @@ describe('phase 12 — échelle', () => {
       );
 
       // --- 48 h de métriques synthétiques pour les 56 serveurs ------------------------------------
+      // Budget (lot 9) : un navigateur inactif connecté pendant le rejeu ne doit recevoir que les
+      // points vivants (< 60 s), jamais les 645 k échantillons rejoués — chacun partait à tous les
+      // navigateurs avant ce garde-fou.
+      const idle = await connectClient(panel.wsUrl, admin);
       const end = Date.now();
       const begin = end - RETENTION.rawMs;
       const all = panel.ctx.servers.list().map((s) => s.id);
@@ -236,6 +266,38 @@ describe('phase 12 — échelle', () => {
       expect(result.hours).toBeGreaterThan(0);
       // Ingestion + agrégation de 645 k lignes serveur en moins de 2 min sur la machine de test.
       expect(ingestMs).toBeLessThan(120_000);
+      // Budgets (lot 9) : le navigateur inactif n'a reçu que les points vivants (les dernières
+      // minutes du rejeu), et un échantillon de 56 serveurs sérialisé reste petit.
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const idleSamples = idle.messages.filter(
+        (m) => (m as { type?: string }).type === 'metrics.sample',
+      );
+      const lastSample = panel.ctx.metricsService.latestMachinePoint(machine.id);
+      const sampleBytes = Buffer.byteLength(
+        JSON.stringify({
+          type: 'metrics.sample',
+          machineId: machine.id,
+          sample: {
+            ts: end,
+            machine: { cpuPct: 50.5, ramUsedMb: 20_000, ramTotalMb: 65_536 },
+            servers: all.map((serverId) => ({
+              serverId,
+              cpuPct: 12.5,
+              rssMb: 2048,
+              tps: 19.75,
+              tpsSource: 'forge',
+              players: 3,
+            })),
+          },
+        }),
+      );
+      console.info(
+        `[budget] navigateur inactif pendant le rejeu de 48 h : ${String(idleSamples.length)} metrics.sample reçus (${String(samples)} ingérés) ; un échantillon de ${String(TARGET)} serveurs = ${String(sampleBytes)} o`,
+      );
+      expect(lastSample).not.toBeUndefined();
+      expect(idleSamples.length).toBeLessThan(IDLE_CLIENT_MAX_SAMPLE_MESSAGES);
+      expect(sampleBytes).toBeLessThan(SAMPLE_MESSAGE_MAX_BYTES);
+      idle.close();
 
       // Requêtes API : 48 h (1 min ⇒ 2 880 points max), 7 j (1 h), brut 1 h — chacune < 500 ms.
       const target = all[TARGET - 1]!;

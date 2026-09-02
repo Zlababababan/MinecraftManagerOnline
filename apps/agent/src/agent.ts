@@ -43,6 +43,7 @@ import { ServerManager, type ServerManagerOptions } from './minecraft/server-man
 import type { ServerProcessEvent } from './minecraft/server-process.js';
 import { MetricsCollector } from './monitoring/metrics.js';
 import { PlatformSampler, type ProcessSampler } from './monitoring/sampler.js';
+import { SelfMeter } from './monitoring/self.js';
 import { Watchdog, type WatchdogOptions } from './monitoring/watchdog.js';
 import { JavaRegistry, defaultManagedJavaDir } from './platform/java.js';
 import { Scanner, type ScanDiff, type ScanTarget } from './scan/scanner.js';
@@ -180,6 +181,8 @@ export class Agent {
   private javaSnapshot: RequestPayload<'sync.state'>['javaRuntimes'] = [];
   private trashTimer: ReturnType<typeof setInterval> | undefined;
   private started = false;
+  /** Lot 9 : coût du processus agent (RSS, CPU) remonté dans chaque heartbeat. */
+  private readonly selfMeter = new SelfMeter();
   /** Lot 9 : journal fichier de l'agent et instant de démarrage du processus (diagnostic). */
   private fileLog: AgentLogSink | undefined;
   private detachFileLog: (() => void) | undefined;
@@ -574,6 +577,7 @@ export class Agent {
     const total = os.totalmem();
     const free = os.freemem();
     const m = this.metrics.summary;
+    const self = this.selfMeter.read();
     return {
       ts: Date.now(),
       ...(m?.cpuPct === undefined ? {} : { cpuPct: m.cpuPct, cpuSource: m.cpuSource }),
@@ -584,6 +588,9 @@ export class Agent {
         : { diskUsedGb: m.diskUsedGb, diskTotalGb: m.diskTotalGb }),
       activeServers: this.manager.runningCount,
       activeTasks: this.tasks.activeCount + this.transfers.activeCount,
+      // Lot 9 : ce que l'agent coûte lui-même à la machine (« il ralentit mon serveur »).
+      agentRssMb: self.rssMb,
+      ...(self.cpuPct === undefined ? {} : { agentCpuPct: self.cpuPct }),
     };
   }
 
