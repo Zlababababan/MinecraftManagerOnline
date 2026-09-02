@@ -94,6 +94,7 @@ import {
   backupListResponseSchema,
   backupListSchema,
   backupRestorePathsSchema,
+  backupReceiveSchema,
   backupRestoreSchema,
   backupRotatedSchema,
   backupSkippedSchema,
@@ -221,6 +222,8 @@ export const REQUESTS = {
   // Lot 4 — restauration partielle (ajout sans bump : un agent N-1 répond E_UNSUPPORTED_TYPE)
   'backup.browse': req('p2a', backupBrowseSchema, backupBrowseResponseSchema),
   'backup.restorePaths': req('p2a', backupRestorePathsSchema, taskAcceptedSchema),
+  // Lot 4 — réplication hors-site (ajout sans bump, capacité `replication`)
+  'backup.receive': req('p2a', backupReceiveSchema, taskAcceptedSchema),
   'fs.fetch': req('p2a', fsFetchSchema, taskAcceptedSchema),
   // Jalon C — transferts binaires (phase 8)
   'fs.download.start': req('p2a', fsDownloadStartSchema, fsDownloadStartResponseSchema),

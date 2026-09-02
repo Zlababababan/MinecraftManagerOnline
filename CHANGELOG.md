@@ -141,6 +141,15 @@ or the tailnet, and hosts resolving to private, loopback, link-local or Tailscal
 webhook must not become a door into the network the panel sits on. The JSON secret is shown once,
 at creation; the guide explains how to verify the `x-mmo-signature` header.
 
+### Backups get an off-site copy
+
+Server page → Backups → _Off-site copy_: pick another machine of the fleet and every successful
+backup of that server is copied there as soon as it is written — agent to agent when the two can
+reach each other, through the panel otherwise, resumable and verified. The copy keeps its own
+retention. Each archive shows where its copy lives; if the original disappears from the server's
+machine (rotation, lost disk), _Pull back_ brings the copy home and the backup is restorable again.
+A machine that was off catches up when it reconnects. Agents need this version to receive copies.
+
 ## 1.0.7 — 2026-09-01
 
 A small release, mostly about being able to check what you downloaded and to report a problem

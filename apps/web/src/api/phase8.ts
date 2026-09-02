@@ -10,8 +10,11 @@ import type {
   BackupDto,
   BackupPolicyDto,
   BackupPolicyInput,
+  BackupReplicaDto,
   PanelBackupDto,
   PanelBackupStatus,
+  ReplicationDto,
+  ReplicationInput,
   RestorePathsInput,
   ScheduledTaskDto,
   ScheduledTaskInput,
@@ -37,6 +40,9 @@ export const phase8Keys = {
 export interface BackupsResult {
   backups: BackupDto[];
   policies: BackupPolicyDto[];
+  /** Lot 4 : copies hors-site — absents sur un panel antérieur (mise à jour en cours). */
+  replication?: ReplicationDto | null;
+  replicas?: BackupReplicaDto[];
 }
 
 export const activeTasksQuery = queryOptions({
@@ -182,6 +188,41 @@ export function useCancelTask() {
       api.post<{ cancelled: boolean; task: TaskDto }>(`/api/tasks/${taskId}/cancel`),
     onSuccess: () => qc.invalidateQueries({ queryKey: phase8Keys.tasks }),
   });
+}
+
+/** Lot 4 — copies hors-site : réglage, copie à la demande, rapatriement, suppression d'une copie. */
+export function useReplicationMutations(serverId: string) {
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: phase8Keys.backups(serverId) });
+  const setConfig = useMutation({
+    mutationFn: (body: ReplicationInput) =>
+      api.put<{ replication: ReplicationDto | null }>(`/api/servers/${serverId}/replication`, body),
+    onSuccess: invalidate,
+  });
+  const replicate = useMutation({
+    mutationFn: (backupId: string) =>
+      api.post<{ replica: BackupReplicaDto; task: TaskDto | null }>(
+        `/api/servers/${serverId}/backups/${backupId}/replicate`,
+        {},
+      ),
+    onSuccess: invalidate,
+  });
+  const pull = useMutation({
+    mutationFn: ({ backupId, replicaId }: { backupId: string; replicaId: string }) =>
+      api.post<{ task: TaskDto }>(
+        `/api/servers/${serverId}/backups/${backupId}/replicas/${replicaId}/pull`,
+        {},
+      ),
+    onSuccess: invalidate,
+  });
+  const removeReplica = useMutation({
+    mutationFn: ({ backupId, replicaId }: { backupId: string; replicaId: string }) =>
+      api.delete<{ replica: BackupReplicaDto }>(
+        `/api/servers/${serverId}/backups/${backupId}/replicas/${replicaId}`,
+      ),
+    onSuccess: invalidate,
+  });
+  return { setConfig, replicate, pull, removeReplica };
 }
 
 export function useBackupPolicyMutations(serverId: string) {

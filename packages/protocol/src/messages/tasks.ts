@@ -18,6 +18,7 @@ export const TASK_KINDS = [
   'backup.create',
   'backup.restore',
   'backup.restorePaths',
+  'backup.receive',
   'fs.fetch',
   'migration.export',
   'migration.import',
@@ -334,6 +335,51 @@ export const backupRotatedSchema = z.object({
   policyId: z.string().optional(),
   deleted: z.array(z.object({ backupId: z.string(), archivePath: z.string() })),
 });
+
+// --- Réplication hors-site (lot 4, 2026-09-02 — ajout sans bump) ---------------------------------
+
+export const transferSourceSchema = z.object({
+  url: z.string().min(1),
+  kind: z.enum(['direct', 'relay']),
+  headers: z.record(z.string(), z.string()).optional(),
+});
+export type TransferSource = z.infer<typeof transferSourceSchema>;
+
+/**
+ * `backup.receive` : cette machine reçoit une **copie** d'une archive produite ailleurs — mêmes
+ * sources que `migration.import` (listener direct de l'agent source, puis relais panel, reprise
+ * `Range`), sha256 vérifié, manifeste réécrit à côté sous le **même `backupId`** (`backup.list` la
+ * voit, `transfer.serve` sait la servir pour un rapatriement), puis rotation `keep` sur ce dossier :
+ * la rétention de la copie est indépendante de celle de l'original. Le serveur n'a pas besoin
+ * d'exister sur cette machine. Un agent N-1 répond `E_UNSUPPORTED_TYPE` (capacité `replication`).
+ */
+export const backupReceiveSchema = z.object({
+  taskId: taskIdSchema,
+  serverId: serverIdSchema,
+  backupId: z.string().min(1),
+  manifest: backupManifestSchema,
+  sources: z.array(transferSourceSchema).min(1),
+  /** Dossier racine absolu ; absent ⇒ destination globale de cet agent ou défaut. */
+  destination: z.string().optional(),
+  /** Copies conservées dans ce dossier pour ce serveur (les plus anciennes partent). */
+  keep: z.int().positive().optional(),
+  connectTimeoutMs: z.int().positive().optional(),
+});
+export type BackupReceiveRequest = z.infer<typeof backupReceiveSchema>;
+
+/** Résultat de `backup.receive` (dans `task.completed.result`). */
+export const backupReceiveResultSchema = z.object({
+  backupId: z.string().min(1),
+  serverId: serverIdSchema,
+  archivePath: z.string(),
+  sizeBytes: z.int().nonnegative(),
+  sha256: z.string().length(64),
+  source: z.enum(['direct', 'relay']),
+  durationMs: z.int().nonnegative(),
+  /** Copies plus anciennes supprimées par la rotation `keep` de ce dossier. */
+  rotated: z.array(z.string()),
+});
+export type BackupReceiveResult = z.infer<typeof backupReceiveResultSchema>;
 
 // --- fs.fetch (task) : l'agent télécharge une URL dans le dossier du serveur --------------------
 

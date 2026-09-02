@@ -11,7 +11,7 @@
  *   invalide refusée, `agent.updateResult` (rollback) journalisé en événement + audit, `autoUpdate`.
  */
 import { createHash, generateKeyPairSync, sign } from 'node:crypto';
-import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -233,6 +233,105 @@ describe('phase 9 — panel ↔ deux agents réels', () => {
     }, 60_000);
     return panel.ctx.migrations.toDto(panel.ctx.migrations.require(id));
   }
+
+  it(
+    'lot 4 : copie hors-site A → B après une sauvegarde, rotation de la copie, rapatriement après perte de l’original',
+    async () => {
+      const replicas = (all = false) => panel.ctx.replication.replicas(server.id, all);
+      const manifestPath = (archive: string) => archive.replace(/\.tar\.(gz|zst)$/, '.json');
+      // Réglage : les archives de Survie (Tour) sont copiées sur le Pi, une seule conservée là-bas.
+      let res = await api('PUT', `/api/servers/${server.id}/replication`, {
+        machineId: machineB,
+        keepLast: 1,
+      });
+      expect(res.statusCode, res.body).toBe(200);
+
+      // Sauvegarde manuelle sur la Tour → copie automatique vers le Pi (listener direct de la Tour).
+      res = await api('POST', `/api/servers/${server.id}/backups`, { comment: 'copie' });
+      expect(res.statusCode, res.body).toBe(200);
+      const bk1 = res.json<{ backup: { id: string } }>().backup.id;
+      await waitFor(
+        () => replicas().some((c) => c.backupId === bk1 && c.status === 'success'),
+        60_000,
+      );
+      const copy1 = replicas().find((c) => c.backupId === bk1);
+      const original1 = panel.ctx.backups.require(bk1);
+      if (
+        copy1?.archivePath === undefined ||
+        copy1.archivePath === null ||
+        original1.archivePath === null
+      ) {
+        throw new Error('unreachable');
+      }
+      expect(copy1.sha256).toBe(original1.sha256);
+      expect(copy1.archivePath).not.toBe(original1.archivePath);
+      expect(copy1.archivePath.startsWith(path.dirname(rootB))).toBe(true);
+      expect(sha256(await readFile(copy1.archivePath))).toBe(original1.sha256);
+      const copiedManifest = JSON.parse(
+        await readFile(manifestPath(copy1.archivePath), 'utf8'),
+      ) as {
+        backupId: string;
+        archivePath: string;
+        sha256: string;
+      };
+      expect(copiedManifest).toMatchObject({
+        backupId: bk1,
+        archivePath: copy1.archivePath,
+        sha256: original1.sha256,
+      });
+      const receiveTask = panel.ctx.tasks
+        .list({ serverId: server.id })
+        .find((t) => t.kind === 'backup.receive');
+      expect(receiveTask?.status).toBe('done');
+      if (receiveTask === undefined) throw new Error('unreachable');
+      expect((panel.ctx.tasks.toDto(receiveTask).result as { source?: string }).source).toBe(
+        'direct',
+      );
+
+      // Seconde sauvegarde : une seule copie conservée → la première est rotée sur le Pi, sa fiche
+      // passe `deleted` ; l'original, lui, garde sa propre rétention.
+      res = await api('POST', `/api/servers/${server.id}/backups`, {});
+      expect(res.statusCode, res.body).toBe(200);
+      const bk2 = res.json<{ backup: { id: string } }>().backup.id;
+      await waitFor(
+        () => replicas().some((c) => c.backupId === bk2 && c.status === 'success'),
+        60_000,
+      );
+      expect(replicas(true).find((c) => c.backupId === bk1)?.status).toBe('deleted');
+      await expect(stat(copy1.archivePath)).rejects.toThrow();
+      expect(panel.ctx.backups.require(bk1).status).toBe('success');
+
+      // L'original de bk2 disparaît de la Tour (rotation, disque perdu) : rapatriement depuis le Pi.
+      const original2 = panel.ctx.backups.require(bk2);
+      if (original2.archivePath === null) throw new Error('unreachable');
+      await rm(original2.archivePath);
+      await rm(manifestPath(original2.archivePath));
+      panel.ctx.backups.markDeleted([bk2]);
+      const copy2 = replicas().find((c) => c.backupId === bk2 && c.status === 'success');
+      if (copy2 === undefined) throw new Error('unreachable');
+      res = await api(
+        'POST',
+        `/api/servers/${server.id}/backups/${bk2}/replicas/${copy2.id}/pull`,
+        {},
+      );
+      expect(res.statusCode, res.body).toBe(202);
+      await waitFor(() => panel.ctx.backups.get(bk2)?.status === 'success', 60_000);
+      const back = panel.ctx.backups.require(bk2);
+      if (back.archivePath === null) throw new Error('unreachable');
+      expect(back.machineId).toBe(machineA);
+      expect(back.archivePath).toBe(original2.archivePath);
+      expect(sha256(await readFile(back.archivePath))).toBe(original2.sha256);
+      // …et se restaure comme n'importe quelle sauvegarde : la copie vaut l'original.
+      res = await api('POST', `/api/servers/${server.id}/backups/${bk2}/restore`, {
+        safetyBackup: false,
+        restartAfter: false,
+      });
+      expect(res.statusCode, res.body).toBe(200);
+      const restoreTask = res.json<{ task: { id: string } }>().task.id;
+      await waitFor(() => panel.ctx.tasks.get(restoreTask)?.status === 'done', 60_000);
+    },
+    testBudget(120_000),
+  );
 
   it(
     'migration A → B en direct (serveur en marche), puis retour B → A en relais',

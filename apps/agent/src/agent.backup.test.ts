@@ -223,6 +223,130 @@ describe('phase 8 : tasks, backups, transferts de bout en bout', () => {
     await waitFor(() => cap.states.some((s) => s.state === state), 15_000);
   }
 
+  it('lot 4 : copie hors-site — backup.receive depuis une source HTTP, copie présente revérifiée, archive altérée refusée, keep du dossier de copie, marqueur exigé', async () => {
+    const peer = await bootAgent();
+    await configure(peer);
+    // Archive produite localement (à froid), puis servie par un petit serveur HTTP qui joue la
+    // machine source (même contrat que le listener `transfer.serve` : GET, corps entier).
+    const taskId = ulid();
+    await peer.request('backup.create', { taskId, serverId: 'srv_1', backupId: 'bk_src' });
+    await waitFor(() => cap.completed.some((c) => c.taskId === taskId), 20_000);
+    const manifest = cap.completed.find((c) => c.taskId === taskId)?.result as BackupManifest;
+    const bytes = await readFile(manifest.archivePath);
+    let served: Buffer = bytes;
+    let hits = 0;
+    const source = http.createServer((req, res) => {
+      hits += 1;
+      res.writeHead(200, { 'content-length': String(served.byteLength) });
+      if (req.method === 'HEAD') {
+        res.end();
+        return;
+      }
+      res.end(served);
+    });
+    await new Promise<void>((r) => {
+      source.listen(0, '127.0.0.1', r);
+    });
+    const port = (source.address() as { port: number }).port;
+    const url = `http://127.0.0.1:${String(port)}/archive`;
+    const copyRoot = path.join(stateDir, 'offsite');
+    await mkdir(copyRoot, { recursive: true });
+    await writeFile(path.join(copyRoot, '.mmo-backups.json'), '');
+    const receive = (req: Record<string, unknown>) => {
+      const id = ulid();
+      return peer
+        .request('backup.receive', {
+          taskId: id,
+          serverId: 'srv_1',
+          backupId: 'bk_src',
+          manifest,
+          sources: [{ url, kind: 'direct' }],
+          destination: copyRoot,
+          keep: 1,
+          ...req,
+        })
+        .then(() => id);
+    };
+    const finished = (id: string) =>
+      waitFor(
+        () => cap.completed.some((c) => c.taskId === id) || cap.failed.some((f) => f.taskId === id),
+        20_000,
+      );
+    interface Received {
+      archivePath: string;
+      sha256: string;
+      source: string;
+      rotated: string[];
+    }
+    try {
+      // Copie reçue : téléchargée, vérifiée, déposée sous <destination>/<serverId>/<backupId>.<ext>
+      // avec son manifeste réécrit (chemin local), serveur inconnu ou non de cette machine.
+      const t1 = await receive({});
+      await finished(t1);
+      const r1 = cap.completed.find((c) => c.taskId === t1)?.result as unknown as Received;
+      expect(r1).toMatchObject({ source: 'direct', sha256: manifest.sha256, rotated: [] });
+      expect(r1.archivePath.startsWith(path.join(copyRoot, 'srv_1'))).toBe(true);
+      expect(sha256(await readFile(r1.archivePath))).toBe(manifest.sha256);
+      const side = JSON.parse(
+        await readFile(path.join(copyRoot, 'srv_1', 'bk_src.json'), 'utf8'),
+      ) as BackupManifest;
+      expect(side).toMatchObject({ backupId: 'bk_src', archivePath: r1.archivePath });
+      expect(hits).toBeGreaterThanOrEqual(1);
+
+      // Copie déjà présente : revérifiée, jamais retéléchargée.
+      hits = 0;
+      const t2 = await receive({});
+      await finished(t2);
+      expect(cap.completed.some((c) => c.taskId === t2)).toBe(true);
+      expect(hits).toBe(0);
+
+      // Archive altérée à la source : sha256 faux → E_CHECKSUM_MISMATCH, rien ne reste.
+      served = Buffer.concat([bytes.subarray(0, bytes.byteLength - 10), Buffer.from('corrupted!')]);
+      const t3 = await receive({
+        backupId: 'bk_bad',
+        manifest: { ...manifest, backupId: 'bk_bad' },
+      });
+      await finished(t3);
+      expect(cap.failed.find((f) => f.taskId === t3)?.error.code).toBe('E_CHECKSUM_MISMATCH');
+      expect(
+        (await readdir(path.join(copyRoot, 'srv_1'))).filter((n) => n.includes('bk_bad')),
+      ).toEqual([]);
+
+      // Rotation du dossier de copie : une copie plus récente avec `keep: 1` fait partir la première.
+      served = bytes;
+      const t4 = await receive({
+        backupId: 'bk_src2',
+        manifest: { ...manifest, backupId: 'bk_src2', createdAt: manifest.createdAt + 1000 },
+      });
+      await finished(t4);
+      const r4 = cap.completed.find((c) => c.taskId === t4)?.result as unknown as Received;
+      expect(r4.rotated).toEqual(['bk_src']);
+      const left = (await readdir(path.join(copyRoot, 'srv_1'))).sort();
+      expect(left.every((n) => n.startsWith('bk_src2.'))).toBe(true);
+      expect(left).toHaveLength(2);
+
+      // Destination explicite sans marqueur : refus avant le premier octet.
+      hits = 0;
+      const bare = path.join(stateDir, 'bare');
+      await mkdir(bare, { recursive: true });
+      const t5 = await receive({ destination: bare });
+      await finished(t5);
+      const refusal = cap.failed.find((f) => f.taskId === t5)?.error;
+      expect(refusal?.code).toBe('E_IO');
+      expect((refusal?.details as { reason?: string } | undefined)?.reason).toBe(
+        'DESTINATION_UNMARKED',
+      );
+      expect(hits).toBe(0);
+      expect(await readdir(bare)).toEqual([]);
+    } finally {
+      await new Promise<void>((r) => {
+        source.close(() => {
+          r();
+        });
+      });
+    }
+  });
+
   it('backup à chaud : save-off → save-all flush → archive → save-on, manifeste sha256, progression, listage', async () => {
     const peer = await bootAgent();
     await configure(peer);

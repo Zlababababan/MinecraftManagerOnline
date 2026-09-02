@@ -33,6 +33,7 @@ import { PANEL_VERSION } from './version.js';
 import { ProcessedEventsService } from './services/processed-events.js';
 import { UpdateCheckService } from './services/update-check.js';
 import { WebhooksService, type WebhooksServiceOptions } from './services/webhooks.js';
+import { ReplicationService } from './services/replication.js';
 import { AlertsService, DEFAULT_THRESHOLDS } from './services/alerts.js';
 import { collectConditions } from './services/alert-conditions.js';
 import { CommandCatalogService } from './services/command-catalog.js';
@@ -97,6 +98,8 @@ export interface AppContext {
   updateCheck: UpdateCheckService;
   /** Lot 4 : webhooks sortants (Discord, JSON signé), abonnés au bus comme les notifications. */
   webhooks: WebhooksService;
+  /** Lot 4 : copies hors-site des archives vers une autre machine du parc (chaîne de migration). */
+  replication: ReplicationService;
   /** `fetch` injectable (tests) pour les appels sortants du panel (manifest Mojang, API spark). */
   fetchImpl: typeof fetch | undefined;
   /**
@@ -413,6 +416,20 @@ export function createContext(options: ContextOptions): AppContext {
     ...(options.groupWait ?? {}),
   });
 
+  // Lot 4 : copies hors-site — même relais et mêmes TTL que les migrations.
+  const replication = new ReplicationService({
+    db,
+    now,
+    registry,
+    servers,
+    machines,
+    tasks,
+    backups,
+    relay: relayTokens,
+    logger,
+    ttlMs: options.migrationTtlMs,
+  });
+
   // Phase 10 : notifications (abonné au bus) et couche d'accès.
   const notifications = new NotificationsService({
     db,
@@ -496,6 +513,7 @@ export function createContext(options: ContextOptions): AppContext {
     distribution,
     updateCheck,
     webhooks,
+    replication,
     fetchImpl: options.fetch,
     diagnostics: {
       startedAt: now(),

@@ -12,7 +12,7 @@
  *   explicite (un volume non monté n'est pas une destination), et espace libre contre la taille
  *   estimée de l'archive.
  */
-import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
@@ -35,6 +35,8 @@ import {
   type BackupCodec,
   type BackupKind,
   type BackupManifest,
+  type BackupReceiveRequest,
+  type BackupReceiveResult,
   type BackupRestorePathsResult,
   type ParsedRequestPayload,
 } from '@mmo/protocol';
@@ -45,6 +47,7 @@ import type { ServerProcess } from '../minecraft/server-process.js';
 import type { StateStore } from '../state/store.js';
 import type { TaskContext } from '../tasks/runner.js';
 import { freeBytes as probeFreeBytes } from '../util/disk.js';
+import { downloadWithResume } from '../util/download.js';
 import {
   archiveExtension,
   chooseCodec,
@@ -68,6 +71,9 @@ const SAVE_TIMEOUT_MS = 120_000;
 const SAVED_PATTERN = /Saved the (game|world)|Saving chunks|ThreadedAnvilChunkStorage/i;
 
 export interface BackupServiceOptions {
+  /** Lot 4 — réplication : origine HTTP du panel (URL relais relatives) et `fetch` injectable. */
+  panelOrigin?: (() => string | undefined) | undefined;
+  fetchImpl?: typeof fetch | undefined;
   stateDir: string;
   store: StateStore;
   manager: ServerManager;
@@ -406,6 +412,130 @@ export class BackupService {
       if (this.now() - lastActivity >= settle) return;
       await sleep(100);
     }
+  }
+
+  // --- Réplication hors-site (lot 4) ---------------------------------------------------------
+
+  /**
+   * Exécuteur de la task `backup.receive` : cette machine devient la **copie hors-site** d'une
+   * archive produite ailleurs. Téléchargement avec reprise depuis les sources données (listener
+   * direct de l'agent source, puis relais panel), sha256 vérifié par le téléchargeur, manifeste
+   * réécrit à côté sous le même `backupId` (`backup.list` la voit, `transfer.serve` sait la servir
+   * pour un rapatriement), puis rotation `keep` sur ce dossier — la rétention de la copie est
+   * indépendante de celle de l'original. Le serveur n'a pas à exister sur cette machine. Le nom du
+   * fichier est recalculé ici (`<backupId>.<ext>`) : le chemin d'origine peut venir d'un autre OS.
+   */
+  async receive(
+    req: Omit<BackupReceiveRequest, 'taskId'>,
+    ctx: TaskContext,
+  ): Promise<BackupReceiveResult> {
+    const startedAt = this.now();
+    const manifest = req.manifest;
+    // Même garde de marqueur qu'une sauvegarde locale : une destination explicite non montée
+    // n'accueille rien (lot 4, `guards.ts`).
+    const root = this.explicitRoot(req.destination);
+    if (root !== undefined && !(await hasMarker(root))) {
+      throw new ProtocolError(
+        'E_IO',
+        `backup destination ${root} has no marker file ${DESTINATION_MARKER}: the folder is probably not mounted or was replaced; nothing was written`,
+        {
+          retryable: false,
+          details: { reason: 'DESTINATION_UNMARKED', path: root, marker: DESTINATION_MARKER },
+        },
+      );
+    }
+    const destDir = this.serverDestination(req.serverId, req.destination);
+    await mkdir(destDir, { recursive: true });
+    const archivePath = path.join(
+      destDir,
+      `${sanitize(manifest.backupId)}${archiveExtension(manifest.codec)}`,
+    );
+    const manifestPath = path.join(destDir, `${sanitize(manifest.backupId)}.json`);
+    const partPath = `${archivePath}.part`;
+    let source: 'direct' | 'relay' = 'direct';
+    if (await exists(archivePath)) {
+      // Rejeu de la même task, ou copie déjà présente : pas de nouveau téléchargement, mais on
+      // revérifie — c'est la seule preuve que cette copie vaut quelque chose.
+      ctx.progress('verifying', 50);
+      const check = await verifyArchive(archivePath, manifest, {
+        shouldAbort: () => ctx.isCancelled,
+      });
+      if (!check.ok) {
+        await rm(archivePath, { force: true });
+        throw new ProtocolError(
+          'E_CHECKSUM_MISMATCH',
+          'existing copy does not match the manifest',
+          {
+            details: { expectedSha256: manifest.sha256, actualSha256: check.sha256 },
+          },
+        );
+      }
+    } else {
+      // Garde d'espace : la taille est connue exactement, pas d'estimation à faire.
+      const free = await this.freeBytes(destDir);
+      const required = manifest.sizeBytes + SPACE_HEADROOM_BYTES;
+      if (free !== undefined && free < required) {
+        throw insufficientSpace(destDir, required, free, {
+          bytesRaw: manifest.bytesRaw,
+          ratio: 1,
+        });
+      }
+      ctx.artifact(partPath);
+      ctx.artifact(archivePath);
+      await ctx.checkpoint();
+      ctx.progress('downloading', 0);
+      const result = await downloadWithResume({
+        partPath,
+        sources: req.sources.map((s) => ({ url: s.url, headers: s.headers, kind: s.kind })),
+        panelOrigin: this.options.panelOrigin?.(),
+        sha256: manifest.sha256,
+        size: manifest.sizeBytes,
+        signal: ctx.signal,
+        fetchImpl: this.options.fetchImpl,
+        ...(req.connectTimeoutMs === undefined ? {} : { connectTimeoutMs: req.connectTimeoutMs }),
+        onProgress: (received, total, index) => {
+          ctx.progress(
+            'downloading',
+            total === undefined || total === 0 ? undefined : Math.min(95, (received / total) * 95),
+            `${req.sources[index]?.kind ?? 'direct'} ${String(Math.round(received / 1048576))} MiB`,
+          );
+        },
+      });
+      source = req.sources[result.sourceIndex]?.kind ?? 'direct';
+      await rename(partPath, archivePath);
+    }
+    ctx.throwIfCancelled();
+    ctx.progress('finalizing', 97);
+    await writeFile(manifestPath, JSON.stringify({ ...manifest, archivePath }, null, 2) + '\n');
+    ctx.keep(archivePath);
+    ctx.keep(partPath);
+    // Rotation de la copie : `keep` s'applique à CE dossier (toutes les copies de ce serveur ici),
+    // jamais à la copie qu'on vient d'écrire même si elle est plus ancienne que les autres.
+    const rotated: string[] = [];
+    if (req.keep !== undefined) {
+      // `selectForRotation` raisonne par rang : les plus récentes d'abord, comme `list()`.
+      const here = (await this.readManifests(destDir))
+        .filter((m) => m.serverId === req.serverId)
+        .sort((a, b) => b.createdAt - a.createdAt);
+      const byId = new Map(here.map((m) => [m.backupId, m] as const));
+      for (const victim of selectForRotation(here, { keep: req.keep }, this.now())) {
+        const full = byId.get(victim.backupId);
+        if (full === undefined || victim.backupId === manifest.backupId) continue;
+        await rm(full.archivePath, { force: true });
+        await rm(manifestPathFor(full), { force: true });
+        rotated.push(victim.backupId);
+      }
+    }
+    return {
+      backupId: manifest.backupId,
+      serverId: req.serverId,
+      archivePath,
+      sizeBytes: manifest.sizeBytes,
+      sha256: manifest.sha256,
+      source,
+      durationMs: this.now() - startedAt,
+      rotated,
+    };
   }
 
   // --- Listage / suppression ----------------------------------------------------------------

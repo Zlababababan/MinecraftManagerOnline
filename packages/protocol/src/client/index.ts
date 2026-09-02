@@ -641,6 +641,48 @@ export const backupPolicyInputSchema = z.object({
 });
 export type BackupPolicyInput = z.infer<typeof backupPolicyInputSchema>;
 
+// --- Lot 4 : réplication hors-site (copie des archives vers une autre machine du parc) ------------
+
+/**
+ * Une copie d'archive sur une autre machine : même `backupId` que l'original, sa propre ligne
+ * d'état. `deleted` = rotée par la destination (`keep`) ou disparue de son disque.
+ */
+export const backupReplicaStatusSchema = z.enum(['running', 'success', 'failed', 'deleted']);
+export const backupReplicaDtoSchema = z.object({
+  id: z.string(),
+  backupId: z.string(),
+  serverId: z.string(),
+  machineId: z.string(),
+  status: backupReplicaStatusSchema,
+  archivePath: z.string().nullable(),
+  sizeBytes: z.int().nullable(),
+  sha256: z.string().nullable(),
+  taskId: z.string().nullable(),
+  startedAt: epochMsSchema,
+  finishedAt: epochMsSchema.nullable(),
+  error: z.string().nullable(),
+});
+export type BackupReplicaDto = z.infer<typeof backupReplicaDtoSchema>;
+
+/** Réglage par serveur : chaque archive réussie (manuelle ou planifiée) est copiée sur `machineId`. */
+export const replicationDtoSchema = z.object({
+  serverId: z.string(),
+  machineId: z.string(),
+  /** Copies conservées sur la destination (rotation indépendante de l'original). */
+  keepLast: z.int().positive(),
+  enabled: z.boolean(),
+  updatedAt: epochMsSchema,
+});
+export type ReplicationDto = z.infer<typeof replicationDtoSchema>;
+
+/** `PUT /api/servers/:id/replication` — `machineId: null` retire le réglage. */
+export const replicationInputSchema = z.object({
+  machineId: z.string().min(1).nullable(),
+  keepLast: z.int().positive().max(1000).optional(),
+  enabled: z.boolean().optional(),
+});
+export type ReplicationInput = z.infer<typeof replicationInputSchema>;
+
 /**
  * Action groupée. **Exécution séquentielle imposée par le produit** : le garde-fou mémoire de
  * l'agent refuse un démarrage quand `maxRamMb` dépasse `total - réserve - somme des maxRamMb des

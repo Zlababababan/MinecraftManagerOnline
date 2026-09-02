@@ -108,6 +108,11 @@ export const en = {
         title: 'Webhook "{{webhook}}" test',
         body: 'This message comes from MinecraftManagerOnline: the webhook is set up correctly.',
       },
+      replicaDone: {
+        title: 'Off-site copy done: {{server}}',
+        body: 'Archive copied to {{machine}}.',
+      },
+      replicaFailed: { title: 'Off-site copy failed: {{server}}', body: '{{reason}}' },
       serverRunning: { title: '{{server}} is running', body: 'Started on {{machine}}.' },
       serverStopped: { title: '{{server}} stopped', body: 'Stopped on {{machine}}.' },
       playerJoined: { title: '{{player}} joined {{server}}', body: '{{online}} player(s) online.' },
@@ -191,6 +196,10 @@ export const en = {
       'This is not a Discord webhook URL (expected https://discord.com/api/webhooks/<id>/<token>).',
     E_VALIDATION_TOO_MANY: 'Maximum number of webhooks reached ({{max}}).',
     E_VALIDATION_NO_SECRET: 'A Discord webhook has no secret: only a signed JSON webhook has one.',
+    /** Lot 4 — off-site copy. */
+    E_VALIDATION_SAME_MACHINE:
+      'The off-site copy must live on a different machine than the server.',
+    E_VALIDATION_NO_DESTINATION: 'No off-site machine is configured for this server.',
     E_PUSH_DISABLED: 'Push notifications are not configured on this panel (VAPID keys missing).',
     E_ACCESS_NOT_CONFIGURED:
       'The access layer is not configured (domain, DNS provider or public URL missing).',

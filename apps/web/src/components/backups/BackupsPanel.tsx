@@ -13,6 +13,7 @@ import {
   Loader,
   Menu,
   NumberInput,
+  Select,
   Stack,
   Switch,
   Table,
@@ -24,6 +25,8 @@ import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import {
   IconCalendarClock,
+  IconCloudDownload,
+  IconCloudUpload,
   IconDotsVertical,
   IconDownload,
   IconFolderSearch,
@@ -33,7 +36,13 @@ import {
 } from '@tabler/icons-react';
 import { useState } from 'react';
 
-import type { BackupDto, BackupPolicyDto, ServerDto } from '@mmo/protocol/client';
+import type {
+  BackupDto,
+  BackupPolicyDto,
+  BackupReplicaDto,
+  ReplicationDto,
+  ServerDto,
+} from '@mmo/protocol/client';
 
 import {
   backupDownloadUrl,
@@ -41,10 +50,11 @@ import {
   useBackups,
   useCreateBackup,
   useDeleteBackup,
+  useReplicationMutations,
   useRestoreBackup,
   useServerTasks,
 } from '../../api/phase8.js';
-import { useMe } from '../../api/queries.js';
+import { useMachines, useMe } from '../../api/queries.js';
 import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
 import { formatBytes, formatDateTime, hasRole } from '../../lib/format.js';
@@ -88,7 +98,18 @@ export function BackupsPanel({ server }: { server: ServerDto }) {
   const create = useCreateBackup(server.id);
   const restore = useRestoreBackup(server.id);
   const remove = useDeleteBackup(server.id);
+  const rep = useReplicationMutations(server.id);
+  const machines = useMachines();
   const [partial, setPartial] = useState<BackupDto | undefined>(undefined);
+  // Lot 4 : copies hors-site (par archive) et réglage du serveur.
+  const replicas = q.data?.replicas ?? [];
+  const replication = q.data?.replication ?? null;
+  const machineName = (id: string): string =>
+    machines.data?.machines.find((m) => m.id === id)?.name ?? id;
+  const copiesOf = (backupId: string): BackupReplicaDto[] =>
+    replicas.filter((c) => c.backupId === backupId);
+  const healthyCopies = (backupId: string): BackupReplicaDto[] =>
+    copiesOf(backupId).filter((c) => c.status === 'success');
   const canAct =
     me.data !== undefined && hasRole(me.data.user.role, 'operator') && server.reachable;
   const fail = (error: unknown) => {
@@ -340,6 +361,38 @@ export function BackupsPanel({ server }: { server: ServerDto }) {
                               })}
                         </Text>
                       )}
+                      {b.status === 'deleted' && (
+                        <Text size="xs" c="orange" data-testid={`backup-original-gone-${b.id}`}>
+                          {t('web:backups.replication.originalGone')}
+                        </Text>
+                      )}
+                      {copiesOf(b.id).map((c) => (
+                        <Text
+                          key={c.id}
+                          size="xs"
+                          c={
+                            c.status === 'failed'
+                              ? 'red'
+                              : c.status === 'success'
+                                ? 'teal'
+                                : 'dimmed'
+                          }
+                          data-testid={`backup-replica-${c.id}`}
+                        >
+                          {c.status === 'success'
+                            ? t('web:backups.replication.copyOn', {
+                                machine: machineName(c.machineId),
+                              })
+                            : c.status === 'running'
+                              ? t('web:backups.replication.copying', {
+                                  machine: machineName(c.machineId),
+                                })
+                              : t('web:backups.replication.copyFailed', {
+                                  machine: machineName(c.machineId),
+                                  error: c.error ?? '',
+                                })}
+                        </Text>
+                      ))}
                     </Table.Td>
                     <Table.Td>
                       <Text size="sm" c="dimmed" truncate maw={220}>
@@ -347,7 +400,8 @@ export function BackupsPanel({ server }: { server: ServerDto }) {
                       </Text>
                     </Table.Td>
                     <Table.Td>
-                      {b.status === 'success' && (
+                      {(b.status === 'success' ||
+                        (b.status === 'deleted' && healthyCopies(b.id).length > 0)) && (
                         <Menu position="bottom-end" withinPortal>
                           <Menu.Target>
                             <Button
@@ -361,15 +415,17 @@ export function BackupsPanel({ server }: { server: ServerDto }) {
                             </Button>
                           </Menu.Target>
                           <Menu.Dropdown>
-                            <Menu.Item
-                              component="a"
-                              href={backupDownloadUrl(server.id, b.id)}
-                              download
-                              leftSection={<IconDownload size={14} />}
-                            >
-                              {t('web:backups.download')}
-                            </Menu.Item>
-                            {canAct && (
+                            {b.status === 'success' && (
+                              <Menu.Item
+                                component="a"
+                                href={backupDownloadUrl(server.id, b.id)}
+                                download
+                                leftSection={<IconDownload size={14} />}
+                              >
+                                {t('web:backups.download')}
+                              </Menu.Item>
+                            )}
+                            {canAct && b.status === 'success' && (
                               <>
                                 <Menu.Item
                                   leftSection={<IconRestore size={14} />}
@@ -391,17 +447,102 @@ export function BackupsPanel({ server }: { server: ServerDto }) {
                                 >
                                   {t('web:backups.partial.menu')}
                                 </Menu.Item>
-                                <Menu.Divider />
+                              </>
+                            )}
+                            {/* Lot 4 : copie hors-site à la demande (réglage posé, aucune copie saine ou en cours). */}
+                            {canAct &&
+                              b.status === 'success' &&
+                              replication !== null &&
+                              !copiesOf(b.id).some(
+                                (c) => c.status === 'success' || c.status === 'running',
+                              ) && (
                                 <Menu.Item
-                                  color="red"
-                                  leftSection={<IconTrash size={14} />}
+                                  leftSection={<IconCloudUpload size={14} />}
                                   onClick={() => {
-                                    askDelete(b);
+                                    rep.replicate.mutate(b.id, {
+                                      onError: fail,
+                                      onSuccess: () => {
+                                        notifications.show({
+                                          message: t('web:backups.replication.copyStarted'),
+                                        });
+                                      },
+                                    });
                                   }}
-                                  data-testid={`backup-delete-${b.id}`}
+                                  data-testid={`backup-replicate-${b.id}`}
                                 >
-                                  {t('web:backups.delete')}
+                                  {t('web:backups.replication.copyNow', {
+                                    machine: machineName(replication.machineId),
+                                  })}
                                 </Menu.Item>
+                              )}
+                            {/* Rapatriement : l'original n'est plus sur sa machine, une copie saine existe. */}
+                            {canAct &&
+                              b.status === 'deleted' &&
+                              healthyCopies(b.id).map((c) => (
+                                <Menu.Item
+                                  key={`pull-${c.id}`}
+                                  leftSection={<IconCloudDownload size={14} />}
+                                  disabled={busy}
+                                  onClick={() => {
+                                    rep.pull.mutate(
+                                      { backupId: b.id, replicaId: c.id },
+                                      {
+                                        onError: fail,
+                                        onSuccess: () => {
+                                          notifications.show({
+                                            message: t('web:backups.replication.pullStarted'),
+                                          });
+                                        },
+                                      },
+                                    );
+                                  }}
+                                  data-testid={`backup-pull-${c.id}`}
+                                >
+                                  {t('web:backups.replication.pull', {
+                                    machine: machineName(c.machineId),
+                                  })}
+                                </Menu.Item>
+                              ))}
+                            {canAct && (
+                              <>
+                                <Menu.Divider />
+                                {healthyCopies(b.id).map((c) => (
+                                  <Menu.Item
+                                    key={`drop-${c.id}`}
+                                    color="red"
+                                    leftSection={<IconTrash size={14} />}
+                                    onClick={() => {
+                                      rep.removeReplica.mutate(
+                                        { backupId: b.id, replicaId: c.id },
+                                        {
+                                          onError: fail,
+                                          onSuccess: () => {
+                                            notifications.show({
+                                              message: t('web:backups.replication.copyDeleted'),
+                                            });
+                                          },
+                                        },
+                                      );
+                                    }}
+                                    data-testid={`backup-replica-delete-${c.id}`}
+                                  >
+                                    {t('web:backups.replication.deleteCopy', {
+                                      machine: machineName(c.machineId),
+                                    })}
+                                  </Menu.Item>
+                                ))}
+                                {b.status === 'success' && (
+                                  <Menu.Item
+                                    color="red"
+                                    leftSection={<IconTrash size={14} />}
+                                    onClick={() => {
+                                      askDelete(b);
+                                    }}
+                                    data-testid={`backup-delete-${b.id}`}
+                                  >
+                                    {t('web:backups.delete')}
+                                  </Menu.Item>
+                                )}
                               </>
                             )}
                           </Menu.Dropdown>
@@ -425,7 +566,124 @@ export function BackupsPanel({ server }: { server: ServerDto }) {
         />
       )}
       <PoliciesCard server={server} policies={q.data?.policies ?? []} canAct={canAct} />
+      {q.data !== undefined && (
+        <ReplicationCard
+          key={replication?.updatedAt ?? 'none'}
+          server={server}
+          replication={replication}
+          canAct={canAct}
+        />
+      )}
     </Stack>
+  );
+}
+
+// --- Copie hors-site (lot 4) ---------------------------------------------------------------------
+
+/**
+ * Réglage par serveur : machine de copie (une autre que celle du serveur), copies conservées sur
+ * la destination, interrupteur. Remontée par `key` quand le réglage change (état local depuis les props).
+ */
+function ReplicationCard({
+  server,
+  replication,
+  canAct,
+}: {
+  server: ServerDto;
+  replication: ReplicationDto | null;
+  canAct: boolean;
+}) {
+  const { t, i18n } = useT();
+  const machines = useMachines();
+  const rep = useReplicationMutations(server.id);
+  const [machineId, setMachineId] = useState<string | null>(replication?.machineId ?? null);
+  const [keepLast, setKeepLast] = useState<number>(replication?.keepLast ?? 7);
+  const [enabled, setEnabled] = useState<boolean>(replication?.enabled ?? true);
+  const others = (machines.data?.machines ?? []).filter((m) => m.id !== server.machineId);
+  const fail = (error: unknown) => {
+    notifications.show({ color: 'red', message: describeError(i18n, error) });
+  };
+  return (
+    <Card withBorder padding="md" data-testid="backup-replication">
+      <Stack gap={0} mb="sm">
+        <Text fw={600}>{t('web:backups.replication.title')}</Text>
+        <Text size="xs" c="dimmed">
+          {t('web:backups.replication.hint')}
+        </Text>
+      </Stack>
+      {machines.data !== undefined && others.length === 0 ? (
+        <Text size="sm" c="dimmed" data-testid="replication-no-machine">
+          {t('web:backups.replication.noOtherMachine')}
+        </Text>
+      ) : (
+        <Group align="flex-end" wrap="wrap">
+          <Select
+            label={t('web:backups.replication.machine')}
+            placeholder={t('web:backups.replication.machinePlaceholder')}
+            data={[
+              { value: 'none', label: t('web:backups.replication.none') },
+              ...others.map((m) => ({ value: m.id, label: m.name })),
+            ]}
+            value={machineId ?? 'none'}
+            onChange={(value) => {
+              setMachineId(value === null || value === 'none' ? null : value);
+            }}
+            allowDeselect={false}
+            disabled={!canAct}
+            w={260}
+            data-testid="replication-machine"
+          />
+          <NumberInput
+            label={t('web:backups.replication.keepLast')}
+            min={1}
+            max={1000}
+            value={keepLast}
+            onChange={(value) => {
+              setKeepLast(typeof value === 'number' ? value : 7);
+            }}
+            disabled={!canAct || machineId === null}
+            w={150}
+            data-testid="replication-keep"
+          />
+          <Switch
+            label={t('web:backups.replication.enabled')}
+            checked={enabled}
+            onChange={(event) => {
+              setEnabled(event.currentTarget.checked);
+            }}
+            disabled={!canAct || machineId === null}
+            data-testid="replication-enabled"
+          />
+          {canAct && (
+            <Button
+              type="button"
+              size="xs"
+              loading={rep.setConfig.isPending}
+              onClick={() => {
+                rep.setConfig.mutate(
+                  { machineId, keepLast, enabled },
+                  {
+                    onError: fail,
+                    onSuccess: ({ replication: saved }) => {
+                      notifications.show({
+                        message: t(
+                          saved === null
+                            ? 'web:backups.replication.removed'
+                            : 'web:backups.replication.saved',
+                        ),
+                      });
+                    },
+                  },
+                );
+              }}
+              data-testid="replication-save"
+            >
+              {t('web:backups.replication.save')}
+            </Button>
+          )}
+        </Group>
+      )}
+    </Card>
   );
 }
 

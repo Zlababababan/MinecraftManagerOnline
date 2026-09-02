@@ -83,6 +83,7 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 | Restauration en un clic | V1 |
 | Restauration partielle : parcourir une archive sans l'extraire, restaurer un dossier ou un fichier (un monde seul, une région, `server.properties`), côte à côte par défaut — jamais d'écrasement sans le demander | V1 (lot 4, 2026-09-02) |
 | Emplacement de stockage configurable (autre disque, NAS), rétention par serveur | V1 |
+| **Copie hors-site** : chaque archive réussie copiée sur une autre machine du parc par la chaîne de migration (direct entre agents, relais du panel sinon, reprise, sha256), rétention propre à la copie, rapatriement quand l'original a disparu, rattrapage à la reconnexion de la destination | V1 (lot 4, 2026-09-02) |
 
 ## 8. Planificateur
 

@@ -291,6 +291,39 @@ CREATE TABLE backup_policies (
 );
 CREATE INDEX idx_bpol_server ON backup_policies(server_id);
 
+-- Copie hors-site (lot 4, 2026-09-02, migration 0015). Réglage PAR SERVEUR : chaque archive réussie
+-- (manuelle ou planifiée, jamais pre_migration/pre_restore) est copiée sur machine_id, une autre
+-- machine du parc, avec sa propre rétention (keep_last, appliquée par la destination). Un choix de
+-- serveur, pas de politique : les sauvegardes manuelles y ont droit aussi.
+CREATE TABLE backup_replication (
+  server_id  TEXT PRIMARY KEY REFERENCES servers(id) ON DELETE CASCADE,
+  machine_id TEXT NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
+  keep_last  INTEGER NOT NULL DEFAULT 7,
+  enabled    INTEGER NOT NULL DEFAULT 1,
+  updated_at INTEGER NOT NULL
+);
+
+-- Une copie d'archive sur une autre machine : même backup_id que l'original, son propre état
+-- (running | success | failed | deleted — pas de CHECK, Zod valide). Cascade sur la fiche de
+-- sauvegarde ; la purge des fiches `deleted` épargne celles qui ont encore une copie saine
+-- (c'est d'elle qu'on rapatrie).
+CREATE TABLE backup_replicas (
+  id           TEXT PRIMARY KEY,
+  backup_id    TEXT NOT NULL REFERENCES backups(id) ON DELETE CASCADE,
+  server_id    TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  machine_id   TEXT NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
+  status       TEXT NOT NULL,
+  archive_path TEXT,
+  size_bytes   INTEGER,
+  sha256       TEXT,
+  task_id      TEXT,
+  started_at   INTEGER NOT NULL,
+  finished_at  INTEGER,
+  error        TEXT
+);
+CREATE INDEX idx_replicas_backup  ON backup_replicas(backup_id);
+CREATE INDEX idx_replicas_machine ON backup_replicas(machine_id, server_id);
+
 CREATE TABLE backups (
   id           TEXT PRIMARY KEY,
   server_id    TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,

@@ -113,6 +113,35 @@ export class BackupsService {
     return v === undefined || v === '' ? undefined : v;
   }
 
+  /**
+   * Lot 4 — le manifeste tel que l'agent l'a produit, reconstitué depuis la fiche (colonnes +
+   * `manifest_json`) : c'est ce qu'une machine de copie hors-site reçoit avec `backup.receive`.
+   */
+  manifestOf(row: BackupRow): BackupManifest {
+    if (row.archivePath === null || row.sizeBytes === null || row.sha256 === null) {
+      throw new AppError('E_CONFLICT', `backup ${row.id} has no archive`);
+    }
+    const extras = parseJson<Partial<ManifestExtras>>(row.manifestJson, {});
+    return {
+      backupId: row.id,
+      serverId: row.serverId,
+      kind: row.kind,
+      ...(row.policyId === null ? {} : { policyId: row.policyId }),
+      createdAt: row.finishedAt ?? row.startedAt,
+      codec: extras.codec ?? 'gzip',
+      archivePath: row.archivePath,
+      sizeBytes: row.sizeBytes,
+      sha256: row.sha256,
+      files: extras.files ?? 0,
+      bytesRaw: extras.bytesRaw ?? 0,
+      hot: extras.hot ?? false,
+      ...(extras.comment === undefined ? {} : { comment: extras.comment }),
+      ...(row.verifiedAt !== null && (row.verifyStatus === 'ok' || row.verifyStatus === 'corrupted')
+        ? { verifiedAt: row.verifiedAt, verifyStatus: row.verifyStatus }
+        : {}),
+    };
+  }
+
   // --- Cycle de vie ---------------------------------------------------------------------------
 
   /** Ligne `running` créée **avant** l'ordre à l'agent. */
@@ -271,6 +300,8 @@ export class BackupsService {
           eq(backups.status, 'deleted'),
           lt(sql`coalesce(${backups.finishedAt}, ${backups.startedAt})`, ts),
           sql`NOT EXISTS (SELECT 1 FROM server_migrations WHERE backup_id = ${backups.id})`,
+          // Lot 4 : une copie hors-site saine garde la fiche vivante — c'est d'elle qu'on rapatrie.
+          sql`NOT EXISTS (SELECT 1 FROM backup_replicas WHERE backup_id = ${backups.id} AND status = 'success')`,
         ),
       )
       .run().changes;

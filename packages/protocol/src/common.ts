@@ -60,6 +60,8 @@ export const KNOWN_CAPABILITIES = [
   'diagnostics',
   /** Lot 4 : `backup.browse` + `backup.restorePaths` (restauration partielle). */
   'partial-restore',
+  /** Lot 4 : `backup.receive` (copie hors-site d'une archive vers cette machine). */
+  'replication',
 ] as const;
 export const capabilitySchema = z.string().min(1);
 

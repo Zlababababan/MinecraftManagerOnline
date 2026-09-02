@@ -97,9 +97,19 @@ export function registerTaskRoutes(app: FastifyInstance, ctx: AppContext): void 
 
   r.get('/api/servers/:id/backups', { schema: { params: idParams } }, (request) => {
     const row = ctx.servers.require(request.params.id);
+    const replicas = ctx.replication.replicas(row.id);
+    const copied = new Set(replicas.filter((c) => c.status === 'success').map((c) => c.backupId));
+    const replication = ctx.replication.config(row.id);
     return {
-      backups: ctx.backups.list(row.id).map((b) => ctx.backups.toDto(b)),
+      // Lot 4 : une fiche `deleted` reste visible tant qu'une copie hors-site saine existe — c'est
+      // d'elle qu'on rapatrie l'archive.
+      backups: ctx.backups
+        .list(row.id, true)
+        .filter((b) => b.status !== 'deleted' || copied.has(b.id))
+        .map((b) => ctx.backups.toDto(b)),
       policies: ctx.backups.listPolicies(row.id).map((p) => ctx.backups.policyToDto(p)),
+      replication: replication === undefined ? null : ctx.replication.configDto(replication),
+      replicas: replicas.map((c) => ctx.replication.toDto(c)),
     };
   });
 
@@ -350,13 +360,16 @@ export function registerTaskRoutes(app: FastifyInstance, ctx: AppContext): void 
         ...(backup.archivePath === null ? {} : { archivePath: backup.archivePath }),
       });
       ctx.backups.markDeleted([backup.id]);
+      // Lot 4 : les copies hors-site joignables partent avec l'original ; une copie dont la
+      // machine est hors ligne reste (et garde la fiche visible : on pourra la rapatrier).
+      const copies = await ctx.replication.removeAllOf(backup.id);
       ctx.audit.record({
         ...auditMeta(request),
         action: 'backup.delete',
         targetType: 'server',
         targetId: row.id,
         targetLabel: row.name,
-        details: { backupId: backup.id, deletedOnDisk: res.deleted },
+        details: { backupId: backup.id, deletedOnDisk: res.deleted, copies },
       });
       return { deleted: res.deleted, backup: ctx.backups.toDto(ctx.backups.require(backup.id)) };
     },

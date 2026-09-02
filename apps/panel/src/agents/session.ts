@@ -37,6 +37,7 @@ import type { ProcessedEventsService } from '../services/processed-events.js';
 import type { ServersService } from '../services/servers.js';
 import type { TasksService } from '../services/tasks.js';
 import type { TransferService } from '../services/transfers.js';
+import type { ReplicationService } from '../services/replication.js';
 import type { TaskRow } from '../db/schema.js';
 import type { ConsoleRelay } from './console.js';
 import type { AgentRegistry } from './registry.js';
@@ -59,6 +60,8 @@ export interface AgentSessionDeps {
   tasks: TasksService;
   backups: BackupsService;
   transfers: TransferService;
+  /** Lot 4 : copies hors-site (ordonnées après une archive réussie, closes à l'issue de la task). */
+  replication: ReplicationService;
   /** Phase 9. */
   releases: ReleasesService;
   javaRuntimes: JavaRuntimesService;
@@ -321,6 +324,9 @@ export class AgentSession {
   private onTaskFinished(machineId: string, row: TaskRow): void {
     const dto = this.deps.tasks.toDto(row);
     const result = dto.result ?? {};
+    // Lot 4 : copie hors-site reçue (ou rapatriement) — la fiche de copie et, le cas échéant, la
+    // fiche de sauvegarde suivent l'issue, succès comme échec.
+    if (row.kind === 'backup.receive') this.deps.replication.onTaskFinished(row, machineId);
     if (row.status === 'done') {
       if (row.kind === 'backup.create' || row.kind === 'migration.export') {
         const manifest = backupManifestSchema.safeParse(result);
@@ -329,6 +335,8 @@ export class AgentSession {
             taskId: row.id,
             ...(row.createdBy === null ? {} : { createdBy: row.createdBy }),
           });
+          // Lot 4 : copie hors-site automatique (réglage du serveur), jamais pour un export.
+          if (row.kind === 'backup.create') this.deps.replication.onBackupApplied(applied);
           // Preuve d'exécution de la politique : c'est le manifeste qui porte le `policyId`.
           if (manifest.data.policyId !== undefined) {
             this.deps.backups.recordPolicyRun(manifest.data.policyId, {
@@ -422,6 +430,14 @@ export class AgentSession {
           'backup.list failed',
         );
       }
+    }
+    // Lot 4 : copies hors-site détenues par cette machine (rotées/disparues → deleted, retrouvées
+    // → réinsérées), puis rattrapage — la dernière archive sans copie part maintenant.
+    try {
+      await this.deps.replication.reconcile(machineId);
+      await this.deps.replication.catchUp(machineId);
+    } catch (error) {
+      this.log.warn({ machineId, err: error }, 'off-site copies: reconciliation failed');
     }
   }
 

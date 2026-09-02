@@ -38,6 +38,7 @@ export function registerWsRoutes(app: FastifyInstance, ctx: AppContext): void {
       tasks: ctx.tasks,
       backups: ctx.backups,
       transfers: ctx.transfers,
+      replication: ctx.replication,
       releases: ctx.releases,
       javaRuntimes: ctx.javaRuntimes,
     });

@@ -303,6 +303,11 @@ export function applyTaskUpdate(queryClient: QueryClient, task: TaskDto): void {
       phase8Keys.serverTasks(task.serverId),
       (old: { tasks: TaskDto[] } | undefined) => merge(old, true),
     );
+    // Lot 4 : l'état d'une copie hors-site vit dans la liste des sauvegardes — relue à chaque
+    // mouvement de la task (départ, issue), il n'y a pas de message dédié.
+    if (task.kind === 'backup.receive') {
+      void queryClient.invalidateQueries({ queryKey: phase8Keys.backups(task.serverId) });
+    }
   }
 }
 
@@ -315,7 +320,14 @@ export function applyBackupUpdate(queryClient: QueryClient, backup: BackupDto): 
       const backups = exists
         ? old.backups.map((b) => (b.id === backup.id ? backup : b))
         : [backup, ...old.backups];
-      return { ...old, backups: backups.filter((b) => b.status !== 'deleted') };
+      // Lot 4 : une fiche supprimée reste visible tant qu'une copie hors-site saine existe.
+      const copied = new Set(
+        (old.replicas ?? []).filter((c) => c.status === 'success').map((c) => c.backupId),
+      );
+      return {
+        ...old,
+        backups: backups.filter((b) => b.status !== 'deleted' || copied.has(b.id)),
+      };
     },
   );
 }

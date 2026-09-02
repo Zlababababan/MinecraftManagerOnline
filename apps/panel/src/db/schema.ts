@@ -538,6 +538,58 @@ export const backups = sqliteTable(
   ],
 );
 
+/**
+ * Lot 4 — réplication hors-site (doc 04 §5). Réglage par serveur : chaque archive réussie (manuelle
+ * ou planifiée) est copiée sur `machine_id`, une autre machine du parc, avec sa propre rétention
+ * (`keep_last`, appliquée par la destination). Une ligne par serveur : la copie hors-site est un
+ * choix de serveur, pas de politique — les sauvegardes manuelles y ont droit aussi.
+ */
+export const backupReplication = sqliteTable('backup_replication', {
+  serverId: text('server_id')
+    .primaryKey()
+    .references(() => servers.id, { onDelete: 'cascade' }),
+  machineId: text('machine_id')
+    .notNull()
+    .references(() => machines.id, { onDelete: 'cascade' }),
+  keepLast: integer('keep_last').notNull().default(7),
+  enabled: integer('enabled').notNull().default(1),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+/**
+ * Une copie d'archive sur une autre machine : même `backup_id` que l'original, son propre état.
+ * `status` : running | success | failed | deleted (pas de CHECK : Zod valide, et une contrainte
+ * ajoutée plus tard recréerait la table). Cascade sur la fiche de sauvegarde — la purge des fiches
+ * `deleted` épargne celles qui ont encore une copie saine (`purgeDeletedBefore`).
+ */
+export const backupReplicas = sqliteTable(
+  'backup_replicas',
+  {
+    id: text('id').primaryKey(),
+    backupId: text('backup_id')
+      .notNull()
+      .references(() => backups.id, { onDelete: 'cascade' }),
+    serverId: text('server_id')
+      .notNull()
+      .references(() => servers.id, { onDelete: 'cascade' }),
+    machineId: text('machine_id')
+      .notNull()
+      .references(() => machines.id, { onDelete: 'cascade' }),
+    status: text('status').notNull(),
+    archivePath: text('archive_path'),
+    sizeBytes: integer('size_bytes'),
+    sha256: text('sha256'),
+    taskId: text('task_id'),
+    startedAt: integer('started_at').notNull(),
+    finishedAt: integer('finished_at'),
+    error: text('error'),
+  },
+  (t) => [
+    index('idx_replicas_backup').on(t.backupId),
+    index('idx_replicas_machine').on(t.machineId, t.serverId),
+  ],
+);
+
 export const scheduledTasks = sqliteTable(
   'scheduled_tasks',
   {
@@ -724,3 +776,5 @@ export type JavaRuntimeRow = typeof javaRuntimes.$inferSelect;
 export type AgentReleaseRow = typeof agentReleases.$inferSelect;
 export type AlertRow = typeof alerts.$inferSelect;
 export type WebhookRow = typeof webhooks.$inferSelect;
+export type BackupReplicationRow = typeof backupReplication.$inferSelect;
+export type BackupReplicaRow = typeof backupReplicas.$inferSelect;

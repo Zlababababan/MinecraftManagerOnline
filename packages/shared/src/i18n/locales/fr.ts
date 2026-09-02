@@ -115,6 +115,11 @@ export const fr = {
         title: 'Test du webhook « {{webhook}} »',
         body: 'Ce message vient de MinecraftManagerOnline : le webhook est bien configuré.',
       },
+      replicaDone: {
+        title: 'Copie hors-site faite : {{server}}',
+        body: 'Archive copiée sur {{machine}}.',
+      },
+      replicaFailed: { title: 'Copie hors-site échouée : {{server}}', body: '{{reason}}' },
       serverRunning: { title: '{{server}} est en marche', body: 'Démarré sur {{machine}}.' },
       serverStopped: { title: '{{server}} est arrêté', body: 'Arrêté sur {{machine}}.' },
       playerJoined: {
@@ -218,6 +223,10 @@ export const fr = {
     E_VALIDATION_TOO_MANY: 'Nombre maximal de webhooks atteint ({{max}}).',
     E_VALIDATION_NO_SECRET:
       'Un webhook Discord n’a pas de secret : seul un webhook JSON signé en a un.',
+    /** Lot 4 — copie hors-site. */
+    E_VALIDATION_SAME_MACHINE:
+      'La copie hors-site doit vivre sur une autre machine que celle du serveur.',
+    E_VALIDATION_NO_DESTINATION: 'Aucune machine de copie hors-site n’est réglée pour ce serveur.',
     E_NO_RELEASE: 'Aucune release d’agent publiée sur ce panel.',
     E_PUSH_DISABLED:
       'Les notifications push ne sont pas configurées sur ce panel (clés VAPID absentes).',

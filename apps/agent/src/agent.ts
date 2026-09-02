@@ -64,6 +64,7 @@ export const AGENT_CAPABILITIES = [
   'update',
   'diagnostics',
   'partial-restore',
+  'replication',
 ];
 
 export function currentOs(): Os {
@@ -271,6 +272,9 @@ export class Agent {
       agentVersion: AGENT_VERSION,
       ...(options.saveSettleMs === undefined ? {} : { saveSettleMs: options.saveSettleMs }),
       ...(options.backupFreeBytes === undefined ? {} : { freeBytes: options.backupFreeBytes }),
+      // Lot 4 — réplication : URLs relais relatives à l'origine du panel, `fetch` injectable.
+      panelOrigin: () => panelHttpOrigin(options.panelUrl ?? this.store.get().panelUrl),
+      ...(options.fetchImpl === undefined ? {} : { fetchImpl: options.fetchImpl }),
       onRotated: ({ serverId, policyId, deleted }) => {
         this.emit('backup.rotated', (eventId) => ({
           eventId,
@@ -974,6 +978,16 @@ export class Agent {
         await this.tasks.start(
           { taskId, kind: 'backup.restorePaths', serverId: req.serverId, payload: req },
           (ctx) => this.backups.restorePaths(req, ctx),
+        );
+        return { taskId };
+      })
+      // Lot 4 — réplication hors-site : copie d'une archive produite ailleurs vers cette machine.
+      // Ne touche à aucun serveur local (pas de `ensureServerIdle`) ; rejeu du même `taskId`
+      // idempotent par `tasks.start`.
+      .handle('backup.receive', async ({ taskId, ...req }) => {
+        await this.tasks.start(
+          { taskId, kind: 'backup.receive', serverId: req.serverId, payload: req },
+          (ctx) => this.backups.receive(req, ctx),
         );
         return { taskId };
       })

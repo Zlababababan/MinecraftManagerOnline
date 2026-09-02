@@ -485,12 +485,20 @@ export function notifyKey(event: EventDto): string | undefined {
       return 'watchdogAlert';
     case 'agent.offline':
       return 'agentOffline';
+    // Lot 4 : une copie hors-site (`backup.receive`) a son propre libellé — « sauvegarde échouée »
+    // ferait croire que l'archive elle-même manque.
     case 'task.failed':
-      return typeof p.kind === 'string' && p.kind.startsWith('backup.')
-        ? 'backupFailed'
-        : 'taskFailed';
+      return p.kind === 'backup.receive'
+        ? 'replicaFailed'
+        : typeof p.kind === 'string' && p.kind.startsWith('backup.')
+          ? 'backupFailed'
+          : 'taskFailed';
     case 'task.completed':
-      return typeof p.kind === 'string' && p.kind.startsWith('backup.') ? 'backupDone' : 'taskDone';
+      return p.kind === 'backup.receive'
+        ? 'replicaDone'
+        : typeof p.kind === 'string' && p.kind.startsWith('backup.')
+          ? 'backupDone'
+          : 'taskDone';
     // Une duplication emprunte les événements de migration (`payload.kind`), pas leur libellé.
     case 'migration.done':
       return p.kind === 'duplicate' ? 'duplicationDone' : 'migrationDone';
