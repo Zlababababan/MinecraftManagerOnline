@@ -83,6 +83,31 @@ export const pushSubscriptions = sqliteTable(
   (t) => [index('idx_push_user').on(t.userId)],
 );
 
+/**
+ * Lot 4 — webhooks sortants (Discord ou JSON signé HMAC). `types` = catégories de notification
+ * (JSON, `NOTIFICATION_TYPES`) : les mêmes cases que la cloche et le push. `secret` (hex) n'existe
+ * que pour le genre `json` et n'est jamais renvoyé par l'API. La santé vit sur la ligne :
+ * `fail_count` = livraisons consécutives perdues (réessais compris), `last_error` = la dernière
+ * cause en clair — c'est ce qu'affiche Réglages → Webhooks.
+ */
+export const webhooks = sqliteTable('webhooks', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  kind: text('kind', { enum: ['discord', 'json'] }).notNull(),
+  url: text('url').notNull(),
+  secret: text('secret'),
+  enabled: integer('enabled').notNull().default(1),
+  locale: text('locale').notNull().default('en'),
+  types: text('types').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+  lastAttemptAt: integer('last_attempt_at'),
+  lastDeliveredAt: integer('last_delivered_at'),
+  lastStatus: integer('last_status'),
+  lastError: text('last_error'),
+  failCount: integer('fail_count').notNull().default(0),
+});
+
 export const notificationPrefs = sqliteTable(
   'notification_prefs',
   {
@@ -698,3 +723,4 @@ export type ServerMigrationRow = typeof serverMigrations.$inferSelect;
 export type JavaRuntimeRow = typeof javaRuntimes.$inferSelect;
 export type AgentReleaseRow = typeof agentReleases.$inferSelect;
 export type AlertRow = typeof alerts.$inferSelect;
+export type WebhookRow = typeof webhooks.$inferSelect;

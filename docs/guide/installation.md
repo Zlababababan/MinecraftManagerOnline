@@ -330,5 +330,22 @@ The panel and its agents make a few outbound calls, each with an off switch:
 - **mc-heads.net** (your browser): the head of each player's skin, next to their name. Settings → Privacy → _Load player avatars from mc-heads.net_. Off, initials are shown instead and the browser contacts nobody.
 - **GitHub** (panel, release feed, at most every 6 hours): the "version X available" banner. Settings → General → _Check for new panel versions_.
 - **Adoptium / Azul / Mojang** (agent): only when you install a Java runtime from the machine page.
+- **Webhooks** (panel): only to the addresses you configured yourself in Settings → Webhooks (§6) — a Discord channel or your own service. Nothing is sent until you add one.
 
 Deleting a server deletes its player sessions, commands and backup records with it. Deleting a panel account keeps its name in the audit log (so the history still says who did what) and removes everything else.
+
+## 6. Webhooks: Discord and signed JSON
+
+Settings → Webhooks sends notifications outside the panel: to a **Discord channel**, or as **signed JSON** to a service of yours (n8n, Home Assistant, a small script). A webhook picks its **categories** from the same list as the bell and the phone, and the **language** of its messages. The panel only ever posts to addresses you configured here, and it retries transient failures only (network, 408, 429, 5xx — after 1 s, 5 s and 30 s); a definitive answer such as 404 is not retried.
+
+- **Discord**: in Discord, Server settings → Integrations → Webhooks → New webhook → _Copy webhook URL_, then paste it. Each notification arrives as an embed coloured by severity, with a link back to the panel when the public URL is set. The URL is a secret (whoever holds it can post in the channel): the panel masks it once saved.
+- **Signed JSON**: the panel POSTs `{ id, ts, category, event: { id, ts, type, severity, serverId, machineId, payload }, server, machine, title, body, url, locale }` with the headers `x-mmo-event`, `x-mmo-category`, `x-mmo-delivery` and `x-mmo-signature: t=<epoch ms>,v1=<hex>`. The secret is shown **once**, when the webhook is created (or when you click _New secret_). To verify a delivery: compute HMAC-SHA256 of `"<t>." + raw body` with the secret, compare it to `v1` in constant time, and reject a `t` older than a few minutes. In Node.js:
+
+  ```js
+  const [t, v1] = req.headers['x-mmo-signature'].split(',').map((part) => part.split('=')[1]);
+  const mac = crypto.createHmac('sha256', secret).update(`${t}.`).update(rawBody).digest('hex');
+  const fresh = Math.abs(Date.now() - Number(t)) < 5 * 60_000;
+  const ok = fresh && crypto.timingSafeEqual(Buffer.from(mac, 'hex'), Buffer.from(v1, 'hex'));
+  ```
+
+What the panel refuses, on purpose: anything but `https://`, URLs carrying credentials, host names of the local network or the tailnet (`.local`, `.lan`, `.ts.net`, names without a dot…) and any host that resolves to a private, loopback, link-local or Tailscale address — a webhook must not become a bridge into the network the panel sits on. The address is resolved and checked again at **every** send, and the connection goes to the address that was checked. When a webhook stops delivering, the panel raises **one** notification ("Webhook failing", category _Webhook failing / recovered_) and shows the last error next to it in the list; another one when it delivers again. _Test_ sends a message right away, without retries.

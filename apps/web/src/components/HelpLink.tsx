@@ -43,6 +43,11 @@ export const HELP_TOPICS = {
     en: 'installation.md#5-what-the-panel-keeps-and-who-it-talks-to',
     fr: 'fr/installation.md#5-ce-que-le-panel-conserve-et-à-qui-il-parle',
   },
+  /** Lot 4 : webhooks Discord et JSON signé — configuration, refus, vérification de la signature. */
+  webhooks: {
+    en: 'installation.md#6-webhooks-discord-and-signed-json',
+    fr: 'fr/installation.md#6-webhooks-discord-et-json-signé',
+  },
 } satisfies Record<string, GuideLinks>;
 
 export type HelpTopic = keyof typeof HELP_TOPICS;

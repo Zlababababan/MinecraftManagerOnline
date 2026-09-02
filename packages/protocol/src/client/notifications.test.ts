@@ -49,6 +49,8 @@ const BUS_EVENTS: { type: string; severity: string; payload?: unknown }[] = [
   { type: 'server.conflict', severity: 'warning' },
   { type: 'panel.updateAvailable', severity: 'info', payload: { version: '1.0.6' } },
   { type: 'panel.backupFailed', severity: 'error', payload: { reason: 'ENOSPC' } },
+  { type: 'webhook.failed', severity: 'error', payload: { webhookId: 'wh1', reason: 'HTTP 404' } },
+  { type: 'webhook.recovered', severity: 'info', payload: { webhookId: 'wh1', failures: 3 } },
 ];
 
 describe('catalogue des notifications', () => {

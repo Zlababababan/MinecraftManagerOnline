@@ -96,6 +96,18 @@ export const en = {
         title: 'Panel backup failed',
         body: 'The daily copy of the panel database could not be written: {{reason}}',
       },
+      webhookFailed: {
+        title: 'Webhook "{{webhook}}" is failing',
+        body: 'Deliveries no longer go through: {{reason}}. Settings → Webhooks.',
+      },
+      webhookRecovered: {
+        title: 'Webhook "{{webhook}}" recovered',
+        body: 'Deliveries go through again.',
+      },
+      webhookTest: {
+        title: 'Webhook "{{webhook}}" test',
+        body: 'This message comes from MinecraftManagerOnline: the webhook is set up correctly.',
+      },
       serverRunning: { title: '{{server}} is running', body: 'Started on {{machine}}.' },
       serverStopped: { title: '{{server}} stopped', body: 'Stopped on {{machine}}.' },
       playerJoined: { title: '{{player}} joined {{server}}', body: '{{online}} player(s) online.' },
@@ -166,6 +178,19 @@ export const en = {
     E_AGENT_OFFLINE: 'The agent of this machine is not connected.',
     E_VALIDATION: 'Invalid input.',
     E_NO_RELEASE: 'No agent release published on this panel.',
+    /** Lot 4 — webhook URL refused by the SSRF guard (`details.reason`, key `url`). */
+    E_VALIDATION_BAD_URL: 'This is not a valid URL.',
+    E_VALIDATION_BAD_SCHEME: 'Only https:// addresses are accepted for a webhook.',
+    E_VALIDATION_CREDENTIALS: 'A webhook URL must not carry credentials (user:password@).',
+    E_VALIDATION_BLOCKED_HOST:
+      'Host name refused ({{hostname}}): a webhook cannot target a local machine or the tailnet.',
+    E_VALIDATION_BLOCKED_ADDRESS:
+      '{{hostname}} resolves to a reserved address ({{address}}, {{range}}): a webhook can only target a public service.',
+    E_VALIDATION_UNRESOLVABLE: 'The host name {{hostname}} does not resolve from the panel.',
+    E_VALIDATION_NOT_DISCORD:
+      'This is not a Discord webhook URL (expected https://discord.com/api/webhooks/<id>/<token>).',
+    E_VALIDATION_TOO_MANY: 'Maximum number of webhooks reached ({{max}}).',
+    E_VALIDATION_NO_SECRET: 'A Discord webhook has no secret: only a signed JSON webhook has one.',
     E_PUSH_DISABLED: 'Push notifications are not configured on this panel (VAPID keys missing).',
     E_ACCESS_NOT_CONFIGURED:
       'The access layer is not configured (domain, DNS provider or public URL missing).',

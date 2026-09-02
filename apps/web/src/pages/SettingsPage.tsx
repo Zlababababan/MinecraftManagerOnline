@@ -29,6 +29,7 @@ import { AuditCard } from '../components/admin/AuditCard.js';
 import { DistributionCard } from '../components/admin/DistributionCard.js';
 import { PanelBackupsCard } from '../components/admin/PanelBackupsCard.js';
 import { UsersCard } from '../components/admin/UsersCard.js';
+import { WebhooksCard } from '../components/admin/WebhooksCard.js';
 import { HelpLink } from '../components/HelpLink.js';
 import { useT } from '../i18n/hooks.js';
 import { describeError } from '../lib/errors.js';
@@ -346,6 +347,7 @@ export function SettingsPage() {
       <DistributionCard />
       <PanelBackupsCard />
       <PushAdminCard />
+      <WebhooksCard />
       <AuditCard />
     </Stack>
   );

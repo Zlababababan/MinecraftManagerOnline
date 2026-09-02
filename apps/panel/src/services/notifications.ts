@@ -76,6 +76,8 @@ const BUS_TYPES = [
   'alert.resolved',
   'panel.updateAvailable',
   'panel.backupFailed',
+  'webhook.failed',
+  'webhook.recovered',
 ] as const;
 
 /** Au-delà : l'abonnement est considéré mort même sans 410 (iOS purge silencieusement). */
@@ -363,6 +365,7 @@ export class NotificationsService {
       current: text(p.current),
       port: text(p.port),
       player: text(p.name),
+      webhook: text(p.webhook),
       online: text(p.online),
       percent: text(p.percent),
       freeGb: text(p.freeGb),
@@ -501,6 +504,14 @@ export function notifyKey(event: EventDto): string | undefined {
       return 'panelUpdateAvailable';
     case 'panel.backupFailed':
       return 'panelBackupFailed';
+    // Lot 4 : santé des webhooks sortants ; `webhook.test` n'est jamais publié sur le bus, il est
+    // rendu par le service webhooks pour le bouton « Tester ».
+    case 'webhook.failed':
+      return 'webhookFailed';
+    case 'webhook.recovered':
+      return 'webhookRecovered';
+    case 'webhook.test':
+      return 'webhookTest';
     case 'schedule.run':
       return event.severity === 'info' ? 'scheduleDone' : 'scheduleFailed';
     case 'port.conflict':

@@ -128,6 +128,19 @@ you asked for must exist in it, paths the agent manages itself (logs, the trash,
 are refused outright, and the disk must have room. Agents older than this release answer "not
 supported": the panel says so and asks you to update the agent.
 
+### Notifications reach Discord, or any service of yours
+
+Settings → Webhooks sends the panel's notifications outside: to a Discord channel (an embed per
+event, coloured by severity, in the language you pick), or as signed JSON to a service you run —
+n8n, Home Assistant, a script. A webhook chooses its categories from the same list as the bell and
+the phone. Deliveries are retried on transient failures only; when a webhook stops delivering you
+get one notification and the last error shows next to it, then one more when it recovers.
+
+The panel refuses, on purpose, any address that is not public https: names of the local network
+or the tailnet, and hosts resolving to private, loopback, link-local or Tailscale addresses — a
+webhook must not become a door into the network the panel sits on. The JSON secret is shown once,
+at creation; the guide explains how to verify the `x-mmo-signature` header.
+
 ## 1.0.7 — 2026-09-01
 
 A small release, mostly about being able to check what you downloaded and to report a problem

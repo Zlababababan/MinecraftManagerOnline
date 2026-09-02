@@ -1046,6 +1046,8 @@ export const NOTIFICATION_TYPES = [
   'player.action',
   /** Lot 2 : une nouvelle version du panel est publiée sur GitHub. */
   'panel.update',
+  /** Lot 4 : un webhook sortant ne livre plus (une fois par épisode) et son retour à la normale. */
+  'webhook.failed',
 ] as const;
 export const notificationTypeSchema = z.enum(NOTIFICATION_TYPES);
 export type NotificationType = z.infer<typeof notificationTypeSchema>;
@@ -1078,6 +1080,8 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<NotificationType, boolean>> 
   'player.action': false,
   // Une release par-ci par-là, jamais la nuit : la cloche suffit, le téléphone n'a pas à sonner.
   'panel.update': true,
+  // Un webhook mort est une notification qui n'arrive plus : la seule façon de le savoir.
+  'webhook.failed': true,
 };
 
 /**
@@ -1107,7 +1111,7 @@ export const NOTIFICATION_GROUPS = [
     types: ['backup.failed', 'task.failed', 'task.done', 'schedule.failed', 'schedule.done'],
   },
   { id: 'players', types: ['player.activity', 'player.action'] },
-  { id: 'panel', types: ['panel.update'] },
+  { id: 'panel', types: ['panel.update', 'webhook.failed'] },
 ] as const satisfies readonly { id: string; types: readonly NotificationType[] }[];
 
 /** Catégorie de notification d'un événement du bus (`undefined` = jamais notifié). */
@@ -1164,6 +1168,11 @@ export function notificationTypeOf(event: {
     // Lot 4 : la sauvegarde automatique du panel a échoué — c'est une sauvegarde qui manque.
     case 'panel.backupFailed':
       return 'backup.failed';
+    // Lot 4 : un webhook sortant qui ne livre plus, puis qui livre à nouveau (même catégorie :
+    // c'est la même préoccupation, et la même personne — l'admin qui l'a configuré).
+    case 'webhook.failed':
+    case 'webhook.recovered':
+      return 'webhook.failed';
     case 'schedule.run':
       return event.severity === 'info' ? 'schedule.done' : 'schedule.failed';
     case 'port.conflict':
@@ -1267,6 +1276,67 @@ export const pushPayloadSchema = z.object({
   locale: localeSchema.optional(),
 });
 export type PushPayload = z.infer<typeof pushPayloadSchema>;
+
+// --- Lot 4 : webhooks sortants (Discord, JSON signé) -------------------------------------------------
+
+/**
+ * `discord` = un embed coloré par sévérité, posté sur l'URL de webhook d'un salon ; `json` = le
+ * même événement en JSON, signé HMAC-SHA256 (en-tête `x-mmo-signature`) pour n8n, Home Assistant…
+ * Le genre ne change pas après création (un webhook JSON porte un secret, pas un Discord).
+ */
+export const WEBHOOK_KINDS = ['discord', 'json'] as const;
+export const webhookKindSchema = z.enum(WEBHOOK_KINDS);
+export type WebhookKind = z.infer<typeof webhookKindSchema>;
+
+/** Plafond par panel : au-delà, c'est un relais qu'il faut, pas une liste. */
+export const MAX_WEBHOOKS = 32;
+
+export const webhookDtoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  kind: webhookKindSchema,
+  /** URL affichable : le jeton d'un webhook Discord est masqué, la query string ne sort jamais. */
+  url: z.string(),
+  enabled: z.boolean(),
+  /** Langue des titres et corps envoyés (indépendante des comptes du panel). */
+  locale: localeSchema,
+  /** Catégories livrées (`NOTIFICATION_TYPES`). */
+  types: z.array(notificationTypeSchema),
+  /** Un secret existe (jamais renvoyé : montré une fois à la création ou à la rotation). */
+  hasSecret: z.boolean(),
+  createdAt: epochMsSchema,
+  updatedAt: epochMsSchema,
+  lastAttemptAt: epochMsSchema.nullable(),
+  lastDeliveredAt: epochMsSchema.nullable(),
+  lastStatus: z.int().nullable(),
+  lastError: z.string().nullable(),
+  /** Livraisons consécutives en échec (réessais compris) ; 0 = en bonne santé. */
+  failCount: z.int().nonnegative(),
+});
+export type WebhookDto = z.infer<typeof webhookDtoSchema>;
+
+export const webhookCreateSchema = z.object({
+  name: z.string().trim().min(1).max(64),
+  kind: webhookKindSchema,
+  url: z.string().trim().min(1).max(2048),
+  locale: localeSchema.optional(),
+  /** Absent = les catégories activées par défaut (`NOTIFICATION_DEFAULTS`). */
+  types: z.array(notificationTypeSchema).max(NOTIFICATION_TYPES.length).optional(),
+  enabled: z.boolean().optional(),
+});
+export type WebhookCreateInput = z.infer<typeof webhookCreateSchema>;
+
+export const webhookPatchSchema = webhookCreateSchema.omit({ kind: true }).partial();
+export type WebhookPatchInput = z.infer<typeof webhookPatchSchema>;
+
+/** `POST /api/webhooks/:id/test` : un envoi, sans réessai, résultat rendu tel quel. */
+export const webhookTestResultSchema = z.object({
+  ok: z.boolean(),
+  status: z.int().nullable(),
+  error: z.string().nullable(),
+  durationMs: z.int().nonnegative(),
+});
+export type WebhookTestResult = z.infer<typeof webhookTestResultSchema>;
 
 // --- Phase 10 : couche d'accès ----------------------------------------------------------------------
 

@@ -331,5 +331,22 @@ Le panel et ses agents font quelques appels sortants, chacun avec son interrupte
 - **mc-heads.net** (votre navigateur) : la tête du skin de chaque joueur, à côté de son pseudo. Réglages → Vie privée → _Charger les avatars depuis mc-heads.net_. Coupé, des initiales s'affichent à la place et le navigateur ne contacte personne.
 - **GitHub** (panel, flux des releases, au plus toutes les 6 heures) : la bannière « version X disponible ». Réglages → Général → _Vérifier les nouvelles versions du panel_.
 - **Adoptium / Azul / Mojang** (agent) : seulement quand vous installez un runtime Java depuis la page d'une machine.
+- **Webhooks** (panel) : seulement vers les adresses que vous avez configurées vous-même dans Réglages → Webhooks (§6) — un salon Discord ou votre propre service. Rien ne part tant que vous n'en ajoutez pas.
 
 Supprimer un serveur supprime avec lui ses sessions de joueurs, ses commandes et ses fiches de sauvegardes. Supprimer un compte du panel garde son nom dans le journal d'audit (pour que l'historique dise encore qui a fait quoi) et retire tout le reste.
+
+## 6. Webhooks Discord et JSON signé
+
+Réglages → Webhooks envoie les notifications hors du panel : vers un **salon Discord**, ou en **JSON signé** vers un service à vous (n8n, Home Assistant, un petit script). Un webhook choisit ses **catégories** dans la même liste que la cloche et le téléphone, et la **langue** de ses messages. Le panel ne poste jamais ailleurs qu'aux adresses que vous avez configurées ici, et ne réessaie que les échecs transitoires (réseau, 408, 429, 5xx — après 1 s, 5 s et 30 s) ; une réponse définitive comme un 404 n'est pas réessayée.
+
+- **Discord** : dans Discord, Paramètres du serveur → Intégrations → Webhooks → Nouveau webhook → _Copier l'URL du webhook_, puis collez-la. Chaque notification arrive sous forme d'embed coloré selon la sévérité, avec un lien vers le panel quand l'URL publique est renseignée. L'URL est un secret (qui la détient peut écrire dans le salon) : le panel la masque une fois enregistrée.
+- **JSON signé** : le panel envoie un POST `{ id, ts, category, event: { id, ts, type, severity, serverId, machineId, payload }, server, machine, title, body, url, locale }` avec les en-têtes `x-mmo-event`, `x-mmo-category`, `x-mmo-delivery` et `x-mmo-signature: t=<epoch ms>,v1=<hex>`. Le secret est affiché **une seule fois**, à la création du webhook (ou quand vous cliquez _Nouveau secret_). Pour vérifier un envoi : calculez le HMAC-SHA256 de `"<t>." + corps brut` avec le secret, comparez-le à `v1` en temps constant, et refusez un `t` vieux de plus de quelques minutes. En Node.js :
+
+  ```js
+  const [t, v1] = req.headers['x-mmo-signature'].split(',').map((part) => part.split('=')[1]);
+  const mac = crypto.createHmac('sha256', secret).update(`${t}.`).update(rawBody).digest('hex');
+  const fresh = Math.abs(Date.now() - Number(t)) < 5 * 60_000;
+  const ok = fresh && crypto.timingSafeEqual(Buffer.from(mac, 'hex'), Buffer.from(v1, 'hex'));
+  ```
+
+Ce que le panel refuse, volontairement : tout sauf `https://`, les URL avec identifiants, les noms d'hôte du réseau local ou du tailnet (`.local`, `.lan`, `.ts.net`, noms sans point…) et tout hôte qui se résout vers une adresse privée, de bouclage, de lien local ou Tailscale — un webhook ne doit pas devenir une passerelle vers le réseau où vit le panel. L'adresse est résolue et contrôlée à **chaque** envoi, et la connexion va à l'adresse contrôlée. Quand un webhook cesse de livrer, le panel lève **une** notification (« Webhook en échec », catégorie _Webhook en échec / rétabli_) et affiche la dernière erreur à côté de lui dans la liste ; une autre quand il livre à nouveau. _Tester_ envoie un message tout de suite, sans réessai.

@@ -32,6 +32,7 @@ import { PanelBackupService } from './services/panel-backup.js';
 import { PANEL_VERSION } from './version.js';
 import { ProcessedEventsService } from './services/processed-events.js';
 import { UpdateCheckService } from './services/update-check.js';
+import { WebhooksService, type WebhooksServiceOptions } from './services/webhooks.js';
 import { AlertsService, DEFAULT_THRESHOLDS } from './services/alerts.js';
 import { collectConditions } from './services/alert-conditions.js';
 import { CommandCatalogService } from './services/command-catalog.js';
@@ -94,6 +95,8 @@ export interface AppContext {
   distribution: DistributionService;
   /** Lot 2 : bannière « version X disponible » (releases.atom GitHub, 6 h). */
   updateCheck: UpdateCheckService;
+  /** Lot 4 : webhooks sortants (Discord, JSON signé), abonnés au bus comme les notifications. */
+  webhooks: WebhooksService;
   /** `fetch` injectable (tests) pour les appels sortants du panel (manifest Mojang, API spark). */
   fetchImpl: typeof fetch | undefined;
   /**
@@ -132,6 +135,8 @@ export interface ContextOptions {
   publicRateLimit?: PublicRateLimitOptions;
   /** Seuils de contre-pression vers les navigateurs (abaissés en test). */
   backpressure?: { dropAboveBytes: number; closeAboveBytes: number };
+  /** Lot 4 : webhooks — faux résolveur/transport et attentes courtes en test. */
+  webhooks?: WebhooksServiceOptions;
   fetch?: typeof fetch;
   /** Période du planificateur (0 = manuel, tests). */
   schedulerTickMs?: number;
@@ -431,6 +436,19 @@ export function createContext(options: ContextOptions): AppContext {
     fetchImpl: options.fetch ?? fetch,
     ...(options.access ?? {}),
   });
+  // Lot 4 : webhooks sortants — même rendu localisé que le push, file par webhook.
+  const webhooks = new WebhooksService({
+    db,
+    now,
+    events,
+    logger,
+    render: (event, locale) => notifications.render(event, locale),
+    serverName: (id) => servers.get(id)?.name,
+    machineName: (id) => machines.get(id)?.name,
+    publicUrl: () => settings.get(SETTING_KEYS.publicUrl),
+    version: PANEL_VERSION,
+    ...(options.webhooks ?? {}),
+  });
 
   // Au démarrage : aucun agent n'est connecté, tout `online` est un reliquat d'une exécution précédente.
   machines.markAllOffline();
@@ -477,6 +495,7 @@ export function createContext(options: ContextOptions): AppContext {
     access,
     distribution,
     updateCheck,
+    webhooks,
     fetchImpl: options.fetch,
     diagnostics: {
       startedAt: now(),
@@ -487,6 +506,7 @@ export function createContext(options: ContextOptions): AppContext {
     close: () => {
       access.stop();
       notifications.dispose();
+      webhooks.dispose();
       migrations.dispose();
       scheduler.stop();
       registry.closeAll();

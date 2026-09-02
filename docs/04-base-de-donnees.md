@@ -376,7 +376,7 @@ CREATE INDEX idx_migr_server ON server_migrations(server_id, started_at DESC);
 
 ```sql
 -- Bus d'événements persistant ; rowid = curseur de reprise des consommateurs
--- (push, UI temps réel, webhooks futurs). Sans FK volontairement : un événement
+-- (push, UI temps réel, webhooks sortants). Sans FK volontairement : un événement
 -- survit à la suppression de sa cible. Purge configurable (défaut 90 j).
 -- Alertes à ÉTAT (2026-08-30). Le bus d'événements est append-only et ponctuel : il ne sait pas
 -- dire « c'est toujours en cours » ni « c'est rentré dans l'ordre ». Une ligne par (règle, portée),
@@ -452,6 +452,29 @@ CREATE TABLE console_macros (
   updated_at INTEGER NOT NULL
 );
 CREATE INDEX idx_console_macros_server ON console_macros(server_id);
+
+-- Webhooks sortants (lot 4, 2026-09-02) : Discord ou JSON signé HMAC. `types` = catégories de
+-- notification (JSON, NOTIFICATION_TYPES — les mêmes cases que la cloche et le push) ; `secret`
+-- (hex, 256 bits) seulement pour kind = 'json', jamais renvoyé par l'API. Santé sur la ligne :
+-- fail_count = livraisons consécutives perdues (réessais compris), last_error = la dernière cause
+-- en clair (Réglages → Webhooks). Pas de CHECK sur kind/locale (Zod valide). Migration 0014.
+CREATE TABLE webhooks (
+  id                TEXT PRIMARY KEY,
+  name              TEXT NOT NULL,
+  kind              TEXT NOT NULL,                     -- discord | json
+  url               TEXT NOT NULL,
+  secret            TEXT,
+  enabled           INTEGER NOT NULL DEFAULT 1,
+  locale            TEXT NOT NULL DEFAULT 'en',
+  types             TEXT NOT NULL,
+  created_at        INTEGER NOT NULL,
+  updated_at        INTEGER NOT NULL,
+  last_attempt_at   INTEGER,
+  last_delivered_at INTEGER,
+  last_status       INTEGER,
+  last_error        TEXT,
+  fail_count        INTEGER NOT NULL DEFAULT 0
+);
 ```
 
 **Amendement (2026-08-30) — `schedule.timezone`.** Nom IANA (`Europe/Paris`) dans lequel **toutes** les planifications sont lues : politiques de sauvegarde et actions programmées. Absent ⇒ fuseau de l'hôte du panel ; valeur devenue invalide ⇒ même repli (un réglage bricolé ne doit pas figer le planificateur). Le panel l'applique à `nextCronRun`/`nextCronRunList`, le pousse à l'agent avec chaque politique (`agent.configure.backupSchedules[].timezone`) et l'expose à tout utilisateur connecté par `GET /api/auth/me` — la route des réglages étant réservée aux administrateurs, alors que n'importe qui saisissant une heure a besoin de savoir dans quel fuseau elle sera lue. Motif : les expressions cron étaient évaluées dans le fuseau du **processus** (agent pour les sauvegardes, panel pour les actions, navigateur pour l'aperçu) ; un agent Linux en UTC faisait partir à 6 h une sauvegarde réglée sur 4 h par un utilisateur à Paris, sans que rien ne le signale.

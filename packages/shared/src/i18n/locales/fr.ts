@@ -103,6 +103,18 @@ export const fr = {
         title: 'Sauvegarde du panel échouée',
         body: 'La copie quotidienne de la base du panel n’a pas pu être écrite : {{reason}}',
       },
+      webhookFailed: {
+        title: 'Webhook « {{webhook}} » en échec',
+        body: 'Les envois ne passent plus : {{reason}}. Réglages → Webhooks.',
+      },
+      webhookRecovered: {
+        title: 'Webhook « {{webhook}} » rétabli',
+        body: 'Les envois passent à nouveau.',
+      },
+      webhookTest: {
+        title: 'Test du webhook « {{webhook}} »',
+        body: 'Ce message vient de MinecraftManagerOnline : le webhook est bien configuré.',
+      },
       serverRunning: { title: '{{server}} est en marche', body: 'Démarré sur {{machine}}.' },
       serverStopped: { title: '{{server}} est arrêté', body: 'Arrêté sur {{machine}}.' },
       playerJoined: {
@@ -191,6 +203,21 @@ export const fr = {
     E_SETUP_DONE: 'Le panel est déjà configuré.',
     E_AGENT_OFFLINE: 'L’agent de cette machine n’est pas connecté.',
     E_VALIDATION: 'Saisie invalide.',
+    /** Lot 4 — URL de webhook refusée par la garde SSRF (`details.reason`, clé `url`). */
+    E_VALIDATION_BAD_URL: 'Cette adresse n’est pas une URL valide.',
+    E_VALIDATION_BAD_SCHEME: 'Seules les adresses https:// sont acceptées pour un webhook.',
+    E_VALIDATION_CREDENTIALS:
+      'Une URL de webhook ne doit pas contenir d’identifiants (user:mot-de-passe@).',
+    E_VALIDATION_BLOCKED_HOST:
+      'Nom d’hôte refusé ({{hostname}}) : un webhook ne peut pas viser une machine locale ni le tailnet.',
+    E_VALIDATION_BLOCKED_ADDRESS:
+      '{{hostname}} pointe vers une adresse réservée ({{address}}, {{range}}) : un webhook ne peut viser qu’un service public.',
+    E_VALIDATION_UNRESOLVABLE: 'Le nom d’hôte {{hostname}} ne se résout pas depuis le panel.',
+    E_VALIDATION_NOT_DISCORD:
+      'Ce n’est pas une URL de webhook Discord (attendu : https://discord.com/api/webhooks/<id>/<jeton>).',
+    E_VALIDATION_TOO_MANY: 'Nombre maximal de webhooks atteint ({{max}}).',
+    E_VALIDATION_NO_SECRET:
+      'Un webhook Discord n’a pas de secret : seul un webhook JSON signé en a un.',
     E_NO_RELEASE: 'Aucune release d’agent publiée sur ce panel.',
     E_PUSH_DISABLED:
       'Les notifications push ne sont pas configurées sur ce panel (clés VAPID absentes).',
