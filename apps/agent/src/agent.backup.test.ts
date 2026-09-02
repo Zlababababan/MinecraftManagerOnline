@@ -3,11 +3,12 @@
  * flush / save-on), manifeste sha256, restauration refusée sur archive altérée puis réussie avec
  * backup de sécurité, backup planifié exécuté **panel éteint** puis synchronisé à la reconnexion,
  * rotation → `backup.rotated`, transferts binaires avec coupure/reprise (download et upload),
- * `fs.fetch`, annulation, reprise au boot (`E_INTERRUPTED`).
+ * `fs.fetch`, annulation, reprise au boot (`E_INTERRUPTED`). Lot 4 : marqueur de destination déposé
+ * à la configuration, sauvegarde planifiée refusée (`task.failed`) quand il manque, rien d'écrit.
  */
 import { createHash, randomBytes } from 'node:crypto';
 import http from 'node:http';
-import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -414,6 +415,55 @@ describe('phase 8 : tasks, backups, transferts de bout en bout', () => {
     const remaining = (await newPeer.request('backup.list', { serverId: 'srv_1' })).backups;
     expect(remaining).toHaveLength(1);
     expect(remaining[0]?.backupId).not.toBe((cap.completed[0]?.result as BackupManifest).backupId);
+  });
+
+  it('lot 4 : marqueur déposé à la configuration d’une destination explicite ; absent au moment du planning → task.failed sans rien écrire ; remis → sauvegarde', async () => {
+    const peer = await bootAgent();
+    const { dir: dest, cleanup } = await tmpDir('mmo-bk-dest-');
+    try {
+      const schedules = [{ id: 'pol_1', serverId: 'srv_1', cron: '* * * * *' }];
+      await configure(peer, { backupDestination: dest, backupSchedules: schedules });
+      const marker = path.join(dest, '.mmo-backups.json');
+      const written = JSON.parse(await readFile(marker, 'utf8')) as { agentVersion?: unknown };
+      expect(typeof written.agentVersion).toBe('string');
+      expect(agent!.store.get().markedDestinations).toEqual([path.resolve(dest)]);
+
+      // « Volume démonté » : le marqueur n'est plus là. Une configuration identique (chaque
+      // reconnexion du panel en envoie une) ne le recrée pas — sinon la garde se réarmerait toute
+      // seule sur le mauvais disque.
+      await rm(marker);
+      await configure(peer, { backupDestination: dest, backupSchedules: schedules });
+      expect(await stat(marker).catch(() => undefined)).toBeUndefined();
+
+      const started = await agent!.backupScheduler.tick();
+      expect(started).toHaveLength(1);
+      await agent!.tasks.wait(started[0]!);
+      await waitFor(() => cap.failed.length === 1, 10_000);
+      expect(cap.failed[0]).toMatchObject({ taskId: started[0], kind: 'backup.create' });
+      expect(cap.failed[0]?.error).toMatchObject({ code: 'E_IO', retryable: false });
+      expect(cap.failed[0]?.error.details).toMatchObject({
+        reason: 'DESTINATION_UNMARKED',
+        path: path.resolve(dest),
+      });
+      // Rien n'a été écrit sous la destination : ni dossier du serveur, ni `.part`.
+      expect(await readdir(dest)).toEqual([]);
+
+      // Marqueur remis à la main (un fichier vide suffit) : l'occurrence suivante passe.
+      await writeFile(marker, '');
+      await agent!.store.update((s) => {
+        s.backupScheduleRuns = {};
+      });
+      const second = await agent!.backupScheduler.tick();
+      expect(second).toHaveLength(1);
+      await agent!.tasks.wait(second[0]!);
+      await waitFor(() => cap.completed.length === 1, 10_000);
+      const manifest = cap.completed[0]?.result as BackupManifest;
+      expect(manifest.policyId).toBe('pol_1');
+      expect(manifest.archivePath.startsWith(path.join(path.resolve(dest), 'srv_1'))).toBe(true);
+      expect(await stat(manifest.archivePath).then((s) => s.isFile())).toBe(true);
+    } finally {
+      await cleanup();
+    }
   });
 
   it('download avec coupure puis reprise par offset ; sha256 vérifié de bout en bout', async () => {

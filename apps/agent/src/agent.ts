@@ -129,6 +129,8 @@ export interface AgentOptions {
   >;
   /** Attente de confirmation console après `save-all` en stdin (tests : court). */
   saveSettleMs?: number;
+  /** Lot 4 : espace libre d'une destination de sauvegarde (défaut `fs.statfs` ; tests : imposé). */
+  backupFreeBytes?: (dir: string) => Promise<number | undefined>;
   /** `fetch` pour `fs.fetch`, `java.install`, `migration.import`, `agent.update` (tests : serveur local). */
   fetchImpl?: typeof fetch;
   /** Phase 12 : plafonds des transferts (`fs.fetch`, upload) — tests ; défauts dans `AgentTransfers`. */
@@ -267,6 +269,7 @@ export class Agent {
       logger: this.logger.child('backups'),
       agentVersion: AGENT_VERSION,
       ...(options.saveSettleMs === undefined ? {} : { saveSettleMs: options.saveSettleMs }),
+      ...(options.backupFreeBytes === undefined ? {} : { freeBytes: options.backupFreeBytes }),
       onRotated: ({ serverId, policyId, deleted }) => {
         this.emit('backup.rotated', (eventId) => ({
           eventId,
@@ -733,6 +736,18 @@ export class Agent {
           if (cfg.backupSchedules) s.backupSchedules = cfg.backupSchedules;
         });
         if (cfg.backupSchedules) await this.backupScheduler.prune();
+        // Lot 4 : marqueur déposé sur les destinations explicites NOUVELLES (jamais rejoué sur une
+        // destination connue — un marqueur disparu doit faire échouer la sauvegarde, pas renaître).
+        const marks = await this.backups.markNewDestinations();
+        for (const failure of marks.failed) {
+          this.logger.warn('backup destination marker could not be written', failure);
+          this.emit('agent.log', {
+            ts: Date.now(),
+            level: 'WARN',
+            message: `backup destination is not writable: ${failure.path} (${failure.error}) — backups there will be refused until the folder is available and the destination is set again`,
+            context: { code: 'E_IO', path: failure.path, error: failure.error },
+          });
+        }
         if (cfg.metricsIntervalSec !== undefined && this.options.metricsIntervalMs === undefined) {
           this.metrics.setInterval(cfg.metricsIntervalSec * 1000);
         }

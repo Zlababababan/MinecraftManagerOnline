@@ -51,6 +51,11 @@ Server page → **Backups** tab. Two halves:
 
 A new server gets a default policy (daily, keep 7). If a scheduled backup fails or is skipped, the panel records it and can notify you — see the notification categories in your account settings. The destination folder is set in Settings → General (per-server override on the policy).
 
+Two checks run **before** anything is written:
+
+- **Free space.** The agent estimates the archive size (from the compression ratio of the previous archive of that server, plus a 64 MiB margin) and refuses when the destination does not have that much room — the error names the numbers. Nothing is written, and a running server is left saving normally.
+- **Destination marker.** When you set a destination folder (other than the agent's own), the agent drops a small file, `.mmo-backups.json`, at its root. A backup is refused if that file is missing — typically a network drive or USB disk that is not mounted: without the check, the backup would land in the empty mount point on the system disk and everything would look fine until the day you need it. Mount the drive and retry. If the folder really is the right one (new disk, file deleted), create an empty file with that name at its root, or clear the destination in the settings, save, then set it again.
+
 ## 8. Duplicate a server
 
 Server page → **Duplicate** (a dialog opens): the panel copies the server into a **new** server, on the same machine or another one. The typical case is a "template" server you clone on its own machine.

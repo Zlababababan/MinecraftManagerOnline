@@ -10,7 +10,7 @@
  */
 import { randomBytes } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { mkdir, readdir, rename, rm, stat, statfs } from 'node:fs/promises';
+import { mkdir, readdir, rename, rm, stat } from 'node:fs/promises';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import os from 'node:os';
@@ -28,6 +28,7 @@ import type { BackupService } from '../backup/backup-service.js';
 import { errorMessage, type Logger } from '../log.js';
 import type { ServerManager } from '../minecraft/server-manager.js';
 import { isPortFree } from '../platform/ports.js';
+import { freeBytes } from '../util/disk.js';
 import type { JavaRegistry } from '../platform/java.js';
 import type { StateStore } from '../state/store.js';
 import type { TaskContext } from '../tasks/runner.js';
@@ -494,21 +495,6 @@ async function checkPath(
   const entries = await readdir(target).catch(() => undefined);
   if (entries === undefined) return { ok: false, code: 'path_unreadable' };
   return entries.length === 0 ? { ok: true } : { ok: false, code: 'path_not_empty' };
-}
-
-async function freeBytes(target: string): Promise<number | undefined> {
-  let probe = target;
-  for (let i = 0; i < 8; i++) {
-    try {
-      const fsStat = await statfs(probe);
-      return fsStat.bavail * fsStat.bsize;
-    } catch {
-      const parent = path.dirname(probe);
-      if (parent === probe) return undefined;
-      probe = parent;
-    }
-  }
-  return undefined;
 }
 
 /** Adresses privées (RFC 1918, ULA fd00::/8, link-local exclue) des interfaces actives. */

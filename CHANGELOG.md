@@ -91,6 +91,24 @@ new archives and the old `.db` copies alike, and puts `tls/` back when the archi
 Also fixed: a response the agent could not deliver because the panel had just gone (or the other
 way round) surfaced as an unhandled error instead of a log line — the CI caught it on Windows.
 
+### A backup refuses to start when it cannot finish
+
+A full disk used to be discovered after minutes of compression: a truncated archive, no manifest,
+and a late error. The agent now estimates the archive first — from the compression ratio of the
+previous archive of that server, plus a 64 MiB margin — and refuses before writing a byte when the
+destination does not have that much room. The error names the numbers, and a running server is
+left saving normally.
+
+The second check is for the silent case. When you set a backup destination other than the agent's
+own folder, the agent drops a marker file, `.mmo-backups.json`, at its root, and refuses to write
+there if the marker is missing — a network drive or USB disk that is not mounted, typically.
+Without it, backups landed in the empty mount point on the system disk and everything looked fine
+until the day they were needed. The marker is written once, when the destination is set (or, for
+agents updated to this release, at their first configuration); it is deliberately not recreated at
+every reconnection. If the folder really is the right one, create an empty file with that name at
+its root, or clear and set the destination again. Agents older than this release keep their
+previous behaviour.
+
 ## 1.0.7 — 2026-09-01
 
 A small release, mostly about being able to check what you downloaded and to report a problem

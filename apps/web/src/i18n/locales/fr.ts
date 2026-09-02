@@ -105,7 +105,8 @@ export const webFr = {
       manual: 'Manuel (reverse proxy)',
     },
     backupDestination: 'Destination de backups par défaut',
-    backupDestinationHint: 'Dossier, sur chaque machine, où ranger les backups (facultatif).',
+    backupDestinationHint:
+      'Dossier, sur chaque machine, où ranger les backups (facultatif). L’agent y dépose un fichier marqueur (.mmo-backups.json) à la racine quand vous le réglez, et refuse d’y écrire si le marqueur manque — typiquement un lecteur réseau non monté — plutôt que de remplir le disque système.',
     submit: 'Créer le compte et ouvrir le panel',
     done: 'Le panel est configuré.',
   },
@@ -1127,6 +1128,8 @@ export const webFr = {
       publicUrlHint:
         'Utilisée par les agents, les one-liners d’installation, le push et le test de joignabilité. https:// est ajouté automatiquement si absent — après enregistrement, lancez le Test de joignabilité (carte Accès distant ci-dessous).',
       backupDestination: 'Destination de sauvegarde par défaut',
+      backupDestinationHint:
+        'Dossier, sur chaque machine, où ranger les sauvegardes (facultatif ; une politique peut le remplacer). L’agent y dépose un fichier marqueur (.mmo-backups.json) à la racine quand vous le réglez, et refuse d’y écrire si le marqueur manque — typiquement un lecteur réseau non monté — plutôt que de remplir le disque système. Pour marquer un dossier à nouveau : videz ce champ, enregistrez, puis remettez-le.',
       retentionTitle: 'Rétention (jours)',
       retentionHint:
         'Les lignes plus anciennes sont supprimées par la maintenance horaire ; le journal du panel indique ce qui a été retiré, table par table.',

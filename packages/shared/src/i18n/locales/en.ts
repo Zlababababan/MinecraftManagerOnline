@@ -137,6 +137,11 @@ export const en = {
     E_IO_EROFS: '{{path}} is on a read-only filesystem.',
     E_IO_ENOSPC: 'No space left on the device holding {{path}}.',
     E_IO_ENOTDIR: '{{path}} is not a directory.',
+    // Lot 4 — gardes de sauvegarde : refus AVANT d'écrire, avec les nombres qui permettent d'agir.
+    E_IO_INSUFFICIENT_SPACE:
+      'Not enough free space for the backup on {{path}}: about {{requiredMb}} MB needed (estimated), {{freeMb}} MB free. Nothing was written. Free some space or change the backup destination.',
+    E_IO_DESTINATION_UNMARKED:
+      'The backup destination {{path}} has no marker file ({{marker}}): the folder is probably not mounted, or was replaced. Nothing was written. Mount it and retry; if it really is the right folder, create an empty file named {{marker}} at its root, or remove the destination from the settings and set it again.',
     E_PORT_IN_USE: 'Port {{port}} is already in use.',
     E_RAM_GUARD: 'Not enough free memory: {{needMb}} MB needed, {{freeMb}} MB available.',
     E_EULA_REQUIRED: 'The Minecraft EULA must be accepted before starting the server.',

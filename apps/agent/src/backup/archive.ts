@@ -18,6 +18,7 @@ import {
   walkTree,
   type ExcludeFn,
   type ExtractResult,
+  type TreeSummary,
 } from '@mmo/shared/node';
 
 const pipe = promisify(pipeline);
@@ -65,7 +66,9 @@ export interface CreateArchiveResult {
 
 /**
  * Crée `archivePath` (écrit en `.part` puis renommé). `shouldAbort` interrompt proprement et
- * supprime le `.part`.
+ * supprime le `.part`. `inventory` : arbre déjà parcouru par l'appelant (lot 4 : la garde
+ * d'espace disque en a besoin AVANT d'écrire, et un inventaire fait avant `save-all` ne vaut
+ * rien — les tailles changent pendant l'écriture du monde ; on ne parcourt donc qu'une fois, après).
  */
 export async function createArchive(
   sourceDir: string,
@@ -75,6 +78,7 @@ export async function createArchive(
     exclude?: ExcludeFn;
     onProgress?: (p: CreateArchiveProgress) => void;
     shouldAbort?: () => boolean;
+    inventory?: TreeSummary;
   } = {},
 ): Promise<CreateArchiveResult> {
   const exclude = options.exclude ?? defaultExclude();
@@ -86,7 +90,7 @@ export async function createArchive(
     filesTotal: 0,
     current: '',
   });
-  const tree = await walkTree(sourceDir, exclude);
+  const tree = options.inventory ?? (await walkTree(sourceDir, exclude));
   const part = `${archivePath}.part`;
   const hash = createHash('sha256');
   let size = 0;

@@ -7,10 +7,15 @@
  *   `<destination>/<serverId>/` ;
  * - rotation locale (`keep`, `keepDays`) → `backup.rotated` ;
  * - restauration : vérification du manifeste **avant** de toucher au serveur, arrêt, backup de
- *   sécurité (`pre_restore`), purge du dossier (hors exclusions) puis extraction, relance optionnelle.
+ *   sécurité (`pre_restore`), purge du dossier (hors exclusions) puis extraction, relance optionnelle ;
+ * - lot 4, deux gardes avant d'écrire (`guards.ts`) : marqueur à la racine d'une destination
+ *   explicite (un volume non monté n'est pas une destination), et espace libre contre la taille
+ *   estimée de l'archive.
  */
 import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+
+import { walkTree } from '@mmo/shared/node';
 
 import {
   ProtocolError,
@@ -27,6 +32,7 @@ import type { ServerManager } from '../minecraft/server-manager.js';
 import type { ServerProcess } from '../minecraft/server-process.js';
 import type { StateStore } from '../state/store.js';
 import type { TaskContext } from '../tasks/runner.js';
+import { freeBytes as probeFreeBytes } from '../util/disk.js';
 import {
   archiveExtension,
   chooseCodec,
@@ -35,6 +41,7 @@ import {
   extractArchive,
   verifyArchive,
 } from './archive.js';
+import { DESTINATION_MARKER, estimateArchiveBytes, hasMarker, writeMarker } from './guards.js';
 
 /** Jamais archivé ni effacé par une restauration : le marqueur d'identité du dossier. */
 const MARKER = '.mmo-server.json';
@@ -60,6 +67,8 @@ export interface BackupServiceOptions {
    * ou contrôle préalable d'une restauration) — après écriture du manifeste.
    */
   onVerified?: (event: BackupVerification) => void;
+  /** Lot 4 : espace libre d'un dossier (défaut `fs.statfs` ; tests : valeur imposée). */
+  freeBytes?: (dir: string) => Promise<number | undefined>;
 }
 
 /** Ce que la vérification d'une archive a mesuré, et ce que son manifeste annonçait. */
@@ -80,9 +89,11 @@ export type BackupRestoreRequest = Omit<ParsedRequestPayload<'backup.restore'>, 
 
 export class BackupService {
   private readonly now: () => number;
+  private readonly freeBytes: (dir: string) => Promise<number | undefined>;
 
   constructor(private readonly options: BackupServiceOptions) {
     this.now = options.now ?? (() => Date.now());
+    this.freeBytes = options.freeBytes ?? probeFreeBytes;
   }
 
   // --- Destinations -------------------------------------------------------------------------
@@ -99,6 +110,63 @@ export class BackupService {
 
   serverDestination(serverId: string, requested?: string): string {
     return path.join(this.destinationFor(requested), sanitize(serverId));
+  }
+
+  /** Racine explicite (requête ou réglage global), résolue ; `undefined` = destination par défaut. */
+  private explicitRoot(requested: string | undefined): string | undefined {
+    const chosen = requested ?? this.options.store.get().backupDestination;
+    return chosen === undefined || chosen === '' ? undefined : path.resolve(chosen);
+  }
+
+  /** Toutes les racines explicites de la configuration courante (globale + plannings), dédoublonnées. */
+  configuredRoots(): string[] {
+    const state = this.options.store.get();
+    const roots = [state.backupDestination, ...state.backupSchedules.map((s) => s.destination)]
+      .filter((d): d is string => d !== undefined && d !== '')
+      .map((d) => path.resolve(d));
+    return [...new Set(roots)];
+  }
+
+  /**
+   * Lot 4 — dépose le marqueur sur chaque destination explicite **nouvelle** dans la configuration
+   * (jamais sur une destination déjà connue : si son marqueur a disparu, c'est précisément ce que
+   * la garde doit faire remonter, pas réparer en silence sur le mauvais disque). Les destinations
+   * retirées sont oubliées, donc remises plus tard elles sont marquées à nouveau — c'est le geste
+   * documenté pour re-marquer un dossier : le retirer des réglages, puis le remettre.
+   */
+  async markNewDestinations(): Promise<{
+    marked: string[];
+    failed: { path: string; error: string }[];
+  }> {
+    const roots = this.configuredRoots();
+    const known = new Set(this.options.store.get().markedDestinations);
+    const marked: string[] = [];
+    const failed: { path: string; error: string }[] = [];
+    for (const root of roots) {
+      if (known.has(root)) continue;
+      try {
+        const written = await writeMarker(root, {
+          agentVersion: this.options.agentVersion,
+          now: this.now(),
+        });
+        known.add(root);
+        marked.push(root);
+        this.options.logger.info(
+          written ? 'backup destination marked' : 'backup destination already marked',
+          { path: root, marker: DESTINATION_MARKER },
+        );
+      } catch (error) {
+        failed.push({ path: root, error: errorMessage(error) });
+      }
+    }
+    const next = roots.filter((r) => known.has(r));
+    const before = this.options.store.get().markedDestinations;
+    if (before.length !== next.length || before.some((p, i) => p !== next[i])) {
+      await this.options.store.update((s) => {
+        s.markedDestinations = next;
+      });
+    }
+    return { marked, failed };
   }
 
   /** Toutes les racines où chercher des archives d'un serveur. */
@@ -147,6 +215,19 @@ export class BackupService {
     const record = this.options.store.getServer(serverId);
     if (!record) throw new ProtocolError('E_NOT_FOUND', `unknown server ${serverId}`);
     const sourceDir = record.config.path;
+    // Garde n°2 AVANT toute création de dossier : un `mkdir` réussi sur un point de montage vide
+    // est exactement le scénario silencieux que le marqueur doit interdire.
+    const root = this.explicitRoot(options.destination);
+    if (root !== undefined && !(await hasMarker(root))) {
+      throw new ProtocolError(
+        'E_IO',
+        `backup destination ${root} has no marker file ${DESTINATION_MARKER}: the folder is probably not mounted or was replaced; nothing was written`,
+        {
+          retryable: false,
+          details: { reason: 'DESTINATION_UNMARKED', path: root, marker: DESTINATION_MARKER },
+        },
+      );
+    }
     const destDir = this.serverDestination(serverId, options.destination);
     await mkdir(destDir, { recursive: true });
     const codec = chooseCodec(options.codec);
@@ -174,8 +255,16 @@ export class BackupService {
         await this.saveCommand(hotProc, 'save-all flush', true);
       }
       ctx.throwIfCancelled();
+      const exclude = defaultExclude([MARKER, relativeIfInside(sourceDir, destDir) ?? '']);
+      // Garde n°1 : inventaire APRÈS `save-all` (les tailles sont stables), estimation contre
+      // l'espace libre, refus avant le premier octet écrit. L'inventaire est réutilisé par l'archive.
+      ctx.progress('inventory', 5);
+      const inventory = await walkTree(sourceDir, exclude);
+      await this.assertSpace(serverId, destDir, inventory.bytes, options.destination);
+      ctx.throwIfCancelled();
       const result = await createArchive(sourceDir, archivePath, codec, {
-        exclude: defaultExclude([MARKER, relativeIfInside(sourceDir, destDir) ?? '']),
+        exclude,
+        inventory,
         shouldAbort: () => ctx.isCancelled,
         onProgress: (p) => {
           if (p.phase === 'inventory') {
@@ -233,6 +322,43 @@ export class BackupService {
         });
       }
     }
+  }
+
+  /**
+   * Garde d'espace (lot 4) : taille estimée depuis le taux de compression de la dernière archive du
+   * serveur (`estimateArchiveBytes`), comparée à l'espace libre de la destination. Sans mesure
+   * possible (`statfs` muet), on n'invente pas de refus.
+   */
+  private async assertSpace(
+    serverId: string,
+    destDir: string,
+    bytesRaw: number,
+    requested: string | undefined,
+  ): Promise<void> {
+    const free = await this.freeBytes(destDir);
+    if (free === undefined) return;
+    const history = await this.list(serverId, requested === undefined ? [] : [requested]);
+    const estimate = estimateArchiveBytes(bytesRaw, history);
+    if (free >= estimate.requiredBytes) return;
+    const mb = (n: number): number => Math.ceil(n / 1_048_576);
+    throw new ProtocolError(
+      'E_IO',
+      `not enough free space for the backup on ${destDir}: about ${String(mb(estimate.requiredBytes))} MB needed (estimated from ${String(bytesRaw)} raw bytes), ${String(mb(free))} MB free`,
+      {
+        retryable: false,
+        details: {
+          reason: 'INSUFFICIENT_SPACE',
+          path: destDir,
+          requiredBytes: estimate.requiredBytes,
+          freeBytes: free,
+          requiredMb: mb(estimate.requiredBytes),
+          freeMb: mb(free),
+          bytesRaw,
+          ratio: estimate.ratio,
+          ...(estimate.basedOn === undefined ? {} : { basedOn: estimate.basedOn }),
+        },
+      },
+    );
   }
 
   /**

@@ -122,6 +122,7 @@ function GeneralCard({ settings }: { settings: Record<string, string> }) {
           />
           <TextInput
             label={t('web:settings.general.backupDestination')}
+            description={t('web:settings.general.backupDestinationHint')}
             {...form.getInputProps('backupDestination')}
           />
           <NumberInput

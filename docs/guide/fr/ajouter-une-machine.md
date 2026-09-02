@@ -51,6 +51,11 @@ Page serveur → onglet **Sauvegardes**. Deux moitiés :
 
 Un nouveau serveur reçoit une politique par défaut (quotidienne, 7 conservées). Si une sauvegarde planifiée échoue ou est sautée, le panel l'enregistre et peut vous prévenir — voir les catégories de notifications dans les réglages de votre compte. Le dossier de destination se règle dans Réglages → Général (remplaçable par politique).
 
+Deux contrôles ont lieu **avant** d'écrire quoi que ce soit :
+
+- **Espace libre.** L'agent estime la taille de l'archive (d'après le taux de compression de l'archive précédente de ce serveur, plus une marge de 64 Mio) et refuse si la destination n'a pas cette place — l'erreur donne les chiffres. Rien n'est écrit, et un serveur en marche continue d'enregistrer normalement.
+- **Marqueur de destination.** Quand vous réglez un dossier de destination (autre que celui de l'agent), l'agent y dépose un petit fichier, `.mmo-backups.json`, à la racine. Une sauvegarde est refusée si ce fichier manque — typiquement un lecteur réseau ou un disque USB non monté : sans ce contrôle, la sauvegarde atterrirait dans le point de montage vide du disque système et tout paraîtrait normal jusqu'au jour où vous en auriez besoin. Montez le lecteur et réessayez. Si c'est bien le bon dossier (disque neuf, fichier supprimé), créez-y un fichier vide de ce nom à la racine, ou videz la destination dans les réglages, enregistrez, puis remettez-la.
+
 ## 8. Dupliquer un serveur
 
 Fiche serveur → **Dupliquer** (une fenêtre s'ouvre) : le panel copie le serveur vers un **nouveau** serveur, sur la même machine ou sur une autre. Le cas classique : un serveur « modèle » que l'on clone sur sa propre machine.

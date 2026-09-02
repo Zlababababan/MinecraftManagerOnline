@@ -107,7 +107,8 @@ export const webEn = {
       manual: 'Manual (reverse proxy)',
     },
     backupDestination: 'Default backup destination',
-    backupDestinationHint: 'Folder on each machine where backups are stored (optional).',
+    backupDestinationHint:
+      'Folder on each machine where backups are stored (optional). The agent drops a marker file (.mmo-backups.json) at its root when you set it, and refuses to write there if the marker is missing — a network drive that is not mounted, typically — rather than filling the system disk.',
     submit: 'Create account and open the panel',
     done: 'The panel is configured.',
   },
@@ -1115,6 +1116,8 @@ export const webEn = {
       publicUrlHint:
         'Used by agents, install one-liners, push and the reachability test. https:// is assumed if omitted — after saving, run the Reachability test (Remote access card below).',
       backupDestination: 'Default backup destination',
+      backupDestinationHint:
+        'Folder on each machine where backups are stored (optional; a policy can override it). The agent drops a marker file (.mmo-backups.json) at its root when you set it, and refuses to write there if the marker is missing — a network drive that is not mounted, typically — rather than filling the system disk. To mark a folder again, clear this field, save, then set it again.',
       retentionTitle: 'Retention (days)',
       retentionHint:
         'Rows older than this are deleted by the hourly maintenance; the panel log reports what was removed, table by table.',

@@ -75,6 +75,12 @@ export const agentStateSchema = z.object({
   backupScheduleRuns: z.record(z.string(), z.int().nonnegative()).default({}),
   /** Lot 4 : début de la dernière passe de vérification des archives (`BackupVerifier`). */
   backupVerifyAt: z.int().nonnegative().optional(),
+  /**
+   * Lot 4 : destinations de sauvegarde **explicites** (globale et par planning, chemins résolus)
+   * dont le marqueur `.mmo-backups.json` a été déposé — une seule fois, quand la destination est
+   * apparue dans la configuration. Une destination retirée en sort ; la remettre la remarque.
+   */
+  markedDestinations: z.array(z.string()).default([]),
   /** Phase 9 : dossiers sources renommés par `migration.finalize`, purgés après `purgeAfter`. */
   migratedDirs: z
     .array(z.object({ path: z.string(), purgeAfter: z.int().nonnegative() }))

@@ -163,6 +163,11 @@ export const fr = {
     E_IO_EROFS: '{{path}} est sur un système de fichiers en lecture seule.',
     E_IO_ENOSPC: 'Plus d’espace disque sur le volume qui contient {{path}}.',
     E_IO_ENOTDIR: '{{path}} n’est pas un dossier.',
+    // Lot 4 — gardes de sauvegarde : refus AVANT d'écrire, avec les nombres qui permettent d'agir.
+    E_IO_INSUFFICIENT_SPACE:
+      'Pas assez d’espace libre pour la sauvegarde sur {{path}} : environ {{requiredMb}} Mo nécessaires (estimation), {{freeMb}} Mo libres. Rien n’a été écrit. Libérez de la place ou changez la destination des sauvegardes.',
+    E_IO_DESTINATION_UNMARKED:
+      'La destination de sauvegarde {{path}} n’a pas de fichier marqueur ({{marker}}) : le dossier n’est probablement pas monté, ou a été remplacé. Rien n’a été écrit. Montez-le et réessayez ; si c’est bien le bon dossier, créez-y un fichier vide nommé {{marker}}, ou retirez la destination des réglages puis remettez-la.',
     E_PORT_IN_USE: 'Le port {{port}} est déjà utilisé.',
     E_RAM_GUARD: 'Mémoire insuffisante : {{needMb}} Mo nécessaires, {{freeMb}} Mo disponibles.',
     E_EULA_REQUIRED: 'L’EULA Minecraft doit être acceptée avant de démarrer le serveur.',
