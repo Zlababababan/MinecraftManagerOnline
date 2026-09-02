@@ -7,7 +7,10 @@ import websocket from '@fastify/websocket';
 import Fastify, { LogController, type FastifyBaseLogger, type FastifyInstance } from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 
+import { ulid } from '@mmo/protocol';
+
 import { defaultConfig, type PanelConfig } from './config.js';
+import { registerAccessLog } from './http/access-log.js';
 import { createContext, type AppContext, type ContextOptions } from './context.js';
 import { registerAuth } from './http/auth.js';
 import { registerErrorHandler } from './http/errors.js';
@@ -31,6 +34,8 @@ export interface AppOptions extends Partial<Omit<ContextOptions, 'config' | 'log
   config?: Partial<PanelConfig>;
   /** `true` = pino vers stdout ; objet = options pino (`stream` : destination) ; défaut `false` (tests). */
   logger?: boolean | { level: string; stream?: { write(chunk: string): void } };
+  /** Journal d'accès : seuil `warn` (défaut 1 s ; 0 en test pour forcer la branche lente). */
+  accessLog?: { slowMs?: number };
 }
 
 export interface PanelApp {
@@ -46,7 +51,12 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   const app = Fastify({
     logger: options.logger ?? false,
     trustProxy: 'loopback',
+    // Journal d'accès maison (`http/access-log.ts`) : une ligne par réponse, avec l'utilisateur et
+    // la durée, plutôt que les deux lignes anonymes de Fastify.
     logController: new LogController({ disableRequestLogging: true }),
+    // Identifiant de requête ULID : unique entre redémarrages (le défaut `req-N` ne l'est pas), et
+    // c'est celui qu'une erreur 500 renvoie dans `details.requestId`.
+    genReqId: () => ulid(),
   });
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
@@ -76,6 +86,7 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   registerErrorHandler(app, { spaFallback: webServed });
   registerSecurityHeaders(app, ctx);
   registerAuth(app, ctx);
+  registerAccessLog(app, options.accessLog ?? {});
   registerMiscRoutes(app, ctx);
   registerSetupAndAuthRoutes(app, ctx);
   registerUserRoutes(app, ctx);

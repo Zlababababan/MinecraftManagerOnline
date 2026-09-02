@@ -81,7 +81,7 @@ sudo chown -R "$USER" /opt/mmo/mmo-panel   # extracted as root — hand it to th
 
 > Something wrong? `mmo-panel.cmd doctor` (Windows) or `./mmo-panel.sh doctor` (Linux/macOS) checks the runtime, the data folder and its owner, the database and the port, and says what to do — see §1.6.
 
-The panel listens on `http://127.0.0.1:3000` (never on all interfaces — the access layer, §3, is what exposes it; `0.0.0.0` is refused at startup). Useful variables: `MMO_PORT`, `MMO_HOST` (a specific address), `MMO_DATA_DIR` (default `./data` next to the script — **this is the folder to back up**: SQLite database, metrics, certificates, releases). Besides the console, the panel writes its log to `data/logs/panel-<date>.log` (14 days kept) — that is where to look when something went wrong after the window was closed.
+The panel listens on `http://127.0.0.1:3000` (never on all interfaces — the access layer, §3, is what exposes it; `0.0.0.0` is refused at startup). Useful variables: `MMO_PORT`, `MMO_HOST` (a specific address), `MMO_DATA_DIR` (default `./data` next to the script — **this is the folder to back up**: SQLite database, metrics, certificates, releases). Besides the console, the panel writes its log to `data/logs/panel-<date>.log` (14 days kept) — that is where to look when something went wrong after the window was closed. Every API request leaves one line there (request id, route, status, duration, user — never the query string); when the interface shows "internal error" with an id, that id is the line to search for.
 
 ### 1.3 First start
 

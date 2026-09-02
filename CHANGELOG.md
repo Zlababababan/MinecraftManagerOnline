@@ -30,6 +30,14 @@ runtime, servers as the agent sees them, running tasks, and the last 200 lines o
 user names, tokens and addresses masked. Attach it to a bug report. Agents older than this release
 answer that they do not support it — update them first.
 
+### The panel log finally says what happened
+
+Every API request now leaves one line in the panel log: request id, method, route, status, duration
+and user — never the query string. A request slower than a second, or a 500, is logged as a
+warning, and the id an internal error shows you is the one to search for in that log. The log also
+records agent connections and scheduled actions. Administrators get more from `/api/health`:
+uptime, current log file, database sizes and the last maintenance pass.
+
 ## 1.0.7 — 2026-09-01
 
 A small release, mostly about being able to check what you downloaded and to report a problem

@@ -94,7 +94,25 @@ export interface AppContext {
   updateCheck: UpdateCheckService;
   /** `fetch` injectable (tests) pour les appels sortants du panel (manifest Mojang, API spark). */
   fetchImpl: typeof fetch | undefined;
+  /**
+   * Lot 9 : ce que `/api/health` montre à un administrateur — instant de démarrage, journal
+   * courant, dernier passage de maintenance (rempli par `runMaintenance`).
+   */
+  diagnostics: {
+    startedAt: number;
+    logFile: () => string | undefined;
+    lastMaintenance: MaintenanceSummary | undefined;
+  };
   close(): void;
+}
+
+/** Résumé d'un passage de maintenance tel qu'exposé par `/api/health` (admin). */
+export interface MaintenanceSummary {
+  at: number;
+  durationMs: number;
+  /** Tables réellement purgées (compteurs non nuls seulement). */
+  purged: Record<string, number>;
+  vacuum: { file: string; status: string; reason?: string; afterBytes?: number }[];
 }
 
 export interface ContextOptions {
@@ -104,6 +122,8 @@ export interface ContextOptions {
   /** `':memory:'` en test (sinon `<dataDir>/mmo.db`). */
   dbFile?: string;
   metricsFile?: string;
+  /** Chemin du journal fichier courant du panel (`boot.ts`), exposé par `/api/health` aux admins. */
+  logFile?: () => string | undefined;
   fetch?: typeof fetch;
   /** Période du planificateur (0 = manuel, tests). */
   schedulerTickMs?: number;
@@ -418,6 +438,11 @@ export function createContext(options: ContextOptions): AppContext {
     distribution,
     updateCheck,
     fetchImpl: options.fetch,
+    diagnostics: {
+      startedAt: now(),
+      logFile: options.logFile ?? (() => undefined),
+      lastMaintenance: undefined,
+    },
     close: () => {
       access.stop();
       notifications.dispose();

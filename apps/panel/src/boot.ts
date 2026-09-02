@@ -18,6 +18,8 @@ export async function boot(config: PanelConfig): Promise<void> {
   const { app, ctx } = await buildApp({
     config,
     logger: { level: process.env.MMO_LOG_LEVEL ?? 'info', stream: logStream },
+    // Le fichier courant bascule chaque jour : `/api/health` (admin) le relit à chaque appel.
+    logFile: () => logStream.file,
   }).catch((error: unknown) => {
     // Écueil réel (archive extraite avec sudo, panel lancé par un autre utilisateur) : le
     // SQLITE_CANTOPEN brut avec sa stack est incompréhensible — on explique le problème de droits.

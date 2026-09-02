@@ -202,6 +202,18 @@ export function runMaintenance(
   } else {
     ctx.logger.debug({ durationMs }, 'maintenance: nothing to purge');
   }
+  // Exposé par `/api/health` (admin) : le dernier passage, sans les compteurs à zéro.
+  ctx.diagnostics.lastMaintenance = {
+    at: t,
+    durationMs,
+    purged: removed,
+    vacuum: vacuum.map((o) => ({
+      file: path.basename(o.file),
+      status: o.status,
+      ...(o.reason === undefined ? {} : { reason: o.reason }),
+      ...(o.afterBytes === undefined ? {} : { afterBytes: o.afterBytes }),
+    })),
+  };
   return { at: t, durationMs, purged, metrics, vacuum };
 }
 

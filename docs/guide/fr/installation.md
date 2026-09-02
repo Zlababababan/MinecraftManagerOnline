@@ -81,7 +81,7 @@ sudo chown -R "$USER" /opt/mmo/mmo-panel   # extrait par root — donnez-le à l
 
 > Quelque chose cloche ? `mmo-panel.cmd doctor` (Windows) ou `./mmo-panel.sh doctor` (Linux/macOS) vérifie le runtime, le dossier de données et son propriétaire, la base et le port, et dit quoi faire — voir §1.6.
 
-Le panel écoute sur `http://127.0.0.1:3000` (jamais sur toutes les interfaces — c'est la couche d'accès, §3, qui l'expose ; `0.0.0.0` est refusé au démarrage). Variables utiles : `MMO_PORT`, `MMO_HOST` (une adresse précise), `MMO_DATA_DIR` (défaut `./data` à côté du script — **c'est le dossier à sauvegarder** : base SQLite, métriques, certificats, releases). En plus de la console, le panel écrit son journal dans `data/logs/panel-<date>.log` (14 jours conservés) — c'est là qu'il faut regarder quand quelque chose s'est mal passé après la fermeture de la fenêtre.
+Le panel écoute sur `http://127.0.0.1:3000` (jamais sur toutes les interfaces — c'est la couche d'accès, §3, qui l'expose ; `0.0.0.0` est refusé au démarrage). Variables utiles : `MMO_PORT`, `MMO_HOST` (une adresse précise), `MMO_DATA_DIR` (défaut `./data` à côté du script — **c'est le dossier à sauvegarder** : base SQLite, métriques, certificats, releases). En plus de la console, le panel écrit son journal dans `data/logs/panel-<date>.log` (14 jours conservés) — c'est là qu'il faut regarder quand quelque chose s'est mal passé après la fermeture de la fenêtre. Chaque requête de l'API y laisse une ligne (identifiant de requête, route, statut, durée, utilisateur — jamais les paramètres de l'URL) ; quand l'interface affiche « erreur interne » avec un identifiant, c'est la ligne à chercher.
 
 ### 1.3 Premier démarrage
 

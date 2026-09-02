@@ -381,6 +381,12 @@ export class SchedulerService {
         error instanceof AppError || error instanceof ProtocolError ? error.code : 'E_INTERNAL';
       message = error instanceof Error ? error.message : String(error);
     }
+    // Transition muette jusqu'ici (lot 9) : une action planifiée exécutée n'apparaissait que dans
+    // les événements, jamais dans le journal fichier du panel.
+    this.deps.logger[status === 'ok' ? 'info' : 'warn'](
+      { scheduleId: row.id, action: row.action, serverId, status, dueAt, message },
+      'scheduled action executed',
+    );
     this.deps.events.publish({
       type: 'schedule.run',
       severity: status === 'ok' ? 'info' : 'warning',

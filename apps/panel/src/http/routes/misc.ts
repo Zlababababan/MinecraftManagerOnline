@@ -1,4 +1,6 @@
 /** Santé, événements, audit, réglages. */
+import { statSync } from 'node:fs';
+
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
@@ -21,21 +23,54 @@ import { auditMeta } from './setup-auth.js';
 /** Dix ans : au-delà, la rétention est un « jamais » qui ne dit pas son nom. */
 const MAX_RETENTION_DAYS = 3650;
 
+/** Taille d'un fichier de base (WAL compris), 0 pour `:memory:` ou un fichier absent. */
+function fileBytes(file: string): number {
+  if (file === ':memory:') return 0;
+  const size = (f: string): number => {
+    try {
+      return statSync(f).size;
+    } catch {
+      return 0;
+    }
+  };
+  return size(file) + size(`${file}-wal`);
+}
+
 export function registerMiscRoutes(app: FastifyInstance, ctx: AppContext): void {
   const r = app.withTypeProvider<ZodTypeProvider>();
 
-  r.get('/api/health', { config: { public: true } }, () => ({
-    ok: true,
-    name: PROJECT_NAME,
-    version: PANEL_VERSION,
-    protocolVersion: PROTOCOL_VERSION,
-    time: ctx.now(),
-    agentsConnected: ctx.registry.all().length,
-    sqlite: {
-      driver: 'node:sqlite',
-      version: (ctx.sqlite.prepare('SELECT sqlite_version() AS v').get() as { v: string }).v,
-    },
-  }));
+  r.get('/api/health', { config: { public: true } }, (request) => {
+    const base = {
+      ok: true,
+      name: PROJECT_NAME,
+      version: PANEL_VERSION,
+      protocolVersion: PROTOCOL_VERSION,
+      time: ctx.now(),
+      agentsConnected: ctx.registry.all().length,
+      sqlite: {
+        driver: 'node:sqlite',
+        version: (ctx.sqlite.prepare('SELECT sqlite_version() AS v').get() as { v: string }).v,
+      },
+    };
+    // Lot 9 : la sonde reste publique et inchangée (installeurs, Docker) ; le diagnostic — chemins,
+    // tailles, dernier passage de maintenance — n'est servi qu'à une session administrateur.
+    if (request.user?.role !== 'admin') return base;
+    const d = ctx.diagnostics;
+    return {
+      ...base,
+      diagnostics: {
+        startedAt: d.startedAt,
+        uptimeSec: Math.max(0, Math.round((ctx.now() - d.startedAt) / 1000)),
+        logFile: d.logFile() ?? null,
+        machines: { total: ctx.machines.list().length, connected: ctx.registry.all().length },
+        databases: {
+          mmo: { file: ctx.files.mmo, bytes: fileBytes(ctx.files.mmo) },
+          metrics: { file: ctx.files.metrics, bytes: fileBytes(ctx.files.metrics) },
+        },
+        maintenance: d.lastMaintenance ?? null,
+      },
+    };
+  });
 
   r.get('/api/events', { schema: { querystring: eventsQuerySchema } }, (request) => ({
     events: ctx.events.list(request.query),
