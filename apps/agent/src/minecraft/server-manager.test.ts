@@ -74,7 +74,8 @@ describe('gestionnaire de serveurs (garde-fous doc 05 §6, provisionnement doc 0
           managed: false,
         }),
       totalRamMb: () => 8192,
-      rconPortRange: [await freePort(), 65000],
+      // `freePort()` peut rendre > 65000 sur les runners Windows : plage vide sinon (session 5).
+      rconPortRange: [Math.min(await freePort(), 64_000), 65000],
       rconProbeIntervalMs: 200,
       exitPollMs: 100,
       ...over,

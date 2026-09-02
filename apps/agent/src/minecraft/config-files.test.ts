@@ -231,7 +231,8 @@ describe('ConfigService — serveur en marche (commandes via le fake Java server
           managed: false,
         }),
       totalRamMb: () => 8192,
-      rconPortRange: [await freePort(), 65000],
+      // `freePort()` peut rendre > 65000 sur les runners Windows : plage vide sinon (session 5).
+      rconPortRange: [Math.min(await freePort(), 64_000), 65000],
       rconProbeIntervalMs: 100,
       exitPollMs: 100,
     });

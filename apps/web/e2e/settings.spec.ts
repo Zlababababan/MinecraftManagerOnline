@@ -230,17 +230,21 @@ test('Réglages : URL publique, test de joignabilité réel, distribution dépos
   await expect(page.getByTestId('distribution-empty')).toBeVisible();
 });
 
-test('Réglages : sauvegarde du panel à la demande (VACUUM INTO) listée avec sa taille', async ({
+test('Réglages : sauvegarde du panel à la demande (archive base + TLS) listée avec sa taille', async ({
   page,
 }, testInfo) => {
   await login(page, langOf(testInfo.project.use.locale));
   await page.goto('/settings');
   const card = page.getByTestId('panel-backups-card');
   await expect(card).toBeVisible();
+  // Lot 4 : l'avertissement sur les secrets précède toujours le téléchargement.
+  await expect(page.getByTestId('panel-backup-secrets-warning')).toBeVisible();
   await page.getByTestId('panel-backup-now').click();
   const table = page.getByTestId('panel-backups-table');
   await expect(table).toBeVisible();
-  await expect(table.locator('tbody tr').first()).toContainText(/mmo-.*\.db/);
+  const first = table.locator('tbody tr').first();
+  await expect(first).toContainText(/mmo-panel-.*\.tar\.gz/);
+  await expect(first.getByTestId(/panel-backup-download-/)).toBeVisible();
   // La commande de restauration cite le fichier le plus récent.
-  await expect(card).toContainText(/mmo-panel restore mmo-.*\.db/);
+  await expect(card).toContainText(/mmo-panel restore mmo-panel-.*\.tar\.gz/);
 });
