@@ -11,11 +11,16 @@
  * Toute défaillance côté fichier est ignorée : le journal ne doit jamais empêcher le panel de
  * tourner ni de logger sur la console.
  */
-import fs from 'node:fs';
 import path from 'node:path';
 
-const RETENTION_DAYS = 14;
-const DEFAULT_MAX_BYTES = 32 * 1024 * 1024;
+import {
+  DEFAULT_LOG_MAX_BYTES,
+  DEFAULT_LOG_RETENTION_DAYS,
+  createRotatingLog,
+  purgeRotatedLogs,
+} from '@mmo/shared/node';
+
+const PREFIX = 'panel';
 
 export interface PanelLogStream {
   write(chunk: string): void;
@@ -26,91 +31,37 @@ export interface PanelLogStream {
 
 function maxBytes(): number {
   const raw = Number(process.env.MMO_LOG_MAX_BYTES);
-  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_MAX_BYTES;
+  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_LOG_MAX_BYTES;
 }
 
+/**
+ * La mécanique de rotation vit dans `@mmo/shared/node` (`createRotatingLog`, lot 9) : l'agent a
+ * gagné le même journal fichier, avec les mêmes règles. Ici ne reste que ce qui est propre au
+ * panel — la recopie sur la sortie standard et le plafond surchargeable par variable d'environnement.
+ */
 export function createPanelLogStream(
   dataDir: string,
   now: () => number = Date.now,
 ): PanelLogStream {
-  const dir = path.join(dataDir, 'logs');
-  let out: fs.WriteStream | undefined;
-  let file: string | undefined;
-  let day = '';
-  let index = 0;
-  let bytes = 0;
-  let broken = false;
-
-  /**
-   * `next` : bascule pour cause de TAILLE, sur la même journée — il faut alors passer au suffixe
-   * suivant sans re-sonder, sinon on rouvre le fichier qu'on vient de quitter (il est sous le
-   * plafond, c'est la ligne à venir qui le dépasserait).
-   */
-  const open = (next = false): void => {
-    try {
-      fs.mkdirSync(dir, { recursive: true });
-      purgePanelLogs(dir, now());
-      const today = new Date(now()).toISOString().slice(0, 10);
-      if (today !== day) index = 0;
-      else if (next) index += 1;
-      day = today;
-      const nameOf = (i: number) =>
-        path.join(dir, i === 0 ? `panel-${day}.log` : `panel-${day}-${String(i)}.log`);
-      // Au démarrage, reprendre le dernier fichier du jour encore sous le plafond.
-      while (!next && sizeOf(nameOf(index)) >= maxBytes()) index += 1;
-      const candidate = nameOf(index);
-      file = candidate;
-      bytes = sizeOf(candidate);
-      out = fs.createWriteStream(candidate, { flags: 'a' });
-      out.on('error', () => {
-        out = undefined;
-        broken = true;
-      });
-    } catch {
-      out = undefined;
-      file = undefined;
-      broken = true;
-    }
-  };
-
-  open();
-
-  /** Bascule si la date a changé ou si le plafond est atteint. Jamais de `statSync` par ligne. */
-  const rotateIfNeeded = (chunkBytes: number): void => {
-    if (broken) return;
-    const today = new Date(now()).toISOString().slice(0, 10);
-    const sameDay = today === day;
-    if (sameDay && bytes + chunkBytes < maxBytes()) return;
-    out?.end();
-    out = undefined;
-    open(sameDay);
-  };
-
+  const log = createRotatingLog({
+    dir: path.join(dataDir, 'logs'),
+    prefix: PREFIX,
+    retentionDays: DEFAULT_LOG_RETENTION_DAYS,
+    maxBytes: maxBytes(),
+    now,
+  });
   return {
     get file() {
-      return file;
+      return log.file;
     },
     write(chunk: string): void {
       process.stdout.write(chunk);
-      if (broken) return;
-      const size = Buffer.byteLength(chunk);
-      rotateIfNeeded(size);
-      out?.write(chunk);
-      bytes += size;
+      log.write(chunk);
     },
     close(): void {
-      out?.end();
-      out = undefined;
+      log.close();
     },
   };
-}
-
-function sizeOf(file: string): number {
-  try {
-    return fs.statSync(file).size;
-  } catch {
-    return 0;
-  }
 }
 
 /**
@@ -119,24 +70,5 @@ function sizeOf(file: string): number {
  * sans ce second appel, des journaux orphelins survivaient à la rétention).
  */
 export function purgePanelLogs(dir: string, now: number): number {
-  let names: string[];
-  try {
-    names = fs.readdirSync(dir);
-  } catch {
-    return 0;
-  }
-  let removed = 0;
-  for (const name of names) {
-    if (!/^panel-\d{4}-\d{2}-\d{2}(-\d+)?\.log$/.test(name)) continue;
-    const full = path.join(dir, name);
-    try {
-      if (now - fs.statSync(full).mtimeMs > RETENTION_DAYS * 86_400_000) {
-        fs.unlinkSync(full);
-        removed += 1;
-      }
-    } catch {
-      // Fichier verrouillé ou déjà supprimé : la purge réessaiera au prochain passage.
-    }
-  }
-  return removed;
+  return purgeRotatedLogs(dir, PREFIX, DEFAULT_LOG_RETENTION_DAYS, now);
 }

@@ -957,6 +957,9 @@ export const webEn = {
     alreadyCurrent: 'The agent already runs this version.',
     applied: 'Update applied: {{version}}',
     rolledBack: 'Update {{other}} rolled back to {{version}} ({{reason}})',
+    diagnostics: 'Diagnostic file',
+    diagnosticsHint:
+      'Agent state, servers, tasks and the last 200 lines of its log, masked (no user names, tokens or full addresses). Attach it to a bug report.',
   },
   releases: {
     title: 'Agent releases',

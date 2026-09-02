@@ -225,6 +225,50 @@ export const agentRotateSecretSchema = z.object({
 export const agentRestartSchema = z.object({ reason: z.string().optional() });
 export const agentRestartResponseSchema = z.object({ accepted: z.literal(true) });
 
+// --- agent.diagnostics (P→A, lot 9) ---------------------------------------------------------------
+
+/**
+ * Diagnostic borné : ce que l'agent sait de lui-même, plus la fin de son journal fichier. Les deux
+ * bornes viennent du panel et sont plafonnées ici — un agent ne renvoie jamais un journal entier.
+ * Le panel masque (chemins personnels, jetons, codes, adresses) avant de servir le fichier.
+ * Ajout sans bump : un agent N-1 répond `E_UNSUPPORTED_TYPE`, l'UI dit « mettez l'agent à jour ».
+ */
+export const agentDiagnosticsSchema = z.object({
+  logLines: z.int().positive().max(2000).default(200),
+  logMaxBytes: z.int().positive().max(1_048_576).default(262_144),
+});
+
+export const agentDiagnosticsResponseSchema = z.object({
+  agentVersion: z.string(),
+  runtimeVersion: z.string(),
+  machine: machineInfoSchema,
+  pid: z.int().positive(),
+  startedAt: epochMsSchema,
+  uptimeSec: z.int().nonnegative(),
+  stateDir: z.string(),
+  agentHome: z.string().optional(),
+  rssMb: z.number().nonnegative(),
+  panelUrl: z.string().optional(),
+  connected: z.boolean(),
+  servers: z.array(
+    z.object({
+      serverId: serverIdSchema,
+      runState: runStateSchema,
+      attachMode: attachModeSchema,
+      pid: z.int().positive().optional(),
+    }),
+  ),
+  activeTasks: z.int().nonnegative(),
+  capabilities: z.array(capabilitySchema).default([]),
+  log: z.object({
+    /** Nom du fichier lu (le plus récent) ; absent si l'agent n'a encore rien écrit. */
+    file: z.string().optional(),
+    lines: z.array(z.string()),
+    /** Des lignes plus anciennes existent au-delà des bornes. */
+    truncated: z.boolean(),
+  }),
+});
+
 // --- agent.log (A→P, event) ----------------------------------------------------------------------
 
 export const agentLogSchema = z.object({

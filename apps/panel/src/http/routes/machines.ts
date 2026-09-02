@@ -15,6 +15,7 @@ import {
 
 import type { AppContext } from '../../context.js';
 import type { MachineRow } from '../../db/schema.js';
+import { renderAgentDiagnostics } from '../../services/agent-diagnostics.js';
 import { SETTING_KEYS } from '../../services/settings.js';
 import { requireUser } from '../auth.js';
 import { parseJson } from '../../util/json.js';
@@ -230,6 +231,48 @@ export function registerMachineRoutes(app: FastifyInstance, ctx: AppContext): vo
     const machine = ctx.machines.require(request.params.id);
     return ctx.registry.require(machine.id).peer.request('agent.info', {}, { userId: user.id });
   });
+
+  /**
+   * Lot 9 — fichier de diagnostic d'un agent : `agent.diagnostics` (borné en lignes et en octets)
+   * mis en forme et masqué, servi en pièce jointe texte. Un agent N-1 répond `E_UNSUPPORTED_TYPE`
+   * (501) : l'UI dit de le mettre à jour.
+   */
+  r.get(
+    '/api/machines/:id/diagnostics',
+    {
+      config: { role: 'admin' },
+      schema: {
+        params: idParams,
+        querystring: z.object({
+          lines: z.coerce.number().int().positive().max(2000).optional(),
+        }),
+      },
+    },
+    async (request, reply) => {
+      const user = requireUser(request);
+      const machine = ctx.machines.require(request.params.id);
+      const diag = await ctx.registry
+        .require(machine.id)
+        .peer.request(
+          'agent.diagnostics',
+          { logLines: request.query.lines ?? 200, logMaxBytes: 256 * 1024 },
+          { userId: user.id },
+        );
+      ctx.audit.record({
+        ...auditMeta(request),
+        action: 'machine.diagnostics',
+        targetType: 'machine',
+        targetId: machine.id,
+        targetLabel: machine.name,
+      });
+      const stamp = new Date(ctx.now()).toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const safeName = machine.name.replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 40) || 'machine';
+      return reply
+        .header('content-type', 'text/plain; charset=utf-8')
+        .header('content-disposition', `attachment; filename="mmo-agent-${safeName}-${stamp}.txt"`)
+        .send(renderAgentDiagnostics(machine, diag, ctx.now()));
+    },
+  );
 
   // --- Répertoires surveillés -------------------------------------------------------------------
 

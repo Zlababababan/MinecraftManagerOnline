@@ -282,6 +282,12 @@ The service relaunches the agent; the agent re-adopts the servers still alive (P
 
 Download the platform archive from the panel (Settings → Agent distribution) or from the release, copy it along with the script (`install.ps1` / `install.sh` are also inside the archive) and run `install.ps1 -Archive <zip> -Panel https://<panel> -PairCode …` or `sh install.sh --archive <tar.gz> --panel https://<panel> --pair-code …` (the SHA-256 hash is only verified for an archive downloaded from the panel — a local archive is taken as-is).
 
+### 2.7 Logs and the diagnostic file
+
+The agent keeps its own log next to its state, whatever the service manager does with its console: `logs/agent-<date>.log` in the state folder (`%LOCALAPPDATA%\mmo-agent`, `/var/lib/mmo-agent` or `~/.local/share/mmo-agent`), one file per day, 14 days kept, 32 MiB per file. That is the file to read when an agent misbehaves and the panel only shows "offline".
+
+You rarely need to open it by hand: on the machine page, the **Agent** card has a **Diagnostic file** button (administrators). It downloads a text file with the agent version and runtime, the servers as the agent sees them, the running tasks and the last 200 lines of that log — with user names, tokens, pairing codes and full addresses masked. Read it, then attach it to a bug report together with `mmo-panel report` (§1.6). An agent older than 1.0.8 answers that it does not support this: update it first (same card).
+
 ## 3. Remote access (summary)
 
 The panel only listens on `127.0.0.1`. To reach it from agents on other machines, from your friends and from your phone, pick a mode (Settings → Remote access):

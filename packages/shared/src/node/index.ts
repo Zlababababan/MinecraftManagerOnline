@@ -9,6 +9,16 @@ import type { DetectFs, DirEntry, JarHandle } from '../detection/fs.js';
 import { openZip } from './zip.js';
 
 export { openZip };
+export {
+  DEFAULT_LOG_MAX_BYTES,
+  DEFAULT_LOG_RETENTION_DAYS,
+  createRotatingLog,
+  purgeRotatedLogs,
+  tailRotatedLog,
+  type LogTail,
+  type RotatingLog,
+  type RotatingLogOptions,
+} from './rotating-log.js';
 
 export function createNodeDetectFs(): DetectFs {
   return {

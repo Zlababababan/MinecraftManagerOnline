@@ -3,12 +3,14 @@
  * « Mettre à jour » (admin, `agent.update` : bundle signé, exit 75, rollback automatique) et rappel
  * des derniers événements de mise à jour (appliquée / annulée).
  */
-import { Badge, Button, Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Badge, Button, Card, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconArrowUpCircle } from '@tabler/icons-react';
+import { IconArrowUpCircle, IconFileDescription } from '@tabler/icons-react';
+import { useState } from 'react';
 
 import type { MachineDto } from '@mmo/protocol/client';
 
+import { api } from '../../api/client.js';
 import { useUpdateAgent } from '../../api/phase9.js';
 import { useEvents, useMe } from '../../api/queries.js';
 import { useT } from '../../i18n/hooks.js';
@@ -21,6 +23,24 @@ export function AgentCard({ machine }: { machine: MachineDto }) {
   const update = useUpdateAgent(machine.id);
   const events = useEvents({ machineId: machine.id, limit: 50 });
   const isAdmin = me.data !== undefined && hasRole(me.data.user.role, 'admin');
+  const [downloading, setDownloading] = useState(false);
+  // Lot 9 : fichier de diagnostic de l'agent (état + fin de son journal, masqués par le panel).
+  const downloadDiagnostics = async () => {
+    setDownloading(true);
+    try {
+      const { blob, fileName } = await api.download(`/api/machines/${machine.id}/diagnostics`);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      notifications.show({ color: 'red', message: describeError(i18n, error) });
+    } finally {
+      setDownloading(false);
+    }
+  };
   const updateEvents = (events.data?.events ?? [])
     .filter(
       (e) =>
@@ -91,6 +111,26 @@ export function AgentCard({ machine }: { machine: MachineDto }) {
             <Text size="xs" c="dimmed">
               {t('web:agentUpdate.hint')}
             </Text>
+          </Group>
+        )}
+        {isAdmin && (
+          <Group>
+            <Tooltip label={t('web:agentUpdate.diagnosticsHint')} withArrow multiline w={320}>
+              <Button
+                type="button"
+                size="xs"
+                variant="default"
+                leftSection={<IconFileDescription size={14} />}
+                loading={downloading}
+                disabled={!machine.connected}
+                data-testid="agent-diagnostics"
+                onClick={() => {
+                  void downloadDiagnostics();
+                }}
+              >
+                {t('web:agentUpdate.diagnostics')}
+              </Button>
+            </Tooltip>
           </Group>
         )}
         {updateEvents.length > 0 && (

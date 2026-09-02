@@ -56,6 +56,8 @@ export const KNOWN_CAPABILITIES = [
   'migration',
   'java',
   'update',
+  /** Lot 9 : `agent.diagnostics` (journal fichier + état borné). */
+  'diagnostics',
 ] as const;
 export const capabilitySchema = z.string().min(1);
 

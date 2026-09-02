@@ -12,6 +12,8 @@ import { emptyPayloadSchema } from './common.js';
 import {
   agentConfigureResponseSchema,
   agentConfigureSchema,
+  agentDiagnosticsResponseSchema,
+  agentDiagnosticsSchema,
   agentHeartbeatSchema,
   agentInfoResponseSchema,
   agentLogSchema,
@@ -166,6 +168,8 @@ export const REQUESTS = {
   'agent.configure': req('p2a', agentConfigureSchema, agentConfigureResponseSchema),
   'agent.rotateSecret': req('p2a', agentRotateSecretSchema, emptyPayloadSchema),
   'agent.restart': req('p2a', agentRestartSchema, agentRestartResponseSchema),
+  /** Lot 9 (sans bump) : diagnostic borné (état de l'agent + fin de son journal fichier). */
+  'agent.diagnostics': req('p2a', agentDiagnosticsSchema, agentDiagnosticsResponseSchema),
   // Détection
   'scan.run': req('p2a', scanRunSchema, scanRunResponseSchema),
   // Contrôle des serveurs

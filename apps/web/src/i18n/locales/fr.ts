@@ -968,6 +968,9 @@ export const webFr = {
     alreadyCurrent: 'L’agent est déjà dans cette version.',
     applied: 'Mise à jour appliquée : {{version}}',
     rolledBack: 'Mise à jour {{other}} annulée, retour en {{version}} ({{reason}})',
+    diagnostics: 'Fichier de diagnostic',
+    diagnosticsHint:
+      'État de l’agent, serveurs, tâches et les 200 dernières lignes de son journal, masqués (ni nom d’utilisateur, ni jeton, ni adresse complète). À joindre à un signalement.',
   },
   releases: {
     title: 'Releases d’agent',

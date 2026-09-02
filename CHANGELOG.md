@@ -21,6 +21,15 @@ nobody knows why.
 for the rewrite. `metrics.db` returns its free pages to the file system every hour within a fixed
 time budget, instead of the 200 pages a day it was limited to.
 
+### The agent keeps a log, and can tell you what is wrong
+
+The agent used to write only to its standard error, which ends up in a different place on every
+system — or nowhere. It now keeps `logs/agent-<date>.log` next to its state (14 days, 32 MiB per
+file). And the machine page has a **Diagnostic file** button (administrators): agent version and
+runtime, servers as the agent sees them, running tasks, and the last 200 lines of that log, with
+user names, tokens and addresses masked. Attach it to a bug report. Agents older than this release
+answer that they do not support it — update them first.
+
 ## 1.0.7 — 2026-09-01
 
 A small release, mostly about being able to check what you downloaded and to report a problem

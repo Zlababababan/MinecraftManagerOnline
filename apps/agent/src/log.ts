@@ -81,10 +81,15 @@ export class Logger implements RpcLogger {
   }
 }
 
-function stderrSink(entry: LogEntry): void {
+/** Ligne de journal, identique sur stderr et dans le fichier : horodatage ISO, niveau, message, contexte JSON. */
+export function formatEntry(entry: LogEntry): string {
   const time = new Date(entry.ts).toISOString();
   const ctx = entry.context === undefined ? '' : ` ${safeJson(entry.context)}`;
-  process.stderr.write(`${time} ${entry.level.padEnd(5)} ${entry.message}${ctx}\n`);
+  return `${time} ${entry.level.padEnd(5)} ${entry.message}${ctx}\n`;
+}
+
+function stderrSink(entry: LogEntry): void {
+  process.stderr.write(formatEntry(entry));
 }
 
 function safeJson(value: unknown): string {

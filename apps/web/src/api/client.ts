@@ -101,4 +101,20 @@ export const api = {
     if (!res.ok) throw await parseError(res);
     return (await res.json()) as T;
   },
+  /**
+   * Réponse fichier (pièce jointe) : le nom vient du `content-disposition`. Un lien `<a download>`
+   * ferait aussi bien pour le cas nominal, mais une erreur (agent trop ancien, hors ligne) doit
+   * arriver dans une notification, pas dans un onglet affichant du JSON.
+   */
+  download: async (url: string): Promise<{ blob: Blob; fileName: string }> => {
+    let res: Response;
+    try {
+      res = await fetch(url, { credentials: 'same-origin' });
+    } catch (error) {
+      throw new NetworkError(error);
+    }
+    if (!res.ok) throw await parseError(res);
+    const match = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '');
+    return { blob: await res.blob(), fileName: match?.[1] ?? 'download.txt' };
+  },
 };

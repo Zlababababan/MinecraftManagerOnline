@@ -195,6 +195,45 @@
       }
     },
     {
+      "type": "agent.diagnostics",
+      "request": {
+        "logLines": 200,
+        "logMaxBytes": 262144
+      },
+      "response": {
+        "agentVersion": "1.0.8",
+        "runtimeVersion": "v24.19.0",
+        "machine": {
+          "hostname": "gaming-pc",
+          "os": "windows",
+          "arch": "x64"
+        },
+        "pid": 4242,
+        "startedAt": 1787300000000,
+        "uptimeSec": 3600,
+        "stateDir": "C:\\Users\\jean\\AppData\\Local\\mmo-agent",
+        "agentHome": "C:\\Users\\jean\\AppData\\Local\\Programs\\mmo-agent",
+        "rssMb": 85.5,
+        "panelUrl": "wss://panel.example.org/ws/agent",
+        "connected": true,
+        "servers": [
+          {
+            "serverId": "01J5X8ZK3Q9WYE2R7M4T6B8N9Z",
+            "runState": "running",
+            "attachMode": "detached",
+            "pid": 1234
+          }
+        ],
+        "activeTasks": 0,
+        "capabilities": ["rcon", "diagnostics"],
+        "log": {
+          "file": "agent-2026-09-02.log",
+          "lines": ["2026-09-02T04:00:00.000Z INFO  [agent:ws] session established"],
+          "truncated": true
+        }
+      }
+    },
+    {
       "type": "scan.run",
       "request": {
         "directoryIds": ["dir_01"],

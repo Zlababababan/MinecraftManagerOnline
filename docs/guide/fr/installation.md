@@ -283,6 +283,12 @@ Le service relance l'agent ; l'agent ré-adopte les serveurs encore en vie (PID 
 
 Téléchargez l'archive de la plateforme depuis le panel (Réglages → Distribution de l'agent) ou la release, copiez-la avec le script (`install.ps1` / `install.sh` sont aussi dans l'archive) et lancez `install.ps1 -Archive <zip> -Panel https://<panel> -PairCode …` ou `sh install.sh --archive <tar.gz> --panel https://<panel> --pair-code …` (l'empreinte SHA-256 n'est vérifiée que pour une archive téléchargée depuis le panel — une archive locale est prise telle quelle).
 
+### 2.7 Journaux et fichier de diagnostic
+
+L'agent tient son propre journal à côté de son état, quoi que le gestionnaire de service fasse de sa console : `logs/agent-<date>.log` dans le dossier d'état (`%LOCALAPPDATA%\mmo-agent`, `/var/lib/mmo-agent` ou `~/.local/share/mmo-agent`), un fichier par jour, 14 jours conservés, 32 Mio par fichier. C'est le fichier à lire quand un agent se comporte mal et que le panel n'affiche que « hors ligne ».
+
+Vous avez rarement besoin de l'ouvrir vous-même : sur la page de la machine, la carte **Agent** a un bouton **Fichier de diagnostic** (administrateurs). Il télécharge un fichier texte avec la version de l'agent et son runtime, les serveurs tels que l'agent les voit, les tâches en cours et les 200 dernières lignes de ce journal — noms d'utilisateur, jetons, codes d'appairage et adresses complètes masqués. Relisez-le, puis joignez-le à un signalement avec `mmo-panel report` (§1.6). Un agent antérieur à la 1.0.8 répond qu'il ne sait pas faire : mettez-le à jour d'abord (même carte).
+
 ## 3. Accès distant (résumé)
 
 Le panel n'écoute que sur `127.0.0.1`. Pour l'atteindre depuis vos agents sur d'autres machines, vos amis et votre téléphone, choisissez un mode (Réglages → Accès distant) :

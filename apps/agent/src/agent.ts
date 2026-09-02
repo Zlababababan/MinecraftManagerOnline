@@ -19,6 +19,7 @@ import {
   type EventTypesFrom,
   type Os,
   type RequestPayload,
+  type ResponsePayload,
 } from '@mmo/protocol';
 import { PROJECT_NAME } from '@mmo/shared';
 
@@ -37,6 +38,7 @@ import { AgentUpdater, detectAgentHome } from './update/updater.js';
 import { panelHttpOrigin } from './util/download.js';
 import { ForbiddenRoots } from './files/forbidden.js';
 import { Logger, errorMessage } from './log.js';
+import { createAgentLogSink, purgeAgentLogs, tailAgentLog, type AgentLogSink } from './log-file.js';
 import { ServerManager, type ServerManagerOptions } from './minecraft/server-manager.js';
 import type { ServerProcessEvent } from './minecraft/server-process.js';
 import { MetricsCollector } from './monitoring/metrics.js';
@@ -58,6 +60,7 @@ export const AGENT_CAPABILITIES = [
   'migration',
   'java',
   'update',
+  'diagnostics',
 ];
 
 export function currentOs(): Os {
@@ -73,6 +76,8 @@ export interface AgentOptions {
   panelUrl?: string | undefined;
   pairCode?: string | undefined;
   logger?: Logger;
+  /** Lot 9 : journal fichier `<stateDir>/logs/agent-<date>.log` (défaut activé ; `false` en test). */
+  fileLog?: boolean;
   webSocketFactory?: WebSocketFactory;
   /** Scan périodique des répertoires surveillés (défaut 5 min ; 0 = désactivé). */
   scanIntervalMs?: number;
@@ -175,9 +180,17 @@ export class Agent {
   private javaSnapshot: RequestPayload<'sync.state'>['javaRuntimes'] = [];
   private trashTimer: ReturnType<typeof setInterval> | undefined;
   private started = false;
+  /** Lot 9 : journal fichier de l'agent et instant de démarrage du processus (diagnostic). */
+  private fileLog: AgentLogSink | undefined;
+  private detachFileLog: (() => void) | undefined;
+  private readonly bootedAt = Date.now();
 
   constructor(private readonly options: AgentOptions) {
     this.logger = options.logger ?? new Logger('agent');
+    if (options.fileLog !== false) {
+      this.fileLog = createAgentLogSink(options.stateDir);
+      this.detachFileLog = this.logger.addSink(this.fileLog.sink);
+    }
     this.version = options.agentVersion ?? AGENT_VERSION;
     this.forbidden = new ForbiddenRoots([options.stateDir, options.agentHome ?? detectAgentHome()]);
     this.store = new StateStore(options.stateDir, {
@@ -405,6 +418,8 @@ export class Agent {
       this.trashTimer = setInterval(() => {
         void this.manager.purgeTrash();
         void this.migration.purgeMigrated();
+        // Journaux fichier hors bascule : un agent silencieux n'écrit pas, donc ne bascule pas.
+        purgeAgentLogs(this.options.stateDir);
       }, purgeEvery);
       this.trashTimer.unref();
       void this.manager.purgeTrash();
@@ -440,6 +455,10 @@ export class Agent {
     this.manager.dispose();
     this.sampler.close();
     await this.store.flush();
+    this.detachFileLog?.();
+    this.fileLog?.close();
+    this.detachFileLog = undefined;
+    this.fileLog = undefined;
     this.started = false;
     this.stopping = false;
   }
@@ -513,6 +532,44 @@ export class Agent {
     };
   }
 
+  /**
+   * Lot 9 : ce que l'agent sait de lui-même, plus la fin de son journal fichier — borné en lignes
+   * et en octets par le panel (plafonds dans le schéma). Aucun masquage ici : c'est le panel qui
+   * masque avant de servir le fichier, avec les mêmes règles que `mmo-panel report`.
+   */
+  diagnostics(bounds: {
+    logLines: number;
+    logMaxBytes: number;
+  }): ResponsePayload<'agent.diagnostics'> {
+    const state = this.store.get();
+    const agentHome = this.options.agentHome ?? detectAgentHome();
+    return {
+      agentVersion: this.version,
+      runtimeVersion: process.version,
+      machine: machineInfo(),
+      pid: process.pid,
+      startedAt: this.bootedAt,
+      uptimeSec: Math.max(0, Math.round((Date.now() - this.bootedAt) / 1000)),
+      stateDir: this.options.stateDir,
+      ...(agentHome === undefined ? {} : { agentHome }),
+      rssMb: Math.round((process.memoryUsage().rss / 1048576) * 10) / 10,
+      ...(state.panelUrl === undefined ? {} : { panelUrl: state.panelUrl }),
+      connected: this.connection?.isConnected ?? false,
+      servers: this.manager.snapshotServers().map((s) => ({
+        serverId: s.serverId ?? '(unknown)',
+        runState: s.runState,
+        attachMode: s.attachMode,
+        ...(s.pid === undefined ? {} : { pid: s.pid }),
+      })),
+      activeTasks: this.tasks.activeCount + this.transfers.activeCount,
+      capabilities: AGENT_CAPABILITIES,
+      log: tailAgentLog(this.options.stateDir, {
+        lines: bounds.logLines,
+        maxBytes: bounds.logMaxBytes,
+      }),
+    };
+  }
+
   private buildHeartbeat(): EventPayload<'agent.heartbeat'> {
     const total = os.totalmem();
     const free = os.freemem();
@@ -561,6 +618,10 @@ export class Agent {
         watchedDirectories: this.store.get().watchedDirectories.map((d) => d.path),
         capabilities: AGENT_CAPABILITIES,
       }))
+      // Lot 9 — diagnostic borné : état de l'agent + fin de son journal fichier
+      .handle('agent.diagnostics', ({ logLines, logMaxBytes }) =>
+        this.diagnostics({ logLines, logMaxBytes }),
+      )
       // Phase 9 — mises à jour
       .handle('agent.update', (req) => this.updater.update(req))
       .handle('runtime.update', (req) => this.updater.updateRuntime(req))
