@@ -21,7 +21,7 @@ import { createGunzip } from 'node:zlib';
 
 import { ProtocolError, type ParsedRequestPayload, type EventPayload } from '@mmo/protocol';
 
-import { extractTar } from '../backup/tar.js';
+import { extractTar } from '@mmo/shared/node';
 import { extractZip } from '../java/zip.js';
 import { errorMessage, type Logger } from '../log.js';
 import { downloadWithResume } from '../util/download.js';

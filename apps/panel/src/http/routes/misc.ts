@@ -68,6 +68,9 @@ export function registerMiscRoutes(app: FastifyInstance, ctx: AppContext): void 
           metrics: { file: ctx.files.metrics, bytes: fileBytes(ctx.files.metrics) },
         },
         maintenance: d.lastMaintenance ?? null,
+        // Lot 4 : une sauvegarde du panel silencieusement cassée est le pire scénario — la sonde
+        // admin dit quand la dernière a réussi et si la dernière automatique a échoué.
+        panelBackup: ctx.panelBackup.status(),
       },
     };
   });

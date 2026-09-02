@@ -76,6 +76,21 @@ category as a failed backup). The verdict is written next to the archive, so a p
 offline at the time learns it when the agent reconnects. Agents older than this release do not
 verify anything: their archives simply show "not verified yet".
 
+### The panel's own backup can be downloaded, and its failure is no longer silent
+
+The daily copy of the panel was a bare database file on the same disk, not downloadable, and a
+failure to write it was one warning line in a log nobody reads. It is now an archive,
+`mmo-panel-<date>.tar.gz`, holding the database **and** the `tls/` folder (certificate, private
+key, ACME account) — restored on another machine, a panel in direct mode works straight away — plus
+a manifest. Settings → Panel backups lists the archives with their contents, creates one on demand
+and **downloads** it (administrators; the card says it first: an archive contains the panel's
+secrets, keep it private). If the daily backup fails, an event and a notification are raised once
+per episode, the card shows the error and `/api/health` reports it. `mmo-panel restore` accepts the
+new archives and the old `.db` copies alike, and puts `tls/` back when the archive carries it.
+
+Also fixed: a response the agent could not deliver because the panel had just gone (or the other
+way round) surfaced as an unhandled error instead of a log line — the CI caught it on Windows.
+
 ## 1.0.7 — 2026-09-01
 
 A small release, mostly about being able to check what you downloaded and to report a problem

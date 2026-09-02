@@ -48,6 +48,7 @@ const BUS_EVENTS: { type: string; severity: string; payload?: unknown }[] = [
   { type: 'server.migrated', severity: 'info' },
   { type: 'server.conflict', severity: 'warning' },
   { type: 'panel.updateAvailable', severity: 'info', payload: { version: '1.0.6' } },
+  { type: 'panel.backupFailed', severity: 'error', payload: { reason: 'ENOSPC' } },
 ];
 
 describe('catalogue des notifications', () => {

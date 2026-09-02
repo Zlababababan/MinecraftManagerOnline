@@ -218,19 +218,19 @@ publiez. `--stdout` l'affiche au lieu de l'écrire, `--no-log` laisse le journal
 
 ### 1.7 Sauvegarder et restaurer le panel
 
-Le panel se sauvegarde lui-même une fois par jour (copie cohérente `VACUUM INTO` de sa base) dans `data/backups/panel/mmo-<date>.db`, 7 copies conservées ; Réglages → Sauvegardes du panel permet d'en créer une à la demande. Les métriques (`metrics.db`) ne sont pas copiées : elles sont reconstituables et volumineuses. Sauvegardez aussi le dossier `data/` complet si vous voulez garder certificats et archives d'agents.
+Le panel se sauvegarde lui-même une fois par jour dans `data/backups/panel/mmo-panel-<date>.tar.gz`, 7 archives conservées. Chaque archive contient une copie cohérente `VACUUM INTO` de sa base **et** le dossier `tls/` (certificat, clé privée, compte ACME) : restauré sur une autre machine, un panel en mode direct marche tout de suite. Réglages → Sauvegardes du panel permet d'en créer une à la demande et de la **télécharger** — lisez l'avertissement : une archive contient les secrets du panel (secrets des agents, clés de session, jeton DNS, clé privée TLS), qui la détient contrôle le panel et ses agents. Rangez-la dans un endroit privé, hors de la machine qui fait tourner le panel. Les métriques (`metrics.db`) ne sont pas copiées : elles sont reconstituables et volumineuses ; les archives d'installation des agents (`data/dist/`) non plus, republiez-les. Si la sauvegarde quotidienne échoue, le panel publie un événement (et une notification, catégorie « sauvegarde échouée »), la carte Sauvegardes du panel affiche l'erreur et `/api/health` la signale aux administrateurs — une sauvegarde silencieusement cassée depuis des mois est exactement le scénario que cela évite.
 
 Pour **restaurer** : arrêtez le panel (service ou Ctrl+C), puis :
 
 ```powershell
-C:\mmo\panel\mmo-panel.cmd restore mmo-2026-08-23T01-00-00.db
+C:\mmo\panel\mmo-panel.cmd restore mmo-panel-2026-08-23T01-00-00.tar.gz
 ```
 
 ```bash
-/opt/mmo/mmo-panel/mmo-panel.sh restore mmo-2026-08-23T01-00-00.db
+/opt/mmo/mmo-panel/mmo-panel.sh restore mmo-panel-2026-08-23T01-00-00.tar.gz
 ```
 
-Le nom seul suffit pour une copie du dossier `data/backups/panel/` ; un chemin complet est accepté. La copie est vérifiée (`integrity_check`), la base courante est conservée en `mmo.db.before-restore-<date>`, puis le panel peut être redémarré : les agents se reconnectent avec leur secret d'origine et les serveurs qu'ils portent sont ré-adoptés avec les mêmes identifiants (marqueur `.mmo-server.json`). Ce qui a été créé après la sauvegarde (utilisateurs, machines appairées, réglages) est perdu : une machine appairée après la sauvegarde devra être ré-appairée. La restauration refuse de s'exécuter si `mmo.db-wal` n'est pas vide (panel encore en cours ou arrêt brutal — démarrez-le puis arrêtez-le proprement avant de recommencer).
+Le nom seul suffit pour une copie du dossier `data/backups/panel/` ; un chemin complet est accepté, ainsi que les copies `mmo-<date>.db` faites par les panels d'avant cette version. La base est vérifiée (`integrity_check`), la base courante est conservée en `mmo.db.before-restore-<date>`, le dossier `tls/` courant en `tls.before-restore-<date>` quand l'archive en porte un, puis le panel peut être redémarré : les agents se reconnectent avec leur secret d'origine et les serveurs qu'ils portent sont ré-adoptés avec les mêmes identifiants (marqueur `.mmo-server.json`). Ce qui a été créé après la sauvegarde (utilisateurs, machines appairées, réglages) est perdu : une machine appairée après la sauvegarde devra être ré-appairée. La restauration refuse de s'exécuter si `mmo.db-wal` n'est pas vide (panel encore en cours ou arrêt brutal — démarrez-le puis arrêtez-le proprement avant de recommencer).
 
 ## 2. Les agents
 

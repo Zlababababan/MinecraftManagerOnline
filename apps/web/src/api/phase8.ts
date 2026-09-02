@@ -10,6 +10,7 @@ import type {
   BackupPolicyDto,
   BackupPolicyInput,
   PanelBackupDto,
+  PanelBackupStatus,
   ScheduledTaskDto,
   ScheduledTaskInput,
   SparkStatus,
@@ -78,7 +79,10 @@ export const sparkQuery = (id: string) =>
 export const panelBackupsQuery = queryOptions({
   queryKey: phase8Keys.panelBackups,
   queryFn: ({ signal }) =>
-    api.get<{ backups: PanelBackupDto[]; directory: string }>('/api/admin/backups', signal),
+    api.get<{ backups: PanelBackupDto[]; directory: string; status: PanelBackupStatus }>(
+      '/api/admin/backups',
+      signal,
+    ),
   staleTime: 30_000,
 });
 

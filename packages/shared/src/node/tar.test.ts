@@ -1,12 +1,17 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { tmpDir } from '../test/helpers.js';
 import { extractTar, safeRelative, tarEntries, walkTree } from './tar.js';
+
+async function tmpDir(prefix: string): Promise<{ dir: string; cleanup: () => Promise<void> }> {
+  const dir = await mkdtemp(path.join(os.tmpdir(), prefix));
+  return { dir, cleanup: () => rm(dir, { recursive: true, force: true }) };
+}
 
 async function collect(gen: AsyncIterable<Buffer>): Promise<Buffer> {
   const parts: Buffer[] = [];

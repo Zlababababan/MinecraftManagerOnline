@@ -13,7 +13,7 @@ import { createGunzip } from 'node:zlib';
 
 import { ProtocolError, type JavaRuntime, type ParsedRequestPayload } from '@mmo/protocol';
 
-import { extractTar } from '../backup/tar.js';
+import { extractTar } from '@mmo/shared/node';
 import { errorMessage, type Logger } from '../log.js';
 import { probeJavaVersion, type JavaRegistry, type JavaVersionInfo } from '../platform/java.js';
 import type { TaskContext } from '../tasks/runner.js';

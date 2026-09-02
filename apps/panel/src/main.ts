@@ -52,14 +52,17 @@ if (command === 'doctor') {
 if (command === 'restore') {
   const file = process.argv[3];
   if (file === undefined) {
-    console.error('usage: mmo-panel restore <fichier .db>');
+    console.error('usage: mmo-panel restore <fichier .tar.gz ou .db>');
     process.exit(2);
   }
   const { restorePanelBackup } = await import('./services/panel-backup.js');
   try {
-    const result = restorePanelBackup(config.dataDir, file);
+    const result = await restorePanelBackup(config.dataDir, file);
     console.log(`restored ${result.dbFile}`);
     if (result.previous !== undefined) console.log(`previous database kept as ${result.previous}`);
+    if (result.tls) console.log('tls/ restored from the archive');
+    if (result.previousTls !== undefined)
+      console.log(`previous tls/ kept as ${result.previousTls}`);
     process.exit(0);
   } catch (error) {
     console.error(`restore failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -69,7 +72,7 @@ if (command === 'restore') {
 
 if (command !== undefined && !command.startsWith('-')) {
   console.error(
-    `unknown command: ${command}\nusage: mmo-panel [setup … | doctor | report | restore <fichier .db>]`,
+    `unknown command: ${command}\nusage: mmo-panel [setup … | doctor | report | restore <fichier .tar.gz ou .db>]`,
   );
   process.exit(2);
 }

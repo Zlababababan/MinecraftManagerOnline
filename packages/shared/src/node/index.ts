@@ -10,6 +10,23 @@ import { openZip } from './zip.js';
 
 export { openZip };
 export {
+  DEFAULT_EXTRACT_MAX_BYTES,
+  DEFAULT_EXTRACT_MAX_ENTRIES,
+  TAR_BLOCK,
+  assertExtractBudget,
+  extractTar,
+  safeRelative,
+  tarEntries,
+  walkTree,
+  type ExcludeFn,
+  type ExtractOptions,
+  type ExtractProgress,
+  type ExtractResult,
+  type TarProgress,
+  type TreeEntry,
+  type TreeSummary,
+} from './tar.js';
+export {
   DEFAULT_LOG_MAX_BYTES,
   DEFAULT_LOG_RETENTION_DAYS,
   createRotatingLog,

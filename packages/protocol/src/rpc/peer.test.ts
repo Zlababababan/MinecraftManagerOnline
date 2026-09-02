@@ -14,7 +14,10 @@ function memoryPair(): { a: RpcTransport & Controls; b: RpcTransport & Controls 
       closeHandler: undefined,
       sent: [],
       dropNext: 0,
+      failSend: false,
       send(data) {
+        // Socket coupé sans `close` encore délivré : c'est ce que fait le transport WebSocket.
+        if (t.failSend) throw new Error('websocket not open');
         t.sent.push(data);
         if (t.dropNext > 0) {
           t.dropNext--;
@@ -47,6 +50,8 @@ interface Controls {
   closeHandler: ((reason?: string) => void) | undefined;
   sent: string[];
   dropNext: number;
+  /** `send` lève « websocket not open » (socket coupé, `close` pas encore délivré). */
+  failSend: boolean;
   close(reason?: string): void;
 }
 
@@ -281,6 +286,39 @@ describe('RpcPeer', () => {
       code: 'E_INTERRUPTED',
     });
     expect(panel.isClosed).toBe(true);
+  });
+
+  it('pair parti avant la réponse → réponse abandonnée avec avertissement, jamais une promesse rejetée', async () => {
+    // Vécu en CI Windows (phase 8) : l'agent s'arrête entre l'exécution d'une requête et sa
+    // réponse ; le transport lève « websocket not open » et `receive` produisait une promesse
+    // rejetée que personne n'attendait — vitest la comptait comme une erreur du run.
+    let release: () => void = () => undefined;
+    agent.handle(
+      'server.start',
+      () =>
+        new Promise((resolve) => {
+          release = () => {
+            resolve({ alreadyRunning: false, pid: 1 });
+          };
+        }),
+    );
+    const request = panel.request('server.start', { serverId: 'srv_01' }, { deadlineMs: 1000 });
+    const swallowed = request.catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(0);
+    transports.b.failSend = true;
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(warnings).toContain('rpc: response dropped, transport closed');
+    // Même règle pour une réponse d'erreur immédiate (enveloppe malformée) : aucune exception.
+    transports.b.messageHandler?.(
+      JSON.stringify({ kind: 'req', id: ulid(), type: 'server.start' }),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    expect(warnings.filter((w) => w === 'rpc: response dropped, transport closed')).toHaveLength(2);
+    expect(warnings).not.toContain('rpc: receive failed');
+    // Le demandeur, lui, finit en timeout : c'est son affaire de rejouer après reconnexion.
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(await swallowed).toMatchObject({ code: 'E_TIMEOUT' });
   });
 
   it('enveloppe malformée avec id → réponse E_INVALID_PAYLOAD', async () => {

@@ -686,7 +686,8 @@ describe('phase 8 — panel ↔ agent réels', () => {
     let res = await api('POST', '/api/admin/backups');
     expect(res.statusCode).toBe(200);
     const { backup } = res.json<{ backup: { file: string; sizeBytes: number } }>();
-    expect(backup.file).toMatch(/^mmo-.*\.db$/);
+    // Lot 4 : une archive (base + tls/ + manifeste), plus une copie .db nue.
+    expect(backup.file).toMatch(/^mmo-panel-.*\.tar\.gz$/);
     const copy = path.join(dataDir, 'backups', 'panel', backup.file);
     expect((await stat(copy)).size).toBe(backup.sizeBytes);
     expect(backup.sizeBytes).toBeGreaterThan(0);

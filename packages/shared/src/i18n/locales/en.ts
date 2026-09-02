@@ -92,6 +92,10 @@ export const en = {
         title: 'Corrupted backup: {{server}}',
         body: 'An archive no longer matches its manifest — do not rely on it: {{path}}',
       },
+      panelBackupFailed: {
+        title: 'Panel backup failed',
+        body: 'The daily copy of the panel database could not be written: {{reason}}',
+      },
       serverRunning: { title: '{{server}} is running', body: 'Started on {{machine}}.' },
       serverStopped: { title: '{{server}} stopped', body: 'Stopped on {{machine}}.' },
       playerJoined: { title: '{{player}} joined {{server}}', body: '{{online}} player(s) online.' },

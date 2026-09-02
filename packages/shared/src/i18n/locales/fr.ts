@@ -99,6 +99,10 @@ export const fr = {
         title: 'Sauvegarde corrompue : {{server}}',
         body: 'Une archive ne correspond plus à son manifeste — ne comptez plus dessus : {{path}}',
       },
+      panelBackupFailed: {
+        title: 'Sauvegarde du panel échouée',
+        body: 'La copie quotidienne de la base du panel n’a pas pu être écrite : {{reason}}',
+      },
       serverRunning: { title: '{{server}} est en marche', body: 'Démarré sur {{machine}}.' },
       serverStopped: { title: '{{server}} est arrêté', body: 'Arrêté sur {{machine}}.' },
       playerJoined: {

@@ -8,12 +8,18 @@
  *   2. `runMaintenance` sur horloge simulée : sessions, codes d'appairage, événements (90 j),
  *      audit (365 j), tasks (30 j), dédup (24 h), rotation des copies du panel (7) et `backupIfStale`.
  */
-import { mkdir, readdir, stat, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { createReadStream } from 'node:fs';
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
+import { Readable } from 'node:stream';
+import { createGunzip, createGzip } from 'node:zlib';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { ServerDto } from '@mmo/protocol/client';
+import { extractTar, tarEntries, walkTree } from '@mmo/shared/node';
 
 import { Agent } from '../../../agent/src/agent.js';
 import { Logger } from '../../../agent/src/log.js';
@@ -136,14 +142,54 @@ describe('phase 12 — sauvegarde/restauration du panel, purges', () => {
       await waitFor(() => agent!.store.get().servers[server.id] !== undefined, 10_000);
       expect(await readdir(dir)).toContain('.mmo-server.json');
 
-      // Sauvegarde.
+      // Lot 4 : le dossier tls/ (certificat, clé, compte ACME) part dans l'archive.
+      await mkdir(path.join(data.dir, 'tls'), { recursive: true });
+      await writeFile(path.join(data.dir, 'tls', 'cert.pem'), 'CERT-AVANT');
+      await writeFile(path.join(data.dir, 'tls', 'key.pem'), 'KEY-AVANT');
+
+      // Sauvegarde : une archive tar.gz (base + tls/ + manifeste), listée avec son contenu.
       res = await api(panel1, 'POST', '/api/admin/backups');
-      expect(res.statusCode).toBe(200);
-      const { backup } = res.json<{ backup: { file: string } }>();
+      expect(res.statusCode, res.body).toBe(200);
+      const { backup } = res.json<{ backup: { file: string; format: string } }>();
+      expect(backup.file).toMatch(/^mmo-panel-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.tar\.gz$/);
+      expect(backup.format).toBe('archive');
       const backupFile = path.join(data.dir, 'backups', 'panel', backup.file);
       expect((await stat(backupFile)).size).toBeGreaterThan(0);
+      expect(await readdir(path.join(data.dir, 'backups', 'panel'))).toEqual([backup.file]);
+      const listed = await api(panel1, 'GET', '/api/admin/backups');
+      const { status } = listed.json<{
+        status: { lastError: string | null; lastSuccessAt: number | null };
+      }>();
+      expect(status.lastError).toBeNull();
+      expect(status.lastSuccessAt).toBeGreaterThan(0);
+      const entries = await tarEntriesOf(backupFile);
+      expect(entries).toEqual(
+        expect.arrayContaining(['mmo.db', 'tls/cert.pem', 'tls/key.pem', 'manifest.json']),
+      );
 
-      // Dérive après la sauvegarde.
+      // Téléchargement (admin, audité) : les octets du fichier, sous son nom. Un nom forgé ou
+      // inconnu n'existe pas pour la route — jamais un fichier arbitraire du disque.
+      const dl = await api(panel1, 'GET', `/api/admin/backups/${backup.file}/download`);
+      expect(dl.statusCode).toBe(200);
+      expect(dl.headers['content-disposition']).toContain(backup.file);
+      expect(sha256(dl.rawPayload)).toBe(sha256(await readFile(backupFile)));
+      expect(panel1.ctx.audit.list(5).map((a) => a.action)).toContain('panel.backupDownload');
+      // `..%2F..%2Fmmo.db` désigne la VRAIE base (data/mmo.db) ; `notes.txt` est un fichier
+      // réel du dossier des sauvegardes qui n'est pas une copie. Ni l'un ni l'autre ne sortent.
+      await writeFile(path.join(data.dir, 'backups', 'panel', 'notes.txt'), 'privé');
+      for (const forged of [
+        '..%2F..%2Fmmo.db',
+        'notes.txt',
+        'mmo.db',
+        'mmo-panel-2026-01-01T00-00-00.tar.gz',
+      ]) {
+        const refused = await api(panel1, 'GET', `/api/admin/backups/${forged}/download`);
+        expect(refused.statusCode, forged).toBe(404);
+      }
+      await rm(path.join(data.dir, 'backups', 'panel', 'notes.txt'));
+
+      // Dérive après la sauvegarde (le certificat aussi : la restauration doit le ramener).
+      await writeFile(path.join(data.dir, 'tls', 'cert.pem'), 'CERT-APRES');
       res = await api(panel1, 'POST', '/api/users', {
         username: 'intrus',
         password: 'correct horse battery',
@@ -159,14 +205,25 @@ describe('phase 12 — sauvegarde/restauration du panel, purges', () => {
       // Arrêt propre (la WAL est vidée à la fermeture) puis restauration.
       await panel1.close();
       panels = [];
-      const result = restorePanelBackup(data.dir, backup.file);
+      const result = await restorePanelBackup(data.dir, backup.file);
       expect(result.dbFile).toBe(path.join(data.dir, 'mmo.db'));
       expect(result.previous).toMatch(/mmo\.db\.before-restore-/);
       expect((await stat(result.previous!)).size).toBeGreaterThan(0);
+      // Le dossier tls/ de l'archive a pris la place du courant, mis de côté lui aussi.
+      expect(result.tls).toBe(true);
+      expect(result.previousTls).toMatch(/tls\.before-restore-/);
+      expect(await readFile(path.join(data.dir, 'tls', 'cert.pem'), 'utf8')).toBe('CERT-AVANT');
+      expect(await readFile(path.join(result.previousTls!, 'cert.pem'), 'utf8')).toBe('CERT-APRES');
+      expect(await readdir(data.dir)).not.toContain(`restore-tmp`);
       // Une restauration avec un fichier qui n'est pas une base du panel est refusée sans rien toucher.
       const bogus = path.join(data.dir, 'bogus.db');
       await writeFile(bogus, 'not a database');
-      expect(() => restorePanelBackup(data.dir, bogus)).toThrow();
+      await expect(restorePanelBackup(data.dir, bogus)).rejects.toThrow();
+      // Une archive sans mmo.db aussi — et le dossier d'extraction temporaire ne reste pas.
+      const empty = path.join(data.dir, 'mmo-panel-2026-01-01T00-00-00.tar.gz');
+      await writeFile(empty, await gzipTarOf({ 'manifest.json': '{}' }));
+      await expect(restorePanelBackup(data.dir, empty)).rejects.toThrow(/mmo\.db/);
+      expect((await readdir(data.dir)).filter((n) => n.startsWith('restore-'))).toEqual([]);
       expect(await readdir(data.dir)).not.toContain('mmo.db-wal');
 
       // Redémarrage sur le même port : données de la sauvegarde, agent reconnecté, serveur détecté.
@@ -224,15 +281,28 @@ describe('phase 12 — sauvegarde/restauration du panel, purges', () => {
     expect(events0).toBeGreaterThanOrEqual(5);
     expect(codes0).toBe(1);
 
-    // Copies du panel : 9 sauvegardes à un jour d'écart → 7 conservées, `backupIfStale` respecte 24 h.
+    // Copies du panel : une copie `.db` de l'ancien format est listée (et restaurable), puis
+    // 9 archives à un jour d'écart → 7 conservées (la plus ancienne, la `.db`, part la première),
+    // `backupIfStale` respecte 24 h.
+    await mkdir(panel.ctx.panelBackup.directory, { recursive: true });
+    const legacy = 'mmo-2026-01-01T00-00-00.db';
+    await writeFile(path.join(panel.ctx.panelBackup.directory, legacy), 'x');
+    expect(panel.ctx.panelBackup.list()).toMatchObject([{ file: legacy, format: 'db' }]);
+    expect(panel.ctx.panelBackup.resolveFile(legacy)).toBeDefined();
     for (let i = 0; i < 9; i++) {
       panel.clock.advance(DAY);
-      panel.ctx.panelBackup.backupNow();
+      await panel.ctx.panelBackup.backupNow();
     }
     expect(panel.ctx.panelBackup.list()).toHaveLength(7);
-    expect(panel.ctx.panelBackup.backupIfStale()).toBeUndefined();
+    expect(panel.ctx.panelBackup.list().every((b) => b.format === 'archive')).toBe(true);
+    expect((await panel.ctx.panelBackup.backupIfStale()).status).toBe('skipped');
     panel.clock.advance(DAY + 1);
-    expect(panel.ctx.panelBackup.backupIfStale()).toBeDefined();
+    // Deux passes qui se chevauchent (maintenance + bouton) : une seule écriture, l'autre passe.
+    const both = await Promise.all([
+      panel.ctx.panelBackup.backupIfStale(),
+      panel.ctx.panelBackup.backupIfStale(),
+    ]);
+    expect(both.map((o) => o.status).sort()).toEqual(['done', 'skipped']);
     expect(panel.ctx.panelBackup.list()).toHaveLength(7);
 
     // +31 j : sessions expirées et codes d'appairage purgés, le reste conservé.
@@ -262,6 +332,97 @@ describe('phase 12 — sauvegarde/restauration du panel, purges', () => {
     expect(count('events')).toBe(0);
   });
 });
+
+describe('lot 4 — sauvegarde automatique du panel : l’échec devient un événement', () => {
+  const panels: TestPanel[] = [];
+  const cleanups: (() => Promise<void>)[] = [];
+  afterEach(async () => {
+    for (const p of panels.splice(0)) await p.close().catch(() => undefined);
+    for (const c of cleanups.splice(0)) await c();
+  });
+
+  it('première défaillance → panel.backupFailed ; les suivantes restent un warn ; reprise puis rechute → nouvel événement', async () => {
+    const data = await tmpDir('mmo-pb-fail-');
+    cleanups.push(data.cleanup);
+    const panel = await createTestPanel({ config: { dataDir: data.dir } });
+    panels.push(panel);
+    const admin = await setupAdmin(panel);
+    const failures = () => panel.ctx.events.list({ type: 'panel.backupFailed' });
+    const pass = async () => {
+      panel.clock.advance(DAY + 1);
+      await runMaintenance(panel.ctx).panelBackup;
+    };
+
+    // Un fichier à la place du dossier des sauvegardes : rien ne peut s'y écrire.
+    await mkdir(path.join(data.dir, 'backups'), { recursive: true });
+    await writeFile(path.join(data.dir, 'backups', 'panel'), 'pas un dossier');
+    await pass();
+    expect(failures()).toHaveLength(1);
+    expect(failures()[0]).toMatchObject({ severity: 'error' });
+    expect(panel.ctx.panelBackup.status().lastError).toBeTruthy();
+    expect(panel.ctx.notifications.render(failures()[0]!, 'fr')?.title).toBe(
+      'Sauvegarde du panel échouée',
+    );
+    // Heure suivante, même panne : pas de second événement (le journal, lui, avertit).
+    await pass();
+    expect(failures()).toHaveLength(1);
+
+    // Réparé : la sauvegarde repart, l'erreur s'efface.
+    await rm(path.join(data.dir, 'backups', 'panel'));
+    await pass();
+    expect(panel.ctx.panelBackup.status().lastError).toBeNull();
+    expect(panel.ctx.panelBackup.list()).toHaveLength(1);
+    expect(failures()).toHaveLength(1);
+
+    // Rechute : c'est un nouvel épisode, donc un nouvel événement.
+    await rm(path.join(data.dir, 'backups', 'panel'), { recursive: true, force: true });
+    await writeFile(path.join(data.dir, 'backups', 'panel'), 'pas un dossier');
+    await pass();
+    expect(failures()).toHaveLength(2);
+    // Et la sonde admin le dit.
+    const health = await panel.app.inject({
+      method: 'GET',
+      url: '/api/health',
+      headers: { cookie: admin },
+    });
+    expect(
+      health.json<{ diagnostics: { panelBackup: { lastError: string | null } } }>().diagnostics
+        .panelBackup.lastError,
+    ).toBeTruthy();
+  });
+});
+
+const sha256 = (b: Uint8Array): string => createHash('sha256').update(b).digest('hex');
+
+/** Chemins relatifs des fichiers d'une archive tar.gz (extraction dans un dossier temporaire). */
+async function tarEntriesOf(file: string): Promise<string[]> {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'mmo-pb-tar-'));
+  try {
+    await extractTar(createReadStream(file).pipe(createGunzip()) as AsyncIterable<Uint8Array>, dir);
+    const tree = await walkTree(dir, () => false);
+    return tree.entries.filter((e) => e.kind === 'file').map((e) => e.rel);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+/** Une archive tar.gz de fichiers texte, pour fabriquer une archive sans `mmo.db`. */
+async function gzipTarOf(files: Record<string, string>): Promise<Buffer> {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'mmo-pb-mk-'));
+  try {
+    for (const [name, content] of Object.entries(files)) {
+      await writeFile(path.join(dir, name), content);
+    }
+    const tree = await walkTree(dir, () => false);
+    const chunks: Buffer[] = [];
+    for await (const chunk of Readable.from(tarEntries(tree.entries)).pipe(createGzip())) {
+      chunks.push(chunk as Buffer);
+    }
+    return Buffer.concat(chunks);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
 
 async function setupAdminOn(panel: PanelApp): Promise<string> {
   const res = await panel.app.inject({

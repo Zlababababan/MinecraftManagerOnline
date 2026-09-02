@@ -12,7 +12,13 @@ import { promisify } from 'node:util';
 
 import { createCompressStream, createDecompressStream, hasZstd } from '@mmo/shared/node';
 
-import { extractTar, tarEntries, walkTree, type ExcludeFn, type ExtractResult } from './tar.js';
+import {
+  extractTar,
+  tarEntries,
+  walkTree,
+  type ExcludeFn,
+  type ExtractResult,
+} from '@mmo/shared/node';
 
 const pipe = promisify(pipeline);
 

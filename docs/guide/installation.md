@@ -217,19 +217,19 @@ writing it, `--no-log` leaves the log out.
 
 ### 1.7 Back up and restore the panel
 
-The panel backs itself up once a day (consistent `VACUUM INTO` copy of its database) into `data/backups/panel/mmo-<date>.db`, 7 copies kept; Settings → Panel backups lets you create one on demand. Metrics (`metrics.db`) are not copied: they can be rebuilt and are large. Also back up the whole `data/` folder if you want to keep certificates and agent archives.
+The panel backs itself up once a day into `data/backups/panel/mmo-panel-<date>.tar.gz`, 7 archives kept. Each archive holds a consistent `VACUUM INTO` copy of its database **and** the `tls/` folder (certificate, private key, ACME account): restored on another machine, a panel in direct mode works straight away. Settings → Panel backups lets you create one on demand and **download** it — read the warning first: an archive contains the panel's secrets (agent secrets, session keys, DNS token, TLS private key), so whoever holds it controls the panel and its agents. Keep it somewhere private, off the machine that runs the panel. Metrics (`metrics.db`) are not copied: they can be rebuilt and are large; agent install archives (`data/dist/`) are not either, publish them again. If the daily backup fails, the panel raises an event (and a notification, "backup failed" category), the Panel backups card shows the error, and `/api/health` reports it to administrators — a backup that has been silently broken for months is the scenario this is meant to prevent.
 
 To **restore**: stop the panel (service or Ctrl+C), then:
 
 ```powershell
-C:\mmo\panel\mmo-panel.cmd restore mmo-2026-08-23T01-00-00.db
+C:\mmo\panel\mmo-panel.cmd restore mmo-panel-2026-08-23T01-00-00.tar.gz
 ```
 
 ```bash
-/opt/mmo/mmo-panel/mmo-panel.sh restore mmo-2026-08-23T01-00-00.db
+/opt/mmo/mmo-panel/mmo-panel.sh restore mmo-panel-2026-08-23T01-00-00.tar.gz
 ```
 
-A bare file name is enough for a copy sitting in `data/backups/panel/`; a full path is accepted too. The copy is verified (`integrity_check`), the current database is kept as `mmo.db.before-restore-<date>`, then the panel can be restarted: agents reconnect with their original secret and the servers they host are re-adopted with the same identifiers (`.mmo-server.json` marker). Whatever was created after the backup (users, paired machines, settings) is lost: a machine paired after the backup will have to be paired again. The restore refuses to run if `mmo.db-wal` is not empty (panel still running, or killed abruptly — start it then stop it cleanly and try again).
+A bare file name is enough for a copy sitting in `data/backups/panel/`; a full path is accepted too, and so are the `mmo-<date>.db` copies made by panels before this release. The database is verified (`integrity_check`), the current one is kept as `mmo.db.before-restore-<date>`, the current `tls/` folder as `tls.before-restore-<date>` when the archive carries one, then the panel can be restarted: agents reconnect with their original secret and the servers they host are re-adopted with the same identifiers (`.mmo-server.json` marker). Whatever was created after the backup (users, paired machines, settings) is lost: a machine paired after the backup will have to be paired again. The restore refuses to run if `mmo.db-wal` is not empty (panel still running, or killed abruptly — start it then stop it cleanly and try again).
 
 ## 2. The agents
 

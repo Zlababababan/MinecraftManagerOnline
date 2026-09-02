@@ -25,6 +25,7 @@ import { freelistCount, pageSize } from '../db/compaction.js';
 import { commandHistory } from '../db/schema.js';
 import type { SqliteHandle } from '../db/sqlite.js';
 import { purgePanelLogs } from '../util/log-file.js';
+import type { ScheduledBackupOutcome } from './panel-backup.js';
 import { SETTING_KEYS } from './settings.js';
 
 const DAY = 24 * 3_600_000;
@@ -107,6 +108,8 @@ export interface MaintenanceReport {
   purged: Record<string, number>;
   metrics: ReturnType<AppContext['metricsService']['maintain']>;
   vacuum: VacuumOutcome[];
+  /** Lot 4 : issue de la sauvegarde du panel, résolue APRÈS sa journalisation/son événement. */
+  panelBackup: Promise<ScheduledBackupOutcome>;
 }
 
 export function runMaintenance(
@@ -164,12 +167,35 @@ export function runMaintenance(
       ts: t,
     });
   }
-  // Sauvegarde quotidienne du panel lui-même (`VACUUM INTO`, doc 07 phase 8).
-  try {
-    ctx.panelBackup.backupIfStale();
-  } catch (error) {
-    ctx.logger.warn({ err: error }, 'panel self-backup failed');
-  }
+  // Sauvegarde quotidienne du panel lui-même (`VACUUM INTO` + `tls/`, doc 04 §8.4). Asynchrone
+  // (archive en flux) : la maintenance n'attend pas ; `panelBackup.idle()` le permet aux tests.
+  // Lot 4 : l'échec n'est plus un `warn` que personne ne lit — la première défaillance depuis le
+  // dernier succès devient un événement (donc une notification), les suivantes restent un `warn`.
+  const panelBackup = ctx.panelBackup.backupIfStale().then((outcome) => {
+    // Une suite qui lève deviendrait une promesse rejetée que personne n'attend — et le panel
+    // peut avoir fermé sa base entre-temps (arrêt pendant l'écriture) : rien à publier alors.
+    try {
+      if (outcome.status === 'done') {
+        ctx.logger.info(
+          { file: outcome.backup.file, bytes: outcome.backup.sizeBytes },
+          outcome.recovered ? 'panel self-backup recovered' : 'panel self-backup written',
+        );
+      } else if (outcome.status === 'failed') {
+        ctx.logger.warn({ error: outcome.error }, 'panel self-backup failed');
+        if (outcome.newFailure) {
+          ctx.events.publish({
+            type: 'panel.backupFailed',
+            severity: 'error',
+            payload: { reason: outcome.error, directory: ctx.panelBackup.directory },
+            ts: t,
+          });
+        }
+      }
+    } catch (error) {
+      ctx.logger.debug({ err: error }, 'panel self-backup outcome not recorded (panel closing)');
+    }
+    return outcome;
+  });
   // Métriques (doc 04 §7) : downsampling brut → 1 min → 1 h, purge, compaction bornée.
   const metrics = ctx.metricsService.maintain(t, {
     compactionBudgetMs: options.compactionBudgetMs ?? COMPACTION_BUDGET_MS,
@@ -214,7 +240,7 @@ export function runMaintenance(
       ...(o.afterBytes === undefined ? {} : { afterBytes: o.afterBytes }),
     })),
   };
-  return { at: t, durationMs, purged, metrics, vacuum };
+  return { at: t, durationMs, purged, metrics, vacuum, panelBackup };
 }
 
 /**

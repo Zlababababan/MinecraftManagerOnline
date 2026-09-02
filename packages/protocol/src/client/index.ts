@@ -702,10 +702,20 @@ export type ScheduledTaskInput = z.infer<typeof scheduledTaskInputSchema>;
 /** Sauvegarde du panel lui-même (`VACUUM INTO`). */
 export const panelBackupDtoSchema = z.object({
   file: z.string(),
+  /** Lot 4 : `archive` = `.tar.gz` (base + `tls/` + manifeste) ; `db` = copie nue d'avant. */
+  format: z.enum(['archive', 'db']),
   sizeBytes: z.int().nonnegative(),
   createdAt: epochMsSchema,
 });
 export type PanelBackupDto = z.infer<typeof panelBackupDtoSchema>;
+
+/** Lot 4 : état de la sauvegarde automatique du panel (`GET /api/admin/backups`, `/api/health`). */
+export const panelBackupStatusSchema = z.object({
+  lastSuccessAt: epochMsSchema.nullable(),
+  lastError: z.string().nullable(),
+  lastAttemptAt: epochMsSchema.nullable(),
+});
+export type PanelBackupStatus = z.infer<typeof panelBackupStatusSchema>;
 
 /** spark (TPS) : état et installation en un clic (jamais requis). */
 export const sparkStatusSchema = z.object({
@@ -1134,6 +1144,9 @@ export function notificationTypeOf(event: {
       return 'agent.update';
     case 'panel.updateAvailable':
       return 'panel.update';
+    // Lot 4 : la sauvegarde automatique du panel a échoué — c'est une sauvegarde qui manque.
+    case 'panel.backupFailed':
+      return 'backup.failed';
     case 'schedule.run':
       return event.severity === 'info' ? 'schedule.done' : 'schedule.failed';
     case 'port.conflict':

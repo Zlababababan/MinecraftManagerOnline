@@ -3,6 +3,9 @@
  * flux, sans dépendance (règle de l'agent : bundle universel, zéro module natif — et `archiver`
  * n'apporte rien ici). Lisible par tar, 7-Zip, bsdtar. Pas de liens symboliques (ignorés, signalés).
  *
+ * Lot 4 (2026-09-02) : sorti de l'agent vers `@mmo/shared/node` pour que le panel archive sa propre
+ * base et son dossier `tls/` avec la même mécanique (précédent : le journal tournant, lot 9).
+ *
  * - `walkTree()` inventorie un dossier (fichiers, dossiers, tailles) avec exclusions ;
  * - `tarEntries()` produit les blocs tar (générateur : `Readable.from()` + `pipeline()`) ;
  * - `extractTar()` consomme un flux tar et écrit dans un dossier, chemins jailés (`..` refusé).

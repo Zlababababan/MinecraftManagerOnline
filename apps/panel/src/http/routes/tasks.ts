@@ -3,6 +3,8 @@
  * politiques poussées à l'agent), planificateur du panel (actions programmées), transferts
  * (download/upload de l'explorateur), spark en un clic, sauvegarde du panel (`VACUUM INTO`).
  */
+import { createReadStream, statSync } from 'node:fs';
+
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
@@ -21,7 +23,7 @@ import {
 
 import type { AppContext } from '../../context.js';
 import type { ServerRow } from '../../db/schema.js';
-import { AppError, conflict } from '../../errors.js';
+import { AppError, conflict, notFound } from '../../errors.js';
 import { requireUser } from '../auth.js';
 import { auditMeta } from './setup-auth.js';
 
@@ -556,10 +558,11 @@ export function registerTaskRoutes(app: FastifyInstance, ctx: AppContext): void 
   r.get('/api/admin/backups', { config: { role: 'admin' } }, () => ({
     backups: ctx.panelBackup.list(),
     directory: ctx.panelBackup.directory,
+    status: ctx.panelBackup.status(),
   }));
 
-  r.post('/api/admin/backups', { config: { role: 'admin' } }, (request) => {
-    const backup = ctx.panelBackup.backupNow();
+  r.post('/api/admin/backups', { config: { role: 'admin' } }, async (request) => {
+    const backup = await ctx.panelBackup.backupNow();
     ctx.audit.record({
       ...auditMeta(request),
       action: 'panel.backup',
@@ -568,6 +571,32 @@ export function registerTaskRoutes(app: FastifyInstance, ctx: AppContext): void 
     });
     return { backup };
   });
+
+  /**
+   * Lot 4 — téléchargement d'une archive du panel (admin, audité) : elle contient les secrets du
+   * panel (secrets des agents, clés de session, jeton DNS, clé privée TLS), l'UI le dit avant.
+   * Seul un nom de copie **connue** est servi : `resolveFile` refuse tout autre nom.
+   */
+  r.get(
+    '/api/admin/backups/:file/download',
+    { config: { role: 'admin' }, schema: { params: z.object({ file: z.string().min(1) }) } },
+    (request, reply) => {
+      const file = ctx.panelBackup.resolveFile(request.params.file);
+      if (file === undefined) throw notFound('panel backup', request.params.file);
+      const size = statSync(file).size;
+      ctx.audit.record({
+        ...auditMeta(request),
+        action: 'panel.backupDownload',
+        targetType: 'panel',
+        details: { file: request.params.file, sizeBytes: size },
+      });
+      return sendDownload(
+        reply,
+        { stream: createReadStream(file), fileName: request.params.file, size },
+        size,
+      );
+    },
+  );
 }
 
 function sendDownload(

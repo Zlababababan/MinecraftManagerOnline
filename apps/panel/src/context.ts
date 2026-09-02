@@ -29,6 +29,7 @@ import { ReleasesService } from './services/releases.js';
 import { MachinesService } from './services/machines.js';
 import { MetricsService } from './services/metrics.js';
 import { PanelBackupService } from './services/panel-backup.js';
+import { PANEL_VERSION } from './version.js';
 import { ProcessedEventsService } from './services/processed-events.js';
 import { UpdateCheckService } from './services/update-check.js';
 import { AlertsService, DEFAULT_THRESHOLDS } from './services/alerts.js';
@@ -334,7 +335,12 @@ export function createContext(options: ContextOptions): AppContext {
       ? {}
       : { reconnectWaitMs: options.transferReconnectWaitMs }),
   });
-  const panelBackup = new PanelBackupService({ sqlite: mmo.sqlite, dataDir: config.dataDir, now });
+  const panelBackup = new PanelBackupService({
+    sqlite: mmo.sqlite,
+    dataDir: config.dataDir,
+    now,
+    panelVersion: PANEL_VERSION,
+  });
 
   // Phase 9 : relais, releases d'agent, Java géré, migrations.
   const relayTokens = new RelayTokens(now);

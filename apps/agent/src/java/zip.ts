@@ -16,7 +16,7 @@ import {
   DEFAULT_EXTRACT_MAX_ENTRIES,
   assertExtractBudget,
   safeRelative,
-} from '../backup/tar.js';
+} from '@mmo/shared/node';
 
 const EOCD_SIG = 0x06054b50;
 const CEN_SIG = 0x02014b50;

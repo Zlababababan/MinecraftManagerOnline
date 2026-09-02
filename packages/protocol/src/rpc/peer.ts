@@ -144,7 +144,13 @@ export class RpcPeer<R extends Role = Role> {
       ...options.idempotency,
     });
     this.transport.onMessage((data) => {
-      void this.receive(data);
+      // Dernier filet : un `receive` qui lèverait devenait une promesse rejetée que personne
+      // n'attend (vécu en CI Windows : réponse envoyée sur un socket déjà fermé).
+      this.receive(data).catch((error: unknown) => {
+        this.logger.warn('rpc: receive failed', {
+          message: error instanceof Error ? error.message : String(error),
+        });
+      });
     });
     this.transport.onClose((reason) => {
       this.handleClose(reason);
@@ -319,7 +325,7 @@ export class RpcPeer<R extends Role = Role> {
   private async receiveRequest(envelope: RequestEnvelope): Promise<void> {
     const cached = this.responses.get(envelope.id);
     if (cached) {
-      this.transport.send(JSON.stringify(cached));
+      this.deliver(cached);
       return;
     }
     let flight = this.inFlight.get(envelope.id);
@@ -330,7 +336,26 @@ export class RpcPeer<R extends Role = Role> {
     const response = await flight;
     this.inFlight.delete(envelope.id);
     this.responses.set(envelope.id, response);
-    if (!this.closed) this.transport.send(JSON.stringify(response));
+    this.deliver(response);
+  }
+
+  /**
+   * Envoie une réponse si le transport le permet encore. Le pair peut être parti entre
+   * l'exécution du handler et sa réponse (agent arrêté, socket coupé sans `close` encore reçu) :
+   * ce n'est pas une erreur — le demandeur verra `E_INTERRUPTED` et rejouera après reconnexion.
+   * Avant, le transport levait et `receive` produisait une promesse rejetée non rattrapée.
+   */
+  private deliver(response: ResponseEnvelope): void {
+    if (this.closed) return;
+    try {
+      this.transport.send(JSON.stringify(response));
+    } catch (error) {
+      this.logger.warn('rpc: response dropped, transport closed', {
+        type: response.type,
+        re: response.re,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   private async executeRequest(envelope: RequestEnvelope): Promise<ResponseEnvelope> {
@@ -476,8 +501,7 @@ export class RpcPeer<R extends Role = Role> {
   }
 
   private sendResponse(re: string, type: string, error: ProtocolError): void {
-    if (this.closed) return;
-    this.transport.send(JSON.stringify(this.buildResponse(re, type, error)));
+    this.deliver(this.buildResponse(re, type, error));
   }
 
   private handleClose(reason: string | undefined): void {
