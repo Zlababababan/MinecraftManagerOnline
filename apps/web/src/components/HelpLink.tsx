@@ -38,6 +38,11 @@ export const HELP_TOPICS = {
     en: 'add-a-machine.md#7-backups',
     fr: 'fr/ajouter-une-machine.md#7-sauvegardes',
   },
+  /** Lot 9 : ce que le panel conserve sur les personnes, et ses appels sortants. */
+  privacy: {
+    en: 'installation.md#5-what-the-panel-keeps-and-who-it-talks-to',
+    fr: 'fr/installation.md#5-ce-que-le-panel-conserve-et-à-qui-il-parle',
+  },
 } satisfies Record<string, GuideLinks>;
 
 export type HelpTopic = keyof typeof HELP_TOPICS;

@@ -5,6 +5,8 @@
 import { Avatar, type AvatarProps } from '@mantine/core';
 import { useState } from 'react';
 
+import { externalAvatarsEnabled } from '../../lib/privacy.js';
+
 /** UUID v3 = dérivé du pseudo (mode hors ligne) : aucun skin associé. */
 export function isOfflineUuid(uuid: string | null | undefined): boolean {
   return uuid?.charAt(14) === '3';
@@ -25,13 +27,15 @@ export function PlayerAvatar({
   'size' | 'src' | 'name'
 >) {
   const [failed, setFailed] = useState(false);
+  // Vie privée (lot 9) : avatars coupés dans les réglages → initiales, aucun appel sortant.
+  const src = failed || !externalAvatarsEnabled() ? null : avatarUrl(name, uuid, size * 2);
   return (
     <Avatar
       size={size}
       radius="sm"
       name={name}
       color="initials"
-      src={failed ? null : avatarUrl(name, uuid, size * 2)}
+      src={src}
       imageProps={{
         onError: () => {
           setFailed(true);

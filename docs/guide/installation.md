@@ -308,3 +308,27 @@ The panel is an installable web app (PWA): once remote access is in place (§3 �
 - **iOS (Safari)**: Share button → "Add to Home Screen". On iOS this is **mandatory** to receive push notifications: they only work from the installed PWA, not from Safari.
 
 The app then opens full screen, with the navigation at the bottom of the screen. For notifications (server crash, failed backup, agent offline…): Account page → Push notifications — enable them, pick the categories, and verify with the "Send a test" button. In Tailscale mode, the phone must have the Tailscale app installed and connected to the tailnet to reach the panel.
+
+## 5. What the panel keeps, and who it talks to
+
+Everything lives in your `data` folder, on your machine; nothing is sent to us. Here is what the panel stores about people, and for how long (Settings → General → _Retention_ for the adjustable ones):
+
+| Data                                                                                               | Where                       | Kept                                            |
+| -------------------------------------------------------------------------------------------------- | --------------------------- | ----------------------------------------------- |
+| Players: name, UUID, first and last time seen                                                      | `players`                   | as long as the server exists                    |
+| Player sessions: who joined which server, when, until when                                         | `player_sessions`           | 365 days (adjustable)                           |
+| Panel accounts: name, password hash, language; sessions with IP address and browser signature      | `users`, `sessions`         | accounts until deleted; sessions 30 days        |
+| Who did what in the panel (start, stop, settings…), with the IP address                            | `audit_log`                 | 365 days (adjustable)                           |
+| Console commands typed by whom, on which server                                                    | `command_history`           | 90 days and 2,000 lines per server (adjustable) |
+| Clicks and page changes in the interface (for diagnosing a problem — never the content of a field) | `ui_events` in `metrics.db` | 14 days (adjustable)                            |
+| Events, tasks, migrations, backup records                                                          | `events`, `tasks`, …        | 90 / 30 / 90 / 30 days (adjustable)             |
+| Panel and agent logs (API requests with user name and IP, agent activity)                          | `logs/` folders             | 14 days                                         |
+
+The panel and its agents make a few outbound calls, each with an off switch:
+
+- **Mojang** (agent, `api.minecraftservices.com`): turns a player name into a UUID when you add someone to the whitelist, ban them or make them an operator on a server in online mode. Settings → Privacy → _Look up player names at Mojang_. Off, the agent only uses the server's own `usercache.json`, and a player who never joined cannot be added by name.
+- **mc-heads.net** (your browser): the head of each player's skin, next to their name. Settings → Privacy → _Load player avatars from mc-heads.net_. Off, initials are shown instead and the browser contacts nobody.
+- **GitHub** (panel, release feed, at most every 6 hours): the "version X available" banner. Settings → General → _Check for new panel versions_.
+- **Adoptium / Azul / Mojang** (agent): only when you install a Java runtime from the machine page.
+
+Deleting a server deletes its player sessions, commands and backup records with it. Deleting a panel account keeps its name in the audit log (so the history still says who did what) and removes everything else.

@@ -1138,6 +1138,16 @@ export const webFr = {
       updateCheckHint:
         'Lit le flux des releases sur GitHub au plus toutes les 6 heures. À couper si ce panel ne doit pas parler à l’extérieur.',
     },
+    privacy: {
+      title: 'Vie privée',
+      hint: 'Deux appels sortants concernent vos joueurs. Chacun se coupe ; le guide liste tout ce que le panel conserve et à qui il parle.',
+      mojangLookup: 'Résoudre les pseudos chez Mojang',
+      mojangLookupHint:
+        'Transforme un pseudo en UUID quand vous ajoutez quelqu’un à la whitelist, le bannissez ou le nommez opérateur sur un serveur en mode en ligne. Coupé, les agents n’utilisent que le usercache.json du serveur (un agent antérieur à la 1.0.8 continue d’interroger Mojang jusqu’à sa mise à jour).',
+      externalAvatars: 'Charger les avatars depuis mc-heads.net',
+      externalAvatarsHint:
+        'Coupé, des initiales s’affichent et les navigateurs ne contactent personne.',
+    },
     push: {
       title: 'Push (côté panel)',
       vapidReady: 'Les clés VAPID sont configurées — le push est disponible pour tous les comptes.',

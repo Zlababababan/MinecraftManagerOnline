@@ -100,6 +100,11 @@ export interface ResolveOptions {
   serverDir: string;
   onlineMode: boolean;
   fetchImpl?: FetchLike | undefined;
+  /**
+   * Vie privée (lot 9) : `false` = aucun appel à l'API Mojang, les pseudos absents du
+   * `usercache.json` restent `unknown` (défaut `true`).
+   */
+  allowMojang?: boolean | undefined;
 }
 
 export async function resolvePlayers(
@@ -120,7 +125,7 @@ export async function resolvePlayers(
       result.set(key, { name, uuid: offlineUuid(name), source: 'offline' });
     } else pending.push(name);
   }
-  if (pending.length > 0) {
+  if (pending.length > 0 && options.allowMojang !== false) {
     const fetchImpl = options.fetchImpl ?? globalThis.fetch;
     const resolved = await resolveMojang(pending, fetchImpl);
     for (const name of pending) {

@@ -1125,6 +1125,15 @@ export const webEn = {
       updateCheckHint:
         'Reads the releases feed on GitHub at most every 6 hours. Turn it off if this panel must not talk to the outside.',
     },
+    privacy: {
+      title: 'Privacy',
+      hint: 'Two outbound calls concern your players. Each one can be turned off; the guide lists everything the panel keeps and who it talks to.',
+      mojangLookup: 'Look up player names at Mojang',
+      mojangLookupHint:
+        'Turns a name into a UUID when you whitelist, ban or op someone on an online-mode server. Off, agents only use the server’s own usercache.json (agents older than 1.0.8 keep asking Mojang until updated).',
+      externalAvatars: 'Load player avatars from mc-heads.net',
+      externalAvatarsHint: 'Off, initials are shown instead and browsers contact nobody.',
+    },
     push: {
       title: 'Push (server side)',
       vapidReady: 'VAPID keys are configured — push is available to every account.',

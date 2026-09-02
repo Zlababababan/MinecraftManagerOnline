@@ -24,6 +24,7 @@ import { meQuery, setupStatusQuery, useMe } from './api/queries.js';
 import { Shell } from './components/Shell.js';
 import { setLocale } from './i18n/index.js';
 import { hasRole } from './lib/format.js';
+import { configurePrivacy } from './lib/privacy.js';
 import { AccountPage } from './pages/AccountPage.js';
 import { DashboardPage } from './pages/DashboardPage.js';
 import { ErrorPage } from './pages/ErrorPage.js';
@@ -45,7 +46,9 @@ export interface RouterContext {
 
 async function requireUser(queryClient: QueryClient, href: string): Promise<UserDto> {
   try {
-    const { user } = await queryClient.ensureQueryData(meQuery);
+    const { user, privacy } = await queryClient.ensureQueryData(meQuery);
+    // Vie privée (lot 9) : connu avant le premier rendu d'un joueur, sans hook dans l'avatar.
+    configurePrivacy(privacy);
     return user;
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 401) {

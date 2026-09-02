@@ -71,4 +71,30 @@ describe('identité des joueurs (doc 06 §7)', () => {
     const r = await resolvePlayers(['Zed'], { serverDir: dir, onlineMode: true, fetchImpl });
     expect(r).toEqual([{ name: 'Zed', uuid: null, source: 'unknown' }]);
   });
+
+  // Vie privée (lot 9) : Mojang coupé → le usercache sert encore, l'API n'est jamais appelée.
+  it('allowMojang: false — usercache seulement, aucun appel sortant, inconnus non résolus', async () => {
+    await writeFile(
+      path.join(dir, 'usercache.json'),
+      JSON.stringify([
+        { name: 'Alice', uuid: '11111111-1111-4111-8111-111111111111', expiresOn: 'x' },
+      ]),
+    );
+    let calls = 0;
+    const fetchImpl: FetchLike = () => {
+      calls += 1;
+      return Promise.reject(new Error('must not be called'));
+    };
+    const r = await resolvePlayers(['alice', 'Notch'], {
+      serverDir: dir,
+      onlineMode: true,
+      fetchImpl,
+      allowMojang: false,
+    });
+    expect(r).toEqual([
+      { name: 'Alice', uuid: '11111111-1111-4111-8111-111111111111', source: 'usercache' },
+      { name: 'Notch', uuid: null, source: 'unknown' },
+    ]);
+    expect(calls).toBe(0);
+  });
 });

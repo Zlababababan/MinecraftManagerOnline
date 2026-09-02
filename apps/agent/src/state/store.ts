@@ -63,6 +63,8 @@ export const agentStateSchema = z.object({
   servers: z.record(z.string(), serverRecordSchema).default({}),
   desiredStates: z.record(z.string(), desiredStateSchema).default({}),
   restoreOnBoot: z.boolean().default(false),
+  /** Vie privée (lot 9) : `false` = jamais d'appel à l'API Mojang (usercache local seulement). */
+  mojangLookup: z.boolean().default(true),
   /** Politique watchdog par serveur (phase 7), poussée par `agent.configure.watchdog`. */
   watchdog: z.record(z.string(), watchdogPolicySchema.omit({ serverId: true })).default({}),
   metricsIntervalSec: z.int().positive().default(15),

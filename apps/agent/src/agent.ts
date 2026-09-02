@@ -681,6 +681,7 @@ export class Agent {
           if (cfg.desiredStates) s.desiredStates = cfg.desiredStates;
           if (cfg.restoreOnBoot !== undefined) s.restoreOnBoot = cfg.restoreOnBoot;
           if (cfg.metricsIntervalSec !== undefined) s.metricsIntervalSec = cfg.metricsIntervalSec;
+          if (cfg.mojangLookup !== undefined) s.mojangLookup = cfg.mojangLookup;
           if (cfg.watchdog) {
             s.watchdog = {};
             for (const { serverId, ...policy } of cfg.watchdog) s.watchdog[serverId] = policy;

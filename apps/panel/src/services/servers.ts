@@ -687,6 +687,8 @@ export class ServersService {
       desiredStates,
       restoreOnBoot: this.deps.settings.getBool(SETTING_KEYS.restoreOnBoot),
       metricsIntervalSec: this.deps.settings.getInt(SETTING_KEYS.metricsIntervalSec, 15),
+      // Vie privée (lot 9) : l'agent résout les pseudos chez Mojang, c'est donc lui qui doit savoir.
+      mojangLookup: this.deps.settings.getBool(SETTING_KEYS.mojangLookup),
       // Phase 8 : destination globale (chaîne vide = défaut agent) et plannings de backups autonomes.
       backupDestination: this.deps.settings.get(SETTING_KEYS.backupDestination) ?? '',
       backupSchedules: this.deps.backupSchedules?.(rows.map((r) => r.id)) ?? [],

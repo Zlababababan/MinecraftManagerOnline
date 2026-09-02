@@ -79,7 +79,7 @@ Admin (UI)                Panel                              Agent (nouvelle mac
 | `auth.hello` / `sync.state` | A→P | Auth + snapshot |
 | `agent.heartbeat` | A→P (event) | Statut léger 15 s |
 | `agent.info` | P→A | Détails machine (volumes, JRE, répertoires) |
-| `agent.configure` | P→A | Config poussée et persistée : répertoires surveillés, destination backups, règles watchdog, plannings de backups locaux, **`desired_state` par serveur**, intervalle métriques |
+| `agent.configure` | P→A | Config poussée et persistée : répertoires surveillés, destination backups, règles watchdog, plannings de backups locaux, **`desired_state` par serveur**, intervalle métriques, `mojangLookup?` (lot 9, vie privée : `false` = usercache local seulement, jamais l'API Mojang ; un agent N-1 l'ignore) |
 | `agent.rotateSecret` | P→A | Rotation du secret |
 | `agent.update` | P→A | Mise à jour du **bundle universel** (§9) |
 | `runtime.update` | P→A | Mise à jour du runtime Node (canal séparé, rare) |

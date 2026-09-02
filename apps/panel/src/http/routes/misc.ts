@@ -135,6 +135,16 @@ export function registerMiscRoutes(app: FastifyInstance, ctx: AppContext): void 
           ctx.settings.set(key, String(days));
           continue;
         }
+        if (key.startsWith('privacy.')) {
+          // Booléens stricts : `getBool` lirait « yes » comme faux, en silence.
+          if (value !== 'true' && value !== 'false') {
+            throw new AppError('E_VALIDATION', `${key} must be 'true' or 'false'`, {
+              details: { key },
+            });
+          }
+          ctx.settings.set(key, value);
+          continue;
+        }
         ctx.settings.set(key, value);
       }
       ctx.audit.record({

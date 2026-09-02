@@ -238,6 +238,72 @@ function GeneralCard({ settings }: { settings: Record<string, string> }) {
   );
 }
 
+/** Vie privée (lot 9) : les deux appels sortants qui concernent les joueurs, chacun avec son interrupteur. */
+function PrivacyCard({ settings }: { settings: Record<string, string> }) {
+  const { t, i18n } = useT();
+  const update = useUpdateSettings();
+  const form = useForm({
+    initialValues: {
+      // Absents tant que jamais modifiés : le défaut serveur est « activé ».
+      mojangLookup: settings['privacy.mojangLookup'] !== 'false',
+      externalAvatars: settings['privacy.externalAvatars'] !== 'false',
+    },
+  });
+  return (
+    <Card withBorder radius="md" padding="md" data-testid="settings-privacy">
+      <form
+        onSubmit={form.onSubmit((v) => {
+          update.mutate(
+            {
+              'privacy.mojangLookup': v.mojangLookup ? 'true' : 'false',
+              'privacy.externalAvatars': v.externalAvatars ? 'true' : 'false',
+            },
+            {
+              onSuccess: () => {
+                notifications.show({ color: 'teal', message: t('web:settings.saved') });
+              },
+              onError: (error) => {
+                notifications.show({ color: 'red', message: describeError(i18n, error) });
+              },
+            },
+          );
+        })}
+      >
+        <Stack gap="sm">
+          <Title order={2} size="h4">
+            {t('web:settings.privacy.title')}
+          </Title>
+          <Text size="xs" c="dimmed">
+            {t('web:settings.privacy.hint')} <HelpLink topic="privacy" inline />
+          </Text>
+          <Switch
+            label={t('web:settings.privacy.mojangLookup')}
+            description={t('web:settings.privacy.mojangLookupHint')}
+            {...form.getInputProps('mojangLookup', { type: 'checkbox' })}
+            data-testid="settings-privacy-mojang"
+          />
+          <Switch
+            label={t('web:settings.privacy.externalAvatars')}
+            description={t('web:settings.privacy.externalAvatarsHint')}
+            {...form.getInputProps('externalAvatars', { type: 'checkbox' })}
+            data-testid="settings-privacy-avatars"
+          />
+          <Group justify="flex-end">
+            <Button
+              type="submit"
+              size="xs"
+              loading={update.isPending}
+              data-testid="settings-privacy-save"
+            >
+              {t('web:common.save')}
+            </Button>
+          </Group>
+        </Stack>
+      </form>
+    </Card>
+  );
+}
+
 function PushAdminCard() {
   const { t } = useT();
   const push = usePushStatus();
@@ -273,6 +339,7 @@ export function SettingsPage() {
         {t('web:settings.title')}
       </Title>
       {settings.data !== undefined && <GeneralCard settings={settings.data.settings} />}
+      {settings.data !== undefined && <PrivacyCard settings={settings.data.settings} />}
       <UsersCard />
       <AccessCard />
       <DistributionCard />

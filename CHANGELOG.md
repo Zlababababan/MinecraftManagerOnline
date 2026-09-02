@@ -47,6 +47,15 @@ reconnects. States and events always get through. The agent applies the same rul
 panel. The public surfaces (agent downloads, install scripts, relay links, agent handshakes) are
 now rate-limited per address, 120 requests a minute.
 
+### What the panel keeps about players, and who it talks to
+
+The guide gains a section listing every piece of data kept about people (players, accounts,
+sessions, commands, clicks), where it lives and for how long, plus every outbound call the panel
+or an agent makes. Two of those calls concern players and now have a switch in Settings →
+Privacy: looking up player names at Mojang (agents only use the server's `usercache.json` when
+off) and loading player avatars from mc-heads.net (initials instead). Agents older than this
+release keep asking Mojang until updated.
+
 ## 1.0.7 — 2026-09-01
 
 A small release, mostly about being able to check what you downloaded and to report a problem

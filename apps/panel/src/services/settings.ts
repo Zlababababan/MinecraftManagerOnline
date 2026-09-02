@@ -33,6 +33,12 @@ export const SETTING_KEYS = {
   tasksRetentionDays: 'retention.tasksDays',
   /** Horodatage du dernier VACUUM hebdomadaire (persisté : un redémarrage ne relance pas la semaine). */
   vacuumAt: 'maintenance.vacuumAt',
+  /**
+   * Vie privée (lot 9) : les deux appels sortants qui parlent des joueurs — l'API Mojang (par
+   * l'agent, pseudo → UUID en mode en ligne) et les avatars mc-heads.net (par le navigateur).
+   */
+  mojangLookup: 'privacy.mojangLookup',
+  externalAvatars: 'privacy.externalAvatars',
   restoreOnBoot: 'agents.restoreOnBoot',
   metricsIntervalSec: 'metrics.intervalSec',
   /** Phase 9 : mise à jour automatique des agents à la connexion. */
@@ -79,6 +85,8 @@ const DEFAULTS: Readonly<Record<string, string>> = {
   [SETTING_KEYS.migrationsRetentionDays]: '90',
   [SETTING_KEYS.deletedBackupsRetentionDays]: '30',
   [SETTING_KEYS.tasksRetentionDays]: '30',
+  [SETTING_KEYS.mojangLookup]: 'true',
+  [SETTING_KEYS.externalAvatars]: 'true',
   [SETTING_KEYS.restoreOnBoot]: 'true',
   [SETTING_KEYS.metricsIntervalSec]: '15',
   [SETTING_KEYS.accessHttpsPort]: '443',

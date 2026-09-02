@@ -13,6 +13,7 @@ import {
 
 import type { AppContext } from '../../context.js';
 import { AppError } from '../../errors.js';
+import { SETTING_KEYS } from '../../services/settings.js';
 import { completeSetup as runSetup } from '../../services/setup.js';
 import { toUserDto } from '../../services/users.js';
 import { PANEL_VERSION } from '../../version.js';
@@ -149,6 +150,7 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
             user: userDtoSchema,
             scheduleTimezone: z.string(),
             panelUpdate: z.object({ current: z.string(), latest: z.string() }).nullable(),
+            privacy: z.object({ externalAvatars: z.boolean() }),
           }),
         },
       },
@@ -165,6 +167,9 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
         // est réservée aux administrateurs.
         scheduleTimezone: ctx.settings.timeZone(),
         panelUpdate: latest === undefined ? null : { current: PANEL_VERSION, latest },
+        // Vie privée (lot 9) : le navigateur doit savoir, avant d'afficher un joueur, s'il a le
+        // droit d'aller chercher sa tête chez mc-heads.net.
+        privacy: { externalAvatars: ctx.settings.getBool(SETTING_KEYS.externalAvatars) },
       };
     },
   );

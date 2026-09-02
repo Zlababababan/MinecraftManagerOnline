@@ -48,6 +48,8 @@ export interface ConfigServiceOptions {
   exec: (command: string) => Promise<CommandResult>;
   now?: () => number;
   fetchImpl?: FetchLike | undefined;
+  /** Vie privée (lot 9) : la résolution Mojang est-elle permise ? (lu à chaque action, réglage à chaud) */
+  allowMojang?: () => boolean;
 }
 
 export type ConfigGetResult = ParsedResponsePayload<'config.get'>;
@@ -374,6 +376,7 @@ export class ConfigService {
         serverDir: this.options.serverDir,
         onlineMode: await this.onlineMode(),
         fetchImpl: this.options.fetchImpl,
+        allowMojang: this.options.allowMojang?.() ?? true,
       });
       const uuid = resolved?.uuid ?? null;
       if (resolved === undefined || uuid === null) {

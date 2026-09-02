@@ -949,6 +949,9 @@ export const EDITABLE_SETTINGS = [
   'retention.migrationsDays',
   'retention.deletedBackupsDays',
   'retention.tasksDays',
+  /** Vie privée ('true'/'false') : résolution des pseudos chez Mojang, avatars mc-heads.net. */
+  'privacy.mojangLookup',
+  'privacy.externalAvatars',
   'agents.restoreOnBoot',
   'metrics.intervalSec',
   /** Fuseau dans lequel toutes les planifications sont lues (nom IANA, ex. `Europe/Paris`). */

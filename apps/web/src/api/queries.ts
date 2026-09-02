@@ -114,6 +114,8 @@ export const meQuery = queryOptions({
       scheduleTimezone?: string;
       /** Bannière « version X disponible » — null pour les non-admins et quand tout est à jour. */
       panelUpdate?: { current: string; latest: string } | null;
+      /** Vie privée (lot 9) : le navigateur peut-il charger les avatars chez mc-heads.net ? */
+      privacy?: { externalAvatars: boolean };
     }>('/api/auth/me', signal),
   retry: false,
   staleTime: 60_000,

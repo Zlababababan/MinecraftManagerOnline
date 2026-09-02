@@ -451,6 +451,8 @@ export class ServerManager {
       isRunning: () => this.processes.get(serverId)?.isRunning ?? false,
       exec: (command) => this.execWithResponse(serverId, command),
       fetchImpl: this.options.fetchImpl,
+      // Vie privée (lot 9) : lu à chaque action, un `agent.configure` s'applique donc à chaud.
+      allowMojang: () => this.options.store.get().mojangLookup,
       ...(this.options.now === undefined ? {} : { now: this.options.now }),
     });
   }
@@ -479,6 +481,8 @@ export class ServerManager {
       serverDir: dir,
       onlineMode,
       fetchImpl: this.options.fetchImpl,
+      // Vie privée (lot 9) : poussé par `agent.configure.mojangLookup`, persisté dans l'état.
+      allowMojang: this.options.store.get().mojangLookup,
     });
     return { players, onlineMode };
   }

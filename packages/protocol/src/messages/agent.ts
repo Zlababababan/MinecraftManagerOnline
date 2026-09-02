@@ -211,6 +211,11 @@ export const agentConfigureSchema = z.object({
   desiredStates: z.record(serverIdSchema, desiredStateSchema).optional(),
   restoreOnBoot: z.boolean().optional(),
   metricsIntervalSec: z.int().positive().optional(),
+  /**
+   * Lot 9 (vie privée, sans bump) : `false` = l'agent ne résout plus les pseudos auprès de l'API
+   * Mojang (usercache local seulement) ; absent = inchangé. Un agent N-1 l'ignore et continue.
+   */
+  mojangLookup: z.boolean().optional(),
 });
 export const agentConfigureResponseSchema = z.object({ applied: z.literal(true) });
 

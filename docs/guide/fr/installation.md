@@ -309,3 +309,27 @@ Le panel est une application web installable (PWA) : une fois l'accès distant e
 - **iOS (Safari)** : bouton Partager → « Sur l'écran d'accueil ». Sur iOS c'est **obligatoire** pour recevoir les notifications push : elles ne fonctionnent que depuis la PWA installée, pas depuis Safari.
 
 L'application s'ouvre alors en plein écran, avec la navigation en bas de l'écran. Pour les notifications (crash d'un serveur, sauvegarde échouée, agent hors ligne…) : page Compte → Notifications push — activez-les, choisissez les catégories, et vérifiez avec le bouton « Envoyer un test ». En mode Tailscale, le téléphone doit avoir l'application Tailscale installée et connectée au tailnet pour joindre le panel.
+
+## 5. Ce que le panel conserve, et à qui il parle
+
+Tout vit dans votre dossier `data`, sur votre machine ; rien ne nous est envoyé. Voici ce que le panel conserve sur les personnes, et combien de temps (Réglages → Général → _Rétention_ pour les durées réglables) :
+
+| Donnée                                                                                                          | Où                            | Conservée                                       |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------- |
+| Joueurs : pseudo, UUID, première et dernière fois vus                                                           | `players`                     | tant que le serveur existe                      |
+| Sessions des joueurs : qui a rejoint quel serveur, quand, jusqu'à quand                                         | `player_sessions`             | 365 jours (réglable)                            |
+| Comptes du panel : nom, empreinte du mot de passe, langue ; sessions avec adresse IP et signature du navigateur | `users`, `sessions`           | comptes jusqu'à suppression ; sessions 30 jours |
+| Qui a fait quoi dans le panel (démarrage, arrêt, réglages…), avec l'adresse IP                                  | `audit_log`                   | 365 jours (réglable)                            |
+| Commandes console tapées, par qui, sur quel serveur                                                             | `command_history`             | 90 jours et 2 000 lignes par serveur (réglable) |
+| Clics et changements de page dans l'interface (pour diagnostiquer un problème — jamais le contenu d'un champ)   | `ui_events` dans `metrics.db` | 14 jours (réglable)                             |
+| Événements, tâches, migrations, fiches de sauvegardes                                                           | `events`, `tasks`, …          | 90 / 30 / 90 / 30 jours (réglable)              |
+| Journaux du panel et des agents (requêtes de l'API avec nom d'utilisateur et IP, activité de l'agent)           | dossiers `logs/`              | 14 jours                                        |
+
+Le panel et ses agents font quelques appels sortants, chacun avec son interrupteur :
+
+- **Mojang** (agent, `api.minecraftservices.com`) : transforme un pseudo en UUID quand vous ajoutez quelqu'un à la whitelist, le bannissez ou le nommez opérateur sur un serveur en mode en ligne. Réglages → Vie privée → _Résoudre les pseudos chez Mojang_. Coupé, l'agent n'utilise que le `usercache.json` du serveur, et un joueur qui n'est jamais venu ne peut pas être ajouté par son pseudo.
+- **mc-heads.net** (votre navigateur) : la tête du skin de chaque joueur, à côté de son pseudo. Réglages → Vie privée → _Charger les avatars depuis mc-heads.net_. Coupé, des initiales s'affichent à la place et le navigateur ne contacte personne.
+- **GitHub** (panel, flux des releases, au plus toutes les 6 heures) : la bannière « version X disponible ». Réglages → Général → _Vérifier les nouvelles versions du panel_.
+- **Adoptium / Azul / Mojang** (agent) : seulement quand vous installez un runtime Java depuis la page d'une machine.
+
+Supprimer un serveur supprime avec lui ses sessions de joueurs, ses commandes et ses fiches de sauvegardes. Supprimer un compte du panel garde son nom dans le journal d'audit (pour que l'historique dise encore qui a fait quoi) et retire tout le reste.
