@@ -15,6 +15,7 @@ import {
   type MmoDatabase,
 } from './db/client.js';
 import type { SqliteHandle } from './db/sqlite.js';
+import { PublicRateLimits, type PublicRateLimitOptions } from './http/rate-limits.js';
 import { AuditService } from './services/audit.js';
 import { BackupsService } from './services/backups.js';
 import { EventBus } from './services/events.js';
@@ -103,6 +104,8 @@ export interface AppContext {
     logFile: () => string | undefined;
     lastMaintenance: MaintenanceSummary | undefined;
   };
+  /** Lot 9 : limiteurs par adresse des surfaces publiques. */
+  rateLimits: PublicRateLimits;
   close(): void;
 }
 
@@ -124,6 +127,10 @@ export interface ContextOptions {
   metricsFile?: string;
   /** Chemin du journal fichier courant du panel (`boot.ts`), exposé par `/api/health` aux admins. */
   logFile?: () => string | undefined;
+  /** Limiteurs des surfaces publiques (relais, distribution, `/ws/agent`) ; bornes abaissées en test. */
+  publicRateLimit?: PublicRateLimitOptions;
+  /** Seuils de contre-pression vers les navigateurs (abaissés en test). */
+  backpressure?: { dropAboveBytes: number; closeAboveBytes: number };
   fetch?: typeof fetch;
   /** Période du planificateur (0 = manuel, tests). */
   schedulerTickMs?: number;
@@ -191,6 +198,7 @@ export function createContext(options: ContextOptions): AppContext {
     onUnsubscribe: (channel) => {
       relay.onUnsubscribe(channel);
     },
+    ...(options.backpressure === undefined ? {} : { backpressure: options.backpressure }),
   });
   relay.bind(hub);
   events.subscribe((event) => {
@@ -443,6 +451,7 @@ export function createContext(options: ContextOptions): AppContext {
       logFile: options.logFile ?? (() => undefined),
       lastMaintenance: undefined,
     },
+    rateLimits: new PublicRateLimits({ ...options.publicRateLimit, now }),
     close: () => {
       access.stop();
       notifications.dispose();

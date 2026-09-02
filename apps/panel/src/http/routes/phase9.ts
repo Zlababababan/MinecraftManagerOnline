@@ -274,6 +274,8 @@ export function registerPhase9Routes(app: FastifyInstance, ctx: AppContext): voi
     url: '/api/relay/:token',
     config: { public: true },
     schema: { params: tokenParams },
+    // Lot 9 : surface publique limitée par adresse — un scan de jetons, même mal formés, compte.
+    preValidation: ctx.rateLimits.hook('relay'),
     handler: async (request, reply) => {
       const payload = ctx.relayTokens.get(request.params.token);
       if (!payload) throw notFound('relay token');

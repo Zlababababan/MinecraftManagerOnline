@@ -15,6 +15,12 @@ const PROBE_MAX_TOTAL_BYTES = 4 * 1024 * 1024;
 
 export function registerWsRoutes(app: FastifyInstance, ctx: AppContext): void {
   app.get('/ws/agent', { websocket: true, config: { public: true } }, (socket, request) => {
+    // Lot 9 : poignées de main limitées par adresse — l'appairage l'était (5/10 min), pas la
+    // connexion elle-même, donc pas les tentatives d'`auth.hello`.
+    if (!ctx.rateLimits.allow('ws-agent', request.ip)) {
+      socket.close(1013, 'too many connections');
+      return;
+    }
     const transport = createServerWsTransport(socket, request.ip);
     new AgentSession(transport, {
       config: ctx.config,

@@ -76,6 +76,9 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
     ...(options.migrationTtlMs === undefined ? {} : { migrationTtlMs: options.migrationTtlMs }),
     ...(options.groupWait === undefined ? {} : { groupWait: options.groupWait }),
     ...(options.access === undefined ? {} : { access: options.access }),
+    ...(options.logFile === undefined ? {} : { logFile: options.logFile }),
+    ...(options.publicRateLimit === undefined ? {} : { publicRateLimit: options.publicRateLimit }),
+    ...(options.backpressure === undefined ? {} : { backpressure: options.backpressure }),
   });
 
   await app.register(cookie);

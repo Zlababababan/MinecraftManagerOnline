@@ -38,6 +38,15 @@ warning, and the id an internal error shows you is the one to search for in that
 records agent connections and scheduled actions. Administrators get more from `/api/health`:
 uptime, current log file, database sizes and the last maintenance pass.
 
+### A slow browser no longer costs the panel its memory
+
+A browser tab that stopped reading (asleep, on a saturated link) kept every metrics sample and
+console line queued in the panel's memory. Above 1 MiB waiting, those low-value messages are now
+dropped — the next ones replace them; above 8 MiB the panel closes the socket and the tab
+reconnects. States and events always get through. The agent applies the same rule towards the
+panel. The public surfaces (agent downloads, install scripts, relay links, agent handshakes) are
+now rate-limited per address, 120 requests a minute.
+
 ## 1.0.7 — 2026-09-01
 
 A small release, mostly about being able to check what you downloaded and to report a problem

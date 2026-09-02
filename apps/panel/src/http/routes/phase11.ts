@@ -30,8 +30,12 @@ export function requestOrigin(request: FastifyRequest): string | undefined {
 export function registerPhase11Routes(app: FastifyInstance, ctx: AppContext): void {
   const r = app.withTypeProvider<ZodTypeProvider>();
 
+  // Lot 9 : la distribution est publique par nature (installeurs, agents qui se mettent à jour),
+  // donc limitée par adresse — une boucle de téléchargement ne doit pas saturer le disque du panel.
+  const limited = ctx.rateLimits.hook('distribution');
+
   for (const name of ['install.ps1', 'install.sh'] as const) {
-    r.get(`/${name}`, { config: { public: true } }, (request, reply) => {
+    r.get(`/${name}`, { config: { public: true }, preValidation: limited }, (request, reply) => {
       const script = ctx.distribution.installScript(name, requestOrigin(request));
       return reply
         .header('content-type', script.type)
@@ -42,7 +46,7 @@ export function registerPhase11Routes(app: FastifyInstance, ctx: AppContext): vo
 
   r.get(
     '/dist/:file',
-    { config: { public: true }, schema: { params: fileParams } },
+    { config: { public: true }, schema: { params: fileParams }, preValidation: limited },
     (request, reply) => {
       const f = ctx.distribution.filePath(request.params.file);
       return reply
@@ -55,11 +59,17 @@ export function registerPhase11Routes(app: FastifyInstance, ctx: AppContext): vo
     },
   );
 
-  r.get('/api/dist', { config: { public: true } }, () => ctx.distribution.status());
+  r.get('/api/dist', { config: { public: true }, preValidation: limited }, () =>
+    ctx.distribution.status(),
+  );
 
   r.get(
     '/api/dist/:platform',
-    { config: { public: true }, schema: { params: z.object({ platform: z.string().max(32) }) } },
+    {
+      config: { public: true },
+      schema: { params: z.object({ platform: z.string().max(32) }) },
+      preValidation: limited,
+    },
     (request) => ctx.distribution.platform(request.params.platform),
   );
 

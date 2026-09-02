@@ -11,6 +11,7 @@ import {
   EVENTS,
   PROTOCOL_VERSION,
   ProtocolError,
+  backpressureAction,
   createRpcPeer,
   isProtocolError,
   ulid,
@@ -33,6 +34,12 @@ import {
 
 export type AgentPeer = RpcPeer<'agent'>;
 type AgentEventType = EventTypesFrom<'agent'>;
+
+/** Événements remplacés par les suivants : abandonnés sous contre-pression (lot 9). */
+const LOW_VALUE_EVENTS: ReadonlySet<AgentEventType> = new Set<AgentEventType>([
+  'metrics.sample',
+  'console.lines',
+]);
 
 export interface SessionInfo {
   protocolVersion: number;
@@ -65,6 +72,8 @@ export interface ConnectionOptions {
   connectTimeoutMs?: number;
   /** Délai maximal entre deux événements non critiques en file (console) avant envoi. */
   now?: () => number;
+  /** Seuils de contre-pression vers le panel (défaut `BACKPRESSURE` ; abaissés en test). */
+  backpressure?: { dropAboveBytes: number; closeAboveBytes: number };
 }
 
 export function machineInfo(): RequestPayload<'pair.request'>['machine'] {
@@ -136,6 +145,8 @@ export class AgentConnection {
   private transport: WsTransport | undefined;
   private session: SessionInfo | undefined;
   private heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+  /** Événements de faible valeur abandonnés depuis que le panel ne lit plus (lot 9). */
+  private droppedUnderPressure = 0;
   private wakeup: (() => void) | undefined;
   private loop: Promise<void> | undefined;
   private lastError: string | undefined;
@@ -301,6 +312,26 @@ export class AgentConnection {
         ...(id === undefined ? {} : { id }),
       });
       return;
+    }
+    // Contre-pression (lot 9) : si le panel ne lit plus, les échantillons et les lignes de console
+    // — remplacés par les suivants — sont abandonnés plutôt qu'empilés en mémoire. Les événements
+    // critiques passent toujours : ils sont journalisés et rejoués, pas jetés.
+    if (
+      LOW_VALUE_EVENTS.has(type) &&
+      backpressureAction(peer.bufferedAmount(), true, this.options.backpressure) !== 'send'
+    ) {
+      this.droppedUnderPressure += 1;
+      if (this.droppedUnderPressure === 1) {
+        this.options.logger.warn('panel not reading: low-value events dropped', {
+          type,
+          bufferedAmount: peer.bufferedAmount(),
+        });
+      }
+      return;
+    }
+    if (this.droppedUnderPressure > 0 && LOW_VALUE_EVENTS.has(type)) {
+      this.options.logger.info('panel reading again', { dropped: this.droppedUnderPressure });
+      this.droppedUnderPressure = 0;
     }
     try {
       peer.emit(type, payload as never, id === undefined ? {} : { id });

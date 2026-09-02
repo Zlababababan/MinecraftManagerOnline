@@ -6,7 +6,14 @@
 import type { FastifyBaseLogger } from 'fastify';
 import type { WebSocket } from 'ws';
 
+import { BACKPRESSURE, backpressureAction } from '@mmo/protocol';
 import { clientMessageSchema, type ServerMessage, type UserDto } from '@mmo/protocol/client';
+
+/** Messages remplacés par les suivants : les perdre sous contre-pression ne coûte rien. */
+const LOW_VALUE_MESSAGES: ReadonlySet<ServerMessage['type']> = new Set([
+  'metrics.sample',
+  'console.lines',
+]);
 
 export interface ClientConnection {
   readonly id: number;
@@ -23,6 +30,8 @@ export interface ClientHubOptions {
   onSubscribe: (channel: string, conn: ClientConnection, first: boolean) => void | Promise<void>;
   /** Dernier abonné parti. */
   onUnsubscribe: (channel: string) => void;
+  /** Seuils de contre-pression (défaut `BACKPRESSURE` ; abaissés en test). */
+  backpressure?: { dropAboveBytes: number; closeAboveBytes: number };
 }
 
 export class ClientHub {
@@ -47,12 +56,41 @@ export class ClientHub {
   /** Attache un socket `ws` authentifié. */
   attach(ws: WebSocket, user: UserDto): ClientConnection {
     const id = this.nextId++;
+    let dropped = 0;
     const conn: ClientConnection = {
       id,
       user,
       channels: new Set(),
       send: (message) => {
-        if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(message));
+        if (ws.readyState !== ws.OPEN) return;
+        // Contre-pression (lot 9) : un navigateur qui ne lit plus ne doit pas faire gonfler la
+        // mémoire du panel. Échantillons et lignes de console sont abandonnés au-delà de 1 Mio en
+        // attente (les suivants les remplacent) ; au-delà de 8 Mio, le socket est fermé et le
+        // front se reconnecte. Les états et événements passent toujours.
+        const action = backpressureAction(
+          ws.bufferedAmount,
+          LOW_VALUE_MESSAGES.has(message.type),
+          this.options.backpressure ?? BACKPRESSURE,
+        );
+        if (action === 'send') {
+          ws.send(JSON.stringify(message));
+          return;
+        }
+        if (action === 'drop') {
+          dropped += 1;
+          if (dropped === 1) {
+            this.options.logger.warn(
+              { clientId: id, user: user.username, bufferedAmount: ws.bufferedAmount },
+              'client falling behind: low-value messages dropped',
+            );
+          }
+          return;
+        }
+        this.options.logger.warn(
+          { clientId: id, user: user.username, bufferedAmount: ws.bufferedAmount, dropped },
+          'client not reading: closing (it will reconnect)',
+        );
+        ws.close(1013, 'client too slow');
       },
       close: (code, reason) => {
         ws.close(code, reason);

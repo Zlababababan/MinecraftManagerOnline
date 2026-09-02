@@ -233,6 +233,7 @@ migration.export (task, source) → transfer.serve (source) → migration.import
 | Task interrompue (agent tombé) | Journal write-ahead local : phase reprenable → reprise (offset) ; sinon nettoyage + `task.failed { E_INTERRUPTED, retryable: true }` |
 | Serveurs pendant un crash d'agent | Survivent (détachés) ; redéclarés `detached` par `sync.state` |
 | Panel éteint | Zéro impact : watchdog, plannings, backups locaux ; événements rejoués à la reconnexion |
+| Pair qui ne lit plus (lot 9) | `bufferedAmount` > 1 Mio : `metrics.sample` et `console.lines` abandonnés (les suivants les remplacent), événements critiques conservés ; > 8 Mio côté panel → navigateur fermé `1013`, il se reconnecte (`rpc/backpressure.ts`, doc 03 §6) |
 
 > **Implémentation (phase 8)** : testé de bout en bout — `apps/agent/src/agent.backup.test.ts` (backup planifié exécuté panel injoignable puis `task.completed` rejoué à la reconnexion ; download et upload coupés puis repris par offset ; task interrompue au boot → `E_INTERRUPTED`) et `apps/panel/src/integration/phase8.test.ts` (même scénario avec panel réel + table `backups` synchronisée, `stalled` → réconciliation).
 
