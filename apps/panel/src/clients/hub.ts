@@ -19,6 +19,8 @@ const LOW_VALUE_MESSAGES: ReadonlySet<ServerMessage['type']> = new Set([
 export interface ClientConnection {
   readonly id: number;
   readonly user: UserDto;
+  /** Session cookie qui a ouvert le socket (lot 8 : révocation d'UNE session). */
+  readonly sessionId: number | undefined;
   readonly channels: Set<string>;
   send(message: ServerMessage): void;
   close(code?: number, reason?: string): void;
@@ -65,12 +67,13 @@ export class ClientHub {
   }
 
   /** Attache un socket `ws` authentifié. */
-  attach(ws: WebSocket, user: UserDto): ClientConnection {
+  attach(ws: WebSocket, user: UserDto, sessionId?: number): ClientConnection {
     const id = this.nextId++;
     let dropped = 0;
     const conn: ClientConnection = {
       id,
       user,
+      sessionId,
       channels: new Set(),
       send: (message) => {
         if (ws.readyState !== ws.OPEN) return;
@@ -129,6 +132,13 @@ export class ClientHub {
    * rôle : 4001, le front n'insiste pas ; droits modifiés : `CLOSE_PERMISSIONS_CHANGED`, le
    * front se reconnecte aussitôt et ses abonnements sont rejugés).
    */
+  /** Lot 8 : une session révoquée depuis un autre appareil ferme SES sockets seulement. */
+  disconnectSession(sessionId: number, reason = 'session revoked', code = 4001): void {
+    for (const conn of this.connections.values()) {
+      if (conn.sessionId === sessionId) conn.close(code, reason);
+    }
+  }
+
   disconnectUser(userId: string, reason = 'session revoked', code = 4001): void {
     for (const conn of this.connections.values()) {
       if (conn.user.id === userId) conn.close(code, reason);

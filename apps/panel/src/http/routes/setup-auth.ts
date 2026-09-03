@@ -13,7 +13,7 @@ import {
 } from '@mmo/protocol/client';
 
 import type { AppContext } from '../../context.js';
-import { AppError } from '../../errors.js';
+import { AppError, notFound } from '../../errors.js';
 import { SETTING_KEYS } from '../../services/settings.js';
 import { completeSetup as runSetup } from '../../services/setup.js';
 import { toUserDto } from '../../services/users.js';
@@ -144,6 +144,58 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
     clearSessionCookie(ctx, reply);
     if (request.user) ctx.audit.record({ ...auditMeta(request), action: 'auth.logout' });
     return { ok: true };
+  });
+
+  // --- Lot 8 : voir et révoquer ses sessions -------------------------------------------------
+
+  r.get('/api/auth/sessions', {}, (request) => {
+    const user = requireUser(request);
+    return {
+      sessions: ctx.sessions.listOf(user.id).map((s) => ({
+        id: s.id,
+        createdAt: s.createdAt,
+        lastSeenAt: s.lastSeenAt,
+        expiresAt: s.expiresAt,
+        ip: s.ip,
+        userAgent: s.userAgent,
+        current: s.id === request.sessionId,
+      })),
+    };
+  });
+
+  r.delete(
+    '/api/auth/sessions/:id',
+    { schema: { params: z.object({ id: z.coerce.number().int().positive() }) } },
+    (request, reply) => {
+      const user = requireUser(request);
+      const { id } = request.params;
+      // La session d'un autre compte n'existe pas pour moi (même réponse qu'un id inconnu).
+      if (!ctx.sessions.revokeById(user.id, id)) throw notFound('session', String(id));
+      ctx.hub.disconnectSession(id);
+      if (id === request.sessionId) clearSessionCookie(ctx, reply);
+      ctx.audit.record({
+        ...auditMeta(request),
+        action: 'auth.sessionRevoked',
+        targetType: 'session',
+        targetId: String(id),
+        details: { current: id === request.sessionId },
+      });
+      return reply.code(204).send();
+    },
+  );
+
+  /** Tout sauf cet appareil : le geste quand on soupçonne un accès indésirable. */
+  r.delete('/api/auth/sessions', {}, (request) => {
+    const user = requireUser(request);
+    if (request.sessionId === undefined) throw new AppError('E_AUTH', 'authentication required');
+    const revoked = ctx.sessions.revokeOthers(user.id, request.sessionId);
+    for (const id of revoked) ctx.hub.disconnectSession(id);
+    ctx.audit.record({
+      ...auditMeta(request),
+      action: 'auth.sessionsRevoked',
+      details: { count: revoked.length },
+    });
+    return { revoked: revoked.length };
   });
 
   r.get(

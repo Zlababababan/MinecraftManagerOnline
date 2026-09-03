@@ -19,6 +19,14 @@ accounts or create other keys — those need a real sign-in. The card shows when
 key was last used; revoking is immediate. Administrators see and revoke every key from Settings.
 Everything done through a key is audited under both the account and the key.
 
+### Signed-in devices
+
+Your **Account** page now lists every browser signed in to your account — which one, from where,
+last activity, and which one is _this device_ — with a **Sign out** button per device and a
+**Sign out other devices** button for when you suspect someone else has your password. A signed-out
+device loses its live connection immediately. Administrators get **Sign out everywhere** on each
+account in Settings → Users.
+
 ### Share with friends without handing over the whole panel
 
 Until now a role was global: giving a friend one server meant giving them the fleet, stop button

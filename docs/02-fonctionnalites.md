@@ -111,6 +111,8 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 
 > **Ajout (lot 8, 2026-09-03) — clés d'API.** Chaque compte crée ses clés (page Compte : nom, rôle, expiration ; jeton `mmo_…` montré une fois, `Authorization: Bearer`). Le rôle effectif est le plus faible entre la clé et son propriétaire, et une clé d'un compte limité ne voit que ses serveurs : une clé n'élève jamais un compte, et suit sa rétrogradation, sa désactivation, sa suppression. Une clé ne gère ni compte, ni comptes, ni clés (routes réservées au cookie). Dernière utilisation (date, adresse) affichée ; révocation immédiate ; les administrateurs voient et révoquent toutes les clés (Réglages) ; audit `apikey.created/revoked`, et toute action faite par une clé est auditée au nom du compte ET de la clé.
 
+> **Ajout (lot 8, 2026-09-03) — appareils connectés.** La page Compte liste les sessions du compte (navigateur résumé, adresse, dernière activité, « cet appareil ») ; chacune se déconnecte, ou toutes les autres d'un bouton — le geste quand on soupçonne un accès indésirable. La session d'un autre compte n'existe pas (404). Un administrateur peut déconnecter un compte de tous ses appareils (Réglages → Utilisateurs). Audit `auth.sessionRevoked`, `auth.sessionsRevoked`, `user.sessionsRevoked`.
+
 ## 10. Notifications et événements
 
 | Fonctionnalité | Portée |

@@ -19,6 +19,7 @@ import { passwordSchema, type UserDto } from '@mmo/protocol/client';
 import { isLocale } from '@mmo/shared';
 
 import { useUpdateMe } from '../api/queries.js';
+import { SessionsCard } from '../components/account/SessionsCard.js';
 import { ApiKeysCard } from '../components/admin/ApiKeysCard.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import {
@@ -144,6 +145,7 @@ export function AccountPage({ user }: { user: UserDto }) {
           </Stack>
         </form>
       </Card>
+      <SessionsCard />
       <ApiKeysCard />
       <PushCard />
       <NotificationPrefsCard />

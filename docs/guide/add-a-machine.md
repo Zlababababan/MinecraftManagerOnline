@@ -103,3 +103,7 @@ curl -H "Authorization: Bearer mmo_…" https://panel.example.net/api/servers
 ```
 
 What a key can do is bounded twice: by its own role, chosen when it is created, and by your account — the lower of the two wins, and a key of an account limited to some servers only sees those servers. So a key can never do more than you, and if your account is demoted, deactivated or deleted, its keys follow. A key cannot change a password, create an account, or create or revoke keys: those pages need a real sign-in. The **Last used** column (date and address) tells you whether a key is still in use; revoke it from the same card, effect is immediate. Administrators see every key of every account in Settings → API keys, and can revoke any of them. Rejected keys are rate-limited per address, and the audit log names both the account and the key for anything done through it.
+
+## 13. Signed-in devices
+
+Your **Account** page lists every browser signed in to your account: which browser and system, from which address, last activity, and which line is **this device**. **Sign out** ends that browser's session at once — its pages lose their live connection and land on the sign-in screen. **Sign out other devices** keeps only the one you are using: the right move when you suspect someone knows your password, right after changing it. Sessions expire on their own after 30 days without use. An administrator can also sign an account out everywhere from Settings → Users (**Sign out everywhere**), for instance when a friend leaves the server.

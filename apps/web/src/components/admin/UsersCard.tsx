@@ -22,13 +22,14 @@ import {
 import { useForm } from '@mantine/form';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
-import { IconKey, IconTrash, IconUsersGroup } from '@tabler/icons-react';
+import { IconKey, IconLogout, IconTrash, IconUsersGroup } from '@tabler/icons-react';
 import { useState } from 'react';
 
 import type { UserDto } from '@mmo/protocol/client';
 
 import { useCreateUser, useDeleteUser, useUpdateUser, useUsers } from '../../api/admin.js';
 import { useMe } from '../../api/queries.js';
+import { useSignOutUserEverywhere } from '../../api/sessions.js';
 import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
 import { formatDateTime } from '../../lib/format.js';
@@ -60,6 +61,7 @@ function UserRow({
   const accessOptions = useAccessOptions();
   const { t, i18n } = useT();
   const update = useUpdateUser(user.id);
+  const signOut = useSignOutUserEverywhere();
   const remove = useDeleteUser();
   const onError = (error: unknown): void => {
     notifications.show({ color: 'red', message: describeError(i18n, error) });
@@ -174,6 +176,32 @@ function UserRow({
               data-testid={`user-password-${user.username}`}
             >
               {t('web:settings.users.password')}
+            </Button>
+          </Tooltip>
+          <Tooltip label={t('web:settings.users.signOutEverywhere')} withArrow>
+            <Button
+              variant="subtle"
+              size="compact-xs"
+              color="gray"
+              disabled={self}
+              loading={signOut.isPending}
+              onClick={() => {
+                signOut.mutate(user.id, {
+                  onSuccess: () => {
+                    notifications.show({
+                      color: 'teal',
+                      message: t('web:settings.users.signedOutEverywhere', {
+                        username: user.username,
+                      }),
+                    });
+                  },
+                  onError,
+                });
+              }}
+              leftSection={<IconLogout size={14} />}
+              data-testid={`user-signout-${user.username}`}
+            >
+              {t('web:settings.users.signOutEverywhere')}
             </Button>
           </Tooltip>
           <Tooltip label={t('web:common.delete')} withArrow>

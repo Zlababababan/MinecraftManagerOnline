@@ -80,6 +80,6 @@ export function registerWsRoutes(app: FastifyInstance, ctx: AppContext): void {
 
   app.get('/ws/client', { websocket: true }, (socket, request) => {
     const user = requireUser(request);
-    ctx.hub.attach(socket, toUserDto(user));
+    ctx.hub.attach(socket, toUserDto(user), request.sessionId);
   });
 }

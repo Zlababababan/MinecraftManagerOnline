@@ -158,6 +158,19 @@ export const apiKeyCreateSchema = z.object({
 });
 export type ApiKeyCreateInput = z.infer<typeof apiKeyCreateSchema>;
 
+/** Lot 8 : une session cookie de l'utilisateur courant (`GET /api/auth/sessions`). */
+export const sessionDtoSchema = z.object({
+  id: z.number().int(),
+  createdAt: epochMsSchema,
+  lastSeenAt: epochMsSchema.nullable(),
+  expiresAt: epochMsSchema,
+  ip: z.string().nullable(),
+  userAgent: z.string().nullable(),
+  /** La session qui a servi à faire la requête (« cet appareil »). */
+  current: z.boolean(),
+});
+export type SessionDto = z.infer<typeof sessionDtoSchema>;
+
 export const usernameSchema = z
   .string()
   .min(2)

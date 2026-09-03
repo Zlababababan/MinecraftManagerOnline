@@ -103,6 +103,26 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
     },
   );
 
+  /** Lot 8 : déconnecter un compte de tous ses appareils (mot de passe compromis, ami parti). */
+  r.delete(
+    '/api/users/:id/sessions',
+    { config: { role: 'admin' }, schema: { params: idParams } },
+    (request, reply) => {
+      const { id } = request.params;
+      const target = ctx.users.require(id);
+      ctx.sessions.revokeAllForUser(id);
+      ctx.hub.disconnectUser(id);
+      ctx.audit.record({
+        ...auditMeta(request),
+        action: 'user.sessionsRevoked',
+        targetType: 'user',
+        targetId: id,
+        targetLabel: target.username,
+      });
+      return reply.code(204).send();
+    },
+  );
+
   // --- Lot 8 : portées accordées à un compte limité --------------------------------------------
 
   r.get(
