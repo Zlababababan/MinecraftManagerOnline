@@ -27,6 +27,7 @@ import { registerSetupAndAuthRoutes } from './http/routes/setup-auth.js';
 import { registerTaskRoutes } from './http/routes/tasks.js';
 import { registerSecurityHeaders } from './http/security.js';
 import { registerStatic } from './http/static.js';
+import { registerApiKeyRoutes } from './http/routes/api-keys.js';
 import { registerUserRoutes } from './http/routes/users.js';
 import { registerWebhookRoutes } from './http/routes/webhooks.js';
 import { registerWsRoutes } from './http/routes/ws.js';
@@ -96,6 +97,7 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   registerMiscRoutes(app, ctx);
   registerSetupAndAuthRoutes(app, ctx);
   registerUserRoutes(app, ctx);
+  registerApiKeyRoutes(app, ctx);
   registerMachineRoutes(app, ctx);
   registerServerRoutes(app, ctx);
   registerGroupRoutes(app, ctx);

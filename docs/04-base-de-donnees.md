@@ -38,6 +38,24 @@ CREATE TABLE sessions (
 CREATE INDEX idx_sessions_user    ON sessions(user_id);
 CREATE INDEX idx_sessions_expires ON sessions(expires_at);
 
+-- Lot 8 (2026-09-03) : clés d'API — même modèle que sessions (256 bits, seul le sha256 en base).
+-- role = rôle DE LA CLÉ (≤ celui du propriétaire à la création, plafonné à la résolution) ;
+-- prefix = `mmo_` + 8 caractères, pour l'affichage ; expires_at NULL = n'expire jamais ;
+-- révoquer = supprimer la ligne. Pas de CHECK sur role (Zod valide).
+CREATE TABLE api_keys (
+  id           TEXT PRIMARY KEY,                        -- ULID
+  user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name         TEXT NOT NULL,
+  prefix       TEXT NOT NULL,
+  token_hash   TEXT NOT NULL UNIQUE,                    -- sha256 du jeton Bearer
+  role         TEXT NOT NULL,
+  created_at   INTEGER NOT NULL,
+  expires_at   INTEGER,
+  last_used_at INTEGER,
+  last_used_ip TEXT
+);
+CREATE INDEX idx_api_keys_user ON api_keys(user_id);
+
 CREATE TABLE push_subscriptions (
   id              INTEGER PRIMARY KEY,
   user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

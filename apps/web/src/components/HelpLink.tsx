@@ -48,6 +48,11 @@ export const HELP_TOPICS = {
     en: 'installation.md#6-webhooks-discord-and-signed-json',
     fr: 'fr/installation.md#6-webhooks-discord-et-json-signé',
   },
+  /** Lot 8 : clés d'API — rôle, expiration, en-tête Bearer, ce qu'une clé ne peut pas faire. */
+  apiKeys: {
+    en: 'add-a-machine.md#12-api-keys',
+    fr: 'fr/ajouter-une-machine.md#12-clés-dapi',
+  },
 } satisfies Record<string, GuideLinks>;
 
 export type HelpTopic = keyof typeof HELP_TOPICS;

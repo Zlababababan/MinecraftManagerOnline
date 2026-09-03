@@ -109,7 +109,7 @@ export function registerMachineRoutes(app: FastifyInstance, ctx: AppContext): vo
 
   r.get('/api/machines', (request) => {
     // Lot 8 : un compte limité ne voit que les machines accordées ou portant un serveur accordé.
-    const snapshot = ctx.permissions.snapshot(requireUser(request).id);
+    const snapshot = ctx.permissions.snapshotFor(requireUser(request));
     return {
       machines: ctx.machines
         .list()

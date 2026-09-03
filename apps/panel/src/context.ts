@@ -29,6 +29,7 @@ import { ReleasesService } from './services/releases.js';
 import { MachinesService } from './services/machines.js';
 import { MetricsService } from './services/metrics.js';
 import { PanelBackupService } from './services/panel-backup.js';
+import { ApiKeysService } from './services/api-keys.js';
 import { PermissionsService } from './services/permissions.js';
 import { PANEL_VERSION } from './version.js';
 import { ProcessedEventsService } from './services/processed-events.js';
@@ -65,6 +66,8 @@ export interface AppContext {
   events: EventBus;
   users: UsersService;
   sessions: SessionsService;
+  /** Lot 8 : clés d'API (`Authorization: Bearer mmo_…`). */
+  apiKeys: ApiKeysService;
   /** Lot 8 : droits par serveur et par machine (rôle effectif, visibilité, portées accordées). */
   permissions: PermissionsService;
   machines: MachinesService;
@@ -186,6 +189,7 @@ export function createContext(options: ContextOptions): AppContext {
   const events = new EventBus(db, now);
   const users = new UsersService(db, now);
   const sessions = new SessionsService(db, now, config.sessionTtlMs);
+  const apiKeys = new ApiKeysService(db, now);
   const machines = new MachinesService(db, now);
   const java = new JavaResolver({
     manifest: config.mojangManifest,
@@ -510,6 +514,7 @@ export function createContext(options: ContextOptions): AppContext {
     events,
     users,
     sessions,
+    apiKeys,
     permissions,
     machines,
     servers,

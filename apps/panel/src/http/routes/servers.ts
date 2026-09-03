@@ -35,7 +35,7 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
   };
   // Lot 8 : les listes ne montrent à un compte limité que ses portées (les routes `:id` sont
   // gardées par le hook d'auth, celles-ci filtrent).
-  const snapshotOf = (request: FastifyRequest) => ctx.permissions.snapshot(requireUser(request).id);
+  const snapshotOf = (request: FastifyRequest) => ctx.permissions.snapshotFor(requireUser(request));
 
   r.get('/api/servers', (request) => {
     const snapshot = snapshotOf(request);
@@ -226,7 +226,7 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
     { config: { role: 'operator' }, schema: { body: bulkActionSchema } },
     async (request) => {
       const user = requireUser(request);
-      const snapshot = ctx.permissions.snapshot(user.id);
+      const snapshot = ctx.permissions.snapshotFor(user);
       const { action: name, serverIds, continueOnError = false } = request.body;
       const results: BulkActionResult['results'] = [];
       let stopped = false;

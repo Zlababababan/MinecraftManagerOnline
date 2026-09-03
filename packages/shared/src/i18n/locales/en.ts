@@ -205,6 +205,11 @@ export const en = {
       'An administrator sees the whole panel: the account cannot be limited to some servers.',
     E_VALIDATION_GRANT_ABOVE_ROLE:
       'A granted role cannot exceed the role of the account (a viewer stays a viewer everywhere).',
+    /** Lot 8 — API keys. */
+    E_AUTH_INVALID_API_KEY: 'This API key is unknown, expired or revoked.',
+    E_FORBIDDEN_API_KEY: 'This action requires a signed-in session, not an API key.',
+    E_VALIDATION_KEY_ABOVE_ROLE: 'An API key cannot have a higher role than its owner.',
+    E_VALIDATION_TOO_MANY_KEYS: 'Maximum number of API keys reached for this account ({{max}}).',
     E_PUSH_DISABLED: 'Push notifications are not configured on this panel (VAPID keys missing).',
     E_ACCESS_NOT_CONFIGURED:
       'The access layer is not configured (domain, DNS provider or public URL missing).',

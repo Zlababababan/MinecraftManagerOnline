@@ -122,6 +122,7 @@ export function runMaintenance(
   const purged: Record<string, number> = {};
 
   purged.sessions = ctx.sessions.purgeExpired();
+  purged.api_keys = ctx.apiKeys.purgeExpired();
   purged.pairing_codes = ctx.machines.purgeExpiredPairingCodes();
   purged.processed_events = ctx.processed.purgeOlderThan(t - PROCESSED_EVENTS_RETENTION_MS);
   purged.events = ctx.events.purgeOlderThan(t - days(SETTING_KEYS.eventsRetentionDays));

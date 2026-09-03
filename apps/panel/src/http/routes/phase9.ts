@@ -67,7 +67,7 @@ export function registerPhase9Routes(app: FastifyInstance, ctx: AppContext): voi
   r.get('/api/migrations/:id', { schema: { params: idParams } }, (request) => {
     const row = ctx.migrations.require(request.params.id);
     // Lot 8 : visible si le serveur migré ou sa copie (duplication) l'est.
-    const snapshot = ctx.permissions.snapshot(requireUser(request).id);
+    const snapshot = ctx.permissions.snapshotFor(requireUser(request));
     const visible =
       ctx.permissions.visibleRef(snapshot, { serverId: row.serverId }) ||
       (row.targetServerId !== null &&

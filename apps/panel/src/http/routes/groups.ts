@@ -63,7 +63,7 @@ export function registerGroupRoutes(app: FastifyInstance, ctx: AppContext): void
       const user = requireUser(request);
       const group = ctx.groups.require(request.params.id);
       // Lot 8 : l'action touche chaque serveur du groupe — il faut être opérateur sur chacun.
-      const snapshot = ctx.permissions.snapshot(user.id);
+      const snapshot = ctx.permissions.snapshotFor(user);
       const members = ctx.servers.listByGroup(group.id);
       if (
         !members.every((s) =>

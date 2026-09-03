@@ -24,7 +24,11 @@ import { clearSessionCookie, requireUser, setSessionCookie } from '../auth.js';
 export function auditMeta(request: FastifyRequest) {
   return {
     userId: request.user?.id,
-    username: request.user?.username,
+    // Par une clé d'API : le compte ET la clé (son préfixe), pour que le journal dise qui a agi.
+    username:
+      request.apiKey === undefined
+        ? request.user?.username
+        : `${request.user?.username ?? '?'} [${request.apiKey.prefix}…]`,
     ip: request.ip,
   };
 }

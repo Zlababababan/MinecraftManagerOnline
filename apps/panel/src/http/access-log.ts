@@ -61,6 +61,7 @@ export function registerAccessLog(app: FastifyInstance, options: AccessLogOption
         status,
         durationMs,
         ...(request.user === undefined ? {} : { user: request.user.username }),
+        ...(request.apiKey === undefined ? {} : { apiKey: request.apiKey.prefix }),
         ip: request.ip,
       },
       'request',

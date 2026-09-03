@@ -8,6 +8,17 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### API keys
+
+A script, a home-automation box or a monitoring tool can now call the panel without your password.
+Your **Account** page gains an **API keys** card: name, role, expiry, and a `mmo_…` key shown once,
+to send as `Authorization: Bearer`. A key can never do more than you: its role is the lower of its
+own and yours, a key of an account limited to some servers only sees those servers, and it follows
+your account when it is demoted, deactivated or deleted. Keys cannot change passwords, manage
+accounts or create other keys — those need a real sign-in. The card shows when and from where each
+key was last used; revoking is immediate. Administrators see and revoke every key from Settings.
+Everything done through a key is audited under both the account and the key.
+
 ### Share with friends without handing over the whole panel
 
 Until now a role was global: giving a friend one server meant giving them the fleet, stop button

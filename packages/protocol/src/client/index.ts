@@ -129,6 +129,35 @@ export const userGrantsInputSchema = z.object({
 });
 export type UserGrantsInput = z.infer<typeof userGrantsInputSchema>;
 
+// --- Lot 8 : clés d'API -------------------------------------------------------------------------------
+
+/** Préfixe de tout jeton (`Authorization: Bearer mmo_…`) ; les 8 caractères suivants restent visibles. */
+export const API_KEY_PREFIX = 'mmo_';
+export const MAX_API_KEYS_PER_USER = 32;
+export const API_KEY_MAX_DAYS = 3650;
+export const apiKeyDtoSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  username: z.string(),
+  name: z.string(),
+  /** `mmo_` + 8 caractères : ce qui identifie la clé à l'écran — le jeton n'est jamais renvoyé. */
+  prefix: z.string(),
+  /** Rôle DE LA CLÉ ; le rôle effectif est le plus faible entre lui et celui du propriétaire. */
+  role: roleSchema,
+  createdAt: epochMsSchema,
+  /** `null` = n'expire jamais. */
+  expiresAt: epochMsSchema.nullable(),
+  lastUsedAt: epochMsSchema.nullable(),
+  lastUsedIp: z.string().nullable(),
+});
+export type ApiKeyDto = z.infer<typeof apiKeyDtoSchema>;
+export const apiKeyCreateSchema = z.object({
+  name: z.string().trim().min(1).max(64),
+  role: roleSchema.optional(),
+  expiresInDays: z.number().int().min(1).max(API_KEY_MAX_DAYS).optional(),
+});
+export type ApiKeyCreateInput = z.infer<typeof apiKeyCreateSchema>;
+
 export const usernameSchema = z
   .string()
   .min(2)

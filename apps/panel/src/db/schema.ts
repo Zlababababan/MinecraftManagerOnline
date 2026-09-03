@@ -813,7 +813,35 @@ export const userMachinePermissions = sqliteTable(
   ],
 );
 
+/**
+ * Clés d'API (lot 8, doc 04 §1) : même modèle que `sessions` — 256 bits aléatoires, seul le SHA-256
+ * du jeton est conservé, `prefix` (les premiers caractères) sert à reconnaître la clé à l'écran.
+ * `role` est le rôle DE LA CLÉ, jamais au-dessus de celui du propriétaire au moment de la création
+ * et redescendu à la résolution si le propriétaire a été rétrogradé depuis : une clé ne peut jamais
+ * élever un compte. Une clé d'un compte limité hérite de ses portées. Révoquer = supprimer la ligne.
+ */
+export const apiKeys = sqliteTable(
+  'api_keys',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    prefix: text('prefix').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    role: text('role', { enum: ['admin', 'operator', 'viewer'] }).notNull(),
+    createdAt: integer('created_at').notNull(),
+    /** `null` = n'expire jamais. */
+    expiresAt: integer('expires_at'),
+    lastUsedAt: integer('last_used_at'),
+    lastUsedIp: text('last_used_ip'),
+  },
+  (t) => [index('idx_api_keys_user').on(t.userId)],
+);
+
 export type UserRow = typeof users.$inferSelect;
+export type ApiKeyRow = typeof apiKeys.$inferSelect;
 export type MachineRow = typeof machines.$inferSelect;
 export type ServerRow = typeof servers.$inferSelect;
 export type WatchedDirectoryRow = typeof watchedDirectories.$inferSelect;

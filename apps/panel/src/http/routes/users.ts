@@ -56,7 +56,11 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
       }
       const user = await ctx.users.update(id, body);
       // Rôle abaissé : les portées accordées au-dessus redescendent avec lui.
-      if (body.role !== undefined) ctx.permissions.clampToRole(id, body.role);
+      if (body.role !== undefined) {
+        ctx.permissions.clampToRole(id, body.role);
+        // Ses clés d'API aussi : une clé ne garde jamais un rôle que son propriétaire n'a plus.
+        ctx.apiKeys.clampToRole(id, body.role);
+      }
       if (
         body.isActive === false ||
         body.password !== undefined ||

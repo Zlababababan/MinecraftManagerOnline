@@ -93,3 +93,13 @@ Un ami qui héberge une des machines, ou qui ne joue que sur un serveur, n'a pas
 Tout le reste n'existe pas pour ce compte : ni dans les listes, ni dans le temps réel, ni dans la console, ni dans les notifications, et un lien direct vers un autre serveur répond « introuvable » plutôt qu'« interdit ». Changer le réglage d'accès déconnecte le compte (comme un changement de rôle) ; changer les serveurs accordés recharge seulement ses pages ouvertes. Les administrateurs voient toujours tout et ne peuvent pas être limités.
 
 Une action de groupe s'exécute sur chaque serveur du groupe : un compte limité ne peut la lancer que s'il est opérateur sur chacun de ses membres.
+
+## 12. Clés d'API
+
+Un script, une box domotique ou un outil de supervision peuvent appeler l'API du panel sans votre mot de passe. Sur votre page **Compte**, la carte **Clés d'API** crée une clé avec un nom, un **rôle** et une **expiration** ; la clé est affichée **une seule fois** et s'envoie avec chaque requête :
+
+```
+curl -H "Authorization: Bearer mmo_…" https://panel.example.net/api/servers
+```
+
+Ce qu'une clé peut faire est borné deux fois : par son propre rôle, choisi à la création, et par votre compte — le plus faible des deux l'emporte, et une clé d'un compte limité à certains serveurs ne voit que ces serveurs. Une clé ne peut donc jamais faire plus que vous, et si votre compte est rétrogradé, désactivé ou supprimé, ses clés suivent. Une clé ne change pas un mot de passe, ne crée pas de compte, ne crée ni ne révoque de clé : ces pages exigent une vraie connexion. La colonne **Dernière utilisation** (date et adresse) dit si une clé sert encore ; révoquez-la depuis la même carte, l'effet est immédiat. Les administrateurs voient toutes les clés de tous les comptes dans Réglages → Clés d'API, et peuvent révoquer n'importe laquelle. Les clés refusées sont limitées par adresse, et le journal d'audit nomme le compte ET la clé pour tout ce qui est fait par elle.

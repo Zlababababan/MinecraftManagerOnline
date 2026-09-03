@@ -77,7 +77,7 @@ export function registerMiscRoutes(app: FastifyInstance, ctx: AppContext): void 
   });
 
   r.get('/api/events', { schema: { querystring: eventsQuerySchema } }, (request) => {
-    const snapshot = ctx.permissions.snapshot(requireUser(request).id);
+    const snapshot = ctx.permissions.snapshotFor(requireUser(request));
     if (!snapshot.scoped) return { events: ctx.events.list(request.query) };
     // Lot 8 : un compte limité ne lit que les événements de ses portées — ni ceux du panel, ni
     // ceux des autres serveurs. Lecture élargie puis filtrée, comme le centre de notifications.

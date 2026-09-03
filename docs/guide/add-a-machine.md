@@ -93,3 +93,13 @@ A friend who hosts one of the machines, or who only plays on one server, should 
 Everything else does not exist for that account: not in the lists, not in the live updates, not in the console, not in the notifications, and a direct link to another server answers "not found" rather than "forbidden". Changing the access setting signs the account out (like a role change); changing the granted servers only reloads its open pages. Administrators always see everything and cannot be limited.
 
 Group actions run on every server of the group, so a limited account can only launch a group when it is operator on each of its members.
+
+## 12. API keys
+
+A script, a home-automation box or a monitoring tool can call the panel API without your password. On your **Account** page, the **API keys** card creates a key with a name, a **role** and an **expiry**; the key is shown **once** and must be sent with every request:
+
+```
+curl -H "Authorization: Bearer mmo_…" https://panel.example.net/api/servers
+```
+
+What a key can do is bounded twice: by its own role, chosen when it is created, and by your account — the lower of the two wins, and a key of an account limited to some servers only sees those servers. So a key can never do more than you, and if your account is demoted, deactivated or deleted, its keys follow. A key cannot change a password, create an account, or create or revoke keys: those pages need a real sign-in. The **Last used** column (date and address) tells you whether a key is still in use; revoke it from the same card, effect is immediate. Administrators see every key of every account in Settings → API keys, and can revoke any of them. Rejected keys are rate-limited per address, and the audit log names both the account and the key for anything done through it.

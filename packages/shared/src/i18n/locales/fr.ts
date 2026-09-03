@@ -233,6 +233,12 @@ export const fr = {
     E_VALIDATION_GRANT_ABOVE_ROLE:
       'Un rôle accordé ne peut pas dépasser le rôle du compte (un lecteur reste lecteur partout).',
     E_NO_RELEASE: 'Aucune release d’agent publiée sur ce panel.',
+    /** Lot 8 — clés d'API. */
+    E_AUTH_INVALID_API_KEY: 'Cette clé d’API est inconnue, expirée ou révoquée.',
+    E_FORBIDDEN_API_KEY: 'Cette action exige une session ouverte, pas une clé d’API.',
+    E_VALIDATION_KEY_ABOVE_ROLE:
+      'Une clé d’API ne peut pas avoir un rôle supérieur à celui de son propriétaire.',
+    E_VALIDATION_TOO_MANY_KEYS: 'Nombre maximal de clés d’API atteint pour ce compte ({{max}}).',
     E_PUSH_DISABLED:
       'Les notifications push ne sont pas configurées sur ce panel (clés VAPID absentes).',
     E_ACCESS_NOT_CONFIGURED:

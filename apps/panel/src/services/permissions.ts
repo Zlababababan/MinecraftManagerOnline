@@ -126,6 +126,19 @@ export class PermissionsService {
     return built;
   }
 
+  /**
+   * Vue plafonnée au rôle porté par la requête : identique à `snapshot` pour une session ; par une
+   * clé d'API, `user.role` est le plus faible des deux rôles et les portées accordées redescendent
+   * avec lui (une clé `viewer` d'un opérateur limité ne fait que lire ses serveurs).
+   */
+  snapshotFor(user: { id: string; role: Role }): AccessSnapshot {
+    const base = this.snapshot(user.id);
+    if (base.userId === '' || hasRole(user.role, base.role)) return base;
+    const cap = (m: ReadonlyMap<string, GrantRole>): ReadonlyMap<string, GrantRole> =>
+      new Map([...m].map(([id, r]) => [id, capped(user.role, r)]));
+    return { ...base, role: user.role, servers: cap(base.servers), machines: cap(base.machines) };
+  }
+
   /** À appeler après tout changement de rôle, de `scoped` ou de portées ; `undefined` = tous. */
   invalidate(userId?: string): void {
     if (userId === undefined) this.cache.clear();

@@ -69,7 +69,7 @@ export function registerTaskRoutes(app: FastifyInstance, ctx: AppContext): void 
   // Lot 8 : une task appartient à la portée de son serveur (ou de sa machine, pour Java et les
   // mises à jour d'agent) — un compte limité ne voit que celles-là, et n'en annule que là où il
   // est opérateur. Une task hors portée n'existe pas pour lui (404).
-  const snapshotOf = (request: FastifyRequest) => ctx.permissions.snapshot(requireUser(request).id);
+  const snapshotOf = (request: FastifyRequest) => ctx.permissions.snapshotFor(requireUser(request));
   const requireVisibleTask = (request: FastifyRequest, id: string) => {
     const task = ctx.tasks.require(id);
     if (!ctx.permissions.visibleRef(snapshotOf(request), task)) throw notFound('task', id);

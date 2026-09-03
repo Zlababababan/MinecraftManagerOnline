@@ -25,6 +25,7 @@ import { describeTimeZone, localTimeZone } from '@mmo/shared';
 
 import { usePushStatus, useSettings, useUpdateSettings } from '../api/phase10.js';
 import { AccessCard } from '../components/admin/AccessCard.js';
+import { ApiKeysCard } from '../components/admin/ApiKeysCard.js';
 import { AuditCard } from '../components/admin/AuditCard.js';
 import { DistributionCard } from '../components/admin/DistributionCard.js';
 import { PanelBackupsCard } from '../components/admin/PanelBackupsCard.js';
@@ -343,6 +344,7 @@ export function SettingsPage() {
       {settings.data !== undefined && <GeneralCard settings={settings.data.settings} />}
       {settings.data !== undefined && <PrivacyCard settings={settings.data.settings} />}
       <UsersCard />
+      <ApiKeysCard all />
       <AccessCard />
       <DistributionCard />
       <PanelBackupsCard />

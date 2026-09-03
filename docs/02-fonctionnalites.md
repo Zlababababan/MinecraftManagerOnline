@@ -109,6 +109,8 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 
 > **Ajout (lot 8, 2026-09-03) — droits par serveur.** Un compte peut être **limité** (« Accès : serveurs choisis ») : il ne voit que les serveurs et machines qui lui sont accordés, chacun avec un rôle (lecture ou opérateur) plafonné par le rôle du compte ; une machine accordée couvre tous ses serveurs, présents et futurs ; un serveur accordé rend la page de sa machine lisible. Tout le reste lui est invisible — listes, temps réel, console, notifications, événements — et un serveur hors portée répond « introuvable », pas « interdit ». Un administrateur n'est jamais limité.
 
+> **Ajout (lot 8, 2026-09-03) — clés d'API.** Chaque compte crée ses clés (page Compte : nom, rôle, expiration ; jeton `mmo_…` montré une fois, `Authorization: Bearer`). Le rôle effectif est le plus faible entre la clé et son propriétaire, et une clé d'un compte limité ne voit que ses serveurs : une clé n'élève jamais un compte, et suit sa rétrogradation, sa désactivation, sa suppression. Une clé ne gère ni compte, ni comptes, ni clés (routes réservées au cookie). Dernière utilisation (date, adresse) affichée ; révocation immédiate ; les administrateurs voient et révoquent toutes les clés (Réglages) ; audit `apikey.created/revoked`, et toute action faite par une clé est auditée au nom du compte ET de la clé.
+
 ## 10. Notifications et événements
 
 | Fonctionnalité | Portée |
