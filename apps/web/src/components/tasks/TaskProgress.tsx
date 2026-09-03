@@ -23,7 +23,7 @@ import { useMe } from '../../api/queries.js';
 import { useT } from '../../i18n/hooks.js';
 import { tDynamic } from '../../i18n/index.js';
 import { describeError } from '../../lib/errors.js';
-import { hasRole } from '../../lib/format.js';
+import { canTask } from '../../lib/permissions.js';
 import { RouterAnchor } from '../links.js';
 
 export const ACTIVE_TASK_STATUSES: ReadonlySet<TaskDto['status']> = new Set([
@@ -77,8 +77,7 @@ export function TaskProgressRow({ task, compact = false }: { task: TaskDto; comp
   const kindLabel = useTaskKindLabel();
   const phaseLabel = useTaskPhaseLabel();
   const active = isActiveTask(task);
-  const canCancel =
-    active && me.data !== undefined && hasRole(me.data.user.role, 'operator') && !cancel.isPending;
+  const canCancel = active && canTask(me.data, task, 'operator') && !cancel.isPending;
   const pct = Math.max(0, Math.min(100, task.progress ?? 0));
   return (
     <Stack gap={4} data-testid={`task-${task.id}`} data-status={task.status}>

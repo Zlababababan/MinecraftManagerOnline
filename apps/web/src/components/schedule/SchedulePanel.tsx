@@ -30,7 +30,8 @@ import { useScheduleMutations, useSchedules } from '../../api/phase8.js';
 import { useMe } from '../../api/queries.js';
 import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
-import { formatDateTime, hasRole } from '../../lib/format.js';
+import { formatDateTime } from '../../lib/format.js';
+import { canServer } from '../../lib/permissions.js';
 import { ErrorAlert } from '../ErrorAlert.js';
 import {
   ScheduleInput,
@@ -58,7 +59,7 @@ export function SchedulePanel({ server }: { server: ServerDto }) {
   const q = useSchedules(server.id);
   const m = useScheduleMutations(server.id);
   const [editing, setEditing] = useState<ScheduledTaskDto | 'new' | undefined>(undefined);
-  const canAct = me.data !== undefined && hasRole(me.data.user.role, 'operator');
+  const canAct = canServer(me.data, server, 'operator');
   const fail = (error: unknown) => {
     notifications.show({ color: 'red', message: describeError(i18n, error) });
   };

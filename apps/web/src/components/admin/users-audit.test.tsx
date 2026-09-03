@@ -26,6 +26,7 @@ const admin: UserDto = {
   isActive: true,
   createdAt: 0,
   lastLoginAt: 1_787_330_000_000,
+  scoped: false,
 };
 const viewer: UserDto = {
   id: 'u2',
@@ -36,6 +37,7 @@ const viewer: UserDto = {
   isActive: true,
   createdAt: 0,
   lastLoginAt: null,
+  scoped: false,
 };
 
 const entry: AuditDto = {
@@ -83,6 +85,36 @@ function installFetch(calls: Call[], users: UserDto[]): void {
       }
       if (path.startsWith('/api/users/') && method === 'PATCH') {
         return json(200, { user: { ...viewer, ...(body as object) } });
+      }
+      // Lot 8 : portées d'un compte limité.
+      if (path.endsWith('/grants') && method === 'GET') {
+        return json(200, {
+          grants: {
+            servers: [
+              { serverId: 's-b', role: 'viewer' },
+              { serverId: 's-c', role: 'viewer' },
+            ],
+            machines: [],
+          },
+        });
+      }
+      if (path.endsWith('/grants') && method === 'PUT') return json(200, { grants: body });
+      if (path === '/api/machines') {
+        return json(200, {
+          machines: [
+            { id: 'm1', name: 'PC', status: 'online' },
+            { id: 'm2', name: 'VM', status: 'online' },
+          ],
+        });
+      }
+      if (path === '/api/servers') {
+        return json(200, {
+          servers: [
+            { id: 's-a', name: 'Survie', machineId: 'm1' },
+            { id: 's-b', name: 'Créatif', machineId: 'm1' },
+            { id: 's-c', name: 'Modpack', machineId: 'm2' },
+          ],
+        });
       }
       if (path.startsWith('/api/audit')) return json(200, { audit: [entry] });
       return json(404, { code: 'E_NOT_FOUND', message: path });
@@ -133,9 +165,51 @@ describe('réglages — utilisateurs et audit', () => {
         username: 'operateur',
         password: 'correct horse battery',
         role: 'viewer',
+        scoped: false,
       });
     });
     expect(await screen.findByTestId('user-operateur')).toBeInTheDocument();
+  });
+
+  it('lot 8 — accès « serveurs choisis » : PATCH scoped, puis la modale des portées enregistre machines et serveurs', async () => {
+    const user = userEvent.setup();
+    const scoped: UserDto = { ...viewer, id: 'u4', username: 'ami', scoped: true };
+    installFetch(calls, [admin, viewer, scoped]);
+    renderWith(<UsersCard />);
+    await screen.findByTestId('user-ami');
+    // Un administrateur voit tout : son accès ne se règle pas ; un lecteur, si.
+    expect(screen.getByTestId('user-access-admin')).toBeDisabled();
+    expect(screen.getByTestId('user-access-lecteur')).toBeEnabled();
+    expect(screen.queryByTestId('user-grants-lecteur')).toBeNull();
+    expect(screen.getByTestId('user-grants-ami')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('user-grants-ami'));
+    const modal = await screen.findByTestId('grants-modal');
+    // Portées reçues : s-b coché, tout le reste libre.
+    await waitFor(() => {
+      expect(within(modal).getByTestId('grant-server-s-b')).toBeChecked();
+    });
+    expect(within(modal).getByTestId('grant-server-s-a')).not.toBeChecked();
+    // Accorder la machine m2 : son serveur s-c (accordé seul jusque-là) passe « couvert par la
+    // machine » et perd sa ligne propre à l'enregistrement.
+    expect(within(modal).getByTestId('grant-server-s-c')).toBeChecked();
+    expect(within(modal).getByTestId('grant-server-s-c')).toBeEnabled();
+    await user.click(within(modal).getByTestId('grant-machine-m2'));
+    expect(within(modal).getByTestId('grant-server-s-c')).toBeChecked();
+    expect(within(modal).getByTestId('grant-server-s-c')).toBeDisabled();
+    await user.click(within(modal).getByTestId('grant-server-s-a'));
+    await user.click(within(modal).getByTestId('grants-save'));
+    await waitFor(() => {
+      expect(calls.find((c) => c.method === 'PUT')?.path).toBe('/api/users/u4/grants');
+    });
+    // Un lecteur n'a que « lecture » à accorder ; s-c n'a pas de ligne propre (couvert).
+    expect(calls.find((c) => c.method === 'PUT')?.body).toEqual({
+      machines: [{ machineId: 'm2', role: 'viewer' }],
+      servers: [
+        { serverId: 's-b', role: 'viewer' },
+        { serverId: 's-a', role: 'viewer' },
+      ],
+    });
   });
 
   it('désactivation d’un compte : PATCH sur le compte visé', async () => {

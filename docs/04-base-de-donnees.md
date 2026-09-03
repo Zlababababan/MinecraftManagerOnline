@@ -58,7 +58,29 @@ CREATE TABLE notification_prefs (
 );
 ```
 
-Extension future sans refonte : `user_server_permissions(user_id, server_id, role)` pour des droits par serveur.
+> **Amendement (lot 8, 2026-09-03) — droits par serveur et par machine** (migration `0016_user_permissions`, ADD COLUMN + deux CREATE purs). `users` gagne `scoped INTEGER NOT NULL DEFAULT 0` : à 1, le compte ne voit que ses portées accordées ; jamais 1 pour un `admin` (refusé à l'écriture, `E_VALIDATION ADMIN_SCOPED`). Le rôle du compte reste le plafond des rôles accordés et vaut tel quel hors de toute portée.
+>
+> ```sql
+> CREATE TABLE user_server_permissions (
+>   user_id    TEXT NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
+>   server_id  TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+>   role       TEXT NOT NULL,                       -- 'viewer' | 'operator' (Zod valide, pas de CHECK)
+>   created_at INTEGER NOT NULL,
+>   PRIMARY KEY (user_id, server_id)
+> );
+> CREATE INDEX idx_user_server_permissions_server ON user_server_permissions(server_id);
+>
+> CREATE TABLE user_machine_permissions (             -- une machine accordée couvre tous ses serveurs, présents et futurs
+>   user_id    TEXT NOT NULL REFERENCES users(id)    ON DELETE CASCADE,
+>   machine_id TEXT NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
+>   role       TEXT NOT NULL,
+>   created_at INTEGER NOT NULL,
+>   PRIMARY KEY (user_id, machine_id)
+> );
+> CREATE INDEX idx_user_machine_permissions_machine ON user_machine_permissions(machine_id);
+> ```
+>
+> Un serveur ou une machine supprimés emportent leurs lignes (cascade) ; un rôle de compte abaissé à `viewer` redescend les lignes `operator` du compte. Le rôle effectif est calculé par `services/permissions.ts` (vue en cache par utilisateur, invalidée à chaque écriture de compte ou de portée) — voir doc 03 §6.
 
 > **Amendement (2026-08-31) — catégories élargies et préférence par CANAL.** Le catalogue passe de 13 à 21 catégories : la moitié des événements du bus n'avait aucune case, donc ne pouvait ni notifier ni se régler (`agent.problem` = WARN/ERROR d'un agent, `machine.paired`, `server.discovered`, `server.lifecycle`, `task.done`, `schedule.done`, `player.action`), et `resources` mélangeait disque et TPS (séparés en `resource.disk` / `resource.tps`, migration de données `0007_notification_categories` — un « non » déjà exprimé ne doit pas se rallumer tout seul). Nouvelle table `notification_channel_prefs (user_id, channel, event_type, enabled)`, PK composite, migration `0008_notification_channels` : `channel ∈ inapp | push`. **Chaîne de repli** : ligne du canal → ligne `notification_prefs` (ancien réglage commun, conservé en lecture seule) → `NOTIFICATION_DEFAULTS`. Aucune préférence n'est perdue et aucune reprise n'est nécessaire. Motif : couper une catégorie la retirait AUSSI de la cloche in-app — suivre les arrivées de joueurs dans le panel imposait de se faire réveiller par le téléphone. Pas de `CHECK` sur `channel` (une contrainte ajoutée ferait recréer la table) : la validation vit dans Zod, et une valeur inconnue est ignorée à la lecture.
 

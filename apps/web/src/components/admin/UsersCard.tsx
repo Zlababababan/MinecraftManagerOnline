@@ -1,6 +1,7 @@
 /**
- * Réglages → Utilisateurs (admin) : liste des comptes (rôle, actif, dernière connexion), création,
- * changement de rôle, activation/désactivation, réinitialisation du mot de passe, suppression.
+ * Réglages → Utilisateurs (admin) : liste des comptes (rôle, accès, actif, dernière connexion),
+ * création, changement de rôle, activation/désactivation, réinitialisation du mot de passe,
+ * suppression. Lot 8 : « Accès » = tout le panel ou serveurs choisis (portées dans `GrantsModal`).
  * Garde-fous serveur relayés : impossible de rétrograder/désactiver/supprimer son propre compte.
  */
 import {
@@ -21,7 +22,7 @@ import {
 import { useForm } from '@mantine/form';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
-import { IconKey, IconTrash } from '@tabler/icons-react';
+import { IconKey, IconTrash, IconUsersGroup } from '@tabler/icons-react';
 import { useState } from 'react';
 
 import type { UserDto } from '@mmo/protocol/client';
@@ -32,18 +33,31 @@ import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
 import { formatDateTime } from '../../lib/format.js';
 import { ErrorAlert } from '../ErrorAlert.js';
+import { GrantsModal } from './GrantsModal.js';
 
 const ROLES = ['admin', 'operator', 'viewer'] as const;
+type Access = 'all' | 'scoped';
+
+function useAccessOptions(): { value: Access; label: string }[] {
+  const { t } = useT();
+  return [
+    { value: 'all', label: t('web:settings.users.accessAll') },
+    { value: 'scoped', label: t('web:settings.users.accessScoped') },
+  ];
+}
 
 function UserRow({
   user,
   self,
   onResetPassword,
+  onGrants,
 }: {
   user: UserDto;
   self: boolean;
   onResetPassword: () => void;
+  onGrants: () => void;
 }) {
+  const accessOptions = useAccessOptions();
   const { t, i18n } = useT();
   const update = useUpdateUser(user.id);
   const remove = useDeleteUser();
@@ -75,7 +89,12 @@ function UserRow({
       <Table.Td>
         <Select
           size="xs"
-          data={ROLES.map((r) => ({ value: r, label: t(`web:role.${r}`) }))}
+          // Un compte limité ne peut pas devenir administrateur (le panel le refuserait) : le choix
+          // n'est pas offert tant que l'accès n'est pas revenu à « tout le panel ».
+          data={ROLES.filter((r) => !(user.scoped && r === 'admin')).map((r) => ({
+            value: r,
+            label: t(`web:role.${r}`),
+          }))}
           value={user.role}
           onChange={(role) => {
             if (role !== null && role !== user.role) {
@@ -92,6 +111,37 @@ function UserRow({
           aria-label={`${t('web:settings.users.role')} — ${user.username}`}
           data-testid={`user-role-${user.username}`}
         />
+      </Table.Td>
+      <Table.Td>
+        <Group gap={4} wrap="nowrap">
+          <Select
+            size="xs"
+            data={accessOptions}
+            value={user.scoped ? 'scoped' : 'all'}
+            onChange={(access) => {
+              if (access !== null && (access === 'scoped') !== user.scoped) {
+                update.mutate({ scoped: access === 'scoped' }, { onError });
+              }
+            }}
+            // Un administrateur voit tout : l'accès ne se règle pas.
+            disabled={self || user.role === 'admin'}
+            allowDeselect={false}
+            w={150}
+            aria-label={`${t('web:settings.users.access')} — ${user.username}`}
+            data-testid={`user-access-${user.username}`}
+          />
+          {user.scoped && (
+            <Button
+              variant="light"
+              size="compact-xs"
+              onClick={onGrants}
+              leftSection={<IconUsersGroup size={14} />}
+              data-testid={`user-grants-${user.username}`}
+            >
+              {t('web:settings.users.grants')}
+            </Button>
+          )}
+        </Group>
       </Table.Td>
       <Table.Td>
         <Switch
@@ -204,9 +254,16 @@ export function UsersCard() {
   const me = useMe();
   const users = useUsers();
   const create = useCreateUser();
+  const accessOptions = useAccessOptions();
   const [passwordFor, setPasswordFor] = useState<UserDto | null>(null);
-  const form = useForm<{ username: string; password: string; role: UserDto['role'] }>({
-    initialValues: { username: '', password: '', role: 'viewer' },
+  const [grantsFor, setGrantsFor] = useState<UserDto | null>(null);
+  const form = useForm<{
+    username: string;
+    password: string;
+    role: UserDto['role'];
+    access: Access;
+  }>({
+    initialValues: { username: '', password: '', role: 'viewer', access: 'all' },
   });
   return (
     <Card withBorder radius="md" padding="md" data-testid="settings-users">
@@ -225,6 +282,7 @@ export function UsersCard() {
                 <Table.Tr>
                   <Table.Th>{t('web:settings.users.username')}</Table.Th>
                   <Table.Th>{t('web:settings.users.role')}</Table.Th>
+                  <Table.Th>{t('web:settings.users.access')}</Table.Th>
                   <Table.Th>{t('web:settings.users.active')}</Table.Th>
                   <Table.Th visibleFrom="sm">{t('web:settings.users.lastLogin')}</Table.Th>
                   <Table.Th />
@@ -239,6 +297,9 @@ export function UsersCard() {
                     onResetPassword={() => {
                       setPasswordFor(user);
                     }}
+                    onGrants={() => {
+                      setGrantsFor(user);
+                    }}
                   />
                 ))}
               </Table.Tbody>
@@ -247,15 +308,18 @@ export function UsersCard() {
         )}
         <form
           onSubmit={form.onSubmit((v) => {
+            const scoped = v.role !== 'admin' && v.access === 'scoped';
             create.mutate(
-              { username: v.username.trim(), password: v.password, role: v.role },
+              { username: v.username.trim(), password: v.password, role: v.role, scoped },
               {
-                onSuccess: () => {
+                onSuccess: (data) => {
                   notifications.show({
                     color: 'teal',
                     message: t('web:settings.users.created', { username: v.username.trim() }),
                   });
                   form.reset();
+                  // Un compte limité ne voit rien tant qu'on ne lui a rien accordé : enchaîner.
+                  if (data.user.scoped) setGrantsFor(data.user);
                 },
                 onError: (error) => {
                   notifications.show({ color: 'red', message: describeError(i18n, error) });
@@ -289,6 +353,15 @@ export function UsersCard() {
               w={170}
               data-testid="user-create-role"
             />
+            <Select
+              label={t('web:settings.users.access')}
+              data={accessOptions}
+              allowDeselect={false}
+              {...form.getInputProps('access')}
+              disabled={form.values.role === 'admin'}
+              w={170}
+              data-testid="user-create-access"
+            />
             <Button
               type="submit"
               disabled={form.values.username.trim() === '' || form.values.password.length < 8}
@@ -308,6 +381,14 @@ export function UsersCard() {
           user={passwordFor}
           onClose={() => {
             setPasswordFor(null);
+          }}
+        />
+      )}
+      {grantsFor !== null && (
+        <GrantsModal
+          user={grantsFor}
+          onClose={() => {
+            setGrantsFor(null);
           }}
         />
       )}

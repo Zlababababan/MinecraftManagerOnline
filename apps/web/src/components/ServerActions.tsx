@@ -10,7 +10,7 @@ import type { ServerDto } from '@mmo/protocol/client';
 
 import { useMe, useServerAction, type ServerAction } from '../api/queries.js';
 import { describeError } from '../lib/errors.js';
-import { hasRole } from '../lib/format.js';
+import { canServer } from '../lib/permissions.js';
 
 export function ServerActions({
   server,
@@ -24,7 +24,7 @@ export function ServerActions({
   const { t, i18n } = useT();
   const me = useMe();
   const action = useServerAction(server.id);
-  const canOperate = me.data !== undefined && hasRole(me.data.user.role, 'operator');
+  const canOperate = canServer(me.data, server, 'operator');
   const busy = action.isPending;
   const reachable = server.reachable && server.provisioning === 'ready';
   const state = server.runState;

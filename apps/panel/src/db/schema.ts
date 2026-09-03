@@ -39,6 +39,12 @@ export const users = sqliteTable(
     lastLoginAt: integer('last_login_at'),
     /** Phase 10 : curseur « vu » du centre de notifications (id d'événement). */
     notificationsSeenId: integer('notifications_seen_id').notNull().default(0),
+    /**
+     * Lot 8 : 1 = l'utilisateur ne voit que les serveurs et machines qui lui sont accordés
+     * (`user_server_permissions`, `user_machine_permissions`) ; 0 = son rôle vaut sur tout le parc.
+     * Jamais 1 pour un administrateur.
+     */
+    scoped: integer('scoped').notNull().default(0),
   },
   (t) => [
     check('users_role', sql`${t.role} IN ('admin','operator','viewer')`),
@@ -758,6 +764,53 @@ export const processedEvents = sqliteTable(
     ts: integer('ts').notNull(),
   },
   (t) => [index('idx_processed_ts').on(t.ts)],
+);
+
+// --- 8. Droits par serveur et par machine (lot 8, doc 04 §1) ------------------------------------
+
+/**
+ * Serveur accordé à un utilisateur `scoped` avec un rôle (`viewer` | `operator`, jamais `admin`),
+ * plafonné par `users.role`. Un serveur supprimé emporte ses lignes ; un utilisateur aussi.
+ * Pas de `CHECK` sur `role` (une contrainte ajoutée ferait recréer la table) : Zod valide.
+ */
+export const userServerPermissions = sqliteTable(
+  'user_server_permissions',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    serverId: text('server_id')
+      .notNull()
+      .references(() => servers.id, { onDelete: 'cascade' }),
+    role: text('role').notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.serverId] }),
+    index('idx_user_server_permissions_server').on(t.serverId),
+  ],
+);
+
+/**
+ * Machine accordée : le rôle vaut sur la machine ET sur chacun de ses serveurs, y compris ceux
+ * détectés après coup (« l'ami gère sa machine »).
+ */
+export const userMachinePermissions = sqliteTable(
+  'user_machine_permissions',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    machineId: text('machine_id')
+      .notNull()
+      .references(() => machines.id, { onDelete: 'cascade' }),
+    role: text('role').notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.machineId] }),
+    index('idx_user_machine_permissions_machine').on(t.machineId),
+  ],
 );
 
 export type UserRow = typeof users.$inferSelect;

@@ -21,7 +21,7 @@ import {
 
 import type { AppContext } from '../../context.js';
 import { commandHistory, type ServerRow } from '../../db/schema.js';
-import { AppError, conflict, notFound } from '../../errors.js';
+import { AppError, conflict, forbidden, notFound } from '../../errors.js';
 import { requireUser } from '../auth.js';
 import { auditMeta } from './setup-auth.js';
 
@@ -33,10 +33,32 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
   const broadcast = (row: ServerRow): void => {
     ctx.hub.broadcast({ type: 'server.state', server: dto(row) });
   };
+  // Lot 8 : les listes ne montrent à un compte limité que ses portées (les routes `:id` sont
+  // gardées par le hook d'auth, celles-ci filtrent).
+  const snapshotOf = (request: FastifyRequest) => ctx.permissions.snapshot(requireUser(request).id);
 
-  r.get('/api/servers', () => ({ servers: ctx.servers.list().map(dto) }));
+  r.get('/api/servers', (request) => {
+    const snapshot = snapshotOf(request);
+    return {
+      servers: ctx.servers
+        .list()
+        .filter((row) => ctx.permissions.roleOn(snapshot, { kind: 'server', id: row.id }) !== null)
+        .map(dto),
+    };
+  });
 
-  r.get('/api/servers/conflicts', () => ({ conflicts: ctx.servers.listConflicts() }));
+  r.get('/api/servers/conflicts', (request) => {
+    const snapshot = snapshotOf(request);
+    return {
+      conflicts: ctx.servers
+        .listConflicts()
+        .filter(
+          (c) =>
+            ctx.permissions.visibleRef(snapshot, { serverId: c.serverId }) ||
+            ctx.permissions.visibleRef(snapshot, { machineId: c.found.machineId }),
+        ),
+    };
+  });
 
   r.post(
     '/api/servers/conflicts/resolve',
@@ -204,11 +226,15 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
     { config: { role: 'operator' }, schema: { body: bulkActionSchema } },
     async (request) => {
       const user = requireUser(request);
+      const snapshot = ctx.permissions.snapshot(user.id);
       const { action: name, serverIds, continueOnError = false } = request.body;
       const results: BulkActionResult['results'] = [];
       let stopped = false;
       for (const id of serverIds) {
-        const row = ctx.servers.get(id);
+        // Lot 8 : un serveur hors portée n'existe pas pour ce compte (même réponse qu'un id inconnu).
+        const scope = { kind: 'server', id } as const;
+        const row =
+          ctx.permissions.roleOn(snapshot, scope) === null ? undefined : ctx.servers.get(id);
         // « Non tenté » se décide AVANT tout le reste : une fois la série interrompue, plus rien
         // n'est évalué, pas même l'existence du serveur.
         if (stopped) {
@@ -226,6 +252,9 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
           continue;
         }
         try {
+          if (!ctx.permissions.can(snapshot, scope, 'operator')) {
+            throw forbidden('role operator required');
+          }
           if (row.provisioning !== 'ready') {
             throw conflict(`server is ${row.provisioning}`, { provisioning: row.provisioning });
           }

@@ -92,8 +92,42 @@ export const userDtoSchema = z.object({
   isActive: z.boolean(),
   createdAt: epochMsSchema,
   lastLoginAt: epochMsSchema.nullable(),
+  /**
+   * Lot 8 : `true` = l'utilisateur ne voit que les serveurs et machines qui lui sont accordés
+   * (`GET /api/users/:id/grants`) ; son `role` y est le plafond des rôles accordés, et vaut tel
+   * quel hors de toute portée (macros, actions groupées). Jamais `true` pour un administrateur.
+   */
+  scoped: z.boolean(),
 });
 export type UserDto = z.infer<typeof userDtoSchema>;
+
+// --- Lot 8 : droits par serveur et par machine ------------------------------------------------------
+
+/** Rôle accordé sur une portée : jamais `admin` (un administrateur voit tout, par définition). */
+export const grantRoleSchema = z.enum(['operator', 'viewer']);
+export type GrantRole = z.infer<typeof grantRoleSchema>;
+/** Plafond par liste : bien au-delà de tout parc réel, borne les corps de requête. */
+export const MAX_GRANTS = 500;
+
+export const serverGrantSchema = z.object({ serverId: z.string().min(1), role: grantRoleSchema });
+export const machineGrantSchema = z.object({
+  machineId: z.string().min(1),
+  role: grantRoleSchema,
+});
+/**
+ * Portées accordées à un utilisateur `scoped`. Une machine accordée couvre tous ses serveurs,
+ * présents et futurs ; un serveur accordé donne `viewer` sur sa machine (page machine lisible).
+ */
+export const userGrantsDtoSchema = z.object({
+  servers: z.array(serverGrantSchema),
+  machines: z.array(machineGrantSchema),
+});
+export type UserGrantsDto = z.infer<typeof userGrantsDtoSchema>;
+export const userGrantsInputSchema = z.object({
+  servers: z.array(serverGrantSchema).max(MAX_GRANTS).optional(),
+  machines: z.array(machineGrantSchema).max(MAX_GRANTS).optional(),
+});
+export type UserGrantsInput = z.infer<typeof userGrantsInputSchema>;
 
 export const usernameSchema = z
   .string()
@@ -131,12 +165,15 @@ export const createUserSchema = z.object({
   password: passwordSchema,
   role: roleSchema.optional(),
   locale: localeSchema.optional(),
+  /** Lot 8 : compte limité à des portées accordées (refusé avec `role: 'admin'`). */
+  scoped: z.boolean().optional(),
 });
 export const updateUserSchema = z.object({
   role: roleSchema.optional(),
   locale: localeSchema.optional(),
   isActive: z.boolean().optional(),
   password: passwordSchema.optional(),
+  scoped: z.boolean().optional(),
 });
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;

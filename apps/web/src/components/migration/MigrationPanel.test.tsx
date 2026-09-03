@@ -63,6 +63,7 @@ const admin: UserDto = {
   isActive: true,
   createdAt: 0,
   lastLoginAt: null,
+  scoped: false,
 };
 
 const machine = (id: string, name: string): MachineDto => ({

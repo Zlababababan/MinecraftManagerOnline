@@ -52,6 +52,7 @@ import { PairingCodeCard } from '../components/PairingCodeCard.js';
 import { ServerCard } from '../components/ServerCard.js';
 import { describeError } from '../lib/errors.js';
 import { formatDateTime, hasRole } from '../lib/format.js';
+import { canMachine } from '../lib/permissions.js';
 import { useNow } from '../lib/hooks.js';
 import { TECHNICAL_INPUT_PROPS } from '../lib/inputs.js';
 
@@ -90,7 +91,7 @@ export function MachinePage({ machineId }: { machineId: string }) {
   if (machine.isPending) return <Loader />;
   if (machine.error) return <ErrorAlert error={machine.error} />;
   const m = machine.data.machine;
-  const canOperate = me.data !== undefined && hasRole(me.data.user.role, 'operator');
+  const canOperate = canMachine(me.data, m.id, 'operator');
   const mine = servers.data?.servers.filter((s) => s.machineId === m.id) ?? [];
   const myConflicts = conflicts.data?.conflicts.filter((c) => c.found.machineId === m.id) ?? [];
   const fail = (error: unknown): void => {

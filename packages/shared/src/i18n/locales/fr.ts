@@ -227,6 +227,11 @@ export const fr = {
     E_VALIDATION_SAME_MACHINE:
       'La copie hors-site doit vivre sur une autre machine que celle du serveur.',
     E_VALIDATION_NO_DESTINATION: 'Aucune machine de copie hors-site n’est réglée pour ce serveur.',
+    /** Lot 8 — droits par serveur. */
+    E_VALIDATION_ADMIN_SCOPED:
+      'Un administrateur voit tout le panel : le compte ne peut pas être limité à certains serveurs.',
+    E_VALIDATION_GRANT_ABOVE_ROLE:
+      'Un rôle accordé ne peut pas dépasser le rôle du compte (un lecteur reste lecteur partout).',
     E_NO_RELEASE: 'Aucune release d’agent publiée sur ce panel.',
     E_PUSH_DISABLED:
       'Les notifications push ne sont pas configurées sur ce panel (clés VAPID absentes).',

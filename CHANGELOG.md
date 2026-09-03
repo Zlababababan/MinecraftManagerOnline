@@ -8,6 +8,20 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### Share with friends without handing over the whole panel
+
+Until now a role was global: giving a friend one server meant giving them the fleet, stop button
+included. Settings → Users gains an **Access** column: _Whole panel_ (as before) or _Chosen
+servers_, and a **Servers…** button that lists what the account may see — a whole machine (every
+server on it, including those detected later), or single servers — each with a role, viewer or
+operator, never above the role of the account.
+
+For such an account everything else does not exist: it is not listed, not pushed over the live
+connection, not shown in the notifications, and a link to another server answers "not found",
+not "forbidden". Group actions require operator on every member; changing the access setting signs
+the account out, changing the granted servers only reloads its pages. Administrators always see
+everything.
+
 ### The database stops growing for no reason
 
 The hourly maintenance now bounds every table. Four of them had no limit at all: the console

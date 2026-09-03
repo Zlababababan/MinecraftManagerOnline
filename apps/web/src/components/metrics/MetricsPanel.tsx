@@ -32,7 +32,8 @@ import {
 } from '../../api/queries.js';
 import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
-import { formatGb, formatMb, formatPct, hasRole } from '../../lib/format.js';
+import { formatGb, formatMb, formatPct } from '../../lib/format.js';
+import { canServer } from '../../lib/permissions.js';
 import { ErrorAlert } from '../ErrorAlert.js';
 import { TimeSeriesChart } from './TimeSeriesChart.js';
 
@@ -126,8 +127,7 @@ function SparkInstall({ server }: { server: ServerDto }) {
   const me = useMe();
   const spark = useSpark(server.id, server.reachable);
   const install = useInstallSpark(server.id);
-  const canAct =
-    me.data !== undefined && hasRole(me.data.user.role, 'operator') && server.reachable;
+  const canAct = canServer(me.data, server, 'operator') && server.reachable;
   if (!spark.data?.supported) return null;
   if (spark.data.installed) {
     return (

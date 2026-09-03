@@ -202,6 +202,7 @@ describe('applyServerMessage', () => {
         isActive: true,
         createdAt: 0,
         lastLoginAt: null,
+        scoped: false,
       },
     });
     expect(useRealtimeStore.getState().serverTime).toBe(42);

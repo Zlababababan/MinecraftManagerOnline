@@ -25,6 +25,7 @@ const admin: UserDto = {
   isActive: true,
   createdAt: 0,
   lastLoginAt: null,
+  scoped: false,
 };
 
 function server(

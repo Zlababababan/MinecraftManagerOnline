@@ -26,12 +26,12 @@ import { useMe, useUpdateServer } from '../../api/queries.js';
 import { useT } from '../../i18n/hooks.js';
 import { tDynamic } from '../../i18n/index.js';
 import { describeError } from '../../lib/errors.js';
-import { hasRole } from '../../lib/format.js';
+import { canServer } from '../../lib/permissions.js';
 
 export function PlayerAccessCard({ server }: { server: ServerDto }) {
   const { t, i18n } = useT();
   const me = useMe();
-  const canEdit = me.data !== undefined && hasRole(me.data.user.role, 'operator');
+  const canEdit = canServer(me.data, server, 'operator');
   const address = useServerAddress(server.id);
   const update = useUpdateServer(server.id);
   const test = useServerReachability(server.id);

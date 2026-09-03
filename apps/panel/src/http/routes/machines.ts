@@ -107,7 +107,16 @@ function pairingDto(
 export function registerMachineRoutes(app: FastifyInstance, ctx: AppContext): void {
   const r = app.withTypeProvider<ZodTypeProvider>();
 
-  r.get('/api/machines', () => ({ machines: ctx.machines.list().map((m) => machineDto(ctx, m)) }));
+  r.get('/api/machines', (request) => {
+    // Lot 8 : un compte limité ne voit que les machines accordées ou portant un serveur accordé.
+    const snapshot = ctx.permissions.snapshot(requireUser(request).id);
+    return {
+      machines: ctx.machines
+        .list()
+        .filter((m) => ctx.permissions.roleOn(snapshot, { kind: 'machine', id: m.id }) !== null)
+        .map((m) => machineDto(ctx, m)),
+    };
+  });
 
   r.get('/api/machines/:id', { schema: { params: idParams } }, (request) => ({
     machine: machineDto(ctx, ctx.machines.require(request.params.id)),

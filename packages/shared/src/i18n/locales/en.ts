@@ -200,6 +200,11 @@ export const en = {
     E_VALIDATION_SAME_MACHINE:
       'The off-site copy must live on a different machine than the server.',
     E_VALIDATION_NO_DESTINATION: 'No off-site machine is configured for this server.',
+    /** Lot 8 — per-server rights. */
+    E_VALIDATION_ADMIN_SCOPED:
+      'An administrator sees the whole panel: the account cannot be limited to some servers.',
+    E_VALIDATION_GRANT_ABOVE_ROLE:
+      'A granted role cannot exceed the role of the account (a viewer stays a viewer everywhere).',
     E_PUSH_DISABLED: 'Push notifications are not configured on this panel (VAPID keys missing).',
     E_ACCESS_NOT_CONFIGURED:
       'The access layer is not configured (domain, DNS provider or public URL missing).',

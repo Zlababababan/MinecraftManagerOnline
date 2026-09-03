@@ -47,7 +47,8 @@ import { keys } from '../../api/queries.js';
 import { ApiRequestError } from '../../api/client.js';
 import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
-import { formatBytes, formatDateTime, hasRole } from '../../lib/format.js';
+import { formatBytes, formatDateTime } from '../../lib/format.js';
+import { canServer } from '../../lib/permissions.js';
 import { ErrorAlert } from '../ErrorAlert.js';
 import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 
@@ -247,8 +248,7 @@ export function FileExplorer({ server }: { server: ServerDto }) {
   const qc = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const canEdit =
-    me.data !== undefined && hasRole(me.data.user.role, 'operator') && server.reachable;
+  const canEdit = canServer(me.data, server, 'operator') && server.reachable;
   const fail = (error: unknown) => {
     notifications.show({ color: 'red', message: describeError(i18n, error) });
   };

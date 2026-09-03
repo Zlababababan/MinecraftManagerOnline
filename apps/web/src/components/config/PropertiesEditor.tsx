@@ -33,7 +33,7 @@ import { useConfigFile, useMe, useServerAction, useSetConfig } from '../../api/q
 import { tDynamic } from '../../i18n/index.js';
 import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
-import { hasRole } from '../../lib/format.js';
+import { canServer } from '../../lib/permissions.js';
 import {
   PROPERTY_BY_KEY,
   diffProperties,
@@ -184,8 +184,7 @@ export function PropertiesEditor({ server }: { server: ServerDto }) {
   const query = useConfigFile(server.id, 'server.properties');
   const save = useSetConfig(server.id, 'server.properties');
   const restart = useServerAction(server.id);
-  const canEdit =
-    me.data !== undefined && hasRole(me.data.user.role, 'operator') && server.reachable;
+  const canEdit = canServer(me.data, server, 'operator') && server.reachable;
   const [edits, setEdits] = useState<Record<string, string | null>>({});
   const [newKey, setNewKey] = useState('');
   const [restartNeeded, setRestartNeeded] = useState(false);

@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { groupActionSchema, serverGroupInputSchema } from '@mmo/protocol/client';
 
 import type { AppContext } from '../../context.js';
+import { forbidden } from '../../errors.js';
 import { requireUser } from '../auth.js';
 import { auditMeta } from './setup-auth.js';
 
@@ -61,6 +62,16 @@ export function registerGroupRoutes(app: FastifyInstance, ctx: AppContext): void
     async (request, reply) => {
       const user = requireUser(request);
       const group = ctx.groups.require(request.params.id);
+      // Lot 8 : l'action touche chaque serveur du groupe — il faut être opérateur sur chacun.
+      const snapshot = ctx.permissions.snapshot(user.id);
+      const members = ctx.servers.listByGroup(group.id);
+      if (
+        !members.every((s) =>
+          ctx.permissions.can(snapshot, { kind: 'server', id: s.id }, 'operator'),
+        )
+      ) {
+        throw forbidden('role operator required on every server of the group');
+      }
       ctx.groups.run(group.id, request.body.action, user.id);
       ctx.audit.record({
         ...auditMeta(request),

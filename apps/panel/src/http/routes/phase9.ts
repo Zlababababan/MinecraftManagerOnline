@@ -64,9 +64,17 @@ export function registerPhase9Routes(app: FastifyInstance, ctx: AppContext): voi
     return { migrations: ctx.migrations.listForServer(row.id).map((m) => ctx.migrations.toDto(m)) };
   });
 
-  r.get('/api/migrations/:id', { schema: { params: idParams } }, (request) => ({
-    migration: ctx.migrations.toDto(ctx.migrations.require(request.params.id)),
-  }));
+  r.get('/api/migrations/:id', { schema: { params: idParams } }, (request) => {
+    const row = ctx.migrations.require(request.params.id);
+    // Lot 8 : visible si le serveur migré ou sa copie (duplication) l'est.
+    const snapshot = ctx.permissions.snapshot(requireUser(request).id);
+    const visible =
+      ctx.permissions.visibleRef(snapshot, { serverId: row.serverId }) ||
+      (row.targetServerId !== null &&
+        ctx.permissions.visibleRef(snapshot, { serverId: row.targetServerId }));
+    if (!visible) throw notFound('migration', request.params.id);
+    return { migration: ctx.migrations.toDto(row) };
+  });
 
   r.post(
     '/api/servers/:id/migrations/precheck',

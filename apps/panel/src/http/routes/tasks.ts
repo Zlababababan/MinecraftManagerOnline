@@ -5,7 +5,7 @@
  */
 import { createReadStream, statSync } from 'node:fs';
 
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 
@@ -24,7 +24,7 @@ import {
 
 import type { AppContext } from '../../context.js';
 import type { ServerRow } from '../../db/schema.js';
-import { AppError, conflict, notFound } from '../../errors.js';
+import { AppError, conflict, forbidden, notFound } from '../../errors.js';
 import { requireUser } from '../auth.js';
 import { auditMeta } from './setup-auth.js';
 
@@ -66,20 +66,43 @@ export function registerTaskRoutes(app: FastifyInstance, ctx: AppContext): void 
 
   // --- Tasks ----------------------------------------------------------------------------------
 
-  r.get('/api/tasks', { schema: { querystring: tasksQuerySchema } }, (request) => ({
-    tasks: ctx.tasks.list(request.query).map((t) => ctx.tasks.toDto(t)),
-  }));
+  // Lot 8 : une task appartient à la portée de son serveur (ou de sa machine, pour Java et les
+  // mises à jour d'agent) — un compte limité ne voit que celles-là, et n'en annule que là où il
+  // est opérateur. Une task hors portée n'existe pas pour lui (404).
+  const snapshotOf = (request: FastifyRequest) => ctx.permissions.snapshot(requireUser(request).id);
+  const requireVisibleTask = (request: FastifyRequest, id: string) => {
+    const task = ctx.tasks.require(id);
+    if (!ctx.permissions.visibleRef(snapshotOf(request), task)) throw notFound('task', id);
+    return task;
+  };
+
+  r.get('/api/tasks', { schema: { querystring: tasksQuerySchema } }, (request) => {
+    const snapshot = snapshotOf(request);
+    return {
+      tasks: ctx.tasks
+        .list(request.query)
+        .filter((t) => ctx.permissions.visibleRef(snapshot, t))
+        .map((t) => ctx.tasks.toDto(t)),
+    };
+  });
 
   r.get('/api/tasks/:id', { schema: { params: idParams } }, (request) => ({
-    task: ctx.tasks.toDto(ctx.tasks.require(request.params.id)),
+    task: ctx.tasks.toDto(requireVisibleTask(request, request.params.id)),
   }));
 
   r.post(
     '/api/tasks/:id/cancel',
     { config: { role: 'operator' }, schema: { params: idParams } },
     async (request) => {
-      const task = ctx.tasks.require(request.params.id);
+      const task = requireVisibleTask(request, request.params.id);
       if (task.machineId === null) throw conflict('task without machine');
+      const scope =
+        task.serverId === null
+          ? ({ kind: 'machine', id: task.machineId } as const)
+          : ({ kind: 'server', id: task.serverId } as const);
+      if (!ctx.permissions.can(snapshotOf(request), scope, 'operator')) {
+        throw forbidden('role operator required');
+      }
       const peer = ctx.registry.require(task.machineId).peer;
       const res = await peer.request('task.cancel', { taskId: task.id });
       ctx.audit.record({
@@ -460,9 +483,15 @@ export function registerTaskRoutes(app: FastifyInstance, ctx: AppContext): void 
 
   // --- Planificateur du panel ----------------------------------------------------------------
 
-  r.get('/api/schedules', () => ({
-    schedules: ctx.scheduler.list().map((s) => ctx.scheduler.toDto(s)),
-  }));
+  r.get('/api/schedules', (request) => {
+    const snapshot = snapshotOf(request);
+    return {
+      schedules: ctx.scheduler
+        .list()
+        .filter((s) => ctx.permissions.visibleRef(snapshot, { serverId: s.serverId }))
+        .map((s) => ctx.scheduler.toDto(s)),
+    };
+  });
 
   r.get('/api/servers/:id/schedules', { schema: { params: idParams } }, (request) => {
     const row = ctx.servers.require(request.params.id);

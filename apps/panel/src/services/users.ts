@@ -8,7 +8,7 @@ import { DEFAULT_LOCALE } from '@mmo/shared';
 import { dummyPasswordHash, hashPassword, verifyPassword } from '../auth/password.js';
 import type { MmoDatabase } from '../db/client.js';
 import { users, type UserRow } from '../db/schema.js';
-import { conflict, notFound } from '../errors.js';
+import { AppError, conflict, notFound } from '../errors.js';
 
 export const ROLE_RANK: Readonly<Record<Role, number>> = { viewer: 1, operator: 2, admin: 3 };
 
@@ -26,6 +26,7 @@ export function toUserDto(row: UserRow): UserDto {
     isActive: row.isActive === 1,
     createdAt: row.createdAt,
     lastLoginAt: row.lastLoginAt,
+    scoped: row.scoped === 1,
   };
 }
 
@@ -34,6 +35,8 @@ export interface CreateUserInput {
   password: string;
   role?: Role | undefined;
   locale?: 'fr' | 'en' | undefined;
+  /** Lot 8 : compte limité aux portées accordées. */
+  scoped?: boolean | undefined;
 }
 
 export interface UpdateUserInput {
@@ -42,13 +45,37 @@ export interface UpdateUserInput {
   theme?: string | undefined;
   isActive?: boolean | undefined;
   password?: string | undefined;
+  scoped?: boolean | undefined;
+}
+
+/** Un administrateur voit tout par définition : `scoped` n'a pas de sens pour lui. */
+function assertNotScopedAdmin(role: Role, scoped: boolean): void {
+  if (role === 'admin' && scoped) {
+    throw new AppError('E_VALIDATION', 'an administrator cannot be limited to some servers', {
+      details: { key: 'scoped', reason: 'ADMIN_SCOPED' },
+    });
+  }
 }
 
 export class UsersService {
+  private readonly listeners = new Set<(userId: string) => void>();
+
   constructor(
     private readonly db: MmoDatabase,
     private readonly now: () => number,
   ) {}
+
+  /** Appelé après toute modification ou suppression d'un compte (caches de droits, lot 8). */
+  onChanged(listener: (userId: string) => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private changed(userId: string): void {
+    for (const listener of this.listeners) listener(userId);
+  }
 
   count(): number {
     return this.db.select({ n: count() }).from(users).get()?.n ?? 0;
@@ -77,17 +104,21 @@ export class UsersService {
     if (this.findByUsername(input.username)) {
       throw conflict(`username ${input.username} already exists`, { username: input.username });
     }
+    const role = input.role ?? 'viewer';
+    const scoped = input.scoped ?? false;
+    assertNotScopedAdmin(role, scoped);
     const row: UserRow = {
       id: ulid(this.now()),
       username: input.username,
       passwordHash: await hashPassword(input.password),
-      role: input.role ?? 'viewer',
+      role,
       locale: input.locale ?? DEFAULT_LOCALE,
       theme: 'dark',
       isActive: 1,
       createdAt: this.now(),
       lastLoginAt: null,
       notificationsSeenId: 0,
+      scoped: scoped ? 1 : 0,
     };
     this.db.insert(users).values(row).run();
     return row;
@@ -104,14 +135,20 @@ export class UsersService {
         throw conflict('cannot demote or deactivate the last active admin', { userId: id });
       }
     }
+    // L'état résultant est jugé, pas le champ modifié : passer admin un compte limité, ou limiter
+    // un admin, échouent pareil.
+    assertNotScopedAdmin(input.role ?? current.role, input.scoped ?? current.scoped === 1);
     const patch: Partial<UserRow> = {};
     if (input.role !== undefined) patch.role = input.role;
     if (input.locale !== undefined) patch.locale = input.locale;
     if (input.theme !== undefined) patch.theme = input.theme;
     if (input.isActive !== undefined) patch.isActive = input.isActive ? 1 : 0;
     if (input.password !== undefined) patch.passwordHash = await hashPassword(input.password);
-    if (Object.keys(patch).length > 0)
+    if (input.scoped !== undefined) patch.scoped = input.scoped ? 1 : 0;
+    if (Object.keys(patch).length > 0) {
       this.db.update(users).set(patch).where(eq(users.id, id)).run();
+      this.changed(id);
+    }
     return this.require(id);
   }
 
@@ -121,6 +158,7 @@ export class UsersService {
       throw conflict('cannot delete the last active admin', { userId: id });
     }
     this.db.delete(users).where(eq(users.id, id)).run();
+    this.changed(id);
   }
 
   /**

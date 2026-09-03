@@ -57,7 +57,8 @@ import {
 import { useMachines, useMe } from '../../api/queries.js';
 import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
-import { formatBytes, formatDateTime, hasRole } from '../../lib/format.js';
+import { formatBytes, formatDateTime } from '../../lib/format.js';
+import { canServer } from '../../lib/permissions.js';
 import { ErrorAlert } from '../ErrorAlert.js';
 import { HelpLink } from '../HelpLink.js';
 import { ScheduleInput, describeWhen, isScheduleValid } from '../schedule/ScheduleInput.js';
@@ -110,8 +111,7 @@ export function BackupsPanel({ server }: { server: ServerDto }) {
     replicas.filter((c) => c.backupId === backupId);
   const healthyCopies = (backupId: string): BackupReplicaDto[] =>
     copiesOf(backupId).filter((c) => c.status === 'success');
-  const canAct =
-    me.data !== undefined && hasRole(me.data.user.role, 'operator') && server.reachable;
+  const canAct = canServer(me.data, server, 'operator') && server.reachable;
   const fail = (error: unknown) => {
     notifications.show({ color: 'red', message: describeError(i18n, error) });
   };

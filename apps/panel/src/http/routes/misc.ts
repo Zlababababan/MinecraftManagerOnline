@@ -18,6 +18,7 @@ import type { AppContext } from '../../context.js';
 import { AppError } from '../../errors.js';
 import { coerceOrigin } from '../../util/origin.js';
 import { PANEL_VERSION } from '../../version.js';
+import { requireUser } from '../auth.js';
 import { auditMeta } from './setup-auth.js';
 
 /** Dix ans : au-delà, la rétention est un « jamais » qui ne dit pas son nom. */
@@ -75,9 +76,19 @@ export function registerMiscRoutes(app: FastifyInstance, ctx: AppContext): void 
     };
   });
 
-  r.get('/api/events', { schema: { querystring: eventsQuerySchema } }, (request) => ({
-    events: ctx.events.list(request.query),
-  }));
+  r.get('/api/events', { schema: { querystring: eventsQuerySchema } }, (request) => {
+    const snapshot = ctx.permissions.snapshot(requireUser(request).id);
+    if (!snapshot.scoped) return { events: ctx.events.list(request.query) };
+    // Lot 8 : un compte limité ne lit que les événements de ses portées — ni ceux du panel, ni
+    // ceux des autres serveurs. Lecture élargie puis filtrée, comme le centre de notifications.
+    const limit = request.query.limit ?? 100;
+    return {
+      events: ctx.events
+        .list({ ...request.query, limit: Math.min(limit * 4, 1000) })
+        .filter((event) => ctx.permissions.visibleRef(snapshot, event))
+        .slice(0, limit),
+    };
+  });
 
   r.get(
     '/api/audit',

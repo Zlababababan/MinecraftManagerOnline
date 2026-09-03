@@ -3,6 +3,8 @@
  * Secure en https), `request.user`, refus par défaut (toute route non `public` exige une session),
  * RBAC par `config.role` (admin > operator > viewer). Wizard first-run : tant qu'aucun utilisateur
  * n'existe, les routes protégées répondent `E_AUTH` avec `details.setupRequired = true`.
+ * Lot 8 : sur les routes `/api/servers/:id…` et `/api/machines/:id…`, le rôle jugé est le rôle
+ * effectif de l'utilisateur sur cette portée (`services/permissions.ts`) ; hors portée → 404.
  */
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
@@ -10,7 +12,8 @@ import type { Role } from '@mmo/protocol/client';
 
 import type { AppContext } from '../context.js';
 import type { UserRow } from '../db/schema.js';
-import { AppError, forbidden } from '../errors.js';
+import { AppError, forbidden, notFound } from '../errors.js';
+import { routeScope } from '../services/permissions.js';
 import { SETTING_KEYS } from '../services/settings.js';
 import { hasRole } from '../services/users.js';
 import { isApiOrWs } from './static.js';
@@ -104,7 +107,20 @@ export function registerAuth(app: FastifyInstance, ctx: AppContext): void {
       return;
     }
     const role = config.role ?? 'viewer';
-    if (!hasRole(request.user.role, role)) {
+    // Lot 8 : sur une route qui porte un serveur ou une machine (`/api/servers/:id…`,
+    // `/api/machines/:id…` — `request.params` est déjà rempli par le routeur à ce stade), le rôle
+    // jugé est le rôle EFFECTIF de l'utilisateur sur cette portée : son rôle global s'il n'est
+    // pas limité, le rôle accordé sinon. Portée invisible → 404, comme si elle n'existait pas
+    // (aucune énumération possible). Hors portée, le rôle global vaut comme avant.
+    const scope = routeScope(request.routeOptions.url ?? '', request.params);
+    const snapshot = ctx.permissions.snapshot(request.user.id);
+    const effective =
+      scope === undefined ? request.user.role : ctx.permissions.roleOn(snapshot, scope);
+    if (effective === null) {
+      void reply.code(404).send(notFound(scope?.kind ?? 'resource', scope?.id).toJSON());
+      return;
+    }
+    if (!hasRole(effective, role)) {
       void reply.code(403).send(forbidden(`role ${role} required`).toJSON());
       return;
     }

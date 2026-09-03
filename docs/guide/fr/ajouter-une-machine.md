@@ -81,3 +81,15 @@ Un dossier contenant un `velocity.toml` est reconnu au scan comme **proxy Veloci
 Quelques différences sont assumées : pas de version Minecraft affichée (un proxy n'en a pas), pas de RCON ni de TPS (le panneau de métriques l'explique), l'arrêt propre passe par la commande `shutdown` de Velocity, le port et le MOTD sont lus dans `velocity.toml`, et il n'y a pas d'EULA à accepter. Le lancement utilise Java 17.
 
 L'agent de la machine doit être à jour pour détecter les proxys — un agent plus ancien les ignore proprement.
+
+## 11. Partager avec des amis : des comptes limités à certains serveurs
+
+Un ami qui héberge une des machines, ou qui ne joue que sur un serveur, n'a pas besoin de tout le panel. Réglages → Utilisateurs a une colonne **Accès** à côté du rôle : **Tout le panel** (le comportement historique : le rôle vaut partout) ou **Serveurs choisis**. Avec le second, le bouton **Serveurs…** ouvre ce que le compte a le droit de voir :
+
+- une **machine** accorde tous ses serveurs, y compris ceux détectés plus tard — le bon choix pour « il gère sa propre machine » ;
+- un **serveur** n'accorde que lui, et laisse ouvrir la page de sa machine en lecture (métriques, état de l'agent) ;
+- chaque ligne porte un rôle, **lecture** ou **opérateur**, jamais au-dessus du rôle du compte : un compte créé en lecture seule reste lecteur partout.
+
+Tout le reste n'existe pas pour ce compte : ni dans les listes, ni dans le temps réel, ni dans la console, ni dans les notifications, et un lien direct vers un autre serveur répond « introuvable » plutôt qu'« interdit ». Changer le réglage d'accès déconnecte le compte (comme un changement de rôle) ; changer les serveurs accordés recharge seulement ses pages ouvertes. Les administrateurs voient toujours tout et ne peuvent pas être limités.
+
+Une action de groupe s'exécute sur chaque serveur du groupe : un compte limité ne peut la lancer que s'il est opérateur sur chacun de ses membres.

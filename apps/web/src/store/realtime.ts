@@ -267,10 +267,14 @@ function appendRaw<P extends { ts: number }>(
 export function bindRealtime(client: RealtimeClient, queryClient: QueryClient): () => void {
   const offStatus = client.onStatus((status) => {
     useRealtimeStore.getState().setStatus(status);
-    // À chaque reconnexion, l'état a pu bouger pendant la coupure.
+    // À chaque reconnexion, l'état a pu bouger pendant la coupure. Lot 8 : le panel ferme la
+    // connexion quand les droits d'un compte changent — ses portées (`me`) et ce qu'il voit sont
+    // relus.
     if (status === 'open') {
+      void queryClient.invalidateQueries({ queryKey: keys.me });
       void queryClient.invalidateQueries({ queryKey: keys.machines });
       void queryClient.invalidateQueries({ queryKey: keys.servers });
+      void queryClient.invalidateQueries({ queryKey: ['events'] });
     }
   });
   const offMessage = client.on((message) => {

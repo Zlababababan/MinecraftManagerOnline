@@ -51,6 +51,7 @@ import { ServerActions } from '../components/ServerActions.js';
 import { serverSubtitle } from '../components/ServerCard.js';
 import { describeError } from '../lib/errors.js';
 import { formatDateTime, formatMb, hasRole } from '../lib/format.js';
+import { canServer } from '../lib/permissions.js';
 
 // Panneaux lourds chargés à l'ouverture de l'onglet (xterm, éditeurs).
 const ConsolePanel = lazy(() =>
@@ -115,7 +116,7 @@ function Overview({ server }: { server: ServerDto }) {
   const machines = useMachines();
   const me = useMe();
   const machineName = machines.data?.machines.find((m) => m.id === server.machineId)?.name;
-  const canOperate = me.data !== undefined && hasRole(me.data.user.role, 'operator');
+  const canOperate = canServer(me.data, server, 'operator');
   const detection = server.detection;
   return (
     <Stack gap="md">
@@ -315,7 +316,7 @@ export function ServerPage({ serverId, tab }: { serverId: string; tab: ServerTab
   if (server.isPending) return <Loader />;
   if (server.error) return <ErrorAlert error={server.error} />;
   const s = server.data.server;
-  const canSend = me.data !== undefined && hasRole(me.data.user.role, 'operator') && s.reachable;
+  const canSend = canServer(me.data, s, 'operator') && s.reachable;
 
   return (
     <Stack gap="md" data-testid="server-page" data-server-id={s.id}>

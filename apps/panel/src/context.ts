@@ -29,6 +29,7 @@ import { ReleasesService } from './services/releases.js';
 import { MachinesService } from './services/machines.js';
 import { MetricsService } from './services/metrics.js';
 import { PanelBackupService } from './services/panel-backup.js';
+import { PermissionsService } from './services/permissions.js';
 import { PANEL_VERSION } from './version.js';
 import { ProcessedEventsService } from './services/processed-events.js';
 import { UpdateCheckService } from './services/update-check.js';
@@ -64,6 +65,8 @@ export interface AppContext {
   events: EventBus;
   users: UsersService;
   sessions: SessionsService;
+  /** Lot 8 : droits par serveur et par machine (rôle effectif, visibilité, portées accordées). */
+  permissions: PermissionsService;
   machines: MachinesService;
   servers: ServersService;
   java: JavaResolver;
@@ -200,6 +203,16 @@ export function createContext(options: ContextOptions): AppContext {
       backups.seedDefaultPolicy(serverId);
     },
   });
+  const permissions = new PermissionsService({
+    db,
+    now,
+    machineOf: (serverId) => servers.get(serverId)?.machineId,
+    machineExists: (machineId) => machines.get(machineId) !== undefined,
+  });
+  // Rôle ou `scoped` modifiés, compte supprimé : la vue en cache de ses droits tombe.
+  users.onChanged((userId) => {
+    permissions.invalidate(userId);
+  });
   const processed = new ProcessedEventsService(db, now);
   const registry = new AgentRegistry();
   const relay = new ConsoleRelay({ logger, registry, servers });
@@ -210,6 +223,12 @@ export function createContext(options: ContextOptions): AppContext {
     onUnsubscribe: (channel) => {
       relay.onUnsubscribe(channel);
     },
+    // Lot 8 : un compte limité ne reçoit que ce qui concerne ses portées, et ne peut s'abonner
+    // qu'à la console d'un serveur qu'il voit.
+    filter: (conn, message) =>
+      permissions.visibleMessage(permissions.snapshot(conn.user.id), message),
+    canSubscribe: (conn, channel) =>
+      permissions.canSubscribe(permissions.snapshot(conn.user.id), channel),
     ...(options.backpressure === undefined ? {} : { backpressure: options.backpressure }),
   });
   relay.bind(hub);
@@ -440,6 +459,8 @@ export function createContext(options: ContextOptions): AppContext {
     fetchImpl: options.fetch ?? fetch,
     serverName: (id) => servers.get(id)?.name,
     machineName: (id) => machines.get(id)?.name,
+    // Lot 8 : ni cloche ni push pour ce qu'un compte limité ne voit pas.
+    visibleTo: (userId, event) => permissions.visibleRef(permissions.snapshot(userId), event),
   });
   const access = new AccessService({
     config,
@@ -489,6 +510,7 @@ export function createContext(options: ContextOptions): AppContext {
     events,
     users,
     sessions,
+    permissions,
     machines,
     servers,
     java,

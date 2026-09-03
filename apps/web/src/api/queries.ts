@@ -31,6 +31,7 @@ import type {
   ServerDto,
   ServerMetricsResult,
   UserDto,
+  UserGrantsDto,
   addDirectorySchema,
   commandHistoryItemSchema,
   createMachineSchema,
@@ -116,6 +117,8 @@ export const meQuery = queryOptions({
       panelUpdate?: { current: string; latest: string } | null;
       /** Vie privée (lot 9) : le navigateur peut-il charger les avatars chez mc-heads.net ? */
       privacy?: { externalAvatars: boolean };
+      /** Lot 8 : portées d'un compte limité (`null` = le rôle vaut partout). */
+      grants?: UserGrantsDto | null;
     }>('/api/auth/me', signal),
   retry: false,
   staleTime: 60_000,

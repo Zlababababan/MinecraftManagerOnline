@@ -92,6 +92,8 @@ export interface NotificationsDeps {
   fetchImpl: typeof fetch;
   serverName(serverId: string): string | undefined;
   machineName(machineId: string): string | undefined;
+  /** Lot 8 : l'utilisateur a-t-il le droit de voir cet événement (droits par serveur) ? Défaut : oui. */
+  visibleTo?: (userId: string, event: EventDto) => boolean;
 }
 
 export class NotificationsService {
@@ -298,6 +300,7 @@ export class NotificationsService {
       const event: EventDto = { ...row, payload: parseJson<unknown>(row.payload, null) };
       const type = notificationTypeOf(event);
       if (type === undefined || !prefs[type]) continue;
+      if (this.deps.visibleTo?.(userId, event) === false) continue;
       notifications.push(event);
       if (notifications.length >= limit) break;
     }
@@ -330,6 +333,7 @@ export class NotificationsService {
       .all();
     for (const user of recipients) {
       if (!this.enabled(user.id, 'push', type)) continue;
+      if (this.deps.visibleTo?.(user.id, event) === false) continue;
       if (this.subscriptions(user.id).length === 0) continue;
       const payload = this.render(event, user.locale);
       if (payload === undefined) continue;

@@ -1164,7 +1164,22 @@ export const webFr = {
       deleteTitle: 'Supprimer {{username}} ?',
       deleteConfirm: 'Le compte est supprimé définitivement et ses sessions fermées.',
       rolesHint:
-        'Administrateur : tout, y compris ces réglages. Opérateur : pilote les serveurs (démarrage, console, fichiers, sauvegardes). Lecture seule : consulte sans rien modifier.',
+        'Administrateur : tout, y compris ces réglages. Opérateur : pilote les serveurs (démarrage, console, fichiers, sauvegardes). Lecture seule : consulte sans rien modifier. « Serveurs choisis » limite un opérateur ou un lecteur aux serveurs et machines que vous lui accordez — son rôle est alors le maximum de ce qu’il peut y faire.',
+      access: 'Accès',
+      accessAll: 'Tout le panel',
+      accessScoped: 'Serveurs choisis',
+      grants: 'Serveurs…',
+      grantsTitle: 'Ce que voit {{username}}',
+      grantsHint:
+        'Une machine accordée couvre tous ses serveurs, y compris ceux détectés plus tard. Un serveur accordé donne aussi accès à la page de sa machine (en lecture). Tout le reste lui est invisible : ni listé, ni notifié, ni trouvable.',
+      grantsMachines: 'Machines',
+      grantsServers: 'Serveurs',
+      grantsNone: 'Rien d’accordé pour l’instant : ce compte ne voit aucun serveur.',
+      grantsCoveredByMachine: 'couvert par la machine',
+      grantsRole: 'Rôle',
+      grantsSaved: 'Droits enregistrés — ses pages ouvertes se rechargent.',
+      grantsCeiling:
+        'Au-dessus de « {{role}} », rien n’est proposé : le rôle du compte est le plafond.',
     },
     audit: {
       title: 'Journal d’audit',

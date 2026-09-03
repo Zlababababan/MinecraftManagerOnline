@@ -1,7 +1,8 @@
 /**
  * Hub des navigateurs connectés à `/ws/client` (doc 07 phase 4) : diffusion des événements du bus,
  * des états serveurs, des heartbeats machines et des flux console par canal (`console:<serverId>`).
- * Tout utilisateur authentifié reçoit les événements (droits par serveur : extension future, doc 04).
+ * Lot 8 : chaque message diffusé passe par `filter` (droits par serveur — un compte limité ne
+ * reçoit que ce qui concerne ses portées) et chaque abonnement par `canSubscribe`.
  */
 import type { FastifyBaseLogger } from 'fastify';
 import type { WebSocket } from 'ws';
@@ -32,7 +33,17 @@ export interface ClientHubOptions {
   onUnsubscribe: (channel: string) => void;
   /** Seuils de contre-pression (défaut `BACKPRESSURE` ; abaissés en test). */
   backpressure?: { dropAboveBytes: number; closeAboveBytes: number };
+  /**
+   * Lot 8 : ce qu'une connexion a le droit de recevoir d'un message diffusé — le message, une
+   * copie retaillée, ou `undefined` (rien). Défaut : tout le monde reçoit tout.
+   */
+  filter?: (conn: ClientConnection, message: ServerMessage) => ServerMessage | undefined;
+  /** Lot 8 : abonnement refusé → `error E_NOT_FOUND` sur le canal, sans rien inscrire. */
+  canSubscribe?: (conn: ClientConnection, channel: string) => boolean;
 }
+
+/** Code de fermeture « droits modifiés » : le front se reconnecte et relit ses listes. */
+export const CLOSE_PERMISSIONS_CHANGED = 4002;
 
 export class ClientHub {
   private readonly connections = new Map<number, ClientConnection>();
@@ -113,15 +124,27 @@ export class ClientHub {
     return conn;
   }
 
-  /** Déconnecte toutes les sessions d'un utilisateur (désactivation, suppression, changement de rôle). */
-  disconnectUser(userId: string, reason = 'session revoked'): void {
+  /**
+   * Déconnecte toutes les sessions d'un utilisateur (désactivation, suppression, changement de
+   * rôle : 4001, le front n'insiste pas ; droits modifiés : `CLOSE_PERMISSIONS_CHANGED`, le
+   * front se reconnecte aussitôt et ses abonnements sont rejugés).
+   */
+  disconnectUser(userId: string, reason = 'session revoked', code = 4001): void {
     for (const conn of this.connections.values()) {
-      if (conn.user.id === userId) conn.close(4001, reason);
+      if (conn.user.id === userId) conn.close(code, reason);
     }
   }
 
   broadcast(message: ServerMessage): void {
-    for (const conn of this.connections.values()) conn.send(message);
+    const filter = this.options.filter;
+    for (const conn of this.connections.values()) {
+      if (filter === undefined) {
+        conn.send(message);
+        continue;
+      }
+      const allowed = filter(conn, message);
+      if (allowed !== undefined) conn.send(allowed);
+    }
   }
 
   publish(channel: string, message: ServerMessage): void {
@@ -175,6 +198,15 @@ export class ClientHub {
   }
 
   private subscribe(conn: ClientConnection, channel: string): void {
+    if (this.options.canSubscribe?.(conn, channel) === false) {
+      // Même réponse qu'un serveur inexistant : un compte limité n'énumère pas le parc.
+      conn.send({
+        type: 'error',
+        channel,
+        error: { code: 'E_NOT_FOUND', message: `channel ${channel} not found` },
+      });
+      return;
+    }
     let subs = this.channels.get(channel);
     const first = subs === undefined || subs.size === 0;
     if (!subs) {

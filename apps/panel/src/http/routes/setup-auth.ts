@@ -9,6 +9,7 @@ import {
   setupStatusSchema,
   updateMeSchema,
   userDtoSchema,
+  userGrantsDtoSchema,
 } from '@mmo/protocol/client';
 
 import type { AppContext } from '../../context.js';
@@ -151,6 +152,7 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
             scheduleTimezone: z.string(),
             panelUpdate: z.object({ current: z.string(), latest: z.string() }).nullable(),
             privacy: z.object({ externalAvatars: z.boolean() }),
+            grants: userGrantsDtoSchema.nullable(),
           }),
         },
       },
@@ -162,6 +164,9 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
       const latest = user.role === 'admin' ? ctx.updateCheck.latestAvailable() : undefined;
       return {
         user: toUserDto(user),
+        // Lot 8 : un compte limité reçoit ses portées pour que le front calcule le rôle effectif
+        // par serveur (boutons, onglets) sans requête par page ; `null` = son rôle vaut partout.
+        grants: user.scoped === 1 ? ctx.permissions.grantsOf(user.id) : null,
         // Le fuseau dans lequel les planifications sont LUES. Il voyage ici parce que tout
         // utilisateur connecté en a besoin dès qu'il saisit une heure, alors que la route des réglages
         // est réservée aux administrateurs.

@@ -1,10 +1,14 @@
-/** Gestion des comptes (admin). */
+/**
+ * Gestion des comptes (admin). Lot 8 : `scoped` et les portées accordées
+ * (`GET|PUT /api/users/:id/grants`) — un compte limité ne voit que ses serveurs et machines.
+ */
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 
-import { createUserSchema, updateUserSchema } from '@mmo/protocol/client';
+import { createUserSchema, updateUserSchema, userGrantsInputSchema } from '@mmo/protocol/client';
 
+import { CLOSE_PERMISSIONS_CHANGED } from '../../clients/hub.js';
 import type { AppContext } from '../../context.js';
 import { conflict } from '../../errors.js';
 import { toUserDto } from '../../services/users.js';
@@ -31,7 +35,7 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
         targetType: 'user',
         targetId: user.id,
         targetLabel: user.username,
-        details: { role: user.role },
+        details: { role: user.role, scoped: user.scoped === 1 },
       });
       return reply.code(201).send({ user: toUserDto(user) });
     },
@@ -44,11 +48,21 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
       const me = requireUser(request);
       const { id } = request.params;
       const body = request.body;
-      if (id === me.id && (body.role !== undefined || body.isActive === false)) {
+      if (
+        id === me.id &&
+        (body.role !== undefined || body.isActive === false || body.scoped !== undefined)
+      ) {
         throw conflict('use another admin account to change your own role or status');
       }
       const user = await ctx.users.update(id, body);
-      if (body.isActive === false || body.password !== undefined || body.role !== undefined) {
+      // Rôle abaissé : les portées accordées au-dessus redescendent avec lui.
+      if (body.role !== undefined) ctx.permissions.clampToRole(id, body.role);
+      if (
+        body.isActive === false ||
+        body.password !== undefined ||
+        body.role !== undefined ||
+        body.scoped !== undefined
+      ) {
         ctx.sessions.revokeAllForUser(id);
         ctx.hub.disconnectUser(id);
       }
@@ -82,6 +96,42 @@ export function registerUserRoutes(app: FastifyInstance, ctx: AppContext): void 
         targetLabel: target.username,
       });
       return reply.code(204).send();
+    },
+  );
+
+  // --- Lot 8 : portées accordées à un compte limité --------------------------------------------
+
+  r.get(
+    '/api/users/:id/grants',
+    { config: { role: 'admin' }, schema: { params: idParams } },
+    (request) => {
+      ctx.users.require(request.params.id);
+      return { grants: ctx.permissions.grantsOf(request.params.id) };
+    },
+  );
+
+  r.put(
+    '/api/users/:id/grants',
+    { config: { role: 'admin' }, schema: { params: idParams, body: userGrantsInputSchema } },
+    (request) => {
+      const { id } = request.params;
+      const target = ctx.users.require(id);
+      const grants = ctx.permissions.setGrants(
+        id,
+        request.body,
+        (serverId) => ctx.servers.get(serverId) !== undefined,
+      );
+      // Ses navigateurs se reconnectent aussitôt : listes relues, abonnements console rejugés.
+      ctx.hub.disconnectUser(id, 'permissions changed', CLOSE_PERMISSIONS_CHANGED);
+      ctx.audit.record({
+        ...auditMeta(request),
+        action: 'user.grantsUpdated',
+        targetType: 'user',
+        targetId: id,
+        targetLabel: target.username,
+        details: { servers: grants.servers, machines: grants.machines },
+      });
+      return { grants };
     },
   );
 }

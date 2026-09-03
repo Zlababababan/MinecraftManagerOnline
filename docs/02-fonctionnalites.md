@@ -105,7 +105,9 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 | Comptes multi-utilisateurs, rôles : administrateur / opérateur / lecture seule | V1 |
 | Journal d'audit : qui a fait quoi, quand | V1 |
 | Accès distant via réseau privé Tailscale (aucun port exposé sur Internet) | V1 |
-| Permissions par serveur (restreindre un utilisateur à certains serveurs) | Futur |
+| Permissions par serveur et par machine (restreindre un utilisateur à certains serveurs, ou à une machine entière) | V1 |
+
+> **Ajout (lot 8, 2026-09-03) — droits par serveur.** Un compte peut être **limité** (« Accès : serveurs choisis ») : il ne voit que les serveurs et machines qui lui sont accordés, chacun avec un rôle (lecture ou opérateur) plafonné par le rôle du compte ; une machine accordée couvre tous ses serveurs, présents et futurs ; un serveur accordé rend la page de sa machine lisible. Tout le reste lui est invisible — listes, temps réel, console, notifications, événements — et un serveur hors portée répond « introuvable », pas « interdit ». Un administrateur n'est jamais limité.
 
 ## 10. Notifications et événements
 

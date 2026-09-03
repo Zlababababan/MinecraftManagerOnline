@@ -81,3 +81,15 @@ A folder containing a `velocity.toml` is recognized at scan time as a **Velocity
 A few differences are by design: no Minecraft version is shown (a proxy has none), no RCON and no TPS (the metrics panel explains why), the clean stop uses Velocity's `shutdown` command, the port and MOTD are read from `velocity.toml`, and there is no EULA to accept. Java 17 is used to launch it.
 
 The machine's agent must be up to date to detect proxies — an older agent simply ignores them.
+
+## 11. Share with friends: accounts limited to some servers
+
+A friend who hosts one of the machines, or who only plays on one server, should not get the whole panel. Settings → Users has an **Access** column next to the role: **Whole panel** (the historical behaviour: the role applies everywhere) or **Chosen servers**. With the second, the **Servers…** button opens what the account can see:
+
+- a **machine** grants every server on it, including servers detected later — the right choice for "he manages his own machine";
+- a **server** grants that server only, and lets them open its machine page read-only (metrics, agent status);
+- each line carries a role, **viewer** or **operator**, never above the role of the account: an account created as viewer stays a viewer everywhere.
+
+Everything else does not exist for that account: not in the lists, not in the live updates, not in the console, not in the notifications, and a direct link to another server answers "not found" rather than "forbidden". Changing the access setting signs the account out (like a role change); changing the granted servers only reloads its open pages. Administrators always see everything and cannot be limited.
+
+Group actions run on every server of the group, so a limited account can only launch a group when it is operator on each of its members.

@@ -49,7 +49,8 @@ import {
 import { tDynamic } from '../../i18n/index.js';
 import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
-import { formatDateTime, formatDuration, hasRole } from '../../lib/format.js';
+import { formatDateTime, formatDuration } from '../../lib/format.js';
+import { canServer } from '../../lib/permissions.js';
 import { ErrorAlert } from '../ErrorAlert.js';
 import { PlayerAvatar } from './PlayerAvatar.js';
 import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
@@ -734,8 +735,7 @@ export function PlayersPanel({ server }: { server: ServerDto }) {
   const { t } = useT();
   const me = useMe();
   const [view, setView] = useState<PlayerView>('online');
-  const canOperate =
-    me.data !== undefined && hasRole(me.data.user.role, 'operator') && server.reachable;
+  const canOperate = canServer(me.data, server, 'operator') && server.reachable;
   const props = useConfigFile(server.id, 'server.properties');
   const offline = (props.data?.data['online-mode'] ?? 'true').toLowerCase() === 'false';
   return (

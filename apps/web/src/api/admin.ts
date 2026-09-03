@@ -1,14 +1,45 @@
-/** API d'administration (rôle admin) : comptes utilisateurs et journal d'audit. */
+/**
+ * API d'administration (rôle admin) : comptes utilisateurs, portées accordées (lot 8) et journal
+ * d'audit.
+ */
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import type { AuditDto, CreateUserInput, UpdateUserInput, UserDto } from '@mmo/protocol/client';
+import type {
+  AuditDto,
+  CreateUserInput,
+  UpdateUserInput,
+  UserDto,
+  UserGrantsDto,
+  UserGrantsInput,
+} from '@mmo/protocol/client';
 
 import { api } from './client.js';
 
 const adminKeys = {
   users: ['admin', 'users'] as const,
+  grants: (id: string) => ['admin', 'users', id, 'grants'] as const,
   audit: (limit: number) => ['admin', 'audit', limit] as const,
 };
+
+export const userGrantsQuery = (id: string) =>
+  queryOptions({
+    queryKey: adminKeys.grants(id),
+    queryFn: ({ signal }) => api.get<{ grants: UserGrantsDto }>(`/api/users/${id}/grants`, signal),
+  });
+
+export const useUserGrants = (id: string) => useQuery(userGrantsQuery(id));
+
+export function useSetUserGrants(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UserGrantsInput) =>
+      api.put<{ grants: UserGrantsDto }>(`/api/users/${id}/grants`, input),
+    onSuccess: (data) => {
+      queryClient.setQueryData(adminKeys.grants(id), data);
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'audit'] });
+    },
+  });
+}
 
 export const usersQuery = queryOptions({
   queryKey: adminKeys.users,

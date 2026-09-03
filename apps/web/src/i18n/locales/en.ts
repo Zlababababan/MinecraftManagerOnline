@@ -1152,7 +1152,21 @@ export const webEn = {
       deleteTitle: 'Delete {{username}}?',
       deleteConfirm: 'The account is permanently deleted and its sessions closed.',
       rolesHint:
-        'Administrator: everything, including these settings. Operator: runs servers (start, console, files, backups). Viewer: read-only.',
+        'Administrator: everything, including these settings. Operator: runs servers (start, console, files, backups). Viewer: read-only. “Chosen servers” limits an operator or a viewer to the servers and machines you grant — the role is then the most they can do there.',
+      access: 'Access',
+      accessAll: 'Whole panel',
+      accessScoped: 'Chosen servers',
+      grants: 'Servers…',
+      grantsTitle: 'What {{username}} can see',
+      grantsHint:
+        'A granted machine covers every server on it, including servers detected later. A granted server also lets them open its machine page (read-only). Everything else is invisible to them: not listed, not notified, not found.',
+      grantsMachines: 'Machines',
+      grantsServers: 'Servers',
+      grantsNone: 'Nothing granted yet: this account sees no server at all.',
+      grantsCoveredByMachine: 'covered by the machine',
+      grantsRole: 'Role',
+      grantsSaved: 'Rights saved — their open pages reload.',
+      grantsCeiling: 'Roles above “{{role}}” are not offered: the account role is the ceiling.',
     },
     audit: {
       title: 'Audit log',
