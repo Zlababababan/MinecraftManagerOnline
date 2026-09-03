@@ -22,6 +22,7 @@ import { registerPhase9Routes } from './http/routes/phase9.js';
 import { registerPhase10Routes } from './http/routes/phase10.js';
 import { registerPhase11Routes } from './http/routes/phase11.js';
 import { registerReplicationRoutes } from './http/routes/replication.js';
+import { registerStatusPageRoutes } from './http/routes/status-page.js';
 import { registerServerRoutes } from './http/routes/servers.js';
 import { registerSetupAndAuthRoutes } from './http/routes/setup-auth.js';
 import { registerTaskRoutes } from './http/routes/tasks.js';
@@ -83,6 +84,7 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
     ...(options.publicRateLimit === undefined ? {} : { publicRateLimit: options.publicRateLimit }),
     ...(options.backpressure === undefined ? {} : { backpressure: options.backpressure }),
     ...(options.webhooks === undefined ? {} : { webhooks: options.webhooks }),
+    ...(options.statusPages === undefined ? {} : { statusPages: options.statusPages }),
   });
 
   await app.register(cookie);
@@ -108,6 +110,7 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   registerPhase11Routes(app, ctx);
   registerWebhookRoutes(app, ctx);
   registerReplicationRoutes(app, ctx);
+  registerStatusPageRoutes(app, ctx);
   registerWsRoutes(app, ctx);
 
   // Phase 10 : après `listen`, le listener HTTPS du mode direct délègue au serveur HTTP de Fastify.

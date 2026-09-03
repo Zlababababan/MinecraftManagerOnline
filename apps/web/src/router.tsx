@@ -1,5 +1,6 @@
 /**
- * Routeur (TanStack Router, code-based) : `/setup`, `/login` publics ; tout le reste derrière
+ * Routeur (TanStack Router, code-based) : `/setup`, `/login`, `/s/<jeton>` (page de statut
+ * publique, lot 8) publics ; tout le reste derrière
  * `requireUser` (401 → `/login`, ou `/setup` si `details.setupRequired`). Gardes par rôle via
  * `requireRole`. Les données de session viennent du cache TanStack Query (`meQuery`).
  */
@@ -34,6 +35,7 @@ import { MachinesPage } from './pages/MachinesPage.js';
 import { ServersPage } from './pages/ServersPage.js';
 import { filterToSearch, searchToFilter } from './lib/server-filter.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
+import { PublicStatusPage } from './pages/PublicStatusPage.js';
 import { SERVER_TABS, ServerPage, type ServerTab } from './pages/ServerPage.js';
 import { SettingsPage } from './pages/SettingsPage.js';
 import { SetupPage } from './pages/SetupPage.js';
@@ -96,6 +98,19 @@ const loginRoute = createRoute({
     throw redirect({ to: '/' });
   },
   component: LoginPage,
+});
+
+/**
+ * Lot 8 — page de statut publique : hors de `appRoute`, donc sans session, sans Shell et sans
+ * temps réel. Le jeton vient de l'URL et ne sert qu'à interroger `/api/status/:token`.
+ */
+const publicStatusRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/s/$token',
+  component: function PublicStatusRoute() {
+    const { token } = publicStatusRoute.useParams();
+    return <PublicStatusPage token={token} />;
+  },
 });
 
 function AppLayout() {
@@ -213,6 +228,7 @@ const settingsRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   setupRoute,
   loginRoute,
+  publicStatusRoute,
   appRoute.addChildren([
     indexRoute,
     serversRoute,

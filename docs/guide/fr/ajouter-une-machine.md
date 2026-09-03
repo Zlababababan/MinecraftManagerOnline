@@ -107,3 +107,23 @@ Ce qu'une clé peut faire est borné deux fois : par son propre rôle, choisi à
 ## 13. Appareils connectés
 
 Votre page **Compte** liste chaque navigateur connecté à votre compte : quel navigateur et quel système, depuis quelle adresse, la dernière activité, et quelle ligne est **cet appareil**. **Déconnecter** met fin à la session de ce navigateur sur-le-champ — ses pages perdent leur connexion en direct et retombent sur l'écran de connexion. **Déconnecter les autres appareils** ne garde que celui que vous utilisez : le bon geste quand vous pensez que quelqu'un connaît votre mot de passe, juste après l'avoir changé. Les sessions expirent d'elles-mêmes après 30 jours sans activité. Un administrateur peut aussi déconnecter un compte de partout depuis Réglages → Utilisateurs (**Déconnecter partout**), par exemple quand un ami quitte le serveur.
+
+## 14. Une page de statut publique pour les amis
+
+Vos amis n'ont pas besoin d'un compte pour savoir si le serveur tourne. Sur la vue d'ensemble d'un serveur, la carte **Page de statut publique** publie un lien à leur donner :
+
+```
+https://panel.example.ts.net/s/UkZ0bE1nQ2h5Zg
+```
+
+La page montre le nom du serveur, s'il est en ligne, **l'adresse à copier** dans le client Minecraft, la version, le message d'accueil (MOTD), le nombre de joueurs connectés et l'heure de la prochaine sauvegarde. Elle ne montre rien d'autre : ni chemin de dossier, ni machine, ni identifiant, et il n'y a aucun bouton — on ne démarre, n'arrête et ne configure rien depuis cette page.
+
+Les **pseudos** ne sont affichés que si vous cochez « Afficher les pseudos des joueurs connectés » : par défaut, la page dit « 3 joueurs » sans dire lesquels. Demandez leur accord avant de les publier.
+
+Trois choses à savoir :
+
+- **Le lien est le mot de passe.** Il n'est pas devinable, mais quiconque l'a peut voir la page ; ne le publiez que là où vous le voulez bien. **Changer de lien** en fabrique un nouveau et tue l'ancien sur-le-champ — le geste à faire si le lien a fuité.
+- **Désactiver garde le lien.** Le bouton « Publier une page de statut » suffit à fermer la page ; en la rouvrant plus tard, vos amis retrouvent l'adresse qu'ils ont mise en favori.
+- **Le lien n'est joignable que là où le panel l'est.** Si votre panel passe par Tailscale, la page suit : elle est visible par les appareils du tailnet, pas par Internet.
+
+Quand la machine est éteinte ou que son agent est arrêté, le panel interroge directement le serveur (le même « ping » que les clients Minecraft) : la page reste juste, même si le panel n'a plus d'agent pour le lui dire. L'état est mis en cache quelques secondes : rafraîchir la page en boucle ne dérange pas le serveur.

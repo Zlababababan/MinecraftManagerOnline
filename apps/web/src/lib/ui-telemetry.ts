@@ -4,7 +4,7 @@
  * de contenu de champ : uniquement des identifiants d'éléments et des chemins de page.
  * Installé depuis `main.tsx` (jamais dans les tests) ; toute erreur d'envoi est silencieuse.
  */
-import type { UiEventInput } from '@mmo/protocol/client';
+import { STATUS_PAGE_PREFIX, type UiEventInput } from '@mmo/protocol/client';
 
 const FLUSH_INTERVAL_MS = 5000;
 const FLUSH_BATCH_SIZE = 25;
@@ -54,6 +54,9 @@ export function installUiTelemetry(): void {
   };
 
   const push = (event: UiEventInput): void => {
+    // Lot 8 : une page de statut publique n'est parcourue par personne d'identifiable — on n'y
+    // enregistre donc rien du tout (et la route d'envoi exigerait de toute façon une session).
+    if (location.pathname.startsWith(STATUS_PAGE_PREFIX)) return;
     if (queue.length >= MAX_QUEUE) return;
     queue.push(event);
     if (queue.length >= FLUSH_BATCH_SIZE) {

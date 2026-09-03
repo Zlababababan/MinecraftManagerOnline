@@ -840,6 +840,24 @@ export const apiKeys = sqliteTable(
   (t) => [index('idx_api_keys_user').on(t.userId)],
 );
 
+/**
+ * Page de statut publique d'un serveur (lot 8, doc 04 §1). Une ligne par serveur qui en a
+ * demandé une ; le jeton est stocké EN CLAIR — contrairement aux sessions et aux clés d'API — car
+ * c'est un lien à partager et à réafficher : il n'ouvre qu'une lecture anonyme et se change d'un
+ * clic (rotation). `show_players` est l'opt-in nominatif de la doc 04 §8.6 : sans lui, la page ne
+ * publie qu'un nombre de joueurs.
+ */
+export const serverStatusPages = sqliteTable('server_status_pages', {
+  serverId: text('server_id')
+    .primaryKey()
+    .references(() => servers.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  enabled: integer('enabled').notNull().default(0),
+  showPlayers: integer('show_players').notNull().default(0),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
 export type UserRow = typeof users.$inferSelect;
 export type ApiKeyRow = typeof apiKeys.$inferSelect;
 export type MachineRow = typeof machines.$inferSelect;
@@ -859,3 +877,4 @@ export type AlertRow = typeof alerts.$inferSelect;
 export type WebhookRow = typeof webhooks.$inferSelect;
 export type BackupReplicationRow = typeof backupReplication.$inferSelect;
 export type BackupReplicaRow = typeof backupReplicas.$inferSelect;
+export type ServerStatusPageRow = typeof serverStatusPages.$inferSelect;

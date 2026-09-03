@@ -36,6 +36,7 @@ import { ProcessedEventsService } from './services/processed-events.js';
 import { UpdateCheckService } from './services/update-check.js';
 import { WebhooksService, type WebhooksServiceOptions } from './services/webhooks.js';
 import { ReplicationService } from './services/replication.js';
+import { StatusPagesService, type StatusPagesDeps } from './services/status-pages.js';
 import { AlertsService, DEFAULT_THRESHOLDS } from './services/alerts.js';
 import { collectConditions } from './services/alert-conditions.js';
 import { CommandCatalogService } from './services/command-catalog.js';
@@ -106,6 +107,8 @@ export interface AppContext {
   webhooks: WebhooksService;
   /** Lot 4 : copies hors-site des archives vers une autre machine du parc (chaîne de migration). */
   replication: ReplicationService;
+  /** Lot 8 : page de statut publique d'un serveur (`/s/<jeton>`, lecture seule, anonyme). */
+  statusPages: StatusPagesService;
   /** `fetch` injectable (tests) pour les appels sortants du panel (manifest Mojang, API spark). */
   fetchImpl: typeof fetch | undefined;
   /**
@@ -146,6 +149,8 @@ export interface ContextOptions {
   backpressure?: { dropAboveBytes: number; closeAboveBytes: number };
   /** Lot 4 : webhooks — faux résolveur/transport et attentes courtes en test. */
   webhooks?: WebhooksServiceOptions;
+  /** Lot 8 : page de statut publique (ping injectable, cache court — tests). */
+  statusPages?: Pick<StatusPagesDeps, 'ping' | 'cacheMs' | 'pingTimeoutMs'>;
   fetch?: typeof fetch;
   /** Période du planificateur (0 = manuel, tests). */
   schedulerTickMs?: number;
@@ -478,6 +483,18 @@ export function createContext(options: ContextOptions): AppContext {
     fetchImpl: options.fetch ?? fetch,
     ...(options.access ?? {}),
   });
+  // Lot 8 : la page publique lit ce que le panel sait déjà (état, joueurs, politiques) et ne
+  // sollicite le réseau (ping Minecraft) que si aucun agent ne tient la machine.
+  const statusPages = new StatusPagesService({
+    db,
+    now,
+    servers,
+    backups,
+    registry,
+    access,
+    settings,
+    ...(options.statusPages ?? {}),
+  });
   // Lot 4 : webhooks sortants — même rendu localisé que le push, file par webhook.
   const webhooks = new WebhooksService({
     db,
@@ -541,6 +558,7 @@ export function createContext(options: ContextOptions): AppContext {
     updateCheck,
     webhooks,
     replication,
+    statusPages,
     fetchImpl: options.fetch,
     diagnostics: {
       startedAt: now(),

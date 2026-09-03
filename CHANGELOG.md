@@ -8,6 +8,17 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### A public status page for friends
+
+Every server can now publish a read-only page on an unguessable link — `https://your-panel/s/…` —
+to hand to the people who play there. It shows whether the server is up, **the address to copy**
+into the Minecraft client, the version, the MOTD, how many players are on and when the next backup
+runs. No account, no buttons, and nothing about your machines: no folder path, no identifier.
+Player names stay hidden until you tick **Show the names of players online**. Turning the page off
+keeps the link (your friends' bookmark survives); **Change the link** kills the old one at once.
+When the machine's agent is offline the panel asks the server directly, so the page stays honest,
+and the result is cached — refreshing in a loop bothers nobody.
+
 ### API keys
 
 A script, a home-automation box or a monitoring tool can now call the panel without your password.

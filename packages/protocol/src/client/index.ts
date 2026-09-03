@@ -1593,6 +1593,68 @@ export const reachabilityResultSchema = z.object({
 });
 export type ReachabilityResult = z.infer<typeof reachabilityResultSchema>;
 
+// --- Page de statut publique (lot 8) ------------------------------------------------------------
+
+/**
+ * Préfixe du chemin de la page publique : `/s/<jeton>`. Court exprès — le lien se lit à voix haute
+ * et se colle dans un salon Discord — mais le jeton, lui, n'est pas devinable.
+ */
+export const STATUS_PAGE_PREFIX = '/s/';
+/** Longueur exacte du jeton (16 octets en base64url) : 128 bits, impossible à énumérer. */
+export const STATUS_TOKEN_LENGTH = 22;
+
+/** Réglage de la page publique d'un serveur, vu par un opérateur (le jeton est en clair : c'est un lien à partager). */
+export const statusPageDtoSchema = z.object({
+  serverId: z.string(),
+  enabled: z.boolean(),
+  /** Opt-in nominatif (doc 04 §8.6) : sans lui, la page ne montre qu'un NOMBRE de joueurs. */
+  showPlayers: z.boolean(),
+  token: z.string(),
+  /** `/s/<jeton>` — à préfixer de l'origine si l'URL publique du panel n'est pas connue. */
+  path: z.string(),
+  /** URL absolue si `panel.publicUrl` est réglée, sinon `null`. */
+  url: z.string().nullable(),
+  createdAt: epochMsSchema,
+  updatedAt: epochMsSchema,
+});
+export type StatusPageDto = z.infer<typeof statusPageDtoSchema>;
+
+export const statusPageInputSchema = z.object({
+  enabled: z.boolean().optional(),
+  showPlayers: z.boolean().optional(),
+});
+export type StatusPageInput = z.infer<typeof statusPageInputSchema>;
+
+/**
+ * Ce qu'un inconnu muni du lien voit. Volontairement pauvre : aucun identifiant interne, aucun
+ * chemin disque, aucune machine, aucun PID, aucune adresse de joueur. `state` est simplifié
+ * (`crashed` n'est pas le sujet d'un ami : le serveur est en ligne ou il ne l'est pas).
+ */
+export const publicStatusSchema = z.object({
+  name: z.string(),
+  state: z.enum(['online', 'starting', 'stopping', 'offline', 'unknown']),
+  /** Adresse à copier dans le client Minecraft (`host:port`), `null` si le panel n'en connaît pas. */
+  address: z.string().nullable(),
+  version: z.string().nullable(),
+  loader: loaderSchema.nullable(),
+  motd: z.string().nullable(),
+  players: z.object({
+    online: z.int().nullable(),
+    max: z.int().nullable(),
+    /** Vide sans l'opt-in nominatif — un tableau vide ne veut donc pas dire « personne ». */
+    names: z.array(z.string()),
+    /** `true` quand les pseudos sont publiés (l'UI distingue « personne » de « non publié »). */
+    named: z.boolean(),
+  }),
+  /** Prochaine sauvegarde programmée (jamais la destination, jamais le chemin). */
+  nextBackupAt: epochMsSchema.nullable(),
+  /** D'où vient cet état : l'agent, un ping Minecraft de repli, ou rien du tout. */
+  source: z.enum(['agent', 'ping', 'none']),
+  /** Instant du calcul : la page est servie depuis un cache court. */
+  updatedAt: epochMsSchema,
+});
+export type PublicStatus = z.infer<typeof publicStatusSchema>;
+
 // --- WebSocket /ws/client ----------------------------------------------------------------------------
 
 /** Messages front → panel. */

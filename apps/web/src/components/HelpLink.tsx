@@ -53,6 +53,11 @@ export const HELP_TOPICS = {
     en: 'add-a-machine.md#12-api-keys',
     fr: 'fr/ajouter-une-machine.md#12-clés-dapi',
   },
+  /** Lot 8 : page de statut publique — lien à partager, ce qu'elle montre, opt-in nominatif. */
+  statusPage: {
+    en: 'add-a-machine.md#14-a-public-status-page-for-friends',
+    fr: 'fr/ajouter-une-machine.md#14-une-page-de-statut-publique-pour-les-amis',
+  },
   /** Lot 8 : appareils connectés — voir et déconnecter ses sessions. */
   sessions: {
     en: 'add-a-machine.md#13-signed-in-devices',

@@ -106,12 +106,15 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 | Journal d'audit : qui a fait quoi, quand | V1 |
 | Accès distant via réseau privé Tailscale (aucun port exposé sur Internet) | V1 |
 | Permissions par serveur et par machine (restreindre un utilisateur à certains serveurs, ou à une machine entière) | V1 |
+| Page de statut publique par serveur (lien non devinable, lecture seule, sans compte) | V1 |
 
 > **Ajout (lot 8, 2026-09-03) — droits par serveur.** Un compte peut être **limité** (« Accès : serveurs choisis ») : il ne voit que les serveurs et machines qui lui sont accordés, chacun avec un rôle (lecture ou opérateur) plafonné par le rôle du compte ; une machine accordée couvre tous ses serveurs, présents et futurs ; un serveur accordé rend la page de sa machine lisible. Tout le reste lui est invisible — listes, temps réel, console, notifications, événements — et un serveur hors portée répond « introuvable », pas « interdit ». Un administrateur n'est jamais limité.
 
 > **Ajout (lot 8, 2026-09-03) — clés d'API.** Chaque compte crée ses clés (page Compte : nom, rôle, expiration ; jeton `mmo_…` montré une fois, `Authorization: Bearer`). Le rôle effectif est le plus faible entre la clé et son propriétaire, et une clé d'un compte limité ne voit que ses serveurs : une clé n'élève jamais un compte, et suit sa rétrogradation, sa désactivation, sa suppression. Une clé ne gère ni compte, ni comptes, ni clés (routes réservées au cookie). Dernière utilisation (date, adresse) affichée ; révocation immédiate ; les administrateurs voient et révoquent toutes les clés (Réglages) ; audit `apikey.created/revoked`, et toute action faite par une clé est auditée au nom du compte ET de la clé.
 
 > **Ajout (lot 8, 2026-09-03) — appareils connectés.** La page Compte liste les sessions du compte (navigateur résumé, adresse, dernière activité, « cet appareil ») ; chacune se déconnecte, ou toutes les autres d'un bouton — le geste quand on soupçonne un accès indésirable. La session d'un autre compte n'existe pas (404). Un administrateur peut déconnecter un compte de tous ses appareils (Réglages → Utilisateurs). Audit `auth.sessionRevoked`, `auth.sessionsRevoked`, `user.sessionsRevoked`.
+> **Ajout (lot 8, 2026-09-03) — page de statut publique.** Chaque serveur peut publier une page en **lecture seule** sur un chemin non devinable (`/s/<jeton>`, 128 bits), activée explicitement, à donner à des amis : nom, état, adresse à copier, version, MOTD, nombre de joueurs, prochaine sauvegarde. Aucun compte, aucune action, aucun chemin disque, aucune machine, aucun identifiant interne — et **aucun pseudo sans opt-in** (case « Afficher les pseudos », décochée par défaut). Le résultat est mis en cache quelques secondes ; quand aucun agent ne tient la machine, le panel interroge le serveur lui-même (Server List Ping). Désactiver garde le lien, « Changer de lien » le tue sur-le-champ. Audit `server.statusPage` / `server.statusPageRotated` — jamais le jeton.
+
 
 ## 10. Notifications et événements
 

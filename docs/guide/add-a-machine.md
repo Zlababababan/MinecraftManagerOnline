@@ -107,3 +107,23 @@ What a key can do is bounded twice: by its own role, chosen when it is created, 
 ## 13. Signed-in devices
 
 Your **Account** page lists every browser signed in to your account: which browser and system, from which address, last activity, and which line is **this device**. **Sign out** ends that browser's session at once — its pages lose their live connection and land on the sign-in screen. **Sign out other devices** keeps only the one you are using: the right move when you suspect someone knows your password, right after changing it. Sessions expire on their own after 30 days without use. An administrator can also sign an account out everywhere from Settings → Users (**Sign out everywhere**), for instance when a friend leaves the server.
+
+## 14. A public status page for friends
+
+Your friends do not need an account to know whether the server is up. On a server's overview, the **Public status page** card publishes a link to hand them:
+
+```
+https://panel.example.ts.net/s/UkZ0bE1nQ2h5Zg
+```
+
+The page shows the server name, whether it is online, **the address to copy** into the Minecraft client, the version, the message of the day (MOTD), how many players are connected and when the next backup runs. It shows nothing else: no folder path, no machine, no identifier — and there is no button at all, so nothing can be started, stopped or configured from it.
+
+**Player names** appear only if you tick "Show the names of players online": by default the page says "3 players" without saying who. Ask them before publishing their names.
+
+Three things to know:
+
+- **The link is the password.** It cannot be guessed, but anyone holding it can see the page, so publish it only where you mean to. **Change the link** mints a new one and kills the old one immediately — the move to make if a link leaks.
+- **Turning it off keeps the link.** The "Publish a status page" switch is enough to close the page; reopen it later and your friends' bookmark still works.
+- **The link only reaches as far as your panel does.** If your panel is behind Tailscale, so is the page: devices on the tailnet can see it, the Internet cannot.
+
+When the machine is off or its agent is stopped, the panel asks the server itself (the same "ping" Minecraft clients use), so the page stays honest even with no agent to report. The result is cached for a few seconds: refreshing in a loop never bothers the server.

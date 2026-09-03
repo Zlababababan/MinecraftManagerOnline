@@ -46,6 +46,7 @@ import { ScrollableTabsList } from '../components/ScrollableTabsList.js';
 import { RunStateBadge } from '../components/badges.js';
 import { EulaCard } from '../components/config/EulaCard.js';
 import { PlayerAccessCard } from '../components/access/PlayerAccessCard.js';
+import { StatusPageCard } from '../components/access/StatusPageCard.js';
 import { MigrationsCard } from '../components/migration/MigrationPanel.js';
 import { ServerActions } from '../components/ServerActions.js';
 import { serverSubtitle } from '../components/ServerCard.js';
@@ -207,6 +208,7 @@ function Overview({ server }: { server: ServerDto }) {
         </Card>
       )}
       <PlayerAccessCard server={server} />
+      <StatusPageCard server={server} />
       <MigrationsCard server={server} />
     </Stack>
   );

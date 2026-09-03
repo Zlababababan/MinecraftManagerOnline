@@ -1,4 +1,7 @@
-/** Télémétrie UI : clics identifiés, navigations, envoi par lots, échec silencieux. */
+/**
+ * Télémétrie UI : clics identifiés, navigations, envoi par lots, échec silencieux — et rien du
+ * tout depuis une page de statut publique (lot 8).
+ */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { installUiTelemetry } from './ui-telemetry.js';
@@ -59,6 +62,24 @@ describe('installUiTelemetry', () => {
     const { events } = lastBatch(fetchMock);
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({ kind: 'nav', page: '/servers/s1' });
+  });
+
+  // Lot 8 : une page de statut publique est visitée par des inconnus, sans compte — rien de leur
+  // passage ne remonte au panel, ni la navigation, ni les clics.
+  it('n’enregistre rien depuis une page de statut publique', () => {
+    history.pushState({}, '', '/s/aaaaaaaaaaaaaaaaaaaaaa');
+    document.body.innerHTML = '<button data-testid="copier"></button>';
+    document.querySelector('button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    vi.advanceTimersByTime(60_000);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // De retour sur une page du panel, l'enregistrement reprend : c'est une garde par chemin,
+    // pas un interrupteur global (et la file repart vide pour les tests suivants).
+    history.pushState({}, '', '/');
+    vi.advanceTimersByTime(5000);
+    expect(lastBatch(fetchMock).events).toEqual([
+      expect.objectContaining({ kind: 'nav', page: '/' }),
+    ]);
   });
 
   it("l'échec d'envoi est silencieux", async () => {

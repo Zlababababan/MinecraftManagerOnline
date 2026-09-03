@@ -24,7 +24,7 @@ export interface PublicRateLimitOptions {
 
 export const PUBLIC_RATE_LIMIT = { max: 120, windowMs: 60_000 } as const;
 
-export type PublicSurface = 'relay' | 'distribution' | 'ws-agent';
+export type PublicSurface = 'relay' | 'distribution' | 'ws-agent' | 'status';
 
 export class PublicRateLimits {
   private readonly limiters = new Map<PublicSurface, RateLimiter>();
