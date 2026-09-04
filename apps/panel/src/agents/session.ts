@@ -37,6 +37,7 @@ import type { ProcessedEventsService } from '../services/processed-events.js';
 import type { ServersService } from '../services/servers.js';
 import type { TasksService } from '../services/tasks.js';
 import type { TransferService } from '../services/transfers.js';
+import type { InstallsService } from '../services/installs.js';
 import type { ReplicationService } from '../services/replication.js';
 import type { TaskRow } from '../db/schema.js';
 import type { ConsoleRelay } from './console.js';
@@ -62,6 +63,8 @@ export interface AgentSessionDeps {
   transfers: TransferService;
   /** Lot 4 : copies hors-site (ordonnées après une archive réussie, closes à l'issue de la task). */
   replication: ReplicationService;
+  /** Lot 5 : issue des installations de serveur. */
+  installs: InstallsService;
   /** Phase 9. */
   releases: ReleasesService;
   javaRuntimes: JavaRuntimesService;
@@ -327,6 +330,8 @@ export class AgentSession {
     // Lot 4 : copie hors-site reçue (ou rapatriement) — la fiche de copie et, le cas échéant, la
     // fiche de sauvegarde suivent l'issue, succès comme échec.
     if (row.kind === 'backup.receive') this.deps.replication.onTaskFinished(row, machineId);
+    // Lot 5 : le serveur devient utilisable, ou reste en `install_failed` — jamais entre les deux.
+    if (row.kind === 'server.install') this.deps.installs.onTaskFinished(row, machineId);
     if (row.status === 'done') {
       if (row.kind === 'backup.create' || row.kind === 'migration.export') {
         const manifest = backupManifestSchema.safeParse(result);

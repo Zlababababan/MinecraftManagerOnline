@@ -18,7 +18,7 @@ import {
 import { useForm } from '@mantine/form';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
-import { IconFolderPlus, IconKey, IconRadar, IconTrash } from '@tabler/icons-react';
+import { IconFolderPlus, IconKey, IconPlus, IconRadar, IconTrash } from '@tabler/icons-react';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useT } from '../i18n/hooks.js';
@@ -52,6 +52,7 @@ import { PairingCodeCard } from '../components/PairingCodeCard.js';
 import { ServerCard } from '../components/ServerCard.js';
 import { describeError } from '../lib/errors.js';
 import { formatDateTime, hasRole } from '../lib/format.js';
+import { CreateServerModal } from '../components/machine/CreateServerModal.js';
 import { canMachine } from '../lib/permissions.js';
 import { useNow } from '../lib/hooks.js';
 import { TECHNICAL_INPUT_PROPS } from '../lib/inputs.js';
@@ -75,6 +76,7 @@ export function MachinePage({ machineId }: { machineId: string }) {
   const [pairing, setPairing] = useState<PairingCodeDto | undefined>(undefined);
   const [scanResult, setScanResult] = useState<ScanResult | undefined>(undefined);
   const [addServerOpen, setAddServerOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const dirForm = useForm({
     initialValues: { path: '' },
     validate: { path: (v) => (v.trim() === '' ? t('web:errors.validation') : null) },
@@ -92,6 +94,9 @@ export function MachinePage({ machineId }: { machineId: string }) {
   if (machine.error) return <ErrorAlert error={machine.error} />;
   const m = machine.data.machine;
   const canOperate = canMachine(me.data, m.id, 'operator');
+  // Lot 5 : creer un serveur = operateur sur la MACHINE (le chemin, lui, reste borne aux
+  // repertoires surveilles) — c est la regle tranchee avec le 8e chantier du lot 8.
+  const canCreate = canOperate;
   const mine = servers.data?.servers.filter((s) => s.machineId === m.id) ?? [];
   const myConflicts = conflicts.data?.conflicts.filter((c) => c.found.machineId === m.id) ?? [];
   const fail = (error: unknown): void => {
@@ -355,20 +360,35 @@ export function MachinePage({ machineId }: { machineId: string }) {
             <Title order={2} size="h4">
               {t('web:machine.servers')}
             </Title>
-            {isAdmin && (
-              <Button
-                size="xs"
-                variant="light"
-                leftSection={<IconFolderPlus size={14} />}
-                onClick={() => {
-                  setAddServerOpen(true);
-                }}
-                disabled={!m.connected}
-                data-testid="add-server"
-              >
-                {t('web:machine.addServer')}
-              </Button>
-            )}
+            <Group gap="xs">
+              {canCreate && (
+                <Button
+                  size="xs"
+                  leftSection={<IconPlus size={14} />}
+                  onClick={() => {
+                    setCreateOpen(true);
+                  }}
+                  disabled={!m.connected || m.watchedDirectories.length === 0}
+                  data-testid="create-server"
+                >
+                  {t('web:install.title')}
+                </Button>
+              )}
+              {isAdmin && (
+                <Button
+                  size="xs"
+                  variant="light"
+                  leftSection={<IconFolderPlus size={14} />}
+                  onClick={() => {
+                    setAddServerOpen(true);
+                  }}
+                  disabled={!m.connected}
+                  data-testid="add-server"
+                >
+                  {t('web:machine.addServer')}
+                </Button>
+              )}
+            </Group>
           </Group>
           {mine.length === 0 ? (
             <Text size="sm" c="dimmed">
@@ -454,6 +474,22 @@ export function MachinePage({ machineId }: { machineId: string }) {
           </Stack>
         )}
       </Modal>
+
+      <CreateServerModal
+        machine={m}
+        directories={m.watchedDirectories}
+        opened={createOpen}
+        onClose={() => {
+          setCreateOpen(false);
+        }}
+        onCreated={(serverId) => {
+          void navigate({
+            to: '/servers/$serverId',
+            params: { serverId },
+            search: { tab: 'overview' },
+          });
+        }}
+      />
 
       <Modal
         opened={addServerOpen}

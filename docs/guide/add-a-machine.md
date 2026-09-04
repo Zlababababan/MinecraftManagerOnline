@@ -175,3 +175,22 @@ The hours are the **panel's**, shown under the setting: the same ones your sched
 **Muting one server.** On a server's overview, a switch: "Stop making my phone ring for this server". That is the move for the test server that keeps restarting. This one has no exception — you asked for it explicitly, so even an error stays silent. The Account page lists muted servers so you can turn them back on without hunting for which one it was.
 
 > In both cases, **the panel bell still keeps everything**. Going quiet is not forgetting: the full history waits at the top of the screen when you open the panel. And these are personal settings — friends with an account are not affected by your quiet hours.
+
+## 18. Creating a server from the panel
+
+Until now MMO adopted servers you had already installed. It can now create one: **machine page → Create a server**. You need a watched directory on that machine — the panel builds the path itself, from that directory and a folder name, and shows it in full before anything is written.
+
+Four screens:
+
+1. **Location** — the watched directory, and the name of the folder to create. The full path appears underneath; nothing else can be typed there.
+2. **Version** — Vanilla or Fabric, then the Minecraft version. Versions come from Mojang; for Fabric, only the versions Fabric actually supports are offered, and the loader version is chosen for you (the latest stable one).
+3. **Resources** — maximum memory, and the welcome message. 2 to 4 GiB is plenty for a vanilla server.
+4. **Review** — the final path, the port picked for you (the first free one), and what the machine thinks: is the folder empty, is the port free, is there a suitable Java, is there room on the disk. Then the **Minecraft EULA**, never pre-ticked: the panel records who accepted it, and when, in the audit log.
+
+Installation runs as a task, with progress. What actually happens: for Vanilla, the server jar is downloaded from Mojang and its fingerprint checked. For Fabric, the launcher is downloaded and run once — it fetches the vanilla server and the libraries by itself, then stops, because the EULA is not there yet. That order matters: the EULA is written **after** the installer has finished, otherwise the server would start in the middle of its own installation.
+
+The server is created **stopped**, and stays stopped until you start it. Nothing else is configured for you beyond the port and the MOTD — the properties editor and the settings tab are there for the rest.
+
+**If the installation fails** (network cut, disk full, provider down), the server stays visible and marked failed, with a **Resume the installation** button: the same plan is replayed in the folder as it stands. Nothing is deleted behind your back — and if you would rather start over, delete the server and create it again.
+
+**Who can do this:** an operator on that machine. A shared account limited to a few servers cannot create one; an account that has been granted a whole machine can, and the new server belongs to that machine, so it is covered by the same grant. Adopting an arbitrary folder ("Add a server") remains an administrator's job — that one opens file access to a path of your choosing.

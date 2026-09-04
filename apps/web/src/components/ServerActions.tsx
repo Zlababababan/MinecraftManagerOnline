@@ -2,12 +2,19 @@
 import { Button, Group, Text, Tooltip } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
-import { IconPlayerPlay, IconPlayerStop, IconRefresh, IconSkull } from '@tabler/icons-react';
+import {
+  IconPlayerPlay,
+  IconPlayerStop,
+  IconRefresh,
+  IconSkull,
+  IconTool,
+} from '@tabler/icons-react';
 import type { ReactNode } from 'react';
 import { useT } from '../i18n/hooks.js';
 
 import type { ServerDto } from '@mmo/protocol/client';
 
+import { useRetryInstall } from '../api/installs.js';
 import { useMe, useServerAction, type ServerAction } from '../api/queries.js';
 import { describeError } from '../lib/errors.js';
 import { canServer } from '../lib/permissions.js';
@@ -24,6 +31,7 @@ export function ServerActions({
   const { t, i18n } = useT();
   const me = useMe();
   const action = useServerAction(server.id);
+  const retryInstall = useRetryInstall(server.id);
   const canOperate = canServer(me.data, server, 'operator');
   const busy = action.isPending;
   const reachable = server.reachable && server.provisioning === 'ready';
@@ -86,6 +94,36 @@ export function ServerActions({
         <span>{node}</span>
       </Tooltip>
     );
+
+  // Une installation ratee n est pas une impasse : le meme plan se rejoue dans le dossier
+  // tel qu'il est (mode reparer). Rien d autre n est propose tant qu elle n a pas abouti.
+  if (server.provisioning === 'install_failed') {
+    return (
+      <Group gap="xs" wrap="nowrap" data-testid="server-actions">
+        <Button
+          size={size}
+          variant="light"
+          leftSection={<IconTool size={16} />}
+          onClick={() => {
+            retryInstall.mutate(undefined, {
+              onError: (error) => {
+                notifications.show({
+                  color: 'red',
+                  title: t('web:install.retry'),
+                  message: describeError(i18n, error),
+                });
+              },
+            });
+          }}
+          loading={retryInstall.isPending}
+          disabled={!server.reachable}
+          data-testid="action-install-retry"
+        >
+          {t('web:install.retry')}
+        </Button>
+      </Group>
+    );
+  }
 
   return (
     <Group gap="xs" wrap="nowrap" data-testid="server-actions">

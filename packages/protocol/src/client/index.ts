@@ -965,6 +965,73 @@ export const duplicatePrecheckDtoSchema = migrationPrecheckResponseSchema.extend
 });
 export type DuplicatePrecheckDto = z.infer<typeof duplicatePrecheckDtoSchema>;
 
+// --- Lot 5 : créer un serveur depuis le panel -----------------------------------------------------
+
+/** Familles installables sans installeur tiers (première moitié du lot 5). */
+export const INSTALL_LOADERS = ['vanilla', 'fabric'] as const;
+export const installLoaderSchema = z.enum(INSTALL_LOADERS);
+export type InstallLoader = z.infer<typeof installLoaderSchema>;
+
+/**
+ * Nom du dossier à créer : un seul segment, sans séparateur ni « .. », et sans les caractères que
+ * Windows refuse. Le panel compose le chemin lui-même à partir d’un répertoire surveillé — un
+ * chemin libre rouvrirait la traversée que la portée par machine (lot 8) vient de fermer.
+ */
+export const INSTALL_FOLDER_RE = /^[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}$/;
+
+export const catalogVersionDtoSchema = z.object({
+  id: z.string(),
+  /** Version de release (par opposition à une pré-release ou un snapshot). */
+  stable: z.boolean(),
+  releasedAt: epochMsSchema.optional(),
+});
+export type CatalogVersionDto = z.infer<typeof catalogVersionDtoSchema>;
+
+export const installCatalogDtoSchema = z.object({
+  loader: installLoaderSchema,
+  versions: z.array(catalogVersionDtoSchema),
+});
+export type InstallCatalogDto = z.infer<typeof installCatalogDtoSchema>;
+
+export const createInstallSchema = z.object({
+  /** Répertoire surveillé de la machine ; le dossier sera `<répertoire>/<folderName>`. */
+  directoryId: z.string().min(1),
+  folderName: z.string().regex(INSTALL_FOLDER_RE),
+  /** Nom affiché ; par défaut celui du dossier. */
+  name: z.string().trim().min(1).max(120).optional(),
+  loader: installLoaderSchema,
+  mcVersion: z.string().min(1).max(64),
+  /** Version de loader ; la plus récente stable si absente (Fabric). */
+  loaderVersion: z.string().min(1).max(64).optional(),
+  maxRamMb: z.int().min(512).max(1_048_576),
+  minRamMb: z.int().min(256).max(1_048_576).optional(),
+  gamePort: z.int().min(1).max(65535).optional(),
+  motd: z.string().max(120).optional(),
+  /**
+   * Acceptation de l’EULA Mojang, par la personne qui crée le serveur. Jamais pré-cochée, et un
+   * refus doit être un refus : d’où le littéral plutôt qu’un booléen (400, plutôt qu’une
+   * installation qui s’arrêterait au premier démarrage).
+   */
+  acceptEula: z.literal(true),
+});
+export type CreateInstallInput = z.infer<typeof createInstallSchema>;
+
+export const installTargetDtoSchema = z.object({
+  path: z.string(),
+  gamePort: z.int(),
+  javaMajor: z.int().nullable(),
+  loaderVersion: z.string().nullable(),
+});
+export type InstallTargetDto = z.infer<typeof installTargetDtoSchema>;
+
+export const installPrecheckDtoSchema = migrationPrecheckResponseSchema.extend({
+  target: installTargetDtoSchema,
+});
+export type InstallPrecheckDto = z.infer<typeof installPrecheckDtoSchema>;
+
+/** Pré-contrôle : même corps que la création, sans l’acceptation de l’EULA. */
+export const installPrecheckRequestSchema = createInstallSchema.omit({ acceptEula: true });
+
 export const javaRuntimeDtoSchema = z.object({
   id: z.string(),
   machineId: z.string(),

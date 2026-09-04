@@ -73,6 +73,11 @@ export const HELP_TOPICS = {
     en: 'add-a-machine.md#16-who-plays-and-when',
     fr: 'fr/ajouter-une-machine.md#16-qui-joue-et-quand',
   },
+  /** Lot 5 : créer un serveur depuis le panel — versions, EULA, ce qui est installé. */
+  createServer: {
+    en: 'add-a-machine.md#18-creating-a-server-from-the-panel',
+    fr: 'fr/ajouter-une-machine.md#18-créer-un-serveur-depuis-le-panel',
+  },
   /** Lot 8 : appareils connectés — voir et déconnecter ses sessions. */
   sessions: {
     en: 'add-a-machine.md#13-signed-in-devices',

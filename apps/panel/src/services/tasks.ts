@@ -146,6 +146,27 @@ export class TasksService {
   // --- Cycle de vie ---------------------------------------------------------------------------
 
   /** Enregistre la task **avant** d'envoyer l'ordre à l'agent (le panel peut redémarrer entre-temps). */
+  /** Requête d'origine jointe à la task (le plan d'installation, le policyId d'une sauvegarde…). */
+  requestOf(id: string): unknown {
+    const row = this.get(id);
+    if (!row) return undefined;
+    try {
+      const payload = JSON.parse(row.payload ?? '{}') as TaskPayload;
+      return payload.request;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Detache une task du serveur qu'elle visait. Lot 5 : quand l'agent refuse une installation,
+   * la ligne du serveur n'a plus lieu d'etre, mais la task garde sa trace d'echec — et la cle
+   * etrangere de `tasks.server_id` interdirait la suppression.
+   */
+  detachServer(id: string): void {
+    this.deps.db.update(tasks).set({ serverId: null }).where(eq(tasks.id, id)).run();
+  }
+
   create(input: CreateTaskInput): TaskRow {
     const row = {
       id: input.id,

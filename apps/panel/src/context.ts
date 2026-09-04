@@ -35,6 +35,8 @@ import { PANEL_VERSION } from './version.js';
 import { ProcessedEventsService } from './services/processed-events.js';
 import { UpdateCheckService } from './services/update-check.js';
 import { WebhooksService, type WebhooksServiceOptions } from './services/webhooks.js';
+import { InstallCatalogService } from './services/install-catalog.js';
+import { InstallsService } from './services/installs.js';
 import { ReplicationService } from './services/replication.js';
 import { StatusPagesService, type StatusPagesDeps } from './services/status-pages.js';
 import { WhitelistRequestsService } from './services/whitelist-requests.js';
@@ -108,6 +110,8 @@ export interface AppContext {
   webhooks: WebhooksService;
   /** Lot 4 : copies hors-site des archives vers une autre machine du parc (chaîne de migration). */
   replication: ReplicationService;
+  installCatalog: InstallCatalogService;
+  installs: InstallsService;
   /** Lot 8 : page de statut publique d'un serveur (`/s/<jeton>`, lecture seule, anonyme). */
   statusPages: StatusPagesService;
   whitelistRequests: WhitelistRequestsService;
@@ -160,6 +164,8 @@ export interface ContextOptions {
   transferReconnectWaitMs?: number;
   /** Phase 9 : TTL des listeners/jetons de migration (tests : court). */
   migrationTtlMs?: number;
+  /** Lot 5 : duree de validite du catalogue de versions (tests). */
+  installCatalogTtlMs?: number;
   /** Groupes : attentes d'état et cadence de relecture (tests : court). */
   groupWait?: { startTimeoutMs?: number; stopTimeoutMs?: number; pollMs?: number };
   /** Phase 10 : options de la couche d'accès (tests : adresses locales, faux DNS/ACME, cadences). */
@@ -210,6 +216,9 @@ export function createContext(options: ContextOptions): AppContext {
     java,
     settings,
     backupSchedules: (serverIds) => backups.schedulesFor(serverIds),
+    // Lot 5 : un scan ne promeut pas en `ready` un dossier dont l installation tourne encore.
+    installInProgress: (serverId) =>
+      tasks.list({ serverId, active: true }).some((t) => t.kind === 'server.install'),
     seedBackupPolicy: (serverId) => {
       backups.seedDefaultPolicy(serverId);
     },
@@ -460,6 +469,29 @@ export function createContext(options: ContextOptions): AppContext {
     ttlMs: options.migrationTtlMs,
   });
 
+  // Lot 5 : catalogue des versions installables, et création de serveurs.
+  const installCatalog = new InstallCatalogService({
+    fetchImpl: options.fetch ?? fetch,
+    now,
+    logger,
+    ...(options.installCatalogTtlMs === undefined ? {} : { ttlMs: options.installCatalogTtlMs }),
+  });
+  const installs = new InstallsService({
+    db,
+    now,
+    registry,
+    machines,
+    servers,
+    tasks,
+    catalog: installCatalog,
+    events,
+    logger,
+    reachable: (machineId) => registry.isConnected(machineId),
+    broadcast: (server) => {
+      hub.broadcast({ type: 'server.state', server });
+    },
+  });
+
   // Phase 10 : notifications (abonné au bus) et couche d'accès.
   const notifications = new NotificationsService({
     db,
@@ -569,6 +601,8 @@ export function createContext(options: ContextOptions): AppContext {
     updateCheck,
     webhooks,
     replication,
+    installCatalog,
+    installs,
     statusPages,
     whitelistRequests,
     fetchImpl: options.fetch,

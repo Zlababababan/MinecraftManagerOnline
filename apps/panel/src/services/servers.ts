@@ -5,6 +5,7 @@
  * clôturées sur stop/crash et à chaque réconciliation), configuration poussée via `agent.configure`.
  */
 import {
+  detectedServerSchema,
   ulid,
   type DetectedServer,
   type ParsedEventPayload,
@@ -66,6 +67,12 @@ export interface ServersServiceDeps {
   backupSchedules?: (serverIds: string[]) => RequestPayload<'agent.configure'>['backupSchedules'];
   /** Recette 1.0 : politique de sauvegarde par défaut posée à la création d'un serveur. */
   seedBackupPolicy?: (serverId: string) => void;
+  /**
+   * Lot 5 : une installation est-elle en cours pour ce serveur ? Un scan qui tomberait sur un
+   * dossier a moitie rempli le declarerait `ready`, donc demarrable, au milieu
+   * de son installation. Defaut : jamais.
+   */
+  installInProgress?: (serverId: string) => boolean;
 }
 
 const RUNNING_STATES: ReadonlySet<ServerRow['runState']> = new Set([
@@ -436,7 +443,13 @@ export class ServersService {
       ...(directoryId === undefined ? {} : { directoryId }),
       ...(java === undefined ? {} : { javaMajorRequired: java.majorVersion }),
     };
-    if (row.provisioning === 'installing' && d.needsInstall !== true) patch.provisioning = 'ready';
+    if (
+      row.provisioning === 'installing' &&
+      d.needsInstall !== true &&
+      this.deps.installInProgress?.(row.id) !== true
+    ) {
+      patch.provisioning = 'ready';
+    }
     this.db.update(servers).set(patch).where(eq(servers.id, row.id)).run();
     return this.require(row.id);
   }
@@ -649,6 +662,99 @@ export class ServersService {
       // la politique pourra être créée à la main
     }
     return row;
+  }
+
+  /**
+   * Lot 5 — ligne d'un serveur qui n'existe pas encore sur le disque : l'installation va la
+   * remplir. `detected = 0` (rien à détecter) et surtout `desiredState = 'stopped'`, sinon
+   * `restoreOnBoot` tenterait de démarrer un serveur en cours d'installation.
+   */
+  insertPlanned(input: {
+    id: string;
+    machineId: string;
+    directoryId: string | null;
+    path: string;
+    name: string;
+    loader: ServerRow['loader'];
+    mcVersion: string | null;
+    loaderVersion: string | null;
+    javaMajorRequired: number | null;
+    maxRamMb: number;
+    minRamMb: number;
+    gamePort: number;
+  }): ServerRow {
+    const t = this.now();
+    const row: ServerRow = {
+      id: input.id,
+      machineId: input.machineId,
+      directoryId: input.directoryId,
+      path: input.path,
+      name: input.name,
+      loader: input.loader,
+      mcVersion: input.mcVersion,
+      loaderVersion: input.loaderVersion,
+      detected: 0,
+      javaRuntimeId: null,
+      javaMajorRequired: input.javaMajorRequired,
+      javaArgs: null,
+      minRamMb: input.minRamMb,
+      maxRamMb: input.maxRamMb,
+      gamePort: input.gamePort,
+      rconEnabled: input.loader === 'velocity' ? 0 : 1,
+      rconPort: null,
+      rconPasswordEnc: null,
+      // L'EULA est acceptée dans l'assistant et écrite par l'agent à la fin de l'installation.
+      eulaAccepted: 1,
+      exposeMode: 'tailnet',
+      provisioning: 'installing',
+      runState: 'stopped',
+      desiredState: 'stopped',
+      attachMode: 'attached',
+      lastExitReason: null,
+      autoRestart: 0,
+      crashLoopMax: 3,
+      watchdogFreezeS: 120,
+      pid: null,
+      startedAt: null,
+      stoppedAt: null,
+      detectionJson: null,
+      createdAt: t,
+      updatedAt: t,
+      groupId: null,
+      groupPosition: 0,
+    };
+    this.db.insert(servers).values(row).run();
+    try {
+      this.deps.seedBackupPolicy?.(row.id);
+    } catch {
+      // la politique pourra être créée à la main
+    }
+    return row;
+  }
+
+  /**
+   * Fin d'installation : le dossier existe, l'agent l'a détecté. Les valeurs détectées priment sur
+   * ce que le panel croyait installer (un pack peut différer), sauf ce que l'utilisateur a choisi
+   * (nom, RAM, port).
+   */
+  confirmInstalled(id: string, detected: unknown): ServerRow {
+    const t = this.now();
+    const d = detectedServerSchema.safeParse(detected);
+    const patch: Partial<ServerRow> = {
+      provisioning: 'ready',
+      detected: 1,
+      stoppedAt: t,
+      updatedAt: t,
+    };
+    if (d.success) {
+      patch.loader = d.data.loader.value;
+      patch.mcVersion = d.data.mcVersion?.value ?? null;
+      patch.loaderVersion = d.data.loaderVersion?.value ?? null;
+      patch.eulaAccepted = d.data.eulaAccepted ? 1 : 0;
+      patch.detectionJson = toJson(d.data);
+    }
+    this.db.update(servers).set(patch).where(eq(servers.id, id)).run();
+    return this.require(id);
   }
 
   /** Fin de duplication : le clone est en place sur la cible, prêt et arrêté. */

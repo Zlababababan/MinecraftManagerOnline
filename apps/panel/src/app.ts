@@ -21,6 +21,7 @@ import { registerMiscRoutes } from './http/routes/misc.js';
 import { registerPhase9Routes } from './http/routes/phase9.js';
 import { registerPhase10Routes } from './http/routes/phase10.js';
 import { registerPhase11Routes } from './http/routes/phase11.js';
+import { registerInstallRoutes } from './http/routes/installs.js';
 import { registerReplicationRoutes } from './http/routes/replication.js';
 import { registerStatusPageRoutes } from './http/routes/status-page.js';
 import { registerWhitelistRequestRoutes } from './http/routes/whitelist-requests.js';
@@ -111,6 +112,7 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   registerPhase11Routes(app, ctx);
   registerWebhookRoutes(app, ctx);
   registerReplicationRoutes(app, ctx);
+  registerInstallRoutes(app, ctx);
   registerStatusPageRoutes(app, ctx);
   registerWhitelistRequestRoutes(app, ctx);
   registerWsRoutes(app, ctx);

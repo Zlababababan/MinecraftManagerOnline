@@ -30,6 +30,7 @@ Liste de référence, validée avant le développement. Chaque fonctionnalité e
 | États de provisionnement (en installation / prêt / archivé) | V1 |
 | Groupes de démarrage : démarrage séquentiel par rang en attendant l'état « en marche », arrêt en ordre inverse, série interrompue au premier échec | V1 (post-1.0, 2026-09-01) |
 | Proxy Velocity reconnu au scan (`velocity.toml`) et pilotable : lancement `jar` sans `nogui`, console stdin, arrêt `shutdown`, pas d'EULA ni de RCON | V1 (post-1.0, 2026-09-01) |
+| Création d'un serveur depuis le panel (Vanilla, Fabric) : assistant, versions issues des fournisseurs, installation en tâche de fond, reprise d'une installation ratée | V1 (post-1.0, 2026-09-04) |
 | Création d'un serveur depuis un modpack (CurseForge, FTB, Modrinth) | Futur |
 | Mise à jour d'un serveur vers une nouvelle version de modpack | Futur |
 
@@ -114,6 +115,8 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 | Permissions par serveur et par machine (restreindre un utilisateur à certains serveurs, ou à une machine entière) | V1 |
 | Page de statut publique par serveur (lien non devinable, lecture seule, sans compte) | V1 |
 | Demande de whitelist en libre-service depuis la page publique (l'opérateur accepte ou refuse) | V1 |
+
+> **Ajout (lot 5, 2026-09-04) — qui a le droit de créer un serveur.** La question était le huitième chantier du lot 8 ; elle se tranche ici parce que c'est le lot 5 qui la pose. **Créer un serveur exige le rôle opérateur sur la MACHINE** : les routes vivent sous `/api/machines/:id`, donc la portée par machine s'y applique telle quelle, et une machine accordée couvre déjà ses serveurs présents **et futurs** — celui qu'on crée en est un. Un compte limité à des serveurs n'a aucun droit de création. Ce qui rend ce droit sûr : le chemin n'est pas libre — on choisit un **répertoire surveillé** et un **nom de dossier**, le panel compose le reste. **Adopter un dossier quelconque reste administrateur** (`POST /api/servers`), parce que cela ouvre un accès aux fichiers sur un chemin choisi librement : ce sont deux autorisations différentes, pas deux niveaux de la même.
 
 > **Ajout (lot 8, 2026-09-03) — droits par serveur.** Un compte peut être **limité** (« Accès : serveurs choisis ») : il ne voit que les serveurs et machines qui lui sont accordés, chacun avec un rôle (lecture ou opérateur) plafonné par le rôle du compte ; une machine accordée couvre tous ses serveurs, présents et futurs ; un serveur accordé rend la page de sa machine lisible. Tout le reste lui est invisible — listes, temps réel, console, notifications, événements — et un serveur hors portée répond « introuvable », pas « interdit ». Un administrateur n'est jamais limité.
 

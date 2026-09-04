@@ -175,3 +175,22 @@ Les heures sont celles **du panel**, affichées sous le réglage : les mêmes qu
 **Le silence par serveur.** Sur la vue d'ensemble d'un serveur, un interrupteur : « Ne plus faire sonner mon téléphone pour ce serveur ». C'est le geste pour le serveur de test qui redémarre en boucle. Celui-là ne connaît pas d'exception — vous l'avez demandé explicitement, même une erreur reste silencieuse. La page Compte liste les serveurs mis en silence, pour les réactiver sans avoir à retrouver lequel c'était.
 
 > Dans les deux cas, **la cloche du panel garde tout**. Se taire, ce n'est pas oublier : l'historique complet vous attend en haut de l'écran quand vous ouvrez le panel. Et ce sont des réglages personnels — vos amis avec un compte ne sont pas concernés par vos heures calmes.
+
+## 18. Créer un serveur depuis le panel
+
+Jusqu'ici MMO adoptait des serveurs déjà installés. Il peut maintenant en créer un : **page de la machine → Créer un serveur**. Il faut un répertoire surveillé sur cette machine — le panel compose le chemin lui-même, à partir de ce répertoire et d'un nom de dossier, et vous le montre en entier avant d'écrire quoi que ce soit.
+
+Quatre écrans :
+
+1. **Emplacement** — le répertoire surveillé, et le nom du dossier à créer. Le chemin complet s'affiche en dessous ; rien d'autre ne peut être saisi.
+2. **Version** — Vanilla ou Fabric, puis la version de Minecraft. Les versions viennent de Mojang ; pour Fabric, seules celles que Fabric supporte réellement sont proposées, et la version du chargeur est choisie pour vous (la dernière stable).
+3. **Ressources** — la mémoire maximale et le message d'accueil. 2 à 4 Gio suffisent largement à un serveur vanilla.
+4. **Vérification** — le chemin final, le port retenu (le premier libre), et l'avis de la machine : le dossier est-il vide, le port est-il libre, y a-t-il un Java adapté, reste-t-il de la place. Puis l'**EULA de Minecraft**, jamais pré-cochée : le panel note qui l'a acceptée, et quand, dans le journal d'audit.
+
+L'installation se déroule comme une tâche, avec sa progression. Ce qui se passe vraiment : pour Vanilla, le jar du serveur est téléchargé chez Mojang et son empreinte vérifiée. Pour Fabric, le lanceur est téléchargé puis exécuté une fois — il va chercher lui-même le serveur vanilla et les bibliothèques, puis s'arrête, parce que l'EULA n'est pas encore là. Cet ordre compte : l'EULA est écrite **après** l'installeur, sinon le serveur démarrerait au milieu de sa propre installation.
+
+Le serveur est créé **arrêté**, et le reste tant que vous ne le démarrez pas. Rien d'autre n'est configuré pour vous que le port et le MOTD — l'éditeur de propriétés et l'onglet Réglages sont là pour la suite.
+
+**Si l'installation échoue** (réseau coupé, disque plein, fournisseur en panne), le serveur reste visible, marqué en échec, avec un bouton **Reprendre l'installation** : le même plan est rejoué dans le dossier tel qu'il est. Rien n'est supprimé dans votre dos — et si vous préférez repartir de zéro, supprimez le serveur et recréez-le.
+
+**Qui peut le faire :** un opérateur sur cette machine. Un compte limité à quelques serveurs ne peut pas en créer ; un compte à qui l'on a accordé une machine entière le peut, et le nouveau serveur appartient à cette machine, donc il est couvert par la même autorisation. Adopter un dossier quelconque (« Ajouter un serveur ») reste réservé aux administrateurs — celui-là ouvre l'accès aux fichiers d'un chemin choisi librement.

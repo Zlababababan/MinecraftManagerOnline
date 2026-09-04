@@ -8,6 +8,25 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### Creating a server, from the panel
+
+Machine page → **Create a server**. Four screens: where (a watched directory plus a folder name —
+the full path is shown before anything is written), which version (Vanilla or Fabric; for Fabric
+only the versions Fabric actually supports), how much memory, and a review with what the machine
+thinks of the plan: is the folder empty, is the port free, is there a suitable Java, is there room.
+
+The Minecraft EULA is on that last screen, never pre-ticked, and the panel records who accepted it.
+
+Installing runs as a task with progress. Vanilla downloads the server jar from Mojang and checks
+its fingerprint. Fabric downloads the launcher and runs it once — it fetches the vanilla server
+and the libraries itself, then stops, because the EULA is not there yet. If the installation fails,
+the server stays visible with a **Resume the installation** button that replays the same plan in
+the folder as it stands; nothing is deleted behind your back.
+
+Creating a server needs the operator role **on the machine**. An account granted a whole machine
+can do it — the new server belongs to that machine, so it is covered by the same grant. Adopting an
+arbitrary folder ("Add a server") stays an administrator's job.
+
 ### Agents can install a server (groundwork)
 
 Agents now understand `server.install`: a plan the panel decides — download a file, run a jar,
