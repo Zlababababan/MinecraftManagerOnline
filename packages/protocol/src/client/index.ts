@@ -1395,6 +1395,29 @@ export const pushStatusDtoSchema = z.object({
 export type PushStatusDto = z.infer<typeof pushStatusDtoSchema>;
 
 /** Contenu chiffré d'un push (JSON) — interprété par le service worker. */
+/**
+ * Bouton d'une notification (lot 8). **Le panel décide, le service worker exécute** : c'est lui
+ * qui choisit les actions et écrit leur URL, déjà localisées ; le worker ne fait qu'appeler ce
+ * qu'on lui donne, en n'acceptant que des chemins internes (`/api/…` pour un appel, un chemin du
+ * panel pour une navigation). Le raisonnement vit donc du côté qui est testé.
+ *
+ * `method` absent = simple navigation. Deux boutons au plus : au-delà, les systèmes en cachent.
+ */
+export const pushActionSchema = z.object({
+  /** Identifiant renvoyé par le système au clic (`event.action`). */
+  action: z.string().min(1).max(32),
+  title: z.string().min(1).max(48),
+  /** Chemin absolu du panel, jamais une URL externe. */
+  url: z.string().startsWith('/'),
+  method: z.literal('POST').optional(),
+  /** Message affiché quand l'appel a abouti (le worker n'invente aucun texte). */
+  okBody: z.string().optional(),
+  /** Message affiché quand il a échoué. */
+  failBody: z.string().optional(),
+});
+export type PushAction = z.infer<typeof pushActionSchema>;
+export const MAX_PUSH_ACTIONS = 2;
+
 export const pushPayloadSchema = z.object({
   title: z.string(),
   body: z.string(),
@@ -1403,6 +1426,7 @@ export const pushPayloadSchema = z.object({
   eventId: z.int().optional(),
   ts: epochMsSchema,
   locale: localeSchema.optional(),
+  actions: z.array(pushActionSchema).max(MAX_PUSH_ACTIONS).optional(),
 });
 export type PushPayload = z.infer<typeof pushPayloadSchema>;
 

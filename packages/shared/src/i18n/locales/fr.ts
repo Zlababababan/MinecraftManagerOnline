@@ -111,6 +111,12 @@ export const fr = {
         title: 'Webhook « {{webhook}} » rétabli',
         body: 'Les envois passent à nouveau.',
       },
+      actions: {
+        start: 'Démarrer',
+        console: 'Console',
+        started: 'Démarrage demandé — ouvrez le panel pour suivre.',
+        failed: 'Le panel a refusé : ouvrez-le pour savoir pourquoi.',
+      },
       whitelistRequested: {
         title: '{{player}} demande à rejoindre {{server}}',
         body: 'Demande de liste blanche en attente — onglet Joueurs → Liste blanche.',

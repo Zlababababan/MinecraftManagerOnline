@@ -104,6 +104,12 @@ export const en = {
         title: 'Webhook "{{webhook}}" recovered',
         body: 'Deliveries go through again.',
       },
+      actions: {
+        start: 'Start',
+        console: 'Console',
+        started: 'Start requested — open the panel to follow it.',
+        failed: 'The panel refused: open it to see why.',
+      },
       whitelistRequested: {
         title: '{{player}} asks to join {{server}}',
         body: 'Whitelist request waiting — Players tab → Whitelist.',

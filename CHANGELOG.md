@@ -8,6 +8,16 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### Buttons on the notification
+
+A "server crashed" notification now carries **Start** and **Console**; a failed start carries
+**Console** alone, since the first thing to do is read. Tapping Start really starts the server —
+the call goes to the panel with your session, so it obeys the same rights as the interface, and
+the outcome comes back as a notification (the original one disappears when you tap it).
+
+The panel decides what a notification offers; the service worker only carries it out, and refuses
+anything that does not point at the panel itself.
+
 ### Quiet hours, and muting a server
 
 Two personal settings for what is allowed to make your phone ring. **Quiet hours** (Account →

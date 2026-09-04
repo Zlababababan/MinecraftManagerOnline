@@ -19,6 +19,7 @@ import {
   type NotificationPrefsPut,
   type NotificationType,
   type NotificationsResult,
+  type PushAction,
   type PushPayload,
   type QuietHours,
   type PushSubscribeInput,
@@ -472,9 +473,11 @@ export class NotificationsService {
       hostname: text(p.hostname),
       interpolation: { escapeValue: false },
     };
+    const actions = pushActionsFor(event, (k) => tr(i18n, k));
     return {
       title: tr(i18n, `common:notify.${key}.title`, params),
       body: tr(i18n, `common:notify.${key}.body`, params),
+      ...(actions.length === 0 ? {} : { actions }),
       url:
         event.serverId !== null
           ? `/servers/${event.serverId}`
@@ -564,6 +567,44 @@ export class NotificationsService {
 }
 
 /** Clé `common:notify.<clé>` (sans point, pitfall i18n) pour un événement — `undefined` = ignoré. */
+/**
+ * Boutons d'une notification (lot 8). Le panel décide ICI — dans du code testé — quels gestes une
+ * notification propose et vers quelle route ils pointent ; le service worker ne fait qu'exécuter.
+ *
+ * Seuls les cas où l'on sait quoi faire en méritent : un serveur tombé (le relancer, ou ouvrir sa
+ * console) et un démarrage qui a échoué (la console, parce qu'il faut d'abord LIRE). Ailleurs, le
+ * clic ouvre la page, ce qui est déjà l'essentiel.
+ *
+ * L'action ne contourne aucun droit : la route appelée est celle du panel, avec le cookie de la
+ * session, et un lecteur reçoit le même refus que dans l'interface.
+ */
+export function pushActionsFor(event: EventDto, t: (key: string) => string): PushAction[] {
+  if (event.serverId === null) return [];
+  const p = (event.payload ?? {}) as Record<string, unknown>;
+  const down =
+    (event.type === 'server.stateChanged' && p.state === 'crashed') ||
+    (event.type === 'alert.firing' && p.rule === 'server.down');
+  const consoleAction: PushAction = {
+    action: 'console',
+    title: t('common:notify.actions.console'),
+    url: `/servers/${event.serverId}?tab=console`,
+  };
+  if (down) {
+    return [
+      {
+        action: 'restart',
+        title: t('common:notify.actions.start'),
+        url: `/api/servers/${event.serverId}/start`,
+        method: 'POST',
+        okBody: t('common:notify.actions.started'),
+        failBody: t('common:notify.actions.failed'),
+      },
+      consoleAction,
+    ];
+  }
+  return event.type === 'server.startFailed' ? [consoleAction] : [];
+}
+
 export function notifyKey(event: EventDto): string | undefined {
   const p = (event.payload ?? {}) as Record<string, unknown>;
   switch (event.type) {

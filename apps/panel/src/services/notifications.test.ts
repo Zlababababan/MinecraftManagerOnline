@@ -168,6 +168,67 @@ describe('NotificationsService', () => {
     expect(
       panel.ctx.notifications.subscriptions(panel.ctx.users.findByUsername('admin')?.id ?? ''),
     ).toHaveLength(1);
+
+    // Lot 8 — les boutons voyagent avec la notification, localisés comme le reste : c'est le
+    // PANEL qui décide de ce qu'ils font, le service worker ne fait qu'exécuter.
+    expect(fr?.actions).toEqual([
+      {
+        action: 'restart',
+        title: 'Démarrer',
+        url: '/api/servers/srv-1/start',
+        method: 'POST',
+        okBody: 'Démarrage demandé — ouvrez le panel pour suivre.',
+        failBody: 'Le panel a refusé : ouvrez-le pour savoir pourquoi.',
+      },
+      { action: 'console', title: 'Console', url: '/servers/srv-1?tab=console' },
+    ]);
+    expect(en?.actions?.[0]?.title).toBe('Start');
+  });
+
+  it('les boutons ne sont proposés que là où l’on sait quoi faire', async () => {
+    await subscribe(admin, 'https://push.test/admin/1');
+    const machine = panel.ctx.machines.create('pc');
+
+    // Une alerte « serveur tombé » : mêmes gestes qu'un crash, même si l'événement diffère.
+    delivered.length = 0;
+    panel.ctx.events.publish({
+      type: 'alert.firing',
+      severity: 'warning',
+      machineId: machine.id,
+      serverId: 'srv-1',
+      payload: { rule: 'server.down' },
+    });
+    await panel.ctx.notifications.flush();
+    expect(delivered[0]?.payload.actions?.map((a) => a.action)).toEqual(['restart', 'console']);
+
+    // Un démarrage qui échoue : proposer « Démarrer » serait absurde — il faut d'abord LIRE.
+    delivered.length = 0;
+    panel.ctx.events.publish({
+      type: 'server.startFailed',
+      severity: 'error',
+      machineId: machine.id,
+      serverId: 'srv-1',
+      payload: { error: { code: 'E_IO' } },
+    });
+    await panel.ctx.notifications.flush();
+    expect(delivered[0]?.payload.actions?.map((a) => a.action)).toEqual(['console']);
+
+    // Une sauvegarde réussie n'appelle aucun geste : le clic ouvre la page, c'est tout.
+    await panel.app.inject({
+      method: 'PUT',
+      url: '/api/notifications/prefs',
+      headers: { cookie: admin },
+      payload: { values: { 'task.done': true } },
+    });
+    delivered.length = 0;
+    panel.ctx.events.publish({
+      type: 'task.completed',
+      machineId: machine.id,
+      serverId: 'srv-1',
+      payload: { kind: 'backup.create', status: 'done' },
+    });
+    await panel.ctx.notifications.flush();
+    expect(delivered[0]?.payload.actions).toBeUndefined();
   });
 
   it('respecte les préférences (catégorie désactivée, joueurs désactivés par défaut)', async () => {
