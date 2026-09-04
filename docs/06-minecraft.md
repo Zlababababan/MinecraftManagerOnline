@@ -146,6 +146,53 @@ Auto-restart optionnel avec garde anti-boucle (`crash_loop_max` par fenêtre).
 
 > **Implémentation (phase 7)** : parsing dans `@mmo/shared` (`minecraft/tps.ts` : `parseForgeTps` — `Overall: Mean tick time: X ms. Mean TPS: Y` **et** `Overall: Y TPS (X ms/tick)`, virgule décimale et codes `§` tolérés, première dimension en dernier recours ; `parseSparkTps` — TPS à 10 s + médiane des durées de tick ; `parseTickQuery` — `min(cible, 1000 / mspt)` ; `tpsChain(loader, mcVersion, sparkInstalled)` = chaîne ordonnée, vide pour vanilla < 1.20.3 ou Fabric sans spark). Agent : `TpsProbe` par serveur (`src/monitoring/tps.ts`) — spark détecté par `mods/spark-*.jar`, méthode qui répond **mémorisée**, chaîne réapprise à chaque démarrage et à chaque `agent.configure`, et quand tout échoue **aucune nouvelle tentative pendant 10 min** (pas de spam de la console). **Amendement (2026-08-30)** : le verrou de 10 min ne vaut que si le serveur a **répondu** sans connaître la commande. Un échec de **transport** RCON (listener pas encore ouvert — un vrai serveur peut ouvrir le sien après la ligne « Done » —, socket coupé par un `E_TIMEOUT` du watchdog qui partage le client, timeout) donne lieu à un **backoff court et croissant** (5 s doublés, plafond 60 s, borné à 20 tentatives avant de retomber sur le verrou long) ; la méthode apprise est **conservée** (sinon chaque hoquet renverrait `neoforge tps` à un serveur Forge, dans sa console) et le passage du serveur à `running` **débloque** la sonde. Avant ce correctif, un unique ECONNREFUSED au démarrage suffisait à ce que le TPS ne soit plus jamais échantillonné de toute la session — c'est le défaut que masquait la tolérance `[flaky-ci]` du test `metrics.sample`, désormais retirée et rejouée de façon déterministe (`--rcon-delay`). `metrics.sample` porte `tpsSource`. UI : « TPS indisponible » avec la **raison** (vanilla ancien / Fabric sans spark / commande Forge sans réponse / serveur arrêté), lien de téléchargement de spark et mention « jamais requis ». **Non fait** : « installer spark en un clic » (dépôt du jar par l'agent) attend les transferts de la phase 8 — noté en dette.
 
+## 6bis. Installer un serveur moddé — mesures du spike `runJar` (2026-09-04)
+
+Préalable au lot 5 (doc 07). Trois installeurs réels lancés en tête-à-tête sur des dossiers vides,
+avec le bon Java **et avec le mauvais**, pour répondre à une question : que faut-il savoir pour
+faire tourner un programme Java tiers depuis l'agent ?
+
+| Installeur | Java « attendu » | Durée | Sortie | Fichiers produits |
+|---|---|---|---|---|
+| Forge 1.12.2 (14.23.5.2859) | 8 | **4,6 s** | 90 lignes | `forge-<v>.jar` + `minecraft_server.1.12.2.jar` (30 Mio) + `libraries/` (38 Mio) |
+| Forge 1.20.1 (47.4.10) | 17 | **20 s** | ~2 000 lignes | `run.sh`/`run.bat`/`user_jvm_args.txt` + `libraries/` (159 Mio) |
+| NeoForge 21.1.209 (MC 1.21.1) | 21 | **20 s** | **7 580 lignes, 511 Kio** | idem + `libraries/` (176 Mio) |
+
+**1. L'installeur n'est PAS soumis à la contrainte Java du serveur.** C'est le résultat qui
+corrige la prémisse du plan. Forge 1.20.1 et NeoForge 21.1 s'installent **entièrement sous Java
+8** (159 et 176 Mio de bibliothèques, « The server installed successfully »), et Forge 1.12.2
+s'installe sous Java 21. La règle « Java 8 strictement jusqu'en 1.16.5 » concerne le **lancement**
+du serveur, pas son installation : l'agent peut installer avec le Java qu'il a déjà sous la main,
+et ne doit résoudre le bon Java qu'au premier démarrage. *Portée du constat : ces trois
+installeurs. Les Forge très anciens (1.7–1.10) et les autres familles restent à vérifier au
+moment de les supporter.*
+
+**2. Le code de retour est fiable** — 0 en cas de succès, **1** en cas d'échec (cible impossible à
+écrire, option inconnue), doublé d'une ligne finale explicite : `The server installed successfully`
+ou `There was an error during installation`. On peut donc s'y fier, à condition de lire le code du
+processus **et pas celui d'un tube** (piège 79 : `java … | tail` rend le code de `tail`, ce qui
+faisait passer un échec pour un succès pendant le spike lui-même).
+
+**3. La sortie ne doit pas partir dans la console du panel.** 7 580 lignes pour une installation
+NeoForge : les relayer comme des lignes de console saturerait le canal temps réel (contre-pression,
+doc 03 §9). L'agent garde une **queue** et en tire des phases ; les installeurs Forge et NeoForge
+modernes écrivent en plus un `installer.jar.log` à côté du JAR — c'est lui qu'on joint à un échec,
+pas un tampon mémoire.
+
+**4. La progression est en phases, pas en pourcentage.** Aucun total n'est annoncé. Les motifs
+reconnaissables sont `Considering library` / `Downloading library from` / `Download completed`
+(téléchargement), puis `Building Processors`, `Processor: <nom>` et `Patching <classe>`
+(transformation). Un pourcentage serait inventé ; une phase est vraie.
+
+**5. Ce que produit l'installeur correspond aux templates du §1**, et rien de plus : ni
+`server.properties`, ni `eula.txt`. Le 1.12.2 donne un JAR à lancer (template `jar`) ; le 1.20.1 et
+le NeoForge donnent `run.sh`/`run.bat` + `user_jvm_args.txt` + `libraries/` (template script de
+lancement). L'acceptation de l'EULA et la configuration restent donc au panel, après installation.
+
+**6. Durées mesurées sur une ligne rapide** : 5 à 20 secondes. L'essentiel est du téléchargement
+(40 à 176 Mio) : sur une ligne lente, la même installation se compte en minutes. Une task de fond
+avec progression reste donc nécessaire — mais le pire n'est pas le calcul, c'est le réseau.
+
 ## 7. Fichiers édités par MMO
 
 ### `server.properties`
