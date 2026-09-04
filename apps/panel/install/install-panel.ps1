@@ -188,7 +188,8 @@ try {
     Set-Content -Path $checkJs -Encoding Ascii -Value 'const{DatabaseSync}=require("node:sqlite");const db=new DatabaseSync(process.argv[2]);const r=db.prepare("PRAGMA integrity_check").get();db.close();if(String(Object.values(r)[0])!=="ok"){console.error(r);process.exit(1);}'
     & $nodeCheck $checkJs (Join-Path $DataDir 'mmo.db')
     if ($LASTEXITCODE -ne 0) { Fail "integrity_check en échec sur la copie — l'original ($srcData) n'a pas été touché" }
-    if ($srcData -like "$InstallDir*") {
+    $insideInstall = $srcData -eq $InstallDir -or $srcData.StartsWith(($InstallDir.TrimEnd('\') + '\'), [StringComparison]::OrdinalIgnoreCase)
+    if ($insideInstall) {
       Say "copie vérifiée (integrity_check ok) — l'original suivra l'ancien code dans $InstallDir.old\data (remplacé à la prochaine mise à jour)"
     } else {
       Say "copie vérifiée (integrity_check ok) — l'original n'est pas modifié, supprimez-le vous-même quand tout vous convient"
@@ -239,8 +240,22 @@ try {
 
   # --- Fichiers seulement ------------------------------------------------------------------------
   if ($NoService) {
-    Say 'pas de service (-NoService). Lancement manuel :'
-    Say "  `$env:MMO_DATA_DIR = `"$effectiveData`" ; & `"$InstallDir\mmo-panel.cmd`""
+    # `mmo-panel.cmd` retombe sur <install>\data faute de MMO_DATA_DIR : lancé tel quel avec des
+    # données ailleurs, il ouvre une base VIDE en silence. On écrit donc un lanceur qui les porte.
+    $starter = Join-Path $InstallDir 'start-panel.cmd'
+    $starterLines = @(
+      '@echo off',
+      'rem MinecraftManagerOnline - lanceur ecrit par install-panel.ps1.',
+      'rem Il porte le dossier de DONNEES : sans lui, le panel en creerait un vide a cote du code.',
+      'setlocal',
+      "set ""MMO_DATA_DIR=$effectiveData""",
+      "set ""MMO_HOST=$ListenHost""",
+      "set ""MMO_PORT=$Port""",
+      'call "%~dp0mmo-panel.cmd" %*'
+    )
+    Set-Content -LiteralPath $starter -Value $starterLines -Encoding Ascii
+    Say "pas de service (-NoService). Lancement : `"$starter`""
+    Say "  (il porte MMO_DATA_DIR=$effectiveData ; mmo-panel.cmd seul ouvrirait une base vide)"
     exit 0
   }
 

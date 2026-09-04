@@ -8,6 +8,18 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### The Windows installer no longer hands you an empty database
+
+Installing with `-NoService` and a data directory of your own now writes a **start-panel.cmd**
+next to the code, carrying that directory. Without it, the `mmo-panel.cmd` shipped in the archive
+falls back to `<install>data` — it would open a brand new, empty database without a word, and
+you would think you had lost everything.
+
+Also: "is this folder inside the install directory?" is now a path question rather than a string
+one. Migrating from `E:mmo-panel-1.0.5-win-x64` into `E:mmo-panel` claimed the old data would
+follow the old code and be replaced at the next update. It would not have — but reading that about
+your only copy is not a pleasant moment.
+
 ### Creating a server, from the panel
 
 Machine page → **Create a server**. Four screens: where (a watched directory plus a folder name —
