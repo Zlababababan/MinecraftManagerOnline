@@ -24,7 +24,15 @@ export interface PublicRateLimitOptions {
 
 export const PUBLIC_RATE_LIMIT = { max: 120, windowMs: 60_000 } as const;
 
-export type PublicSurface = 'relay' | 'distribution' | 'ws-agent' | 'status';
+export type PublicSurface = 'relay' | 'distribution' | 'ws-agent' | 'status' | 'whitelist';
+
+/**
+ * Plafonds propres à certaines surfaces, toujours appliqués EN PLUS du plafond général (le plus
+ * bas des deux gagne, sinon un test qui resserre la borne globale ne resserrerait pas celles-ci).
+ * Une demande de whitelist est une ÉCRITURE déclenchée par un inconnu : quelques essais suffisent
+ * à corriger une faute de frappe, cent ne servent qu'à remplir la liste de l'opérateur.
+ */
+export const PUBLIC_SURFACE_MAX: Partial<Record<PublicSurface, number>> = { whitelist: 10 };
 
 export class PublicRateLimits {
   private readonly limiters = new Map<PublicSurface, RateLimiter>();
@@ -44,7 +52,7 @@ export class PublicRateLimits {
     let limiter = this.limiters.get(surface);
     if (limiter === undefined) {
       limiter = new RateLimiter({
-        max: this.options.max,
+        max: Math.min(this.options.max, PUBLIC_SURFACE_MAX[surface] ?? this.options.max),
         windowMs: this.options.windowMs,
         ...(this.options.now === undefined ? {} : { now: this.options.now }),
       });

@@ -127,3 +127,22 @@ Trois choses à savoir :
 - **Le lien n'est joignable que là où le panel l'est.** Si votre panel passe par Tailscale, la page suit : elle est visible par les appareils du tailnet, pas par Internet.
 
 Quand la machine est éteinte ou que son agent est arrêté, le panel interroge directement le serveur (le même « ping » que les clients Minecraft) : la page reste juste, même si le panel n'a plus d'agent pour le lui dire. L'état est mis en cache quelques secondes : rafraîchir la page en boucle ne dérange pas le serveur.
+
+## 15. Laisser vos amis demander l'accès (whitelist)
+
+Si votre serveur a une liste blanche, ajouter quelqu'un demande d'habitude un aller-retour : il vous donne son pseudo par message, vous ouvrez le panel, vous tapez. La case **« Accepter les demandes de whitelist »** de la page de statut publique supprime l'aller-retour.
+
+Une fois cochée, vos amis voient un petit formulaire sur la page : leur **pseudo Minecraft**, et s'ils le veulent un mot pour vous (« c'est Paul du lycée »). Rien ne se passe alors sur votre serveur — la demande vous attend, c'est tout.
+
+Vous la retrouvez dans **l'onglet Joueurs → Liste blanche** du serveur, en haut, avec une pastille orange sur l'onglet quand quelqu'un attend (et une notification, si vous les avez activées) :
+
+- **Accepter** ajoute la personne à la liste blanche pour de bon — commande envoyée au serveur s'il tourne, fichier `whitelist.json` mis à jour sinon. C'est exactement le bouton « Ajouter » que vous auriez utilisé à la main.
+- **Refuser** classe la demande sans rien faire.
+- **Oublier** (la corbeille, sur une demande déjà traitée) l'efface de la liste — et permet à la personne d'en refaire une.
+
+Deux détails qui comptent :
+
+- **Redemander est sans conséquence.** Un ami impatient qui renvoie son pseudo ne crée pas dix demandes : il relit simplement la sienne. C'est même ainsi qu'il apprend que vous l'avez accepté — la page le lui dit et il peut se connecter.
+- **Ouvrir le formulaire n'ouvre pas votre serveur.** Personne n'entre sans votre clic. Si le lien fuite, vous récolterez au pire quelques demandes à refuser ; « Changer de lien » ferme le robinet d'un coup. Le panel accepte au plus dix envois par minute et par visiteur, et ne conserve rien d'autre que le pseudo et le mot laissés.
+
+> Le formulaire ne sert qu'à demander. Il ne dit pas si un pseudo existe, ne consulte pas les serveurs de Mojang et n'affiche aucune image venue d'ailleurs : tant que vous n'avez pas accepté, une demande n'est qu'une ligne en attente.

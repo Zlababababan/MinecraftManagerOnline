@@ -453,6 +453,19 @@ export const webEn = {
       bannedIps: 'Banned IP addresses',
       bannedPlayers: 'Banned players',
       offlineHint: 'This server runs in offline mode: UUIDs are derived from the name.',
+      requests: {
+        title: 'Pending requests',
+        hint: 'Received from the public status page. Accepting adds the player to the whitelist.',
+        pending: 'Waiting',
+        accept: 'Accept',
+        reject: 'Refuse',
+        forget: 'Forget this request',
+        accepted: 'Accepted',
+        rejected: 'Refused',
+        decidedBy: 'by {{user}}',
+        handled: 'Handled requests',
+        accepting: '{{name}} will be added to the whitelist.',
+      },
     },
     settings: {
       name: 'Display name',
@@ -1140,6 +1153,7 @@ export const webEn = {
       schedule_done: 'Scheduled task ran',
       panel_update: 'New panel version published',
       webhook_failed: 'Webhook failing / recovered',
+      whitelist_request: 'Whitelist request received',
     },
     channels: { inapp: 'Bell', push: 'Phone' },
     groups: {
@@ -1497,6 +1511,9 @@ export const webEn = {
     showPlayers: 'Show the names of players online',
     showPlayersHint:
       'Without this, the page only shows a count. Ask your players before publishing their names.',
+    allowWhitelist: 'Accept whitelist requests',
+    allowWhitelistHint:
+      'A visitor can ask to be added; nothing happens until you accept, in the Players tab.',
     rotate: 'Change the link',
     rotateConfirm: 'The old link stops working immediately, for everyone.',
   },
@@ -1516,6 +1533,18 @@ export const webEn = {
       stopping: 'Stopping…',
       offline: 'Offline',
       unknown: 'Unknown',
+    },
+    whitelist: {
+      title: 'Ask for access',
+      hint: 'This server has a whitelist. Give your Minecraft name: the owner will decide.',
+      name: 'Minecraft name',
+      invalid: '3 to 16 characters: letters, digits and "_" only.',
+      note: 'A word for the owner (optional)',
+      submit: 'Send the request',
+      pending: 'Request sent. The server owner will decide — come back later.',
+      accepted: 'You are on the whitelist: you can join.',
+      rejected: 'This request was refused. Talk to the server owner directly.',
+      failed: 'The request could not be sent. Try again later.',
     },
   },
   errors: {

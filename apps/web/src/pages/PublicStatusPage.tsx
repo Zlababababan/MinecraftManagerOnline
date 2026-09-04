@@ -4,12 +4,28 @@
  * Elle ne charge non plus aucune ressource tierce (pas d'avatar mc-heads) : un visiteur anonyme
  * n'a rien à signaler à personne.
  */
-import { Badge, Card, Center, Code, CopyButton, Group, Loader, Stack, Text } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Center,
+  Code,
+  CopyButton,
+  Group,
+  Loader,
+  Stack,
+  Text,
+  TextInput,
+} from '@mantine/core';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useState, type SyntheticEvent } from 'react';
 
-import type { PublicStatus } from '@mmo/protocol/client';
+import { MAX_WHITELIST_NOTE, MINECRAFT_NAME_RE, type PublicStatus } from '@mmo/protocol/client';
 
 import { publicStatusQuery } from '../api/status-page.js';
+import { submitWhitelistRequest } from '../api/whitelist-requests.js';
+import { TECHNICAL_INPUT_PROPS } from '../lib/inputs.js';
 import { useT } from '../i18n/hooks.js';
 import { tDynamic } from '../i18n/index.js';
 import { formatDateTime } from '../lib/format.js';
@@ -124,6 +140,7 @@ export function PublicStatusPage({ token }: { token: string }) {
               })}
             </Text>
           )}
+          {status.whitelist && <WhitelistRequestForm token={token} />}
           <Text size="xs" c="dimmed" data-testid="public-status-source" data-source={status.source}>
             {t(
               status.source === 'agent'
@@ -137,6 +154,93 @@ export function PublicStatusPage({ token }: { token: string }) {
         </Stack>
       </Card>
     </Center>
+  );
+}
+
+/**
+ * Demande de whitelist. Le pseudo est validé ICI avec le motif du protocole : un aller-retour
+ * pour dire « il manque une lettre » serait une réponse d'API à une faute de frappe. Le panel le
+ * revalide de son côté — c'est lui qui compte.
+ *
+ * Aucun avatar : la page ne charge aucune ressource tierce, et un visiteur anonyme n'a pas à
+ * signaler son passage à un service de têtes de joueurs pour taper son pseudo.
+ */
+function WhitelistRequestForm({ token }: { token: string }) {
+  const { t } = useT();
+  const [name, setName] = useState('');
+  const [note, setNote] = useState('');
+  const [touched, setTouched] = useState(false);
+  const submit = useMutation({
+    mutationFn: (body: { name: string; note?: string }) => submitWhitelistRequest(token, body),
+  });
+  const valid = MINECRAFT_NAME_RE.test(name.trim());
+  const state = submit.data?.state;
+
+  const send = (event: SyntheticEvent) => {
+    event.preventDefault();
+    setTouched(true);
+    if (!valid) return;
+    const trimmed = note.trim();
+    submit.mutate({ name: name.trim(), ...(trimmed === '' ? {} : { note: trimmed }) });
+  };
+
+  return (
+    <Card withBorder radius="sm" padding="sm" data-testid="public-whitelist">
+      <form onSubmit={send}>
+        <Stack gap="xs">
+          <Text fw={600} size="sm">
+            {t('web:publicStatus.whitelist.title')}
+          </Text>
+          <Text size="xs" c="dimmed">
+            {t('web:publicStatus.whitelist.hint')}
+          </Text>
+          <TextInput
+            label={t('web:publicStatus.whitelist.name')}
+            value={name}
+            onChange={(event) => {
+              setName(event.currentTarget.value);
+            }}
+            maxLength={16}
+            {...TECHNICAL_INPUT_PROPS}
+            error={touched && !valid ? t('web:publicStatus.whitelist.invalid') : null}
+            data-testid="public-whitelist-name"
+          />
+          <TextInput
+            label={t('web:publicStatus.whitelist.note')}
+            value={note}
+            onChange={(event) => {
+              setNote(event.currentTarget.value);
+            }}
+            maxLength={MAX_WHITELIST_NOTE}
+            data-testid="public-whitelist-note"
+          />
+          <Group>
+            <Button
+              type="submit"
+              size="xs"
+              loading={submit.isPending}
+              data-testid="public-whitelist-submit"
+            >
+              {t('web:publicStatus.whitelist.submit')}
+            </Button>
+          </Group>
+          {state !== undefined && (
+            <Alert
+              color={state === 'accepted' ? 'teal' : state === 'rejected' ? 'orange' : 'blue'}
+              data-testid="public-whitelist-result"
+              data-state={state}
+            >
+              {t(`web:publicStatus.whitelist.${state}`)}
+            </Alert>
+          )}
+          {submit.isError && (
+            <Alert color="red" data-testid="public-whitelist-error">
+              {t('web:publicStatus.whitelist.failed')}
+            </Alert>
+          )}
+        </Stack>
+      </form>
+    </Card>
   );
 }
 

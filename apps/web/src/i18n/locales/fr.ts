@@ -459,6 +459,19 @@ export const webFr = {
       bannedIps: 'Adresses IP bannies',
       bannedPlayers: 'Joueurs bannis',
       offlineHint: 'Ce serveur est en mode hors ligne : les UUID sont dérivés du pseudo.',
+      requests: {
+        title: 'Demandes en attente',
+        hint: 'Reçues depuis la page de statut publique. Accepter ajoute le joueur à la whitelist.',
+        pending: 'En attente',
+        accept: 'Accepter',
+        reject: 'Refuser',
+        forget: 'Oublier cette demande',
+        accepted: 'Acceptée',
+        rejected: 'Refusée',
+        decidedBy: 'par {{user}}',
+        handled: 'Demandes traitées',
+        accepting: '{{name}} sera ajouté à la whitelist.',
+      },
     },
     settings: {
       name: 'Nom affiché',
@@ -1152,6 +1165,7 @@ export const webFr = {
       schedule_done: 'Action programmée exécutée',
       panel_update: 'Nouvelle version du panel publiée',
       webhook_failed: 'Webhook en échec / rétabli',
+      whitelist_request: 'Demande de whitelist reçue',
     },
     channels: { inapp: 'Cloche', push: 'Téléphone' },
     groups: {
@@ -1520,6 +1534,9 @@ export const webFr = {
     showPlayers: 'Afficher les pseudos des joueurs connectés',
     showPlayersHint:
       'Sans cette option, la page n’affiche qu’un nombre. Demandez leur accord avant de publier des pseudos.',
+    allowWhitelist: 'Accepter les demandes de whitelist',
+    allowWhitelistHint:
+      'Un visiteur peut demander à être ajouté ; rien ne se passe tant que vous n’avez pas accepté, dans l’onglet Joueurs.',
     rotate: 'Changer de lien',
     rotateConfirm: 'L’ancien lien cessera immédiatement de fonctionner pour tout le monde.',
   },
@@ -1539,6 +1556,18 @@ export const webFr = {
       stopping: 'Arrêt…',
       offline: 'Hors ligne',
       unknown: 'Inconnu',
+    },
+    whitelist: {
+      title: 'Demander l’accès',
+      hint: 'Ce serveur a une liste blanche. Donnez votre pseudo Minecraft : le propriétaire décidera.',
+      name: 'Pseudo Minecraft',
+      invalid: '3 à 16 caractères : lettres, chiffres et « _ » uniquement.',
+      note: 'Un mot pour le propriétaire (facultatif)',
+      submit: 'Envoyer la demande',
+      pending: 'Demande envoyée. Le propriétaire du serveur décidera — repassez plus tard.',
+      accepted: 'Vous êtes sur la liste blanche : vous pouvez vous connecter.',
+      rejected: 'Cette demande a été refusée. Voyez directement avec le propriétaire du serveur.',
+      failed: 'La demande n’a pas pu être envoyée. Réessayez plus tard.',
     },
   },
   errors: {

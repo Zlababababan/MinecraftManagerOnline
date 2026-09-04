@@ -554,6 +554,10 @@ export function notifyKey(event: EventDto): string | undefined {
       return 'serverConflict';
     case 'player.action':
       return 'playerAction';
+    // Lot 8 : un ami a demandé la liste blanche depuis la page publique. Le mot qu'il a laissé
+    // n'est PAS dans l'événement (il se lit dans le panel) : seul le pseudo, contraint, est cité.
+    case 'whitelist.requested':
+      return 'whitelistRequested';
     // Une seule famille d'événements pour toutes les alertes : la règle choisit le libellé.
     case 'alert.firing': {
       const rule = (event.payload as { rule?: unknown } | undefined)?.rule;

@@ -854,9 +854,42 @@ export const serverStatusPages = sqliteTable('server_status_pages', {
   token: text('token').notNull().unique(),
   enabled: integer('enabled').notNull().default(0),
   showPlayers: integer('show_players').notNull().default(0),
+  /** Second opt-in : la page publique propose un formulaire de demande de whitelist. */
+  allowWhitelist: integer('allow_whitelist').notNull().default(0),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
 });
+
+/**
+ * Demandes de whitelist en libre-service (lot 8). Une ligne par (serveur, pseudo) : redemander ne
+ * crée pas de doublon, le visiteur relit simplement où en est sa demande. Rien du visiteur n'est
+ * conservé — ni adresse, ni horodatage de visite : seuls le pseudo qu'il donne et le mot qu'il
+ * laisse. Supprimer une demande tranchée rouvre la possibilité d'en refaire une.
+ */
+export const whitelistRequests = sqliteTable(
+  'whitelist_requests',
+  {
+    id: text('id').primaryKey(),
+    serverId: text('server_id')
+      .notNull()
+      .references(() => servers.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    /** `name` en minuscules : c'est lui qui porte l'unicité (Minecraft ignore la casse). */
+    nameKey: text('name_key').notNull(),
+    note: text('note'),
+    status: text('status', { enum: ['pending', 'accepted', 'rejected'] })
+      .notNull()
+      .default('pending'),
+    createdAt: integer('created_at').notNull(),
+    decidedAt: integer('decided_at'),
+    /** Le compte qui a tranché ; effacé si ce compte disparaît, la décision reste. */
+    decidedBy: text('decided_by').references(() => users.id, { onDelete: 'set null' }),
+  },
+  (t) => [
+    uniqueIndex('idx_whitelist_requests_name').on(t.serverId, t.nameKey),
+    index('idx_whitelist_requests_status').on(t.serverId, t.status),
+  ],
+);
 
 export type UserRow = typeof users.$inferSelect;
 export type ApiKeyRow = typeof apiKeys.$inferSelect;
@@ -878,3 +911,4 @@ export type WebhookRow = typeof webhooks.$inferSelect;
 export type BackupReplicationRow = typeof backupReplication.$inferSelect;
 export type BackupReplicaRow = typeof backupReplicas.$inferSelect;
 export type ServerStatusPageRow = typeof serverStatusPages.$inferSelect;
+export type WhitelistRequestRow = typeof whitelistRequests.$inferSelect;

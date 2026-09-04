@@ -127,3 +127,22 @@ Three things to know:
 - **The link only reaches as far as your panel does.** If your panel is behind Tailscale, so is the page: devices on the tailnet can see it, the Internet cannot.
 
 When the machine is off or its agent is stopped, the panel asks the server itself (the same "ping" Minecraft clients use), so the page stays honest even with no agent to report. The result is cached for a few seconds: refreshing in a loop never bothers the server.
+
+## 15. Letting friends ask for access (whitelist)
+
+If your server has a whitelist, adding someone usually takes a round trip: they send you their name, you open the panel, you type it. The **"Accept whitelist requests"** switch on the public status page removes the round trip.
+
+Tick it and your friends get a small form on the page: their **Minecraft name**, and if they want a word for you ("it's Paul from school"). Nothing happens on your server at that point — the request simply waits for you.
+
+You find it in the server's **Players tab → Whitelist**, at the top, with an orange badge on the tab when someone is waiting (and a notification, if you have them on):
+
+- **Accept** really adds them to the whitelist — a command sent to the server if it runs, the `whitelist.json` file otherwise. It is exactly the "Add" button you would have used by hand.
+- **Refuse** files the request away without doing anything.
+- **Forget** (the bin, on a request you already handled) removes it from the list — and lets that person ask again.
+
+Two details that matter:
+
+- **Asking twice is harmless.** An impatient friend who sends their name again does not create ten requests: they just re-read their own. That is also how they learn you accepted them — the page tells them, and they can join.
+- **Opening the form does not open your server.** Nobody gets in without your click. If the link leaks, the worst you collect is a few requests to refuse; "Change the link" shuts the tap. The panel accepts at most ten submissions per minute per visitor, and keeps nothing beyond the name and the word left behind.
+
+> The form only asks. It does not tell whether a name exists, does not call Mojang's servers and loads no image from anywhere else: until you accept, a request is just a waiting line.

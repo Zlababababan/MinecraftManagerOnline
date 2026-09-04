@@ -11,7 +11,11 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 
-import { STATUS_TOKEN_LENGTH, statusPageInputSchema } from '@mmo/protocol/client';
+import {
+  STATUS_TOKEN_LENGTH,
+  statusPageInputSchema,
+  whitelistRequestInputSchema,
+} from '@mmo/protocol/client';
 
 import type { AppContext } from '../../context.js';
 import { notFound } from '../../errors.js';
@@ -52,7 +56,11 @@ export function registerStatusPageRoutes(app: FastifyInstance, ctx: AppContext):
         targetLabel: row.name,
         // Jamais le jeton : le journal d'audit est lisible par tout administrateur, et le lien
         // qu'il contiendrait vaudrait accès sans expiration.
-        details: { enabled: statusPage.enabled, showPlayers: statusPage.showPlayers },
+        details: {
+          enabled: statusPage.enabled,
+          showPlayers: statusPage.showPlayers,
+          allowWhitelist: statusPage.allowWhitelist,
+        },
       });
       return { statusPage };
     },
@@ -89,6 +97,27 @@ export function registerStatusPageRoutes(app: FastifyInstance, ctx: AppContext):
       // Un cache partagé (proxy, navigateur) ne doit pas servir un état figé plus longtemps que
       // le cache du panel lui-même.
       return reply.header('cache-control', 'no-store').send({ status });
+    },
+  );
+
+  /**
+   * Demande de whitelist en libre-service (lot 8). Deuxième et dernière route anonyme du lot :
+   * elle réutilise le jeton de la page de statut plutôt que d'ouvrir une surface de plus, et son
+   * limiteur est bien plus serré que la lecture (dix par minute et par adresse) — c'est une
+   * écriture. Elle n'appelle ni l'agent ni Mojang : elle range une ligne, rien d'autre.
+   */
+  r.post(
+    '/api/status/:token/whitelist',
+    {
+      config: { public: true },
+      schema: { params: tokenParams, body: whitelistRequestInputSchema },
+      preValidation: ctx.rateLimits.hook('whitelist'),
+    },
+    (request, reply) => {
+      const server = ctx.statusPages.resolveForWhitelist(request.params.token);
+      if (server === undefined) throw notFound('status page');
+      const state = ctx.whitelistRequests.submit(server, request.body);
+      return reply.header('cache-control', 'no-store').send({ state });
     },
   );
 }

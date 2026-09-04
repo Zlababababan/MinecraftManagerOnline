@@ -58,6 +58,11 @@ export const HELP_TOPICS = {
     en: 'add-a-machine.md#14-a-public-status-page-for-friends',
     fr: 'fr/ajouter-une-machine.md#14-une-page-de-statut-publique-pour-les-amis',
   },
+  /** Lot 8 : demandes de whitelist en libre-service — accepter, refuser, oublier. */
+  whitelistRequests: {
+    en: 'add-a-machine.md#15-letting-friends-ask-for-access-whitelist',
+    fr: 'fr/ajouter-une-machine.md#15-laisser-vos-amis-demander-laccès-whitelist',
+  },
   /** Lot 8 : appareils connectés — voir et déconnecter ses sessions. */
   sessions: {
     en: 'add-a-machine.md#13-signed-in-devices',

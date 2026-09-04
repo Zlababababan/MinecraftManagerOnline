@@ -49,6 +49,8 @@ const PROCESSED_EVENTS_RETENTION_MS = DAY;
  * la base entre deux passages. L'API n'en lit jamais plus de 500.
  */
 export const COMMAND_HISTORY_MAX_PER_SERVER = 2000;
+/** Demandes de whitelist tranchées gardées par serveur (lot 8). */
+export const WHITELIST_REQUESTS_MAX_PER_SERVER = 200;
 
 /** Temps maximal passé chaque heure à rendre les pages libres de `metrics.db` (~32 Mio mesurés). */
 export const COMPACTION_BUDGET_MS = 500;
@@ -144,6 +146,10 @@ export function runMaintenance(
   purged.backups = ctx.backups.purgeDeletedBefore(
     t - days(SETTING_KEYS.deletedBackupsRetentionDays),
   );
+  // Lot 8 : demandes de whitelist déjà tranchées — plafond par serveur, pas de rétention en jours
+  // (personne n'a d'avis sur « combien de temps garder un refus », mais tout le monde veut que la
+  // table soit bornée). Les demandes EN ATTENTE ne sont jamais purgées : elles attendent un humain.
+  purged.whitelist_requests = ctx.whitelistRequests.purgeDecided(WHITELIST_REQUESTS_MAX_PER_SERVER);
   ctx.sqlite.pragma('wal_checkpoint(PASSIVE)');
 
   // Politiques de sauvegarde qui ne tournent plus. C'était le trou le plus large du produit :

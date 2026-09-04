@@ -111,6 +111,10 @@ export const fr = {
         title: 'Webhook « {{webhook}} » rétabli',
         body: 'Les envois passent à nouveau.',
       },
+      whitelistRequested: {
+        title: '{{player}} demande à rejoindre {{server}}',
+        body: 'Demande de liste blanche en attente — onglet Joueurs → Liste blanche.',
+      },
       webhookTest: {
         title: 'Test du webhook « {{webhook}} »',
         body: 'Ce message vient de MinecraftManagerOnline : le webhook est bien configuré.',

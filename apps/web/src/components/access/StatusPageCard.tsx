@@ -106,6 +106,16 @@ export function StatusPageCard({ server }: { server: ServerDto }) {
                 set.mutate({ showPlayers: event.currentTarget.checked }, { onError });
               }}
             />
+            <Switch
+              label={t('web:statusPage.allowWhitelist')}
+              description={t('web:statusPage.allowWhitelistHint')}
+              checked={page?.allowWhitelist ?? false}
+              disabled={!canEdit || set.isPending}
+              data-testid="status-page-allow-whitelist"
+              onChange={(event) => {
+                set.mutate({ allowWhitelist: event.currentTarget.checked }, { onError });
+              }}
+            />
             {confirmRotate ? (
               <Alert color="orange" data-testid="status-page-rotate-confirm">
                 <Stack gap="xs">

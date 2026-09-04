@@ -32,6 +32,7 @@ const page = (over: Partial<StatusPageDto> = {}): StatusPageDto => ({
   serverId: 'srv1',
   enabled: true,
   showPlayers: false,
+  allowWhitelist: false,
   token: 'aaaaaaaaaaaaaaaaaaaaaa',
   path: '/s/aaaaaaaaaaaaaaaaaaaaaa',
   url: null,
@@ -161,6 +162,20 @@ describe('StatusPageCard', () => {
     });
   });
 
+  it('les demandes de whitelist sont un second opt-in, éteint par défaut', async () => {
+    installFetch(calls, page(), 'admin');
+    renderCard();
+    const allow = await screen.findByTestId('status-page-allow-whitelist');
+    expect(allow).not.toBeChecked();
+    fireEvent.click(allow);
+    await waitFor(() => {
+      expect(calls.find((c) => c.method === 'PUT')?.body).toEqual({ allowWhitelist: true });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('status-page-allow-whitelist')).toBeChecked();
+    });
+  });
+
   it('un lecteur voit l’état mais ne touche à rien', async () => {
     installFetch(calls, page({ showPlayers: true }), 'viewer');
     renderCard();
@@ -168,6 +183,7 @@ describe('StatusPageCard', () => {
     await screen.findByTestId('status-page-link');
     expect(screen.getByTestId('status-page-enabled')).toBeDisabled();
     expect(screen.getByTestId('status-page-show-players')).toBeDisabled();
+    expect(screen.getByTestId('status-page-allow-whitelist')).toBeDisabled();
     expect(screen.getByTestId('status-page-rotate')).toBeDisabled();
   });
 });

@@ -51,8 +51,10 @@ import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
 import { formatDateTime, formatDuration } from '../../lib/format.js';
 import { canServer } from '../../lib/permissions.js';
+import { useWhitelistRequests } from '../../api/whitelist-requests.js';
 import { ErrorAlert } from '../ErrorAlert.js';
 import { PlayerAvatar } from './PlayerAvatar.js';
+import { WhitelistRequestsCard } from './WhitelistRequestsCard.js';
 import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 
 export const PLAYER_VIEWS = ['online', 'whitelist', 'ops', 'bans', 'history'] as const;
@@ -451,6 +453,7 @@ function WhitelistView({ server, canOperate }: { server: ServerDto; canOperate: 
           />
         )}
       </Group>
+      <WhitelistRequestsCard server={server} canOperate={canOperate} />
       {canOperate && <AddPlayerForm server={server} action="whitelistAdd" testId="whitelist-add" />}
       {entries.length === 0 ? (
         <Text size="sm" c="dimmed" data-testid="whitelist-empty">
@@ -738,6 +741,10 @@ export function PlayersPanel({ server }: { server: ServerDto }) {
   const canOperate = canServer(me.data, server, 'operator') && server.reachable;
   const props = useConfigFile(server.id, 'server.properties');
   const offline = (props.data?.data['online-mode'] ?? 'true').toLowerCase() === 'false';
+  // Lot 8 : les demandes en libre-service dorment dans un onglet qu'on n'ouvre pas — la pastille
+  // sur « Liste blanche » est ce qui fait qu'on y va (la requête est partagée avec la carte).
+  const requests = useWhitelistRequests(server.id);
+  const waiting = (requests.data?.requests ?? []).filter((r) => r.status === 'pending').length;
   return (
     <Stack gap="md">
       <SegmentedControl
@@ -748,7 +755,14 @@ export function PlayersPanel({ server }: { server: ServerDto }) {
         data={PLAYER_VIEWS.map((v) => ({
           value: v,
           label: (
-            <span data-testid={`players-view-${v}`}>{t(`web:server.players.views.${v}`)}</span>
+            <span data-testid={`players-view-${v}`}>
+              {t(`web:server.players.views.${v}`)}
+              {v === 'whitelist' && waiting > 0 && (
+                <Badge size="xs" color="orange" ml={6} data-testid="players-view-whitelist-count">
+                  {waiting}
+                </Badge>
+              )}
+            </span>
           ),
         }))}
         fullWidth

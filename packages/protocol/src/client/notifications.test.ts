@@ -51,6 +51,7 @@ const BUS_EVENTS: { type: string; severity: string; payload?: unknown }[] = [
   { type: 'panel.backupFailed', severity: 'error', payload: { reason: 'ENOSPC' } },
   { type: 'webhook.failed', severity: 'error', payload: { webhookId: 'wh1', reason: 'HTTP 404' } },
   { type: 'webhook.recovered', severity: 'info', payload: { webhookId: 'wh1', failures: 3 } },
+  { type: 'whitelist.requested', severity: 'info', payload: { name: 'Notch' } },
 ];
 
 describe('catalogue des notifications', () => {

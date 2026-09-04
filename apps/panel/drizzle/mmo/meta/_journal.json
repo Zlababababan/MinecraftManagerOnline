@@ -134,6 +134,13 @@
       "when": 1788469135241,
       "tag": "0018_status_pages",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1788502613605,
+      "tag": "0019_whitelist_requests",
+      "breakpoints": true
     }
   ]
 }

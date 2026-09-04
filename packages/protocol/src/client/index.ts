@@ -1169,6 +1169,8 @@ export const NOTIFICATION_TYPES = [
   'panel.update',
   /** Lot 4 : un webhook sortant ne livre plus (une fois par épisode) et son retour à la normale. */
   'webhook.failed',
+  /** Lot 8 : un ami demande à être ajouté à la liste blanche depuis la page publique. */
+  'whitelist.request',
 ] as const;
 export const notificationTypeSchema = z.enum(NOTIFICATION_TYPES);
 export type NotificationType = z.infer<typeof notificationTypeSchema>;
@@ -1203,6 +1205,8 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<NotificationType, boolean>> 
   'panel.update': true,
   // Un webhook mort est une notification qui n'arrive plus : la seule façon de le savoir.
   'webhook.failed': true,
+  // Une demande de whitelist attend une décision humaine : sans notification, l'ami attend en vain.
+  'whitelist.request': true,
 };
 
 /**
@@ -1231,7 +1235,7 @@ export const NOTIFICATION_GROUPS = [
     id: 'tasks',
     types: ['backup.failed', 'task.failed', 'task.done', 'schedule.failed', 'schedule.done'],
   },
-  { id: 'players', types: ['player.activity', 'player.action'] },
+  { id: 'players', types: ['player.activity', 'player.action', 'whitelist.request'] },
   { id: 'panel', types: ['panel.update', 'webhook.failed'] },
 ] as const satisfies readonly { id: string; types: readonly NotificationType[] }[];
 
@@ -1303,6 +1307,10 @@ export function notificationTypeOf(event: {
       return 'player.activity';
     case 'player.action':
       return 'player.action';
+    // Lot 8 : la demande d'un inconnu muni du lien public. Elle n'est jamais appliquée toute
+    // seule — cette notification EST le mécanisme : sans elle, personne ne vient décider.
+    case 'whitelist.requested':
+      return 'whitelist.request';
     // Un agent ne parle au bus que pour signaler une anomalie (EULA refusée, démarrage qui
     // n'aboutit pas, dossier non inscriptible) : c'est exactement ce qu'on veut savoir.
     case 'agent.log':
@@ -1609,6 +1617,8 @@ export const statusPageDtoSchema = z.object({
   enabled: z.boolean(),
   /** Opt-in nominatif (doc 04 §8.6) : sans lui, la page ne montre qu'un NOMBRE de joueurs. */
   showPlayers: z.boolean(),
+  /** Second opt-in : la page propose un formulaire de demande de whitelist (lot 8). */
+  allowWhitelist: z.boolean(),
   token: z.string(),
   /** `/s/<jeton>` — à préfixer de l'origine si l'URL publique du panel n'est pas connue. */
   path: z.string(),
@@ -1622,6 +1632,7 @@ export type StatusPageDto = z.infer<typeof statusPageDtoSchema>;
 export const statusPageInputSchema = z.object({
   enabled: z.boolean().optional(),
   showPlayers: z.boolean().optional(),
+  allowWhitelist: z.boolean().optional(),
 });
 export type StatusPageInput = z.infer<typeof statusPageInputSchema>;
 
@@ -1650,10 +1661,65 @@ export const publicStatusSchema = z.object({
   nextBackupAt: epochMsSchema.nullable(),
   /** D'où vient cet état : l'agent, un ping Minecraft de repli, ou rien du tout. */
   source: z.enum(['agent', 'ping', 'none']),
+  /** La page propose-t-elle un formulaire de demande de whitelist ? (second opt-in, défaut non) */
+  whitelist: z.boolean(),
   /** Instant du calcul : la page est servie depuis un cache court. */
   updatedAt: epochMsSchema,
 });
 export type PublicStatus = z.infer<typeof publicStatusSchema>;
+
+// --- Demande de whitelist en libre-service (lot 8) ----------------------------------------------
+
+/**
+ * Un ami muni du lien de la page de statut demande à être ajouté à la liste blanche. La demande
+ * est INERTE : le panel l'enregistre, ne résout rien, ne parle ni à l'agent ni à Mojang. Tout ne
+ * se produit qu'au moment où un opérateur accepte — c'est lui qui déclenche l'action whitelist
+ * existante (commande si le serveur tourne, fichier sinon).
+ */
+export const MAX_WHITELIST_NOTE = 200;
+
+/**
+ * Pseudo Java : 3–16 caractères alphanumériques et `_`. Le motif est une GARDE, pas une amabilité
+ * — ce texte vient d'un inconnu et finit dans une notification, un webhook et, à l'acceptation,
+ * dans une commande `whitelist add` passée au serveur.
+ */
+export const MINECRAFT_NAME_RE = /^[A-Za-z0-9_]{3,16}$/;
+
+export const WHITELIST_REQUEST_STATUSES = ['pending', 'accepted', 'rejected'] as const;
+export const whitelistRequestStatusSchema = z.enum(WHITELIST_REQUEST_STATUSES);
+export type WhitelistRequestStatus = z.infer<typeof whitelistRequestStatusSchema>;
+
+/** Ce que le visiteur envoie. Rien d'autre : ni adresse, ni contact, ni identifiant. */
+export const whitelistRequestInputSchema = z.object({
+  name: z.string().regex(MINECRAFT_NAME_RE),
+  /** Un mot pour l'opérateur (« c'est Paul du lycée »), facultatif. */
+  note: z.string().max(MAX_WHITELIST_NOTE).optional(),
+});
+export type WhitelistRequestInput = z.infer<typeof whitelistRequestInputSchema>;
+
+/**
+ * Ce que le visiteur apprend en retour, et rien de plus : l'état de SA demande pour CE pseudo.
+ * `pending` couvre aussi bien la demande qu'on vient de créer que celle qui attendait déjà — le
+ * visiteur n'a pas à savoir laquelle, et le panel n'ouvre pas un compteur de demandes par pseudo.
+ */
+export const whitelistRequestResultSchema = z.object({
+  state: whitelistRequestStatusSchema,
+});
+export type WhitelistRequestResult = z.infer<typeof whitelistRequestResultSchema>;
+
+/** La demande telle que la voit un opérateur (onglet Joueurs → Liste blanche). */
+export const whitelistRequestDtoSchema = z.object({
+  id: z.string(),
+  serverId: z.string(),
+  name: z.string(),
+  note: z.string().nullable(),
+  status: whitelistRequestStatusSchema,
+  createdAt: epochMsSchema,
+  decidedAt: epochMsSchema.nullable(),
+  /** Nom du compte qui a tranché (jamais son identifiant), `null` tant que rien n'est décidé. */
+  decidedBy: z.string().nullable(),
+});
+export type WhitelistRequestDto = z.infer<typeof whitelistRequestDtoSchema>;
 
 // --- WebSocket /ws/client ----------------------------------------------------------------------------
 

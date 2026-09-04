@@ -8,6 +8,21 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### Friends can ask to be whitelisted
+
+The public status page gains a second switch: **Accept whitelist requests**. Turn it on and your
+friends get a small form — their Minecraft name, and a word for you if they like — instead of
+messaging you their name and waiting for you to type it in. Nothing happens on your server when
+they submit: the request waits for you in the server's **Players → Whitelist** tab, with a badge
+on the tab and a notification if you have them on. **Accept** adds them for real, using the same
+chain as the Add button (a command if the server runs, `whitelist.json` otherwise), and only marks
+the request accepted once that worked. **Refuse** files it away; **Forget** clears it and lets the
+person ask again. Asking twice is harmless — a friend who resends their name just re-reads their
+own request, which is also how they learn you accepted them and can join.
+
+Opening the form does not open your server: nobody gets in without your click, submissions are
+rate-limited per visitor, and the panel keeps nothing about visitors beyond what they typed.
+
 ### A public status page for friends
 
 Every server can now publish a read-only page on an unguessable link — `https://your-panel/s/…` —

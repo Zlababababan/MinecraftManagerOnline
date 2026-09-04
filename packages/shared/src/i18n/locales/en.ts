@@ -104,6 +104,10 @@ export const en = {
         title: 'Webhook "{{webhook}}" recovered',
         body: 'Deliveries go through again.',
       },
+      whitelistRequested: {
+        title: '{{player}} asks to join {{server}}',
+        body: 'Whitelist request waiting — Players tab → Whitelist.',
+      },
       webhookTest: {
         title: 'Webhook "{{webhook}}" test',
         body: 'This message comes from MinecraftManagerOnline: the webhook is set up correctly.',

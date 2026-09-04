@@ -37,6 +37,7 @@ import { UpdateCheckService } from './services/update-check.js';
 import { WebhooksService, type WebhooksServiceOptions } from './services/webhooks.js';
 import { ReplicationService } from './services/replication.js';
 import { StatusPagesService, type StatusPagesDeps } from './services/status-pages.js';
+import { WhitelistRequestsService } from './services/whitelist-requests.js';
 import { AlertsService, DEFAULT_THRESHOLDS } from './services/alerts.js';
 import { collectConditions } from './services/alert-conditions.js';
 import { CommandCatalogService } from './services/command-catalog.js';
@@ -109,6 +110,7 @@ export interface AppContext {
   replication: ReplicationService;
   /** Lot 8 : page de statut publique d'un serveur (`/s/<jeton>`, lecture seule, anonyme). */
   statusPages: StatusPagesService;
+  whitelistRequests: WhitelistRequestsService;
   /** `fetch` injectable (tests) pour les appels sortants du panel (manifest Mojang, API spark). */
   fetchImpl: typeof fetch | undefined;
   /**
@@ -495,6 +497,15 @@ export function createContext(options: ContextOptions): AppContext {
     settings,
     ...(options.statusPages ?? {}),
   });
+  // Lot 8 : demandes de whitelist en libre-service. Le service ne connaît ni l'agent ni le
+  // réseau : une demande est une ligne, l'action n'a lieu qu'à l'acceptation (route).
+  const whitelistRequests = new WhitelistRequestsService({
+    db,
+    sqlite: mmo.sqlite,
+    now,
+    events,
+    users,
+  });
   // Lot 4 : webhooks sortants — même rendu localisé que le push, file par webhook.
   const webhooks = new WebhooksService({
     db,
@@ -559,6 +570,7 @@ export function createContext(options: ContextOptions): AppContext {
     webhooks,
     replication,
     statusPages,
+    whitelistRequests,
     fetchImpl: options.fetch,
     diagnostics: {
       startedAt: now(),

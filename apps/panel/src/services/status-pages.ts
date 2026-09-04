@@ -106,6 +106,7 @@ export class StatusPagesService {
         token: generateStatusToken(),
         enabled: input.enabled === true ? 1 : 0,
         showPlayers: input.showPlayers === true ? 1 : 0,
+        allowWhitelist: input.allowWhitelist === true ? 1 : 0,
         createdAt: now,
         updatedAt: now,
       };
@@ -117,11 +118,18 @@ export class StatusPagesService {
       enabled: input.enabled === undefined ? existing.enabled : input.enabled ? 1 : 0,
       showPlayers:
         input.showPlayers === undefined ? existing.showPlayers : input.showPlayers ? 1 : 0,
+      allowWhitelist:
+        input.allowWhitelist === undefined ? existing.allowWhitelist : input.allowWhitelist ? 1 : 0,
       updatedAt: now,
     };
     this.deps.db
       .update(serverStatusPages)
-      .set({ enabled: next.enabled, showPlayers: next.showPlayers, updatedAt: next.updatedAt })
+      .set({
+        enabled: next.enabled,
+        showPlayers: next.showPlayers,
+        allowWhitelist: next.allowWhitelist,
+        updatedAt: next.updatedAt,
+      })
       .where(eq(serverStatusPages.serverId, serverId))
       .run();
     // Le contenu publié change (pseudos publiés ou non) : l'état en cache ne vaut plus.
@@ -153,6 +161,7 @@ export class StatusPagesService {
       serverId: row.serverId,
       enabled: row.enabled === 1,
       showPlayers: row.showPlayers === 1,
+      allowWhitelist: row.allowWhitelist === 1,
       token: row.token,
       path,
       url: base === undefined || base === '' ? null : base.replace(/\/+$/, '') + path,
@@ -169,6 +178,20 @@ export class StatusPagesService {
    * jamais si le lien a existé.
    */
   resolve(token: string): ServerRow | undefined {
+    return this.resolvePage(token)?.server;
+  }
+
+  /**
+   * Le serveur d'un jeton dont la page accepte les demandes de whitelist. Un jeton valide dont la
+   * page ne les accepte PAS retombe sur le même `undefined` : la surface n'existe simplement pas
+   * pour cette page, et un formulaire forgé n'apprend rien de plus qu'un jeton inventé.
+   */
+  resolveForWhitelist(token: string): ServerRow | undefined {
+    const found = this.resolvePage(token);
+    return found?.page.allowWhitelist === 1 ? found.server : undefined;
+  }
+
+  private resolvePage(token: string): { page: ServerStatusPageRow; server: ServerRow } | undefined {
     if (token === '') return undefined;
     const row = this.deps.db
       .select()
@@ -178,7 +201,7 @@ export class StatusPagesService {
     if (row?.enabled !== 1) return undefined;
     const server = this.deps.servers.get(row.serverId);
     if (server === undefined || server.provisioning === 'archived') return undefined;
-    return server;
+    return { page: row, server };
   }
 
   /** L'état publié pour ce jeton (cache court), ou `undefined` si le lien ne mène à rien. */
@@ -229,6 +252,7 @@ export class StatusPagesService {
         named,
       },
       nextBackupAt: this.nextBackupAt(server.id),
+      whitelist: row?.allowWhitelist === 1,
       source: 'agent',
       updatedAt: this.deps.now(),
     };
@@ -254,6 +278,7 @@ export class StatusPagesService {
       motd: motdOf(server),
       players: { online: null, max: null, names: [], named },
       nextBackupAt: this.nextBackupAt(server.id),
+      whitelist: row?.allowWhitelist === 1,
       source: 'none',
       updatedAt: this.deps.now(),
     };
