@@ -109,6 +109,7 @@ import {
   taskListResponseSchema,
   taskProgressSchema,
 } from './messages/tasks.js';
+import { serverInstallSchema } from './messages/install.js';
 import { javaInstallSchema, javaRemoveResponseSchema, javaRemoveSchema } from './messages/java.js';
 import {
   migrationExportSchema,
@@ -187,6 +188,8 @@ export const REQUESTS = {
   'server.commandHelp': req('p2a', serverCommandHelpSchema, serverCommandHelpResponseSchema),
   'server.eulaAccept': req('p2a', serverRefSchema, emptyPayloadSchema),
   'server.setProvisioning': req('p2a', serverSetProvisioningSchema, emptyPayloadSchema),
+  /** Lot 5 (ajout sans bump, capacité `server-install`) : installer un serveur dans un dossier. */
+  'server.install': req('p2a', serverInstallSchema, taskAcceptedSchema),
   'player.list': req('p2a', serverRefSchema, playerListResponseSchema),
   'player.action': req('p2a', playerActionSchema, playerActionResponseSchema),
   'player.resolve': req('p2a', playerResolveSchema, playerResolveResponseSchema),

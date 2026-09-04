@@ -23,6 +23,7 @@ export const TASK_KINDS = [
   'migration.export',
   'migration.import',
   'java.install',
+  'server.install',
 ] as const;
 export const taskKindSchema = z.string().min(1);
 

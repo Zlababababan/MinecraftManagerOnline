@@ -62,6 +62,8 @@ export const KNOWN_CAPABILITIES = [
   'partial-restore',
   /** Lot 4 : `backup.receive` (copie hors-site d'une archive vers cette machine). */
   'replication',
+  /** Lot 5 : `server.install` (créer un serveur dans un dossier vide, ou finir une installation). */
+  'server-install',
 ] as const;
 export const capabilitySchema = z.string().min(1);
 

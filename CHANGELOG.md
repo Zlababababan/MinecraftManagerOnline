@@ -8,6 +8,18 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### Agents can install a server (groundwork)
+
+Agents now understand `server.install`: a plan the panel decides — download a file, run a jar,
+write a file, merge settings into `server.properties` — carried out in order, with progress, and
+undone cleanly if it fails. Nothing in the interface uses it yet; that comes next.
+
+Two things the agent guarantees rather than trusting the caller to remember. The EULA is written
+**after** everything else, because the Fabric launcher installs the server and then starts it —
+without `eula.txt` it stops by itself, which is exactly what an installation needs. And a "repair"
+run never treats the folder as disposable: finishing an interrupted installation must not be able
+to delete what is already there.
+
 ### Buttons on the notification
 
 A "server crashed" notification now carries **Start** and **Console**; a failed start carries

@@ -17,6 +17,7 @@ export * from './messages/monitoring.js';
 export * from './messages/tasks.js';
 export * from './messages/transfer.js';
 export * from './messages/migration.js';
+export * from './messages/install.js';
 export * from './messages/java.js';
 export * from './messages/update.js';
 export * from './transfer/frame.js';

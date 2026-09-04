@@ -34,6 +34,7 @@ import { BackupService } from './backup/backup-service.js';
 import { BackupScheduler } from './backup/scheduler.js';
 import { BackupVerifier, type BackupVerifierOptions } from './backup/verifier.js';
 import { JavaInstaller } from './java/installer.js';
+import { ServerInstaller } from './minecraft/installer.js';
 import { AgentMigration } from './migration/migration.js';
 import { AgentUpdater, detectAgentHome } from './update/updater.js';
 import { panelHttpOrigin } from './util/download.js';
@@ -65,6 +66,7 @@ export const AGENT_CAPABILITIES = [
   'diagnostics',
   'partial-restore',
   'replication',
+  'server-install',
 ];
 
 export function currentOs(): Os {
@@ -178,6 +180,7 @@ export class Agent {
   readonly backupVerifier: BackupVerifier;
   readonly transfers: AgentTransfers;
   readonly javaInstaller: JavaInstaller;
+  readonly serverInstaller: ServerInstaller;
   readonly migration: AgentMigration;
   readonly updater: AgentUpdater;
   readonly version: string;
@@ -343,6 +346,14 @@ export class Agent {
       panelOrigin,
       fetchImpl: options.fetchImpl,
       ...(options.javaProbe === undefined ? {} : { probe: options.javaProbe }),
+    });
+    this.serverInstaller = new ServerInstaller({
+      logger: this.logger.child('install'),
+      java: this.java,
+      forbidden: this.forbidden,
+      os: currentOs(),
+      panelOrigin,
+      fetchImpl: options.fetchImpl,
     });
     this.migration = new AgentMigration({
       stateDir: options.stateDir,
@@ -689,6 +700,15 @@ export class Agent {
           this.javaSnapshot = await this.java.list(true).catch(() => this.javaSnapshot);
           return { ...result };
         });
+        return { taskId };
+      })
+      // Lot 5 — installation d'un serveur (ajout sans bump, capacité `server-install`).
+      .handle('server.install', async ({ taskId, ...req }) => {
+        await this.serverInstaller.precheck(req);
+        await this.tasks.start(
+          { taskId, kind: 'server.install', serverId: req.serverId, payload: req },
+          (ctx) => this.serverInstaller.install(req, ctx),
+        );
         return { taskId };
       })
       .handle('java.remove', async ({ path: javaPath }) => {

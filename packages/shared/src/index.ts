@@ -7,6 +7,7 @@ export const PROJECT_NAME = 'MinecraftManagerOnline';
 
 export * from './i18n/index.js';
 export * from './minecraft/version.js';
+export * from './minecraft/catalogs.js';
 export * from './minecraft/tps.js';
 export * from './minecraft/commands.js';
 export * from './java/index.js';

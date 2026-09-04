@@ -193,6 +193,49 @@ lancement). L'acceptation de l'EULA et la configuration restent donc au panel, a
 (40 à 176 Mio) : sur une ligne lente, la même installation se compte en minutes. Une task de fond
 avec progression reste donc nécessaire — mais le pire n'est pas le calcul, c'est le réseau.
 
+## 6ter. Installer un vanilla ou un Fabric — mesures (2026-09-04)
+
+Suite du §6bis, pour la **première moitié du lot 5** : les deux familles qui n'exigent aucun
+installeur tiers. Mesuré sur la même machine, contre les API réelles.
+
+**1. Vanilla : une seule étape.** Le manifest Mojang (déjà téléchargé et caché par le panel pour le
+mapping MC → Java) donne `downloads.server` avec **son sha1 et sa taille** — un téléchargement
+vérifiable, et rien d'autre à faire. Le détail de version porte aussi `javaVersion.majorVersion`
+(17 pour 1.20.1) : la même requête sert aux deux usages. Les versions antérieures à 1.2.5 n'ont pas
+de `downloads.server` : elles ne sont pas installables, et le catalogue le dit
+(`no_server_download`) au lieu d'échouer plus tard.
+
+**2. Fabric : le jar de `meta.fabricmc.net` n'est pas un installeur, c'est un LANCEUR.** Mesure :
+`…/v2/versions/loader/1.20.1/0.16.14/1.0.1/server/jar` rend 168 Kio dont le `Main-Class` est
+`net.fabricmc.installer.ServerLauncher`. Exécuté dans un dossier vide, il télécharge le serveur
+vanilla (`versions/1.20.1/`), les bibliothèques (`libraries/`), crée `.fabric/` et `mods/`,
+**puis démarre le serveur** — il ne s'arrête que parce que `eula.txt` manque :
+« You need to agree to the EULA in order to run the server », sortie **0**, en ~6 s hors
+téléchargement.
+
+**Conséquence, et c'est l'invariant du chantier : l'agent exécute le jar AVANT d'écrire
+`eula.txt`.** L'ordre inverse laisserait un serveur en marche au milieu de son installation, sans
+console, sans surveillance, hors de tout état connu du panel. Le message `server.install` (doc 05
+§6) porte donc l'EULA comme un **drapeau appliqué en dernier**, jamais comme une étape du plan : le
+panel ne peut pas se tromper d'ordre, et une étape `writeText` visant `eula.txt` est refusée.
+
+**3. Le lanceur produit lui-même `server.properties` et `eula.txt`** (contrairement aux
+installeurs Forge/NeoForge du §6bis, qui n'écrivent ni l'un ni l'autre). Les réglages du panel sont
+donc fusionnés **après** lui (étape `setProperties`, clés inconnues préservées), et un
+`writeText` peut se déclarer `ifAbsent` pour ne pas écraser ce que le lanceur vient d'écrire.
+
+**4. Le nom du fichier n'est pas cosmétique.** Le lanceur est enregistré sous
+`fabric-server-mc.<mc>-loader.<loader>-launcher.<installer>.jar` : c'est le motif que la détection
+(§2) sait relire pour en tirer le loader, la version de jeu et la version de loader avec une
+confiance haute — et le jar porte en plus un `install.properties` (`game-version`,
+`fabric-loader-version`) que la détection lit aussi. Un autre nom perdrait cette information au
+premier scan.
+
+**5. Le premier démarrage n'exige plus le réseau.** C'est le vrai gain à installer plutôt qu'à
+laisser le lanceur se débrouiller au premier `server.start` : une coupure réseau se voit alors
+comme une installation en échec, avec sa progression et son message — pas comme un serveur qui
+refuse de démarrer.
+
 ## 7. Fichiers édités par MMO
 
 ### `server.properties`

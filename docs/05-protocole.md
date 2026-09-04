@@ -182,6 +182,44 @@ Plannings de backups : poussés via `agent.configure`, **déclenchés localement
 
 > **Amendement (2026-09-02, lot 4) — deux gardes avant d'écrire une archive (`apps/agent/src/backup/guards.ts`).** Aucun message nouveau, aucun bump : les deux refus sont des `E_IO` **non réessayables** dont `details.reason` choisit la variante traduite (`errors:E_IO_<reason>`, doc 05 §2). (1) **Espace disque** — `INSUFFICIENT_SPACE`, `details { path, requiredBytes, freeBytes, requiredMb, freeMb, bytesRaw, ratio, basedOn? }`. L'agent inventorie le dossier **après** `save-all` (les tailles sont stables, et l'inventaire est réutilisé par l'archive : un seul parcours), estime l'archive = octets bruts × **taux de compression de la dernière archive du même serveur** (`sizeBytes / bytesRaw` du manifeste le plus récent, borné à [0,05 ; 1] ; 1:1 sans historique — les mondes Minecraft sont déjà compressés par région, un taux générique mentirait) + **64 Mio** de marge, et compare à `fs.statfs` de la destination : refus **avant le premier octet écrit**, `save-on` renvoyé dans le `finally` comme pour tout échec. Un disque plein produisait jusque-là une archive tronquée après des minutes de compression et un `E_IO` tardif. Sonde muette (`statfs` indisponible) = pas de garde inventée. (2) **Marqueur de destination** — `DESTINATION_UNMARKED`, `details { path, marker }`. Toute destination **explicite** (`agent.configure.backupDestination` ou `backupSchedules[].destination`) doit porter un fichier **`.mmo-backups.json`** à sa racine, sinon l'agent refuse d'écrire — **avant** même de créer le sous-dossier du serveur : un `/mnt/nas` non monté est un dossier vide du disque système où tout s'écrit sans erreur, c'est le pire scénario parce qu'il est silencieux. L'agent dépose le marqueur **une seule fois, quand la destination apparaît dans la configuration** (`BackupService.markNewDestinations()` à chaque `agent.configure`, mémorisé dans `agent-state.json › markedDestinations`, chemins résolus) et **jamais sur une destination déjà connue** : chaque reconnexion du panel renvoie la configuration, et un marqueur recréé à ce moment-là sur le mauvais disque réarmerait la garde toute seule. Une destination retirée de la configuration est oubliée ; remise, elle est marquée à nouveau (c'est le geste documenté pour re-marquer un dossier) — et n'importe quel fichier de ce nom, même vide et créé à la main, vaut marqueur (un marqueur déjà présent, posé par un autre agent du parc, est conservé). Un dossier impossible à écrire à la configuration est signalé (`agent.log` WARN, journal du panel) et **non mémorisé**, donc réessayé à la configuration suivante. La destination par défaut (`<stateDir>/backups`) n'exige rien : c'est le dossier de l'agent. Compatibilité : un agent N-1 n'a ni garde ni marqueur et continue comme avant ; à sa mise à jour, la première `agent.configure` marque les destinations déjà configurées (bootstrap, une fois). Tests : `backup/guards.test.ts` (11, vrais fichiers) et `agent.backup.test.ts` (planning refusé sans rien écrire, puis accepté une fois le marqueur remis).
 
+### Installation d'un serveur
+
+| Type | Dir. | Description |
+|---|---|---|
+| `server.install` | P→A | Task. Payload = **plan décidé par le panel** : `{ serverId, path, steps[], loader, mcVersion?, loaderVersion?, acceptEula, repair }` |
+
+> **Amendement (2026-09-04, lot 5) — un seul message pour installer, ajouté sans bump.** Le panel
+> décide entièrement du plan, l'agent l'exécute sans savoir d'où il vient (vanilla, Fabric, et plus
+> tard un modpack) : `steps[]` est une **union discriminée** — `download` (URL + `sha1?`/`sha256?`
+> /`size?`, sources de repli, repris par `Range` via `downloadWithResume`), `runJar` (`jar`,
+> `args`, `javaMajor?`, `timeoutSec` ≤ 1 h, `expect[]`), `writeText` (`ifAbsent?`),
+> `setProperties` (fusion Java Properties, clés inconnues préservées). `taskKind` et `phase` étant
+> des chaînes libres, un panel N-1 affiche la task telle quelle ; un agent N-1 répond
+> `E_UNSUPPORTED_TYPE` (501 côté panel), d'où la capacité **`server-install`**. Résultat :
+> `{ serverId, path, detected?, steps, files, bytes, eulaAccepted, durationMs }` — `detected` est le
+> `DetectedServer` du dossier installé, que le panel applique comme un `server.detected`.
+>
+> **Trois invariants portés par le message, pas par la discipline de l'appelant.** (1) **L'EULA
+> n'est pas une étape** : `acceptEula` écrit `eula.txt` APRÈS toutes les étapes, parce que le
+> lanceur Fabric installe puis démarre le serveur et ne s'arrête que faute d'EULA (mesuré, doc 06
+> §6ter) — une étape `writeText` visant `eula.txt` est refusée (`E_INVALID_PAYLOAD`,
+> `details.reason = EULA_STEP`). (2) **Le dossier doit être vide** (le seul marqueur `.mmo-server.json`
+> toléré, c'est celui que l'agent vient d'y écrire), sauf en mode **`repair`** — finir une
+> installation interrompue ou un installeur adopté en `needsInstall`. (3) En mode `repair`, le
+> dossier n'est **jamais** déclaré artefact de task : le nettoyage d'un échec ferait un `rm -r` sur
+> des données utilisateur. Hors réparation il l'est, et un échec ne laisse rien derrière.
+>
+> Les refus contrôlables (chemin interdit, dossier non vide, EULA déguisée) sont rendus **à la
+> requête** et non par une task en échec : un 400 côté panel, pas une ligne `install_failed` à
+> nettoyer. La sortie d'un `runJar` n'est **jamais** relayée en console (7 580 lignes mesurées pour
+> NeoForge, doc 06 §6bis) : l'agent en garde une fenêtre de 200 lignes, jointe au seul échec dans
+> `details.output`, et publie des phases (`preparing`, `downloading`, `running`, `writing`,
+> `detecting`, `done`) plutôt qu'un pourcentage inventé. Le **code de retour du processus** fait foi
+> (0/1, doc 06 §6bis), doublé de `expect[]` : un installeur qui sort 0 sans avoir rien produit est
+> un échec (`RUN_INCOMPLETE`). Le JRE utilisé pour un `runJar` est **quelconque** — l'installation
+> n'est pas soumise à la contrainte Java du serveur (mesuré, doc 06 §6bis), et le bon Java n'est
+> résolu qu'au premier démarrage.
+
 ### Java
 
 | Type | Dir. | Description |
