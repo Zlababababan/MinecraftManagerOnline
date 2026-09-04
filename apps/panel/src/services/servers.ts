@@ -126,12 +126,24 @@ export class ServersService {
     return row;
   }
 
+  /**
+   * Serveur enregistre a ce chemin. La comparaison exacte passe par l index UNIQUE
+   * (machine_id, path) ; le repli normalise existe parce que les chemins ne viennent pas tous de
+   * la meme main : le scanner de l agent joint le repertoire surveille et le nom du sous-dossier
+   * avec « / » meme sous Windows (`joinPath` est pur, sans `path.sep`), la ou le panel compose
+   * avec le separateur de l OS quand il cree un serveur (lot 5) ou un clone. Deux ecritures du
+   * MEME dossier — sans ce repli, le panel ne se reconnait pas et signale un « conflit de
+   * marqueur » sur un serveur qu il vient lui-meme d installer (vu en recette).
+   */
   findByPath(machineId: string, serverPath: string): ServerRow | undefined {
-    return this.db
+    const exact = this.db
       .select()
       .from(servers)
       .where(and(eq(servers.machineId, machineId), eq(servers.path, serverPath)))
       .get();
+    if (exact) return exact;
+    const wanted = normalizePath(serverPath);
+    return this.listByMachine(machineId).find((row) => normalizePath(row.path) === wanted);
   }
 
   toDto(row: ServerRow, reachable: boolean): ServerDto {

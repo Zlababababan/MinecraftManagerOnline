@@ -13,6 +13,7 @@ import {
   connectFakeAgent,
   createTestPanel,
   helloPayload,
+  MACHINE_INFO,
   pairPayload,
   setupAdmin,
   waitFor,
@@ -122,6 +123,7 @@ describe('installation d’un serveur — routes et service du panel', () => {
   async function online(
     name: string,
     capabilities = ['tasks', 'server-install'],
+    os: 'linux' | 'windows' = 'linux',
   ): Promise<Machine> {
     const res = await api('POST', '/api/machines', { name });
     const { machine, pairing } = res.json<{ machine: { id: string }; pairing: { code: string } }>();
@@ -149,9 +151,15 @@ describe('installation d’un serveur — routes et service du panel', () => {
         return { taskId: req.taskId };
       });
     }
-    await a.peer.request('auth.hello', helloPayload(machine.id, secret, { capabilities }));
+    await a.peer.request(
+      'auth.hello',
+      helloPayload(machine.id, secret, {
+        capabilities,
+        machine: { ...MACHINE_INFO, os },
+      }),
+    );
     const dirRes = await api('POST', `/api/machines/${machine.id}/directories`, {
-      path: '/srv/minecraft',
+      path: os === 'windows' ? 'C:\\srv\\minecraft' : '/srv/minecraft',
     });
     m.dirId = dirRes.json<{ directory: { id: string } }>().directory.id;
     return m;
@@ -361,6 +369,43 @@ describe('installation d’un serveur — routes et service du panel', () => {
     expect(useless.statusCode).toBe(409);
   });
 
+  it('sur Windows, le scan suivant reconnaît le serveur installé au lieu de crier au conflit', async () => {
+    const m = await online('Tour', ['tasks', 'server-install'], 'windows');
+    const res = await api('POST', `/api/machines/${m.id}/install`, body(m));
+    const server = res.json<{ server: ServerDto }>().server;
+    // Le panel compose avec le séparateur de l'OS de la machine.
+    expect(server.path).toBe('C:\\srv\\minecraft\\survie');
+    await waitFor(() => m.installs.length === 1, 5_000);
+    const req = m.installs[0];
+    if (req === undefined) throw new Error('aucune installation reçue');
+    finish(m, req);
+    await waitFor(() => panel.ctx.servers.require(server.id).provisioning === 'ready', 5_000);
+
+    // Le scanner de l'agent, lui, joint TOUJOURS avec « / » (`joinPath` est pur, sans `path.sep`) :
+    // même dossier, autre écriture. Sans le repli de `findByPath`, le panel ne se reconnaît pas et
+    // signale un « conflit de marqueur » sur le serveur qu'il vient lui-même d'installer.
+    const adopted = await panel.ctx.servers.adoptDetected(
+      m.id,
+      {
+        path: 'C:\\srv\\minecraft/survie',
+        name: 'survie',
+        markerServerId: server.id,
+        loader: { value: 'vanilla', confidence: 'high', source: 'jar_name' },
+        mcVersion: { value: '1.20.1', confidence: 'high', source: 'jar_manifest' },
+        maxRamMb: { value: 4096, confidence: 'medium', source: 'default' },
+        eulaAccepted: true,
+        launch: { kind: 'jar', jar: 'server.jar' },
+        confidence: 'high',
+        evidence: [],
+      },
+      undefined,
+    );
+    expect(adopted.conflict).toBeUndefined();
+    expect(adopted.server?.id).toBe(server.id);
+    expect(panel.ctx.servers.listConflicts()).toHaveLength(0);
+    // Et un seul serveur : pas de doublon adopté à côté du premier.
+    expect(panel.ctx.servers.list()).toHaveLength(1);
+  });
   it('un refus de l’agent ne laisse aucune ligne derrière lui', async () => {
     const m = await online('Tour');
     m.agent.peer.handle('server.install', () => {
