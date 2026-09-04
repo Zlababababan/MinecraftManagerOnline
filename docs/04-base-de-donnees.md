@@ -74,6 +74,17 @@ CREATE TABLE notification_prefs (
   enabled    INTEGER NOT NULL DEFAULT 1,
   PRIMARY KEY (user_id, event_type)
 );
+
+-- Lot 8 (2026-09-04) : silence par serveur — préférence PERSONNELLE, pas un réglage du serveur.
+-- Ne concerne que le push : la cloche du panel garde tout. Migration `0020`, avec les deux
+-- colonnes d'heures calmes de `users` (minutes depuis minuit, fuseau du panel, nulles = pas de
+-- plage ; `quiet_from > quiet_to` traverse minuit, c'est le cas normal).
+CREATE TABLE notification_mutes (
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  server_id  TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, server_id)
+);
 ```
 
 > **Amendement (lot 8, 2026-09-03) — droits par serveur et par machine** (migration `0016_user_permissions`, ADD COLUMN + deux CREATE purs). `users` gagne `scoped INTEGER NOT NULL DEFAULT 0` : à 1, le compte ne voit que ses portées accordées ; jamais 1 pour un `admin` (refusé à l'écriture, `E_VALIDATION ADMIN_SCOPED`). Le rôle du compte reste le plafond des rôles accordés et vaut tel quel hors de toute portée.

@@ -8,8 +8,27 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { PushPayload } from '@mmo/protocol/client';
 
+import { inQuietHours } from './notifications.js';
 import { b64url, decryptPayload, fromB64url } from './push/webpush.js';
+import { SETTING_KEYS } from './settings.js';
 import { createTestPanel, createUser, setupAdmin, type TestPanel } from '../test/helpers.js';
+
+/** Un serveur réel : la mise en silence référence sa ligne (clé étrangère). */
+function detected(path: string, name: string, gamePort: number) {
+  return {
+    path,
+    name,
+    loader: { value: 'vanilla' as const, confidence: 'high' as const, source: 'jar_name' },
+    mcVersion: { value: '1.20.1', confidence: 'high' as const, source: 'jar_manifest' },
+    maxRamMb: { value: 2048, confidence: 'medium' as const, source: 'run_script' },
+    gamePort,
+    eulaAccepted: true,
+    launch: { kind: 'jar' as const, jar: 'server.jar' },
+    javaRequirement: { majorVersion: 17, strict: false, source: 'table' as const },
+    confidence: 'high' as const,
+    evidence: [],
+  };
+}
 
 const urlOf = (input: string | URL | Request): string =>
   typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
@@ -358,5 +377,236 @@ describe('NotificationsService', () => {
     });
     await panel.ctx.notifications.flush();
     expect(delivered).toHaveLength(1);
+  });
+});
+
+/**
+ * Lot 8 — heures calmes et silence par serveur. Deux façons de ne PAS faire sonner un téléphone,
+ * et une seule de passer outre : l'urgence. Dans les deux cas la cloche du panel garde tout.
+ */
+describe('lot 8 — heures calmes et silence par serveur', () => {
+  let panel: TestPanel;
+  let admin: string;
+  let serverId: string;
+  let otherId: string;
+  const delivered: string[] = [];
+
+  const fakeFetch: typeof fetch = (input) => {
+    const url = urlOf(input);
+    if (url.startsWith('https://push.test/')) {
+      delivered.push(url);
+      return Promise.resolve(new Response(null, { status: 201 }));
+    }
+    return Promise.reject(new Error(`unexpected fetch ${url}`));
+  };
+
+  async function subscribe(): Promise<void> {
+    const ecdh = createECDH('prime256v1');
+    ecdh.generateKeys();
+    const res = await panel.app.inject({
+      method: 'POST',
+      url: '/api/push/subscribe',
+      headers: { cookie: admin },
+      payload: {
+        endpoint: 'https://push.test/admin/1',
+        keys: { p256dh: b64url(ecdh.getPublicKey()), auth: b64url(randomBytes(16)) },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+  }
+
+  /** Publie un événement et attend la file de livraison ; rend le nombre de push partis. */
+  async function publish(event: Parameters<typeof panel.ctx.events.publish>[0]): Promise<number> {
+    delivered.length = 0;
+    panel.ctx.events.publish(event);
+    await panel.ctx.notifications.flush();
+    return delivered.length;
+  }
+
+  beforeEach(async () => {
+    delivered.length = 0;
+    panel = await createTestPanel({ fetch: fakeFetch });
+    admin = await setupAdmin(panel);
+    // Fuseau EXPLICITE : sans lui le test lirait celui de la machine (Paris ici, UTC sur les
+    // runners) et les heures calmes tomberaient au mauvais moment une fois sur deux.
+    panel.ctx.settings.set(SETTING_KEYS.scheduleTimezone, 'UTC');
+    const machine = panel.ctx.machines.create('pc');
+    const first = await panel.ctx.servers.adoptDetected(
+      machine.id,
+      detected('/srv/a', 'Alpha', 25_565),
+      undefined,
+    );
+    serverId = first.server!.id;
+    const second = await panel.ctx.servers.adoptDetected(
+      machine.id,
+      detected('/srv/b', 'Beta', 25_566),
+      undefined,
+    );
+    otherId = second.server!.id;
+    await subscribe();
+    // Les arrivées de joueurs sont muettes par défaut : c'est la catégorie idéale pour éprouver
+    // le silence, donc on l'allume d'abord.
+    await panel.app.inject({
+      method: 'PUT',
+      url: '/api/notifications/prefs',
+      headers: { cookie: admin },
+      payload: { values: { 'player.activity': true } },
+    });
+  });
+
+  afterEach(async () => {
+    await panel.close();
+  });
+
+  it('la plage silencieuse traverse minuit, et se lit dans les deux sens', () => {
+    // 22 h → 7 h : le cas normal, et c'est un intervalle qui passe par minuit.
+    expect(inQuietHours(23 * 60, 22 * 60, 7 * 60)).toBe(true);
+    expect(inQuietHours(3 * 60, 22 * 60, 7 * 60)).toBe(true);
+    expect(inQuietHours(7 * 60, 22 * 60, 7 * 60)).toBe(false); // borne haute exclue
+    expect(inQuietHours(22 * 60, 22 * 60, 7 * 60)).toBe(true); // borne basse incluse
+    expect(inQuietHours(12 * 60, 22 * 60, 7 * 60)).toBe(false);
+    // Une plage ordinaire (sieste), et une plage vide qui ne doit rien faire taire.
+    expect(inQuietHours(14 * 60, 13 * 60, 15 * 60)).toBe(true);
+    expect(inQuietHours(16 * 60, 13 * 60, 15 * 60)).toBe(false);
+    expect(inQuietHours(3 * 60, 60, 60)).toBe(false);
+  });
+
+  it('pendant les heures calmes le téléphone se tait, sauf urgence — la cloche garde tout', async () => {
+    const put = await panel.app.inject({
+      method: 'PUT',
+      url: '/api/notifications/quiet-hours',
+      headers: { cookie: admin },
+      payload: { quietHours: { from: 22 * 60, to: 7 * 60 } },
+    });
+    expect(put.statusCode, put.body).toBe(200);
+
+    // 23 h UTC : dans la plage. Un joueur qui arrive ne réveille personne…
+    panel.clock.set(Date.UTC(2026, 6, 1, 23, 0));
+    expect(
+      await publish({ type: 'player.joined', serverId, payload: { name: 'Alice', online: 1 } }),
+    ).toBe(0);
+    // …mais la cloche l'a DÉJÀ, pendant la plage : c'est là que se joue la promesse « le panel
+    // garde tout ». Vérifiée plus tard, hors de la plage, elle ne prouverait rien.
+    const userDuringQuiet = panel.ctx.users.list()[0]!.id;
+    expect(
+      panel.ctx.notifications
+        .list(userDuringQuiet, 50)
+        .notifications.filter((e) => e.type === 'player.joined'),
+    ).toHaveLength(1);
+
+    // …mais une alerte passe : être silencieux la nuit ne doit pas vouloir dire apprendre au
+    // matin que le serveur est tombé à 23 h. `alert.firing` porte pourtant `warning`.
+    expect(
+      await publish({
+        type: 'alert.firing',
+        severity: 'warning',
+        serverId,
+        payload: { rule: 'server.down' },
+      }),
+    ).toBe(1);
+    // Et une erreur franche aussi.
+    expect(
+      await publish({
+        type: 'server.stateChanged',
+        severity: 'error',
+        serverId,
+        payload: { state: 'crashed' },
+      }),
+    ).toBe(1);
+
+    // 8 h : hors de la plage, tout repart.
+    panel.clock.set(Date.UTC(2026, 6, 2, 8, 0));
+    expect(
+      await publish({ type: 'player.joined', serverId, payload: { name: 'Alice', online: 1 } }),
+    ).toBe(1);
+
+    // La cloche, elle, a tout gardé — y compris ce que le téléphone n'a pas sonné.
+    const bell = panel.ctx.notifications.list(userDuringQuiet, 50);
+    expect(bell.notifications.filter((e) => e.type === 'player.joined')).toHaveLength(2);
+
+    // Retirer le réglage rend la nuit bruyante de nouveau.
+    await panel.app.inject({
+      method: 'PUT',
+      url: '/api/notifications/quiet-hours',
+      headers: { cookie: admin },
+      payload: { quietHours: null },
+    });
+    panel.clock.set(Date.UTC(2026, 6, 2, 23, 0));
+    expect(
+      await publish({ type: 'player.joined', serverId, payload: { name: 'Alice', online: 1 } }),
+    ).toBe(1);
+  });
+
+  it('un serveur mis en silence ne fait plus sonner ce compte, et lui seul', async () => {
+    const mute = await panel.app.inject({
+      method: 'PUT',
+      url: `/api/servers/${serverId}/notifications`,
+      headers: { cookie: admin },
+      payload: { muted: true },
+    });
+    expect(mute.statusCode, mute.body).toBe(200);
+    expect(mute.json<{ muted: boolean }>().muted).toBe(true);
+
+    // Rien pour le serveur en silence, même une erreur : c'est un choix explicite et permanent,
+    // pas une plage horaire — l'urgence ne le contourne pas.
+    expect(
+      await publish({
+        type: 'server.stateChanged',
+        severity: 'error',
+        serverId,
+        payload: { state: 'crashed' },
+      }),
+    ).toBe(0);
+    // L'autre serveur sonne toujours.
+    expect(
+      await publish({
+        type: 'server.stateChanged',
+        severity: 'error',
+        serverId: otherId,
+        payload: { state: 'crashed' },
+      }),
+    ).toBe(1);
+    // Et la cloche a gardé les DEUX crashs, y compris celui du serveur en silence.
+    const userId = panel.ctx.users.list()[0]!.id;
+    expect(
+      panel.ctx.notifications
+        .list(userId, 50)
+        .notifications.filter((e) => e.type === 'server.stateChanged'),
+    ).toHaveLength(2);
+
+    // Le réglage se relit, et la page Compte sait le nommer.
+    const prefs = await panel.app.inject({
+      method: 'GET',
+      url: '/api/notifications/prefs',
+      headers: { cookie: admin },
+    });
+    const muted = prefs.json<{ mutedServers: { serverId: string; name: string }[] }>().mutedServers;
+    expect(muted.map((m) => [m.serverId, m.name])).toEqual([[serverId, 'Alpha']]);
+
+    // Réactiver le fait sonner de nouveau.
+    await panel.app.inject({
+      method: 'PUT',
+      url: `/api/servers/${serverId}/notifications`,
+      headers: { cookie: admin },
+      payload: { muted: false },
+    });
+    expect(
+      await publish({
+        type: 'server.stateChanged',
+        severity: 'error',
+        serverId,
+        payload: { state: 'crashed' },
+      }),
+    ).toBe(1);
+  });
+
+  it('on ne met pas en silence un serveur qui n’existe pas', async () => {
+    const res = await panel.app.inject({
+      method: 'PUT',
+      url: '/api/servers/inconnu/notifications',
+      headers: { cookie: admin },
+      payload: { muted: true },
+    });
+    expect(res.statusCode).toBe(404);
   });
 });

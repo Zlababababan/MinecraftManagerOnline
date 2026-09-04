@@ -10,6 +10,7 @@ import type {
   AccessTestResult,
   CertificateDto,
   FirewallRulesDto,
+  MutedServerDto,
   NotificationChannelPrefsDto,
   NotificationPrefsDto,
   NotificationPrefsPut,
@@ -17,6 +18,7 @@ import type {
   PushStatusDto,
   PushSubscribeInput,
   PushSubscriptionDto,
+  QuietHours,
   ReachabilityResult,
   ServerAddressDto,
   EDITABLE_SETTINGS,
@@ -46,10 +48,14 @@ export const pushQuery = queryOptions({
 export const prefsQuery = queryOptions({
   queryKey: phase10Keys.prefs,
   queryFn: ({ signal }) =>
-    api.get<{ prefs: NotificationPrefsDto; channels?: NotificationChannelPrefsDto }>(
-      '/api/notifications/prefs',
-      signal,
-    ),
+    api.get<{
+      prefs: NotificationPrefsDto;
+      channels?: NotificationChannelPrefsDto;
+      /** Lot 8 : absents d'un panel plus ancien servi pendant une mise à jour. */
+      quietHours?: QuietHours | null;
+      timeZone?: string;
+      mutedServers?: MutedServerDto[];
+    }>('/api/notifications/prefs', signal),
   staleTime: 60_000,
 });
 export const notificationsQuery = queryOptions({
@@ -134,6 +140,40 @@ export function useSetNotificationPrefs() {
           old === undefined ? undefined : { ...old, channels: data.channels },
       );
       void queryClient.invalidateQueries({ queryKey: phase10Keys.notifications });
+    },
+  });
+}
+
+/** Heures calmes (lot 8) : `null` retire le réglage. */
+export function useSetQuietHours() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (quietHours: QuietHours | null) =>
+      api.put<{ quietHours: QuietHours | null }>('/api/notifications/quiet-hours', { quietHours }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: phase10Keys.prefs });
+    },
+  });
+}
+
+/** Silence d'un serveur pour soi (lot 8). */
+export const serverMuteQuery = (serverId: string) =>
+  queryOptions({
+    queryKey: ['servers', serverId, 'notifications'] as const,
+    queryFn: ({ signal }) =>
+      api.get<{ muted: boolean }>(`/api/servers/${serverId}/notifications`, signal),
+  });
+
+export const useServerMute = (serverId: string) => useQuery(serverMuteQuery(serverId));
+
+export function useSetServerMute(serverId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (muted: boolean) =>
+      api.put<{ muted: boolean }>(`/api/servers/${serverId}/notifications`, { muted }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['servers', serverId, 'notifications'], data);
+      void queryClient.invalidateQueries({ queryKey: phase10Keys.prefs });
     },
   });
 }

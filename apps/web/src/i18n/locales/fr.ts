@@ -1159,6 +1159,20 @@ export const webFr = {
     markSeen: 'Tout marquer comme lu',
     unread: '{{count}} non lue(s)',
     seeAll: 'Tous les événements',
+    quietTitle: 'Heures calmes',
+    quietHint:
+      'Pendant cette plage, votre téléphone ne sonne pas — sauf urgence (serveur tombé, machine hors ligne, sauvegarde échouée). La cloche du panel, elle, garde tout.',
+    quietEnable: 'Ne pas me déranger la nuit',
+    quietFrom: 'À partir de',
+    quietTo: 'Jusqu’à',
+    quietZone: 'Heures du panel ({{zone}}), les mêmes que les planifications.',
+    quietZoneUnknown: 'Heures du panel, les mêmes que les planifications.',
+    mutedTitle: 'Serveurs en silence',
+    unmute: 'Réactiver les notifications',
+    serverMuteTitle: 'Notifications',
+    serverMute: 'Ne plus faire sonner mon téléphone pour ce serveur',
+    serverMuteHint:
+      'Réglage personnel : les autres comptes ne sont pas concernés, et la cloche du panel continue de tout garder.',
     prefsTitle: 'Préférences de notification',
     prefsHint: 'Choisissez les événements qui vous parviennent (push et centre de notifications).',
     types: {

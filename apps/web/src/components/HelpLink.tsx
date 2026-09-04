@@ -63,6 +63,11 @@ export const HELP_TOPICS = {
     en: 'add-a-machine.md#15-letting-friends-ask-for-access-whitelist',
     fr: 'fr/ajouter-une-machine.md#15-laisser-vos-amis-demander-laccès-whitelist',
   },
+  /** Lot 8 : heures calmes et silence par serveur — ce qui passe quand même. */
+  quietHours: {
+    en: 'add-a-machine.md#17-keeping-the-phone-quiet-without-missing-anything',
+    fr: 'fr/ajouter-une-machine.md#17-faire-taire-le-téléphone-sans-rien-manquer',
+  },
   /** Lot 8 : statistiques de fréquentation — ce qui est compté, et dans quel fuseau. */
   playerStats: {
     en: 'add-a-machine.md#16-who-plays-and-when',

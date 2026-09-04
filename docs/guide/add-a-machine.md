@@ -163,3 +163,15 @@ Three things about how it counts:
 - **"New" is judged on what the panel kept.** Sessions are purged after a year by default (Settings → Retention): someone who had not visited for longer than that shows up as a newcomer.
 
 > These numbers never leave the panel: they are not published on the status page, they go into no notification, and only accounts that already see the server can see them.
+
+## 17. Keeping the phone quiet (without missing anything)
+
+Two settings, under **Account → Quiet hours**, answering the same question: what is allowed to make your phone ring?
+
+**Quiet hours.** A window — 10 p.m. → 7 a.m. by default — during which nothing reaches the phone. Except emergencies: a server going down, a machine offline, a full disk, a failed backup. Being left alone at night should not mean finding out in the morning that everything stopped at 11 p.m.
+
+The hours are the **panel's**, shown under the setting: the same ones your schedules use. If your panel runs on a machine set to UTC while you live in Paris, that is the clock that counts — hence the reminder on screen.
+
+**Muting one server.** On a server's overview, a switch: "Stop making my phone ring for this server". That is the move for the test server that keeps restarting. This one has no exception — you asked for it explicitly, so even an error stays silent. The Account page lists muted servers so you can turn them back on without hunting for which one it was.
+
+> In both cases, **the panel bell still keeps everything**. Going quiet is not forgetting: the full history waits at the top of the screen when you open the panel. And these are personal settings — friends with an account are not affected by your quiet hours.

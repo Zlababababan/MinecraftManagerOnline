@@ -40,6 +40,13 @@ export const users = sqliteTable(
     /** Phase 10 : curseur « vu » du centre de notifications (id d'événement). */
     notificationsSeenId: integer('notifications_seen_id').notNull().default(0),
     /**
+     * Lot 8 — heures calmes : minutes depuis minuit (0–1439) dans le fuseau DU PANEL, celui des
+     * planifications. Les deux nulles = pas d'heures calmes. `from > to` traverse minuit
+     * (22 h → 7 h), c'est le cas normal.
+     */
+    quietFrom: integer('quiet_from'),
+    quietTo: integer('quiet_to'),
+    /**
      * Lot 8 : 1 = l'utilisateur ne voit que les serveurs et machines qui lui sont accordés
      * (`user_server_permissions`, `user_machine_permissions`) ; 0 = son rôle vaut sur tout le parc.
      * Jamais 1 pour un administrateur.
@@ -866,6 +873,25 @@ export const serverStatusPages = sqliteTable('server_status_pages', {
  * conservé — ni adresse, ni horodatage de visite : seuls le pseudo qu'il donne et le mot qu'il
  * laisse. Supprimer une demande tranchée rouvre la possibilité d'en refaire une.
  */
+/**
+ * Silence par serveur (lot 8) : une préférence PERSONNELLE, pas un réglage du serveur — chacun
+ * choisit ce qui fait sonner son téléphone. Ne concerne que le push : la cloche du panel garde
+ * tout, comme lorsqu'on coupe une catégorie (leçon de la phase 10).
+ */
+export const notificationMutes = sqliteTable(
+  'notification_mutes',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    serverId: text('server_id')
+      .notNull()
+      .references(() => servers.id, { onDelete: 'cascade' }),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.serverId] })],
+);
+
 export const whitelistRequests = sqliteTable(
   'whitelist_requests',
   {
@@ -912,3 +938,4 @@ export type BackupReplicationRow = typeof backupReplication.$inferSelect;
 export type BackupReplicaRow = typeof backupReplicas.$inferSelect;
 export type ServerStatusPageRow = typeof serverStatusPages.$inferSelect;
 export type WhitelistRequestRow = typeof whitelistRequests.$inferSelect;
+export type NotificationMuteRow = typeof notificationMutes.$inferSelect;

@@ -13,6 +13,8 @@ import {
   notificationsQuerySchema,
   notificationsSeenSchema,
   pushSubscribeSchema,
+  quietHoursPutSchema,
+  serverMutePutSchema,
   pushUnsubscribeSchema,
   reachabilityRequestSchema,
   type PushStatusDto,
@@ -67,7 +69,48 @@ export function registerPhase10Routes(app: FastifyInstance, ctx: AppContext): vo
     return {
       prefs: ctx.notifications.prefs(userId),
       channels: ctx.notifications.channelPrefs(userId),
+      quietHours: ctx.notifications.quietHours(userId),
+      // Le fuseau des heures calmes est celui du panel : l'écran l'affiche pour qu'on ne règle
+      // pas « 22 h » en croyant que c'est l'heure de son propre téléphone.
+      timeZone: ctx.settings.timeZone(),
+      // Un serveur mis en silence puis retiré du panel n'a plus de nom : la ligne est ignorée
+      // plutôt qu'affichée sans rien dire (la cascade l'aura de toute façon effacée).
+      mutedServers: ctx.notifications
+        .mutes(userId)
+        .flatMap((m) => {
+          const server = ctx.servers.get(m.serverId);
+          return server === undefined
+            ? []
+            : [{ serverId: m.serverId, name: server.name, mutedAt: m.mutedAt }];
+        })
+        .sort((a, b) => a.name.localeCompare(b.name)),
     };
+  });
+
+  /** Heures calmes : `null` retire le réglage (il ne se met pas à zéro). */
+  r.put('/api/notifications/quiet-hours', { schema: { body: quietHoursPutSchema } }, (request) => ({
+    quietHours: ctx.notifications.setQuietHours(requireUser(request).id, request.body.quietHours),
+  }));
+
+  /**
+   * Silence d'un serveur POUR SOI. Route sous `/api/servers/:id` exprès : le contrôle de portée
+   * du lot 8 s'y applique déjà, on ne peut donc pas mettre en silence un serveur qu'on ne voit
+   * pas — et un identifiant inventé répond « introuvable » comme partout ailleurs.
+   */
+  r.put(
+    '/api/servers/:id/notifications',
+    { schema: { params: idParams, body: serverMutePutSchema } },
+    (request) => {
+      const server = ctx.servers.require(request.params.id);
+      return {
+        muted: ctx.notifications.setMuted(requireUser(request).id, server.id, request.body.muted),
+      };
+    },
+  );
+
+  r.get('/api/servers/:id/notifications', { schema: { params: idParams } }, (request) => {
+    const server = ctx.servers.require(request.params.id);
+    return { muted: ctx.notifications.mutedServerIds(requireUser(request).id).has(server.id) };
   });
 
   r.put(

@@ -26,6 +26,7 @@ import {
   NotificationPrefsCard,
   PushCard,
 } from '../components/notifications/NotificationSettings.js';
+import { QuietHoursCard } from '../components/notifications/QuietHoursCard.js';
 import { setLocale } from '../i18n/index.js';
 import { describeError } from '../lib/errors.js';
 
@@ -148,6 +149,7 @@ export function AccountPage({ user }: { user: UserDto }) {
       <SessionsCard />
       <ApiKeysCard />
       <PushCard />
+      <QuietHoursCard />
       <NotificationPrefsCard />
     </Stack>
   );

@@ -8,6 +8,18 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### Quiet hours, and muting a server
+
+Two personal settings for what is allowed to make your phone ring. **Quiet hours** (Account →
+Quiet hours): a window — 10 p.m. to 7 a.m. by default — during which nothing reaches the phone,
+except emergencies: a server going down, a machine offline, a full disk, a failed backup. The
+hours are the panel's, the same ones your schedules use, and the screen says so. **Muting one
+server**: a switch on a server's overview, for the test server that keeps restarting; that one has
+no exception, since you asked for it explicitly. The Account page lists muted servers so you can
+turn them back on.
+
+In both cases the panel bell still keeps everything — going quiet is not forgetting.
+
 ### Who plays, and when
 
 The panel has recorded every arrival and departure since day one, and only ever showed them as a

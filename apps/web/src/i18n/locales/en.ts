@@ -1147,6 +1147,20 @@ export const webEn = {
     markSeen: 'Mark all as read',
     unread: '{{count}} unread',
     seeAll: 'All events',
+    quietTitle: 'Quiet hours',
+    quietHint:
+      'During this window your phone stays silent — except for emergencies (server down, machine offline, backup failed). The panel bell still keeps everything.',
+    quietEnable: 'Do not disturb me at night',
+    quietFrom: 'From',
+    quietTo: 'Until',
+    quietZone: 'Panel time ({{zone}}), the same as your schedules.',
+    quietZoneUnknown: 'Panel time, the same as your schedules.',
+    mutedTitle: 'Muted servers',
+    unmute: 'Turn notifications back on',
+    serverMuteTitle: 'Notifications',
+    serverMute: 'Stop making my phone ring for this server',
+    serverMuteHint:
+      'A personal setting: other accounts are unaffected, and the panel bell still keeps everything.',
     prefsTitle: 'Notification preferences',
     prefsHint: 'Choose which events reach you (push and notification center).',
     types: {

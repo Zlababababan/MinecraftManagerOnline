@@ -1668,6 +1668,35 @@ export const publicStatusSchema = z.object({
 });
 export type PublicStatus = z.infer<typeof publicStatusSchema>;
 
+// --- Heures calmes et silence par serveur (lot 8) -----------------------------------------------
+
+/**
+ * Plage pendant laquelle le téléphone ne sonne pas. Minutes depuis minuit, dans le fuseau DU
+ * PANEL (celui des planifications) : c'est le seul fuseau que le produit connaisse, et l'écran le
+ * dit. `from > to` traverse minuit — 22 h → 7 h est le réglage attendu, pas un cas limite.
+ *
+ * Ce qui passe quand même : les urgences (voir `isCriticalForQuietHours` côté panel). Être
+ * silencieux la nuit ne doit pas vouloir dire apprendre au matin que le serveur est tombé à 23 h.
+ */
+export const quietHoursSchema = z.object({
+  from: z.int().min(0).max(1439),
+  to: z.int().min(0).max(1439),
+});
+export type QuietHours = z.infer<typeof quietHoursSchema>;
+
+/** `null` = pas d'heures calmes (le réglage se retire, il ne se met pas à zéro). */
+export const quietHoursPutSchema = z.object({ quietHours: quietHoursSchema.nullable() });
+
+/** Silence d'un serveur pour SOI : une préférence personnelle, jamais un réglage du serveur. */
+export const serverMutePutSchema = z.object({ muted: z.boolean() });
+
+export const mutedServerDtoSchema = z.object({
+  serverId: z.string(),
+  name: z.string(),
+  mutedAt: epochMsSchema,
+});
+export type MutedServerDto = z.infer<typeof mutedServerDtoSchema>;
+
 // --- Statistiques de fréquentation (lot 8) ------------------------------------------------------
 
 /** Fenêtres proposées par l'interface, en jours. La borne dure est la rétention de la table. */

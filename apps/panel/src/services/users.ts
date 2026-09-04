@@ -118,6 +118,8 @@ export class UsersService {
       createdAt: this.now(),
       lastLoginAt: null,
       notificationsSeenId: 0,
+      quietFrom: null,
+      quietTo: null,
       scoped: scoped ? 1 : 0,
     };
     this.db.insert(users).values(row).run();

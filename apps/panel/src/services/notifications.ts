@@ -20,10 +20,11 @@ import {
   type NotificationType,
   type NotificationsResult,
   type PushPayload,
+  type QuietHours,
   type PushSubscribeInput,
   type PushSubscriptionDto,
 } from '@mmo/protocol/client';
-import { createI18n, type Locale } from '@mmo/shared';
+import { createI18n, wallClockIn, type Locale } from '@mmo/shared';
 
 type I18nInstance = ReturnType<typeof createI18n>;
 
@@ -36,6 +37,7 @@ import type { MmoDatabase } from '../db/client.js';
 import {
   events,
   notificationChannelPrefs,
+  notificationMutes,
   notificationPrefs,
   pushSubscriptions,
   users,
@@ -82,6 +84,28 @@ const BUS_TYPES = [
 
 /** Au-delà : l'abonnement est considéré mort même sans 410 (iOS purge silencieusement). */
 const MAX_FAILURES = 8;
+
+/**
+ * L'instant tombe-t-il dans la plage silencieuse ? Les bornes sont des minutes murales, et la
+ * plage TRAVERSE MINUIT dans le cas normal (22 h → 7 h) : c'est `from > to`. Borne basse incluse,
+ * borne haute exclue — à 7 h pile, le téléphone sonne de nouveau.
+ */
+export function inQuietHours(minuteOfDay: number, from: number, to: number): boolean {
+  if (from === to) return false; // une plage vide ne fait pas taire une journée entière
+  return from < to
+    ? minuteOfDay >= from && minuteOfDay < to
+    : minuteOfDay >= from || minuteOfDay < to;
+}
+
+/**
+ * Ce qui traverse les heures calmes. Être silencieux la nuit ne doit pas vouloir dire apprendre
+ * au matin que le serveur est tombé à 23 h : les erreurs passent, et les **alertes** aussi —
+ * `alert.firing` porte la sévérité `warning` alors qu'elle nomme précisément les urgences du
+ * produit (serveur tombé, machine hors ligne, disque plein, TPS effondré).
+ */
+export function isCriticalForQuietHours(event: Pick<EventDto, 'type' | 'severity'>): boolean {
+  return event.severity === 'error' || event.type === 'alert.firing';
+}
 
 export interface NotificationsDeps {
   db: MmoDatabase;
@@ -161,6 +185,73 @@ export class NotificationsService {
       out[channel] = map;
     }
     return out;
+  }
+
+  // --- Heures calmes et silence par serveur (lot 8) ---------------------------------------------
+
+  quietHours(userId: string): QuietHours | null {
+    const row = this.deps.db.select().from(users).where(eq(users.id, userId)).get();
+    return row?.quietFrom === null || row?.quietFrom === undefined || row.quietTo === null
+      ? null
+      : { from: row.quietFrom, to: row.quietTo };
+  }
+
+  setQuietHours(userId: string, value: QuietHours | null): QuietHours | null {
+    this.deps.db
+      .update(users)
+      .set({ quietFrom: value?.from ?? null, quietTo: value?.to ?? null })
+      .where(eq(users.id, userId))
+      .run();
+    return value;
+  }
+
+  /** Les serveurs que CET utilisateur a mis en silence (le nom vient de l'appelant). */
+  mutedServerIds(userId: string): Set<string> {
+    return new Set(
+      this.deps.db
+        .select({ serverId: notificationMutes.serverId })
+        .from(notificationMutes)
+        .where(eq(notificationMutes.userId, userId))
+        .all()
+        .map((r) => r.serverId),
+    );
+  }
+
+  mutes(userId: string): { serverId: string; mutedAt: number }[] {
+    return this.deps.db
+      .select()
+      .from(notificationMutes)
+      .where(eq(notificationMutes.userId, userId))
+      .all()
+      .map((r) => ({ serverId: r.serverId, mutedAt: r.createdAt }));
+  }
+
+  setMuted(userId: string, serverId: string, muted: boolean): boolean {
+    if (!muted) {
+      this.deps.db
+        .delete(notificationMutes)
+        .where(and(eq(notificationMutes.userId, userId), eq(notificationMutes.serverId, serverId)))
+        .run();
+      return false;
+    }
+    this.deps.db
+      .insert(notificationMutes)
+      .values({ userId, serverId, createdAt: this.deps.now() })
+      .onConflictDoNothing()
+      .run();
+    return true;
+  }
+
+  /**
+   * Ce push doit-il partir maintenant, pour cet utilisateur ? Deux raisons de se taire, et une
+   * seule de passer outre. La cloche du panel, elle, garde tout : c'est l'historique.
+   */
+  private pushAllowed(userId: string, event: EventDto): boolean {
+    if (event.serverId !== null && this.mutedServerIds(userId).has(event.serverId)) return false;
+    const quiet = this.quietHours(userId);
+    if (quiet === null || isCriticalForQuietHours(event)) return true;
+    const wall = wallClockIn(this.deps.now(), this.deps.settings.timeZone());
+    return !inQuietHours(wall.hour * 60 + wall.minute, quiet.from, quiet.to);
   }
 
   /** Cette catégorie passe-t-elle sur ce canal ? (le catalogue est énuméré en entier, jamais de trou) */
@@ -334,6 +425,7 @@ export class NotificationsService {
     for (const user of recipients) {
       if (!this.enabled(user.id, 'push', type)) continue;
       if (this.deps.visibleTo?.(user.id, event) === false) continue;
+      if (!this.pushAllowed(user.id, event)) continue;
       if (this.subscriptions(user.id).length === 0) continue;
       const payload = this.render(event, user.locale);
       if (payload === undefined) continue;

@@ -163,3 +163,15 @@ Trois précisions sur la façon dont c'est compté :
 - **« Nouveau » se juge sur ce que le panel a gardé.** Les connexions sont purgées au bout d'un an par défaut (Réglages → Rétention) : un joueur qui n'était pas venu depuis plus longtemps que cela repasse pour un nouveau venu.
 
 > Ces chiffres ne sortent jamais du panel : ils ne sont pas publiés sur la page de statut, ne partent dans aucune notification et ne sont visibles que des comptes qui voient déjà le serveur.
+
+## 17. Faire taire le téléphone (sans rien manquer)
+
+Deux réglages, dans **Compte → Heures calmes**, qui répondent à la même question : qu'est-ce qui a le droit de faire sonner votre téléphone ?
+
+**Les heures calmes.** Une plage — 22 h → 7 h par défaut — pendant laquelle rien ne part sur le téléphone. Sauf les urgences : un serveur qui tombe, une machine hors ligne, un disque plein, une sauvegarde ratée. Être tranquille la nuit ne doit pas vouloir dire découvrir au matin que tout s'est arrêté à 23 h.
+
+Les heures sont celles **du panel**, affichées sous le réglage : les mêmes que vos planifications. Si votre panel tourne sur une machine réglée en UTC et vous à Paris, c'est cette heure-là qui compte — d'où l'affichage.
+
+**Le silence par serveur.** Sur la vue d'ensemble d'un serveur, un interrupteur : « Ne plus faire sonner mon téléphone pour ce serveur ». C'est le geste pour le serveur de test qui redémarre en boucle. Celui-là ne connaît pas d'exception — vous l'avez demandé explicitement, même une erreur reste silencieuse. La page Compte liste les serveurs mis en silence, pour les réactiver sans avoir à retrouver lequel c'était.
+
+> Dans les deux cas, **la cloche du panel garde tout**. Se taire, ce n'est pas oublier : l'historique complet vous attend en haut de l'écran quand vous ouvrez le panel. Et ce sont des réglages personnels — vos amis avec un compte ne sont pas concernés par vos heures calmes.
