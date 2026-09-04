@@ -47,7 +47,8 @@ $ProgressPreference = 'SilentlyContinue'
 $ServiceName = 'mmo-panel'
 $Platform = 'win-x64'
 $ReleaseBase = "https://github.com/$Repo/releases"
-$StartMenuLnk = Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs\MinecraftManagerOnline.lnk'
+$StartMenuAll = Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs\MinecraftManagerOnline.lnk'
+$StartMenuUser = Join-Path ([Environment]::GetFolderPath('Programs')) 'MinecraftManagerOnline.lnk'
 
 $InstallLog = Join-Path $env:TEMP 'mmo-panel-install.log'
 
@@ -60,6 +61,9 @@ if ($Elevated) { try { Start-Transcript -Path $InstallLog -Force | Out-Null } ca
 if ($InstallDir -eq '') { $InstallDir = Join-Path $env:ProgramFiles 'mmo-panel' }
 if ($DataDir -eq '') { $DataDir = Join-Path $env:ProgramData 'mmo-panel' }
 $IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+# Le menu Démarrer « tous les utilisateurs » n’est écrivable qu’élevé : sans élévation (-NoService),
+# le raccourci de l’icône échouait à chaque fois. On retombe sur celui de l’utilisateur.
+$StartMenuLnk = if ($IsAdmin) { $StartMenuAll } else { $StartMenuUser }
 $arch = $env:PROCESSOR_ARCHITECTURE
 if ($arch -eq 'ARM64') { Say "Windows ARM64 : le panel x64 fonctionnera sous émulation (aucune archive ARM64 Windows)" }
 elseif ($arch -ne 'AMD64') { Fail "architecture non prise en charge : $arch" }
@@ -123,7 +127,7 @@ if ($Uninstall) {
   Remove-PanelService
   foreach ($d in @($InstallDir, "$InstallDir.old", "$InstallDir.failed")) { if (Test-Path $d) { Remove-Item -Recurse -Force $d } }
   # Raccourcis de l'icône de zone de notification (menu Démarrer + démarrage automatique).
-  foreach ($lnk in @($StartMenuLnk, (Join-Path ([Environment]::GetFolderPath('Startup')) 'MinecraftManagerOnline.lnk'))) {
+  foreach ($lnk in @($StartMenuAll, $StartMenuUser, (Join-Path ([Environment]::GetFolderPath('Startup')) 'MinecraftManagerOnline.lnk'))) {
     if (Test-Path -LiteralPath $lnk) { Remove-Item -LiteralPath $lnk -Force -ErrorAction SilentlyContinue }
   }
   if ($Purge) { if (Test-Path $DataDir) { Remove-Item -Recurse -Force $DataDir }; Say "données supprimées ($DataDir) — les serveurs Minecraft eux-mêmes ne sont jamais touchés" }
@@ -238,6 +242,28 @@ try {
     if ($legacyData -and (Test-Path (Join-Path "$InstallDir.failed" 'data'))) { Move-Item (Join-Path "$InstallDir.failed" 'data') (Join-Path $InstallDir 'data') }
   }
 
+  # Menu Démarrer → « MinecraftManagerOnline » : l’icône de zone de notification. Elle pilote le
+  # service quand il existe, et lance le panel en processus enfant sinon — c’est justement le mode
+  # -NoService, où elle est la seule façon non invasive de démarrer (une fenêtre console ouverte
+  # dérange l’écran de qui s’en sert).
+  function New-TrayShortcut {
+    $tray = Join-Path $InstallDir 'app\install\mmo-panel-tray.ps1'
+    if (-not (Test-Path -LiteralPath $tray)) { return $false }
+    try {
+      $shell = New-Object -ComObject WScript.Shell
+      $lnk = $shell.CreateShortcut($StartMenuLnk)
+      $lnk.TargetPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+      $lnk.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$tray`""
+      $lnk.WorkingDirectory = $InstallDir
+      $lnk.Description = 'MinecraftManagerOnline'
+      $lnk.Save()
+      return $true
+    } catch {
+      Say "raccourci du menu Démarrer non créé ($($_.Exception.Message)) — lancez $tray à la main"
+      return $false
+    }
+  }
+
   # --- Fichiers seulement ------------------------------------------------------------------------
   if ($NoService) {
     # `mmo-panel.cmd` retombe sur <install>\data faute de MMO_DATA_DIR : lancé tel quel avec des
@@ -254,8 +280,15 @@ try {
       'call "%~dp0mmo-panel.cmd" %*'
     )
     Set-Content -LiteralPath $starter -Value $starterLines -Encoding Ascii
-    Say "pas de service (-NoService). Lancement : `"$starter`""
-    Say "  (il porte MMO_DATA_DIR=$effectiveData ; mmo-panel.cmd seul ouvrirait une base vide)"
+    $hasTray = New-TrayShortcut
+    Say "pas de service (-NoService)."
+    if ($hasTray) {
+      Say "  au choix : menu Démarrer → MinecraftManagerOnline (icône près de l’horloge, sans fenêtre)"
+      Say "  ou la console : `"$starter`""
+    } else {
+      Say "  lancement : `"$starter`""
+    }
+    Say "  (le lanceur porte MMO_DATA_DIR=$effectiveData ; mmo-panel.cmd seul ouvrirait une base vide)"
     exit 0
   }
 
@@ -334,19 +367,7 @@ try {
   # --- Choix mémorisés + raccourci + fin ---------------------------------------------------------
   @{ port = $Port; host = $ListenHost; serviceAccount = $ServiceAccount; installDir = $InstallDir } |
     ConvertTo-Json | Set-Content -Path $SettingsPath -Encoding UTF8
-  # Menu Démarrer → « MinecraftManagerOnline » : l'icône de zone de notification (pilote le service).
-  $tray = Join-Path $InstallDir 'app\install\mmo-panel-tray.ps1'
-  if (Test-Path -LiteralPath $tray) {
-    try {
-      $shell = New-Object -ComObject WScript.Shell
-      $lnk = $shell.CreateShortcut($StartMenuLnk)
-      $lnk.TargetPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-      $lnk.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$tray`""
-      $lnk.WorkingDirectory = $InstallDir
-      $lnk.Description = 'MinecraftManagerOnline'
-      $lnk.Save()
-    } catch { Say "raccourci du menu Démarrer non créé ($($_.Exception.Message)) — lancez $tray à la main" }
-  }
+  New-TrayShortcut
   Say "panel $($health.version) en service — http://$($ListenHost):$Port"
   Say "icône près de l'horloge : menu Démarrer → MinecraftManagerOnline (ouvrir, journaux, redémarrer)"
   Say ''

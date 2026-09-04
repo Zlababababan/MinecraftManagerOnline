@@ -8,6 +8,16 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### Installing without a service now gives you the tray icon
+
+The notification-area icon has been there since 1.0.6 — it opens the panel, shows the logs, starts
+and stops it, and can start with Windows. But the installer only created its Start menu shortcut on
+the service path, so `-NoService` left you with a console window and nothing else: the one mode
+where a window is most in the way.
+
+That shortcut also always failed without elevation, because it targeted the all-users Start menu.
+It now falls back to your own, which needs no rights at all.
+
 ### The Windows installer no longer hands you an empty database
 
 Installing with `-NoService` and a data directory of your own now writes a **start-panel.cmd**
