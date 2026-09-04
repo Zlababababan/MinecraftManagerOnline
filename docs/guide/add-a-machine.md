@@ -146,3 +146,20 @@ Two details that matter:
 - **Opening the form does not open your server.** Nobody gets in without your click. If the link leaks, the worst you collect is a few requests to refuse; "Change the link" shuts the tap. The panel accepts at most ten submissions per minute per visitor, and keeps nothing beyond the name and the word left behind.
 
 > The form only asks. It does not tell whether a name exists, does not call Mojang's servers and loads no image from anywhere else: until you accept, a request is just a waiting line.
+
+## 16. Who plays, and when
+
+The panel has recorded every arrival and departure since day one. The **Players → Stats** tab turns that into four numbers, two charts and a leaderboard, over 7, 30, 90 or 365 days:
+
+- **players**, **sessions**, **total playtime** and the **peak number online at once**, with when that happened;
+- **players per day** (distinct players and sessions) and **playtime per day**;
+- **time of day**: one bar per hour. This is the chart to look at before scheduling a restart or a backup — the quiet hour jumps out;
+- the **playtime leaderboard**, with a "new" badge for whoever just arrived.
+
+Three things about how it counts:
+
+- **A session across midnight counts on both sides.** Playing from 11 p.m. to 1 a.m. is one hour on each day, not two on the first. A session still in progress counts up to now, not to the end of the day.
+- **Days and hours are the panel's**, in the time zone set under Settings → General (shown under the chart). It is the same one the schedules use, so both charts read together.
+- **"New" is judged on what the panel kept.** Sessions are purged after a year by default (Settings → Retention): someone who had not visited for longer than that shows up as a newcomer.
+
+> These numbers never leave the panel: they are not published on the status page, they go into no notification, and only accounts that already see the server can see them.

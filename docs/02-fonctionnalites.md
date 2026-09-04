@@ -73,7 +73,9 @@ Objectif : un utilisateur non développeur n'ouvre jamais un fichier brut.
 | CPU / RAM par serveur, TPS, uptime | V1 |
 | Graphiques historiques | V1 |
 | Watchdog : détection de crash et de freeze, redémarrage automatique optionnel | V1 |
-| Statistiques : historique de fréquentation, temps de jeu | Futur |
+| Statistiques : historique de fréquentation, temps de jeu | V1 (lot 8, 2026-09-04) |
+
+> **Ajout (lot 8, 2026-09-04) — statistiques de fréquentation.** `player_sessions` accumulait depuis toujours et n'était lue que comme un historique à plat. L'onglet Joueurs → **Statistiques** en tire, sur 7, 30, 90 ou 365 jours : joueurs distincts, connexions, temps de jeu total, record de joueurs simultanés (avec sa date), fréquentation et temps de jeu **par jour**, temps de jeu **par heure de la journée** (le graphique qui dit quand redémarrer sans gêner personne) et le classement des temps de jeu, badge « nouveau » compris. Une session à cheval sur minuit est répartie entre les deux journées ; une session en cours compte jusqu'à maintenant. Tout est calculé dans le fuseau du panel (celui des planifications, affiché sous les graphiques). Lecture pure : aucun appel à l'agent, aucune écriture, rien de publié hors du panel.
 
 ## 7. Backups
 

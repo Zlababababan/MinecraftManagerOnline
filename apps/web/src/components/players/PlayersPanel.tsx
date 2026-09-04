@@ -54,10 +54,11 @@ import { canServer } from '../../lib/permissions.js';
 import { useWhitelistRequests } from '../../api/whitelist-requests.js';
 import { ErrorAlert } from '../ErrorAlert.js';
 import { PlayerAvatar } from './PlayerAvatar.js';
+import { PlayerStatsView } from './PlayerStatsView.js';
 import { WhitelistRequestsCard } from './WhitelistRequestsCard.js';
 import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 
-export const PLAYER_VIEWS = ['online', 'whitelist', 'ops', 'bans', 'history'] as const;
+export const PLAYER_VIEWS = ['online', 'whitelist', 'ops', 'bans', 'history', 'stats'] as const;
 export type PlayerView = (typeof PLAYER_VIEWS)[number];
 
 function useNotifyAction() {
@@ -783,6 +784,7 @@ export function PlayersPanel({ server }: { server: ServerDto }) {
       {view === 'ops' && <OpsView server={server} canOperate={canOperate} />}
       {view === 'bans' && <BansView server={server} canOperate={canOperate} />}
       {view === 'history' && <HistoryView server={server} />}
+      {view === 'stats' && <PlayerStatsView server={server} />}
     </Stack>
   );
 }

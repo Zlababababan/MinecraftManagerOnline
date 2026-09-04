@@ -11,6 +11,8 @@ import {
   macroInputSchema,
   macroRunSchema,
   metricsQuerySchema,
+  MAX_PLAYER_STATS_DAYS,
+  PLAYER_STATS_TOP,
   playerActionRequestSchema,
   playerResolveRequestSchema,
   resolveConflictSchema,
@@ -22,6 +24,7 @@ import {
 import type { AppContext } from '../../context.js';
 import { commandHistory, type ServerRow } from '../../db/schema.js';
 import { AppError, conflict, forbidden, notFound } from '../../errors.js';
+import { computePlayerStats, statsWindowStart } from '../../services/player-stats.js';
 import { requireUser } from '../auth.js';
 import { auditMeta } from './setup-auth.js';
 
@@ -706,6 +709,39 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
     (request) => {
       const row = ctx.servers.require(request.params.id);
       return { sessions: ctx.servers.playerHistory(row.id, request.query.limit ?? 100) };
+    },
+  );
+
+  /**
+   * Statistiques de fréquentation et temps de jeu (lot 8, doc 02 §6). Lecture pure : rien n'est
+   * demandé à l'agent, tout sort de `player_sessions`. Le calcul se fait dans le fuseau du panel
+   * — un axe des jours et un histogramme des heures n'ont aucun sens dans un autre.
+   */
+  r.get(
+    '/api/servers/:id/players/stats',
+    {
+      schema: {
+        params: idParams,
+        querystring: z.object({
+          days: z.coerce.number().int().positive().max(MAX_PLAYER_STATS_DAYS).optional(),
+        }),
+      },
+    },
+    (request) => {
+      const row = ctx.servers.require(request.params.id);
+      const timeZone = ctx.settings.timeZone();
+      const to = ctx.now();
+      const from = statsWindowStart(to, request.query.days ?? 30, timeZone);
+      return {
+        stats: computePlayerStats({
+          sessions: ctx.servers.sessionsForStats(row.id, from, to),
+          from,
+          to,
+          timeZone,
+          firstSeen: ctx.servers.firstSeenByPlayer(row.id),
+          topLimit: PLAYER_STATS_TOP,
+        }),
+      };
     },
   );
 

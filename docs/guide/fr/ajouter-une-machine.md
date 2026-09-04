@@ -146,3 +146,20 @@ Deux détails qui comptent :
 - **Ouvrir le formulaire n'ouvre pas votre serveur.** Personne n'entre sans votre clic. Si le lien fuite, vous récolterez au pire quelques demandes à refuser ; « Changer de lien » ferme le robinet d'un coup. Le panel accepte au plus dix envois par minute et par visiteur, et ne conserve rien d'autre que le pseudo et le mot laissés.
 
 > Le formulaire ne sert qu'à demander. Il ne dit pas si un pseudo existe, ne consulte pas les serveurs de Mojang et n'affiche aucune image venue d'ailleurs : tant que vous n'avez pas accepté, une demande n'est qu'une ligne en attente.
+
+## 16. Qui joue, et quand
+
+Le panel note chaque arrivée et chaque départ depuis le premier jour. L'onglet **Joueurs → Statistiques** en fait quatre chiffres, deux graphiques et un classement, sur 7, 30, 90 ou 365 jours :
+
+- **Joueurs**, **connexions**, **temps de jeu total** et le **record de joueurs simultanés**, avec la date de ce record ;
+- la **fréquentation par jour** (joueurs distincts et connexions) et le **temps de jeu par jour** ;
+- les **heures de jeu** : une barre par heure de la journée. C'est le graphique à regarder avant de programmer un redémarrage ou une sauvegarde — la creuse se voit d'un coup d'œil ;
+- le **classement des temps de jeu**, avec un badge « nouveau » pour qui vient d'arriver.
+
+Trois précisions sur la façon dont c'est compté :
+
+- **Une partie à cheval sur minuit compte des deux côtés.** Jouer de 23 h à 1 h fait une heure le premier jour et une heure le second, pas deux heures le premier. Une partie en cours est comptée jusqu'à maintenant, pas jusqu'à la fin de la journée.
+- **Les journées et les heures sont celles du panel**, dans le fuseau réglé dans Réglages → Général (affiché sous le graphique). C'est le même que celui des planifications : les deux graphiques se lisent ensemble.
+- **« Nouveau » se juge sur ce que le panel a gardé.** Les connexions sont purgées au bout d'un an par défaut (Réglages → Rétention) : un joueur qui n'était pas venu depuis plus longtemps que cela repasse pour un nouveau venu.
+
+> Ces chiffres ne sortent jamais du panel : ils ne sont pas publiés sur la page de statut, ne partent dans aucune notification et ne sont visibles que des comptes qui voient déjà le serveur.

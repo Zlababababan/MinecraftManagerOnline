@@ -134,6 +134,21 @@ export function sameOffset(a: string, b: string, at: number): boolean {
   return utcOffsetMs(at, a) === utcOffsetMs(at, b);
 }
 
+/**
+ * Minuit local du jour d'un instant. Attention : **minuit n'existe pas tous les jours partout**
+ * — là où le passage à l'heure d'été a lieu à 0 h (Brésil historiquement, Chili, Cuba), la journée
+ * commence à 1 h. On essaie donc les premières heures de la journée jusqu'à en trouver une qui
+ * existe, plutôt que de rendre un instant appartenant à la veille.
+ */
+export function startOfDayIn(ts: number, timeZone: string): number {
+  const w = wallClockIn(ts, timeZone);
+  for (let hour = 0; hour < 4; hour += 1) {
+    const start = instantOfWallClock({ ...w, hour, minute: 0 }, timeZone);
+    if (start !== undefined) return start;
+  }
+  return ts;
+}
+
 /** Jours entiers entre deux instants dans un fuseau (utilitaire d'affichage). */
 export function dayIndexIn(ts: number, timeZone: string): number {
   const w = wallClockIn(ts, timeZone);

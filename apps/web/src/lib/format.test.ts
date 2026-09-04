@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { ago, formatDuration, formatGb, formatMb, formatPct, hasRole } from './format.js';
+import {
+  ago,
+  formatDuration,
+  formatGb,
+  formatMb,
+  formatPct,
+  formatPlaytime,
+  hasRole,
+} from './format.js';
 
 describe('format', () => {
   it('rôles', () => {
@@ -24,5 +32,14 @@ describe('format', () => {
     expect(formatDuration(3 * 86_400_000)).toBe('3 d');
     expect(ago(null, 0)).toBeUndefined();
     expect(ago(1_000, 61_000)).toBe('1 min');
+  });
+  it('temps de jeu : jamais arrondi à l’heure supérieure', () => {
+    // 1 h 30 de jeu ne doit pas s'afficher « 2 h » : sur un total, l'arrondi ment.
+    expect(formatPlaytime(90 * 60_000)).toBe('1 h 30');
+    expect(formatPlaytime(45 * 60_000)).toBe('45 min');
+    expect(formatPlaytime(2 * 3_600_000)).toBe('2 h');
+    expect(formatPlaytime(50 * 3_600_000)).toBe('2 j 2 h');
+    expect(formatPlaytime(48 * 3_600_000)).toBe('2 j');
+    expect(formatPlaytime(0)).toBe('0 min');
   });
 });

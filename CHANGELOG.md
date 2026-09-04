@@ -8,6 +8,20 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### Who plays, and when
+
+The panel has recorded every arrival and departure since day one, and only ever showed them as a
+flat list. The **Players → Stats** tab now turns that into something you can act on, over 7, 30,
+90 or 365 days: how many players and sessions, total playtime, the peak number online at once and
+when it happened, players and playtime per day — and a **time-of-day** chart, one bar per hour,
+which is the one to look at before scheduling a restart or a backup. Plus a playtime leaderboard,
+with a badge for whoever just arrived.
+
+It counts the way you would: a session across midnight is one hour on each day rather than two on
+the first, and a session still in progress counts up to now. Days and hours are the panel's, in the
+time zone your schedules already use and shown under the chart. These numbers stay in the panel —
+not on the status page, not in a notification.
+
 ### Friends can ask to be whitelisted
 
 The public status page gains a second switch: **Accept whitelist requests**. Turn it on and your

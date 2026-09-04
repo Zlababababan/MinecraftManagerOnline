@@ -26,6 +26,7 @@ import type {
   PairingCodeDto,
   PlayerActionRequest,
   PlayerSessionDto,
+  PlayerStatsDto,
   ResolvedPlayerDto,
   ServerConflictDto,
   ServerDto,
@@ -73,6 +74,7 @@ export const keys = {
   config: (id: string, file: ConfigFile) => ['servers', id, 'config', file] as const,
   configAll: (id: string) => ['servers', id, 'config'] as const,
   playerHistory: (id: string) => ['servers', id, 'player-history'] as const,
+  playerStats: (id: string, days: number) => ['servers', id, 'player-stats', days] as const,
   files: (id: string, path: string) => ['servers', id, 'files', path] as const,
   filesAll: (id: string) => ['servers', id, 'files'] as const,
   fileRead: (id: string, path: string) => ['servers', id, 'file', path] as const,
@@ -229,6 +231,18 @@ export const configQuery = <F extends ConfigFile>(id: string, file: F) =>
     staleTime: 10_000,
   });
 
+/** Statistiques de fréquentation (lot 8) : lecture pure, recalculée à chaque ouverture. */
+export const playerStatsQuery = (id: string, days: number) =>
+  queryOptions({
+    queryKey: keys.playerStats(id, days),
+    queryFn: ({ signal }) =>
+      api.get<{ stats: PlayerStatsDto }>(
+        `/api/servers/${id}/players/stats?days=${String(days)}`,
+        signal,
+      ),
+    staleTime: 60_000,
+  });
+
 export const playerHistoryQuery = (id: string, limit = 100) =>
   queryOptions({
     queryKey: keys.playerHistory(id),
@@ -316,6 +330,7 @@ export const useConfigFile = <F extends ConfigFile>(
   enabled = true,
 ): UseQueryResult<ConfigGetResult<F>> => useQuery({ ...configQuery(id, file), enabled });
 export const usePlayerHistory = (id: string) => useQuery(playerHistoryQuery(id));
+export const usePlayerStats = (id: string, days: number) => useQuery(playerStatsQuery(id, days));
 export const useFiles = (id: string, path: string) => useQuery(filesQuery(id, path));
 export const useFileRead = (id: string, path: string | undefined) =>
   useQuery({ ...fileReadQuery(id, path ?? ''), enabled: path !== undefined });

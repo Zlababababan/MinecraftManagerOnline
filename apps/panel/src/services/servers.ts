@@ -13,7 +13,7 @@ import {
   type ServerConfig,
 } from '@mmo/protocol';
 import type { ServerConflictDto, ServerDto } from '@mmo/protocol/client';
-import { and, asc, desc, eq, isNotNull, isNull, lt, ne } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, isNotNull, isNull, lt, ne, or, sql } from 'drizzle-orm';
 
 import type { MmoDatabase } from '../db/client.js';
 import {
@@ -906,6 +906,48 @@ export class ServersService {
         joinedAt: s.joinedAt,
         leftAt: s.leftAt,
       }));
+  }
+
+  /**
+   * Sessions qui TOUCHENT la fenêtre (lot 8, statistiques) : celle commencée avant-hier et encore
+   * ouverte compte pour sa part, elle ne doit donc pas être exclue par un simple `joined_at >=`.
+   * L'index `(server_id, joined_at)` porte la requête.
+   */
+  sessionsForStats(serverId: string, from: number, to: number) {
+    return this.db
+      .select({
+        playerUuid: playerSessions.playerUuid,
+        playerName: playerSessions.playerName,
+        joinedAt: playerSessions.joinedAt,
+        leftAt: playerSessions.leftAt,
+      })
+      .from(playerSessions)
+      .where(
+        and(
+          eq(playerSessions.serverId, serverId),
+          lt(playerSessions.joinedAt, to),
+          or(isNull(playerSessions.leftAt), gt(playerSessions.leftAt, from)),
+        ),
+      )
+      .all();
+  }
+
+  /**
+   * Première visite de chaque joueur SUR CE SERVEUR (« nouveaux joueurs »). Ce que la table sait,
+   * pas plus : un joueur dont les vieilles sessions ont été purgées par la rétention repasse pour
+   * un nouveau venu — dit dans le guide plutôt que corrigé par une table de plus.
+   */
+  firstSeenByPlayer(serverId: string): Map<string, number> {
+    const rows = this.db
+      .select({
+        uuid: playerSessions.playerUuid,
+        first: sql<number>`min(${playerSessions.joinedAt})`,
+      })
+      .from(playerSessions)
+      .where(eq(playerSessions.serverId, serverId))
+      .groupBy(playerSessions.playerUuid)
+      .all();
+    return new Map(rows.map((r) => [r.uuid, r.first]));
   }
 
   /** Règle de clôture (doc 04 §4) : sur stop/crash et à chaque réconciliation. */

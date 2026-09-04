@@ -35,6 +35,25 @@ export function formatDuration(ms: number): string {
   return `${String(Math.round(h / 24))} d`;
 }
 
+/**
+ * Temps de jeu cumulé (`45 min`, `3 h 30`, `12 j 4 h`). `formatDuration` arrondit — « 1 h 30 »
+ * y devient « 2 h », ce qui est acceptable pour un délai et faux pour un total de temps passé.
+ */
+export function formatPlaytime(ms: number): string {
+  const minutes = Math.max(0, Math.floor(ms / 60_000));
+  if (minutes < 60) return `${String(minutes)} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    const rest = minutes % 60;
+    return rest === 0
+      ? `${String(hours)} h`
+      : `${String(hours)} h ${String(rest).padStart(2, '0')}`;
+  }
+  const days = Math.floor(hours / 24);
+  const rest = hours % 24;
+  return rest === 0 ? `${String(days)} j` : `${String(days)} j ${String(rest)} h`;
+}
+
 export function formatDateTime(ts: number | null | undefined, locale: string): string {
   if (ts === null || ts === undefined) return '—';
   return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(

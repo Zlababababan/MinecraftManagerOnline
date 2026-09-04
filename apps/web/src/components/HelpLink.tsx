@@ -63,6 +63,11 @@ export const HELP_TOPICS = {
     en: 'add-a-machine.md#15-letting-friends-ask-for-access-whitelist',
     fr: 'fr/ajouter-une-machine.md#15-laisser-vos-amis-demander-laccès-whitelist',
   },
+  /** Lot 8 : statistiques de fréquentation — ce qui est compté, et dans quel fuseau. */
+  playerStats: {
+    en: 'add-a-machine.md#16-who-plays-and-when',
+    fr: 'fr/ajouter-une-machine.md#16-qui-joue-et-quand',
+  },
   /** Lot 8 : appareils connectés — voir et déconnecter ses sessions. */
   sessions: {
     en: 'add-a-machine.md#13-signed-in-devices',

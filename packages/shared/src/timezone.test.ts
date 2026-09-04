@@ -13,6 +13,7 @@ import {
   isValidTimeZone,
   localTimeZone,
   sameOffset,
+  startOfDayIn,
   utcOffsetMs,
   wallClockIn,
 } from './timezone.js';
@@ -112,6 +113,21 @@ describe('cron dans un fuseau explicite', () => {
     expect(nextCronRun('0 4 * * *', juillet)).toBe(
       nextCronRun('0 4 * * *', juillet, localTimeZone()),
     );
+  });
+
+  it('le début de journée locale est minuit — même les jours où minuit n’existe pas', () => {
+    // Journée ordinaire : minuit à Paris, c'est 22 h UTC la veille en été.
+    expect(startOfDayIn(Date.UTC(2026, 6, 1, 15, 0), 'Europe/Paris')).toBe(
+      Date.UTC(2026, 5, 30, 22, 0),
+    );
+    // Un instant déjà à minuit local est son propre début de journée (idempotent).
+    const midnight = startOfDayIn(Date.UTC(2026, 6, 1, 15, 0), 'Europe/Paris');
+    expect(startOfDayIn(midnight, 'Europe/Paris')).toBe(midnight);
+    // Santiago passe à l'heure d'été à minuit : le 6 septembre 2026 commence à 1 h du matin.
+    // Sans le repli, on rendrait un instant appartenant à la VEILLE — et toute la journée d'un
+    // graphique de fréquentation serait décalée.
+    const start = startOfDayIn(Date.UTC(2026, 8, 6, 18, 0), 'America/Santiago');
+    expect(wall(start, 'America/Santiago')).toBe('2026-09-06 01:00');
   });
 
   it('reste strictement après l’instant donné, même à la seconde près', () => {

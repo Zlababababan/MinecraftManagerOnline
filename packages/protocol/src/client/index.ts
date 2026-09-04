@@ -1668,6 +1668,64 @@ export const publicStatusSchema = z.object({
 });
 export type PublicStatus = z.infer<typeof publicStatusSchema>;
 
+// --- Statistiques de fréquentation (lot 8) ------------------------------------------------------
+
+/** Fenêtres proposées par l'interface, en jours. La borne dure est la rétention de la table. */
+export const PLAYER_STATS_RANGES = [7, 30, 90, 365] as const;
+export const MAX_PLAYER_STATS_DAYS = 366;
+/** Joueurs listés dans le classement (le reste tient dans les totaux). */
+export const PLAYER_STATS_TOP = 10;
+
+export const playerStatsDaySchema = z.object({
+  /** Minuit local du jour (fuseau du panel) : l'axe des abscisses du graphique. */
+  start: epochMsSchema,
+  /** Sessions COMMENCÉES ce jour-là — la somme des jours vaut le total. */
+  sessions: z.int().nonnegative(),
+  /** Joueurs distincts présents à un moment de la journée. */
+  players: z.int().nonnegative(),
+  /** Temps de jeu de la journée : une session à cheval sur minuit est répartie. */
+  playtimeMs: z.int().nonnegative(),
+});
+
+export const playerStatsEntrySchema = z.object({
+  name: z.string(),
+  uuid: z.string().nullable(),
+  playtimeMs: z.int().nonnegative(),
+  sessions: z.int().nonnegative(),
+  lastSeenAt: epochMsSchema,
+  /** Première visite sur CE serveur, toutes périodes confondues. */
+  firstSeenAt: epochMsSchema,
+  /** Première visite dans la fenêtre : un joueur qui vient d'arriver. */
+  isNew: z.boolean(),
+});
+
+/**
+ * Ce que `player_sessions` sait dire d'un serveur (doc 02 §6). Tout est calculé dans le fuseau du
+ * panel — l'axe des jours et l'histogramme des heures n'ont aucun sens dans un autre.
+ */
+export const playerStatsDtoSchema = z.object({
+  from: epochMsSchema,
+  to: epochMsSchema,
+  timeZone: z.string(),
+  totals: z.object({
+    sessions: z.int().nonnegative(),
+    players: z.int().nonnegative(),
+    newPlayers: z.int().nonnegative(),
+    playtimeMs: z.int().nonnegative(),
+    longestSessionMs: z.int().nonnegative(),
+    peakPlayers: z.int().nonnegative(),
+    /** Instant du record de joueurs simultanés, `null` si personne n'est venu. */
+    peakAt: epochMsSchema.nullable(),
+  }),
+  days: z.array(playerStatsDaySchema),
+  /** Temps de jeu par heure murale (24 cases) : quand le serveur est-il occupé ? */
+  hours: z.array(z.int().nonnegative()).length(24),
+  top: z.array(playerStatsEntrySchema),
+});
+export type PlayerStatsDto = z.infer<typeof playerStatsDtoSchema>;
+export type PlayerStatsDay = z.infer<typeof playerStatsDaySchema>;
+export type PlayerStatsEntry = z.infer<typeof playerStatsEntrySchema>;
+
 // --- Demande de whitelist en libre-service (lot 8) ----------------------------------------------
 
 /**
