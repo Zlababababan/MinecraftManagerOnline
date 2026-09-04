@@ -130,7 +130,7 @@ for (const platform of targets) {
         `launcher --version : ${out.trim()}`,
       );
     } finally {
-      rmSync(tmp, { recursive: true, force: true });
+      rmSync(tmp, { recursive: true, force: true, maxRetries: 20, retryDelay: 200 });
     }
   }
 }
@@ -222,7 +222,19 @@ ${log.join('').slice(-4000)}`,
       }
     } finally {
       child?.kill();
-      rmSync(tmp, { recursive: true, force: true });
+      // Windows garde la main sur `mmo.db` quelques instants après la mort du processus : un
+      // `rmSync` immédiat échoue en EPERM et ferait échouer un smoke dont TOUTES les
+      // vérifications sont pourtant passées. On attend la sortie, puis on réessaie.
+      if (child !== undefined && child.exitCode === null) {
+        await new Promise((resolve) => {
+          const done = () => {
+            resolve(undefined);
+          };
+          child.once('exit', done);
+          setTimeout(done, 5_000).unref?.();
+        });
+      }
+      rmSync(tmp, { recursive: true, force: true, maxRetries: 20, retryDelay: 200 });
     }
   }
 }
