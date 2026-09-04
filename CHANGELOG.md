@@ -8,6 +8,22 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### Panel logs you can actually read
+
+Run the panel in a console and it used to print this:
+
+    {"level":30,"time":1788553749588,"pid":18028,"hostname":"DESKTOP-TD36MUO","msg":"panel ready"}
+
+It now prints this:
+
+    22:49:09 INFO  panel ready users=1 dataDir=E:mmo-paneldata
+
+The agent has read like that for a while; the panel had been left behind. The **log file keeps the
+NDJSON** — it is read by `mmo-panel report`, masked, attached to a bug report: that one is data,
+not a display. And only a real terminal gets the text: redirected to a file, or run under systemd
+or Docker, the panel still emits NDJSON, because that is what those tools parse. `NO_COLOR` is
+honoured, and `MMO_LOG_FORMAT=json` forces the raw form back.
+
 ### Installing without a service now gives you the tray icon
 
 The notification-area icon has been there since 1.0.6 — it opens the panel, shows the logs, starts

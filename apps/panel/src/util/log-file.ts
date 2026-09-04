@@ -13,6 +13,7 @@
  */
 import path from 'node:path';
 
+import { formatConsoleLine } from './log-console.js';
 import {
   DEFAULT_LOG_MAX_BYTES,
   DEFAULT_LOG_RETENTION_DAYS,
@@ -27,6 +28,20 @@ export interface PanelLogStream {
   /** Chemin du fichier courant ; `undefined` si l'écriture fichier est indisponible. */
   readonly file: string | undefined;
   close(): void;
+}
+
+/**
+ * Rendu lisible sur la console : seulement devant un VRAI terminal. Redirigé vers un fichier,
+ * piloté par systemd ou Docker, le panel continue d'émettre du NDJSON — c'est ce que ces outils
+ * parsent. `NO_COLOR` et `MMO_LOG_FORMAT=json` (sortie brute) sont respectés.
+ */
+function consoleRendering(): { pretty: boolean; color: boolean } {
+  const forced = process.env.MMO_LOG_FORMAT;
+  if (forced === 'json') return { pretty: false, color: false };
+  const tty = process.stdout.isTTY;
+  const pretty = forced === 'pretty' || tty;
+  const color = pretty && tty && process.env.NO_COLOR === undefined;
+  return { pretty, color };
 }
 
 function maxBytes(): number {
@@ -50,13 +65,26 @@ export function createPanelLogStream(
     maxBytes: maxBytes(),
     now,
   });
+  const { pretty, color } = consoleRendering();
   return {
     get file() {
       return log.file;
     },
     write(chunk: string): void {
-      process.stdout.write(chunk);
+      // Le FICHIER garde le NDJSON : il est relu par `mmo-panel report`, masqué, joint à un
+      // signalement. Seule la console est mise en forme, et seulement pour un humain.
       log.write(chunk);
+      if (!pretty) {
+        process.stdout.write(chunk);
+        return;
+      }
+      for (const line of chunk.split('\n')) {
+        if (line === '') continue;
+        const rendered = formatConsoleLine(line, { color });
+        // Une ligne qui n'est pas du JSON de log (trace, avertissement de Node) passe telle
+        // quelle : la perdre serait pire que l'afficher brute.
+        process.stdout.write(`${rendered ?? line}\n`);
+      }
     },
     close(): void {
       log.close();
