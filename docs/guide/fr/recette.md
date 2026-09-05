@@ -24,20 +24,18 @@ Compter **5 à 6 h** pour tout dérouler ; les étapes marquées _(optionnel)_ o
 
 ## 0. Avant de commencer
 
-- [ ] **0.1** Le fichier `E:\mmo-panel\mmo-panel-1.0.7\start-panel.cmd` pointe encore vers `E:\mmo-panel\data`, qui n'existe plus depuis le déplacement : lancé tel quel, le panel créerait une **base vide** et afficherait l'assistant de premier démarrage. Le réécrire (PowerShell) :
+- [ ] **0.1** Le fichier `E:\mmo-panel\mmo-panel-1.0.7\start-panel.cmd` pointait vers `E:\mmo-panel\data`, disparu depuis le déplacement : lancé tel quel, le panel aurait créé une **base vide** et affiché l'assistant de premier démarrage. **Il a été réécrit le 5 septembre ; ne modifiez ni `start-panel.cmd` ni `mmo-panel.cmd`** (ce dernier est le vrai lanceur, `start-panel.cmd` ne fait que l'appeler). Vérifier seulement : ouvrir `start-panel.cmd` dans le Bloc-notes, il doit contenir exactement :
 
-  ```powershell
-  Set-Content -LiteralPath 'E:\mmo-panel\mmo-panel-1.0.7\start-panel.cmd' -Encoding ascii -Value @'
+  ```bat
   @echo off
   rem MinecraftManagerOnline - lanceur du panel. Donnees dans .\data (defaut de mmo-panel.cmd).
   setlocal
   set "MMO_HOST=127.0.0.1"
   set "MMO_PORT=3000"
   call "%~dp0mmo-panel.cmd" %*
-  '@
   ```
 
-  Attendu : le fichier ne contient plus de ligne `MMO_DATA_DIR` ; `mmo-panel.cmd` retombe alors sur `<dossier>\data`, qui est le bon.
+  Attendu : aucune ligne `MMO_DATA_DIR` ; `mmo-panel.cmd` retombe alors sur `<dossier>\data`, qui est le bon.
 
 - [ ] **0.2** Panel arrêté, ouvrir un terminal dans `E:\mmo-panel\mmo-panel-1.0.7\` et lancer `mmo-panel.cmd doctor`. Attendu : chaque ligne verte (runtime, `node:sqlite`, argon2, écriture réelle dans `data\`, `quick_check` de la base, port 3000 libre, front).
 - [ ] **0.3** Lancer le panel **depuis ce même terminal** : `start-panel.cmd`. Attendu : des lignes lisibles du type `22:49:09 INFO  panel ready users=1 dataDir=E:\mmo-panel\mmo-panel-1.0.7\data` (plus de JSON brut avec `pid`/`hostname`) ; le fichier `data\logs\panel-<date>.log` reçoit, lui, du NDJSON.
