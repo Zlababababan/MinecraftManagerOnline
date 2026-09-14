@@ -378,7 +378,10 @@ CREATE TABLE backup_policies (
   last_status     TEXT,                                 -- success | failed | skipped
   last_backup_id  TEXT,
   last_error      TEXT,                                 -- message d'échec, ou raison du skip
-  overdue_since   INTEGER                               -- NULL = à l'heure ; posé une seule fois
+  overdue_since   INTEGER                               -- NULL = à l'heure ; posé une seule fois ;
+                                                        -- JAMAIS posé pour une politique only_if_running
+                                                        -- d'un serveur arrêté (2026-09-14) ; N retards
+                                                        -- dans un même passage = 1 notification (résumé)
 );
 CREATE INDEX idx_bpol_server ON backup_policies(server_id);
 

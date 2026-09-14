@@ -712,6 +712,7 @@ export const webEn = {
       'task.failed': 'Task failed: {{kind}}',
       'backup.rotated': 'Backup rotation',
       'backup.overdue': 'Backup overdue',
+      'backup.overdue_other': '{{count}} backups overdue',
       'backup.corrupted': 'Corrupted backup',
       'panel.backupFailed': 'Panel backup failed',
       'panel.updateAvailable': 'New panel version available',

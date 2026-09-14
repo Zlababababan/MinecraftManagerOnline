@@ -95,6 +95,10 @@ export const fr = {
         title: 'Aucune sauvegarde de {{server}}',
         body: 'Une sauvegarde planifiée n’a pas eu lieu à l’heure attendue.',
       },
+      backupsOverdue: {
+        title: '{{count}} sauvegardes en retard',
+        body: 'Plusieurs sauvegardes planifiées n’ont pas eu lieu à l’heure attendue — voyez l’onglet Sauvegardes des serveurs concernés.',
+      },
       backupCorrupted: {
         title: 'Sauvegarde corrompue : {{server}}',
         body: 'Une archive ne correspond plus à son manifeste — ne comptez plus dessus : {{path}}',

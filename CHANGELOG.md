@@ -36,6 +36,16 @@ Five things found by using the product, fixed the same day.
   exists or is not empty. And the creation wizard says right away when the folder name is already
   that of a registered server under the chosen directory, instead of letting you reach the last
   screen.
+- **No more "backup overdue" storm.** Every server got a "No backup" warning at each panel restart
+  — 57 at once on a real install. All its policies were "only if the server is running" and all
+  its servers were stopped: the agent skips the occurrence every night, but that skip is a
+  non-critical event, lost when the panel is off at 4 a.m., so the next start saw 57 policies
+  without news. A policy that only backs up a running server is never overdue while the server is
+  stopped; and when one maintenance pass finds several real delays, it raises one notification
+  ("N backups overdue") — each server keeps its own event in its Events tab.
+- **`mmo-panel doctor` in colour.** The level of each check is green, yellow or red, and so is
+  the conclusion — in PowerShell, Windows Terminal and cmd alike. Never in a file, never under
+  `NO_COLOR`.
 
 ### Panel logs you can actually read
 

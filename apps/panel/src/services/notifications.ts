@@ -392,6 +392,9 @@ export class NotificationsService {
       const event: EventDto = { ...row, payload: parseJson<unknown>(row.payload, null) };
       const type = notificationTypeOf(event);
       if (type === undefined || !prefs[type]) continue;
+      // Un événement « groupé » (retards de sauvegarde par lot) reste dans l'onglet Événements de
+      // son serveur ; la cloche ne montre que le résumé, comme le téléphone.
+      if ((event.payload as Record<string, unknown> | null)?.grouped !== undefined) continue;
       if (this.deps.visibleTo?.(userId, event) === false) continue;
       notifications.push(event);
       if (notifications.length >= limit) break;
@@ -464,6 +467,7 @@ export class NotificationsService {
       player: text(p.name),
       webhook: text(p.webhook),
       online: text(p.online),
+      count: text(p.count),
       percent: text(p.percent),
       freeGb: text(p.freeGb),
       tps: text(p.tps),
@@ -666,7 +670,10 @@ export function notifyKey(event: EventDto): string | undefined {
     case 'player.left':
       return 'playerLeft';
     case 'backup.overdue':
-      return 'backupOverdue';
+      // Plusieurs retards dans le même passage de maintenance : chaque serveur garde son
+      // événement (`grouped`), mais seul le résumé (`count`) fait une notification.
+      if (typeof p.grouped === 'number') return undefined;
+      return typeof p.count === 'number' ? 'backupsOverdue' : 'backupOverdue';
     case 'backup.corrupted':
       return 'backupCorrupted';
     // Le message vient de l'agent, en anglais technique : il est repris tel quel dans le corps

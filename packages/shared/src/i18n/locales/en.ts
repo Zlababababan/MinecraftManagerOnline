@@ -88,6 +88,10 @@ export const en = {
         title: 'No backup for {{server}}',
         body: 'A scheduled backup has not run when expected.',
       },
+      backupsOverdue: {
+        title: '{{count}} backups overdue',
+        body: 'Several scheduled backups have not run when expected — see the Backups tab of the servers concerned.',
+      },
       backupCorrupted: {
         title: 'Corrupted backup: {{server}}',
         body: 'An archive no longer matches its manifest — do not rely on it: {{path}}',

@@ -94,6 +94,80 @@ describe('maintenance horaire — purges, rétentions, VACUUM', () => {
   const count = (panel: TestPanel, table: string): number =>
     (panel.ctx.sqlite.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n;
 
+  it('retard de sauvegarde : jamais pour un serveur arrêté « si le serveur tourne », une seule notification pour plusieurs', async () => {
+    const f = await openPanel('memory');
+    const { sqlite } = f.panel.ctx;
+    const addServer = (id: string): void => {
+      f.panel.ctx.db
+        .insert(servers)
+        .values({
+          id,
+          machineId: f.machineId,
+          path: `C:/mc/${id}`,
+          name: id.toUpperCase(),
+          createdAt: NOON,
+          updatedAt: NOON,
+        })
+        .run();
+    };
+    const running = (id: string): void => {
+      sqlite.prepare("UPDATE servers SET run_state = 'running' WHERE id = ?").run(id);
+    };
+    const policy = (serverId: string) =>
+      f.panel.ctx.backups.createPolicy(serverId, { cron: '0 4 * * *', onlyIfRunning: true });
+    const overdueEvents = () => f.panel.ctx.events.list({ type: 'backup.overdue', limit: 50 });
+    const userId = (sqlite.prepare('SELECT id FROM users LIMIT 1').get() as { id: string }).id;
+
+    // srv-a est ARRÊTÉ ; sa politique « seulement si le serveur tourne » date de deux jours. Le
+    // cas réel : 57 politiques ainsi, 59 serveurs arrêtés, 57 avertissements à chaque redémarrage.
+    const pa = policy(f.serverId);
+    f.panel.clock.set(NOON + 2 * DAY);
+    runMaintenance(f.panel.ctx);
+    expect(overdueEvents()).toHaveLength(0);
+    expect(f.panel.ctx.backups.getPolicy(pa.id)?.overdueSince).toBeNull();
+
+    // Le même serveur en MARCHE : là, le retard est réel — un événement, une notification.
+    running(f.serverId);
+    runMaintenance(f.panel.ctx);
+    let list = overdueEvents();
+    expect(list).toHaveLength(1);
+    expect(list[0]?.serverId).toBe(f.serverId);
+    expect((list[0]?.payload as { grouped?: number }).grouped).toBeUndefined();
+    expect(f.panel.ctx.notifications.render(list[0]!, 'fr')?.title).toBe('Aucune sauvegarde de A');
+    expect(f.panel.ctx.backups.getPolicy(pa.id)?.overdueSince).toBe(NOON + 2 * DAY);
+
+    // Deux serveurs en marche, deux retards dans le même passage : chacun garde son événement
+    // (marqué `grouped`, muet), un résumé sans serveur porte la notification — pas cinquante-sept.
+    addServer('srv-b');
+    addServer('srv-c');
+    running('srv-b');
+    running('srv-c');
+    policy('srv-b');
+    policy('srv-c');
+    const later = NOON + 4 * DAY;
+    f.panel.clock.set(later);
+    runMaintenance(f.panel.ctx);
+    list = overdueEvents().filter((e) => e.ts === later);
+    const perServer = list.filter((e) => e.serverId !== null);
+    const summary = list.filter((e) => e.serverId === null);
+    expect(perServer.map((e) => e.serverId).sort()).toEqual(['srv-b', 'srv-c']);
+    for (const e of perServer) {
+      expect((e.payload as { grouped?: number }).grouped).toBe(2);
+      expect(f.panel.ctx.notifications.render(e, 'fr')).toBeUndefined();
+    }
+    expect(summary).toHaveLength(1);
+    expect((summary[0]?.payload as { count?: number }).count).toBe(2);
+    expect(f.panel.ctx.notifications.render(summary[0]!, 'fr')?.title).toBe(
+      '2 sauvegardes en retard',
+    );
+    // La cloche ne liste que le résumé, comme le téléphone.
+    const bell = f.panel.ctx.notifications
+      .list(userId)
+      .notifications.filter((e) => e.type === 'backup.overdue' && e.ts === later);
+    expect(bell).toHaveLength(1);
+    expect(bell[0]?.serverId).toBeNull();
+  });
+
   it('borne chaque table et journalise le nombre de lignes supprimées, table par table', async () => {
     const f = await openPanel();
     const { sqlite } = f.panel.ctx;

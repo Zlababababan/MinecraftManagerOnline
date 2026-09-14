@@ -156,9 +156,22 @@ export function runMaintenance(
   // aucune colonne d'état, et la seule notification d'échec naissait d'un `task.failed`, donc
   // d'une sauvegarde qui avait AU MOINS démarré. Signalé une seule fois par épisode
   // (`overdueSince`), levé dès qu'une occurrence est enregistrée — y compris `skipped`.
-  for (const policy of ctx.backups.overduePolicies(t, BACKUP_OVERDUE_GRACE_MS)) {
+  const overdue = ctx.backups
+    .overduePolicies(t, BACKUP_OVERDUE_GRACE_MS)
+    .map((policy) => ({ policy, server: ctx.servers.get(policy.serverId) }))
+    // Une politique « seulement si le serveur tourne » d'un serveur arrêté n'est JAMAIS en retard :
+    // sauter l'occurrence est sa vie normale. Sans cette garde, 57 avertissements à chaque
+    // redémarrage du panel (remonté à l'usage, 2026-09-14) : l'occurrence sautée par l'agent
+    // (`backup.skipped`, événement non critique) s'était perdue pendant que le panel était éteint,
+    // et le détecteur ne voyait plus d'occurrence. Un détecteur fondé sur un événement qui peut se
+    // perdre doit raisonner sur l'ÉTAT.
+    .filter(({ policy, server }) => policy.onlyIfRunning !== 1 || server?.runState === 'running');
+  // Plusieurs retards dans le même passage = UNE notification (modèle « machine hors ligne ») :
+  // chaque serveur garde son événement (onglet Événements), marqué `grouped` — la cloche et le
+  // téléphone l'ignorent — et un résumé sans serveur porte la notification.
+  const grouped = overdue.length > 1 ? overdue.length : undefined;
+  for (const { policy, server } of overdue) {
     ctx.backups.markOverdue(policy.id, t);
-    const server = ctx.servers.get(policy.serverId);
     ctx.events.publish({
       type: 'backup.overdue',
       severity: 'warning',
@@ -170,7 +183,16 @@ export function runMaintenance(
         lastRunAt: policy.lastRunAt,
         lastStatus: policy.lastStatus,
         serverName: server?.name ?? policy.serverId,
+        ...(grouped === undefined ? {} : { grouped }),
       },
+      ts: t,
+    });
+  }
+  if (grouped !== undefined) {
+    ctx.events.publish({
+      type: 'backup.overdue',
+      severity: 'warning',
+      payload: { count: grouped, policyIds: overdue.map(({ policy }) => policy.id) },
       ts: t,
     });
   }

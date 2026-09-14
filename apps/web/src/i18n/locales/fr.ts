@@ -721,6 +721,7 @@ export const webFr = {
       'task.failed': 'Tâche échouée : {{kind}}',
       'backup.rotated': 'Rotation des sauvegardes',
       'backup.overdue': 'Sauvegarde en retard',
+      'backup.overdue_other': '{{count}} sauvegardes en retard',
       'backup.corrupted': 'Sauvegarde corrompue',
       'panel.backupFailed': 'Sauvegarde du panel échouée',
       'panel.updateAvailable': 'Nouvelle version du panel disponible',
