@@ -155,8 +155,14 @@ export class DistributionService {
     const url =
       normalizeOrigin(this.deps.settings.get(SETTING_KEYS.publicUrl)) ??
       normalizeOrigin(requestOrigin);
+    // Le gabarit .ps1 garde son BOM sur disque (sans lui, PowerShell 5.1 lit un .ps1 en ANSI —
+    // piège 86), mais servi dans un corps HTTP il casse le one-liner : `[scriptblock]::Create()`
+    // refuse un texte qui commence par U+FEFF, sous 5.1 comme sous 7 (mesuré, recette 1.3). Le
+    // charset est dans le content-type ; l'octet, lui, n'a rien à faire dans le corps.
+    const bom = String.fromCharCode(0xfeff);
+    const body = template.startsWith(bom) ? template.slice(1) : template;
     return {
-      body: template.replaceAll('__PANEL_URL__', url ?? '__PANEL_URL__'),
+      body: body.replaceAll('__PANEL_URL__', url ?? '__PANEL_URL__'),
       type: SCRIPTS[name],
     };
   }

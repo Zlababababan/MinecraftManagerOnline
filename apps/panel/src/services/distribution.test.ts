@@ -54,6 +54,10 @@ describe('distribution (phase 11)', () => {
       },
     });
     expect(res.body).toContain("[string]$Panel = 'https://mmo.tailnet.ts.net'");
+    // Le gabarit .ps1 commence par un BOM (obligatoire sur disque pour PS 5.1) ; servi tel quel,
+    // `[scriptblock]::Create((irm …))` refusait le script entier — vécu en recette (1.3).
+    expect(res.body.charCodeAt(0)).not.toBe(0xfeff);
+    expect(res.body.startsWith('<#')).toBe(true);
     await panel.app.inject({
       method: 'PATCH',
       url: '/api/settings',
