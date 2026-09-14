@@ -5,7 +5,7 @@
  */
 import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -88,6 +88,25 @@ describe('barre de macros', () => {
     await waitFor(() => {
       expect(calls.some((c) => c.url.includes('/macros/m1/run') && c.method === 'POST')).toBe(true);
     });
+  });
+
+  it('les champs de la fenêtre acceptent une frappe entière — pas seulement deux caractères', async () => {
+    const user = userEvent.setup();
+    renderBar(calls, { results: [] });
+    await user.click(await screen.findByTestId('macro-new'));
+    const name = await screen.findByTestId('macro-name');
+    await user.type(name, 'Soir');
+    expect(name).toHaveValue('Soir');
+    const commands = screen.getByTestId('macro-commands');
+    await user.type(commands, 'time set night');
+    expect(commands).toHaveValue('time set night');
+    // Deux modifications dans le même lot React : la seconde mise à jour est différée, et
+    // l'événement de la première n'existe plus quand elle s'exécute — c'est là que ça cassait.
+    act(() => {
+      fireEvent.change(name, { target: { value: 'So' } });
+      fireEvent.change(name, { target: { value: 'Soi' } });
+    });
+    expect(name).toHaveValue('Soi');
   });
 
   it('demande confirmation avant une séquence qui arrête le serveur, et montre laquelle', async () => {

@@ -267,7 +267,11 @@ export function MacroBar({ serverId, canSend }: { serverId: string; canSend: boo
             label={t('web:server.macros.name')}
             value={editor?.name ?? ''}
             onChange={(e) => {
-              setEditor((s) => (s ? { ...s, name: e.currentTarget.value } : s));
+              // La valeur se lit AVANT le setState : la fonction de mise à jour peut courir après
+              // la fin de l'événement, quand `currentTarget` est déjà null — « impossible d'écrire
+              // plus de deux caractères » (recette, 6.4).
+              const name = e.currentTarget.value;
+              setEditor((s) => (s ? { ...s, name } : s));
             }}
             data-testid="macro-name"
           />
@@ -279,7 +283,8 @@ export function MacroBar({ serverId, canSend }: { serverId: string; canSend: boo
             maxRows={12}
             value={editor?.commands ?? ''}
             onChange={(e) => {
-              setEditor((s) => (s ? { ...s, commands: e.currentTarget.value } : s));
+              const commands = e.currentTarget.value;
+              setEditor((s) => (s ? { ...s, commands } : s));
             }}
             {...TECHNICAL_INPUT_PROPS}
             data-testid="macro-commands"
