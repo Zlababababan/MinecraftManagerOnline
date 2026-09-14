@@ -1,0 +1,16 @@
+{
+  "source": "FTBEvolution_1.43.1 — reconstitué tel que l'installeur FTB (serverinstall_125_100487.exe) le laisse AVANT le premier run.bat : ni eula.txt, ni server.properties, ni jar à la racine",
+  "note": "Remonté à l'usage (2026-09-12) : ce dossier n'était détecté qu'après un premier lancement. Les argfiles NeoForge qualifient désormais le dossier.",
+  "files": [
+    "config/ (vide)",
+    "ftb-server-installer.log (placeholder)",
+    "libraries/net/neoforged/neoforge/21.1.248/unix_args.txt (tronqué)",
+    "libraries/net/neoforged/neoforge/21.1.248/win_args.txt (tronqué)",
+    "mods/ (vide)",
+    "neoforge-21.1.248-installer.jar.log (placeholder)",
+    "run.bat",
+    "run.sh",
+    "serverinstall_125_100487.exe (placeholder texte)",
+    "user_jvm_args.txt"
+  ]
+}

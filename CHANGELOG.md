@@ -8,6 +8,35 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### Reported while testing (2026-09-12)
+
+Five things found by using the product, fixed the same day.
+
+- **A freshly installed Forge or NeoForge server is detected before its first start.** A folder
+  left by the FTB installer (or by the Forge/NeoForge installer) has no jar at its root, no
+  `server.properties` and no `eula.txt` — those two files only appear on the first run. The scanner
+  therefore ignored it, and you had to run `run.bat` once by hand before the panel would see it.
+  The launch argfiles (`libraries/net/<forge|neoforge>/<version>/win_args.txt`) now qualify the
+  folder: the installer only writes them into a server folder. The server shows up with "EULA not
+  accepted", and the EULA card of its Configuration tab takes it from there. A `libraries/` folder
+  without argfiles is still not a server.
+- **The panel console is quiet again.** The per-request access log (one line per API response,
+  added for the log file in 1.0.8) was also printed on screen — 398 of the 410 lines of a real
+  session. It stays in the file, where it exists to correlate a `requestId`; the console only
+  shows it for warnings (a 500, a slow response). `MMO_LOG_CONSOLE=full` prints everything again.
+- **The Windows one-liner works under PowerShell 5.1 and 7.** The served `install.ps1` started with
+  a byte-order mark (it must, on disk, for PowerShell 5.1), and `[scriptblock]::Create((irm …))`
+  refuses a script that starts with one — under both versions. The mark is stripped from the
+  served body; the file on disk keeps it.
+- **The macro editor accepts more than two characters.** The name and commands fields read the
+  event inside a deferred state update, when the event no longer existed.
+- **Refusals say why.** Adding a folder by hand that the scanner does not recognise explains what a
+  folder needs (a `server.properties`, an `eula.txt`, a server jar with `mods/`, or a Forge/NeoForge
+  install) instead of a generic "conflict"; so does creating a server in a folder that already
+  exists or is not empty. And the creation wizard says right away when the folder name is already
+  that of a registered server under the chosen directory, instead of letting you reach the last
+  screen.
+
 ### Panel logs you can actually read
 
 Run the panel in a console and it used to print this:

@@ -142,6 +142,47 @@ describe('détection — cas synthétiques (FS mémoire)', () => {
     expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
   });
 
+  it('une installation Forge/NeoForge fraîche (argfiles, ni eula ni properties) est un serveur, avant son premier démarrage', async () => {
+    const fs = new MemoryDetectFs({
+      '/srv/ftb': {
+        'run.bat':
+          'java @user_jvm_args.txt @libraries/net/neoforged/neoforge/21.1.248/win_args.txt nogui %*',
+        'user_jvm_args.txt': '-Xmx8092M',
+        libraries: {
+          net: {
+            neoforged: {
+              neoforge: {
+                '21.1.248': {
+                  'win_args.txt': '-p libraries/x.jar',
+                  'unix_args.txt': '-p libraries/x.jar',
+                },
+              },
+            },
+          },
+        },
+        mods: {},
+        'serverinstall_125_100487.exe': '',
+      },
+    });
+    const r = await detectServer(fs, '/srv/ftb');
+    expect(r, 'dossier non qualifié').toBeDefined();
+    expect(r?.loader.value).toBe('neoforge');
+    expect(r?.loaderVersion?.value).toBe('21.1.248');
+    expect(r?.mcVersion?.value).toBe('1.21.1');
+    expect(r?.launch?.kind).toBe('argfile');
+    expect(r?.maxRamMb.value).toBe(8092);
+    // L'EULA manque : c'est au panel de la faire accepter, pas au scanner de se taire.
+    expect(r?.eulaAccepted).toBe(false);
+    expect(r?.evidence.some((e) => e.code === 'eula_missing')).toBe(true);
+  });
+
+  it('un dossier libraries/ sans argfiles n’est toujours pas un serveur', async () => {
+    const fs = new MemoryDetectFs({
+      '/srv/libs': { libraries: { net: { minecraft: { server: { '1.21.1': {} } } } } },
+    });
+    expect(await detectServer(fs, '/srv/libs')).toBeUndefined();
+  });
+
   it('parseVelocityToml : bind, motd, et replis honnêtes', () => {
     expect(parseVelocityToml('bind = "0.0.0.0:25577"\nmotd = "Hey"\n')).toEqual({
       port: 25577,

@@ -1,6 +1,7 @@
 /**
  * Auto-détection d'un dossier serveur (doc 06 §2) — algorithme ordonné :
- *   0. qualifier (server.properties OU eula.txt OU jar serveur + mods/)
+ *   0. qualifier (server.properties OU eula.txt OU velocity.toml OU jar serveur + mods/
+ *      OU argfiles Forge/NeoForge — une installation fraîche, avant son premier démarrage)
  *   1. loader : neoforge libs → forge argfiles → forge jar universal → fabric → inspection mods/ →
  *      vanilla → inconnu
  *   2. version MC : libraries → jar → version.json → variables.txt / yaml FTB → installer → logs
@@ -134,7 +135,13 @@ export async function detectServer(
     ctx.hasFile('server.properties') ||
     ctx.hasFile('eula.txt') ||
     ctx.hasFile('velocity.toml') ||
-    (serverJars.length > 0 && ctx.hasDir('mods'));
+    (serverJars.length > 0 && ctx.hasDir('mods')) ||
+    // Une installation Forge/NeoForge moderne fraîchement posée (installeur FTB, installeur Forge)
+    // n'a ni jar à la racine (lancement par argfiles), ni server.properties ni eula.txt — ils
+    // naissent au premier démarrage. C'est pourtant un serveur prêt à démarrer, et c'est AVANT ce
+    // premier démarrage qu'on veut le voir (remonté à l'usage, 2026-09-12 : « il a fallu lancer
+    // run.bat une fois pour qu'il soit détecté »).
+    (await hasForgeArgfiles(ctx));
   if (!qualified) return undefined;
 
   // Marqueur MMO (le panel reste l'autorité)
@@ -410,6 +417,23 @@ function loaderFromName(name: string | undefined): Loader | undefined {
     default:
       return undefined;
   }
+}
+
+const ARGFILE_ROOTS = ['libraries/net/neoforged/neoforge', 'libraries/net/minecraftforge/forge'];
+
+/**
+ * `libraries/net/<forge|neoforge>/<v>/{win,unix}_args.txt` : l'installeur ne les écrit que dans un
+ * dossier serveur (le client n'en a pas). Un `libraries/` sans argfiles reste un simple cache.
+ */
+async function hasForgeArgfiles(ctx: Ctx): Promise<boolean> {
+  for (const root of ARGFILE_ROOTS) {
+    for (const dir of await ctx.readdir(root)) {
+      if (dir.kind !== 'dir') continue;
+      const files = await ctx.readdir(joinPath(root, dir.name));
+      if (files.some((f) => f.name === 'win_args.txt' || f.name === 'unix_args.txt')) return true;
+    }
+  }
+  return false;
 }
 
 /** Version du loader référencée par `run.bat`/`run.sh` (`@libraries/net/.../<v>/win_args.txt`). */

@@ -157,6 +157,15 @@ export const en = {
     E_IO_ARCHIVE_UNREADABLE:
       'The archive cannot be read (corrupted or truncated): do not restore from it — delete it and take a new backup.',
     E_CONFLICT: 'Conflict: the resource changed in the meantime.',
+    // `E_CONFLICT_<reason>` variants: one code covers refusals that call for different actions.
+    E_CONFLICT_NOT_A_SERVER:
+      'No Minecraft server recognised in {{path}}. It needs a server.properties, an eula.txt, a server jar with a mods/ folder, or a Forge/NeoForge install (run.bat and libraries/).',
+    E_CONFLICT_MARKER_CONFLICT:
+      'This folder carries the marker of a server the panel already knows: see the conflicts on the dashboard.',
+    E_CONFLICT_PATH_TAKEN:
+      'A server is already registered at this path: {{path}}. Pick another folder name.',
+    E_CONFLICT_PATH_NOT_EMPTY:
+      'The folder {{path}} already exists and is not empty. Pick another folder name.',
     E_BUSY: 'The agent is busy, please retry.',
     E_TIMEOUT: 'The operation timed out.',
     E_CANCELLED: 'The operation was cancelled.',

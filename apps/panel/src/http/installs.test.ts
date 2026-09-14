@@ -165,6 +165,20 @@ describe('installation d’un serveur — routes et service du panel', () => {
     return m;
   }
 
+  it('adopter un dossier que le scan ne reconnaît pas : 409 avec la raison, pas un « conflit » nu', async () => {
+    const m = await online('A');
+    const res = await api('POST', '/api/servers', {
+      machineId: m.id,
+      path: '/srv/minecraft/pas-un-serveur',
+    });
+    expect(res.statusCode).toBe(409);
+    const err = res.json<{ code: string; details: { reason?: string; path?: string } }>();
+    expect(err.code).toBe('E_CONFLICT');
+    // La variante traduite (`E_CONFLICT_NOT_A_SERVER`) dit ce qu'il manque au dossier.
+    expect(err.details.reason).toBe('NOT_A_SERVER');
+    expect(err.details.path).toBe('/srv/minecraft/pas-un-serveur');
+  });
+
   const body = (m: Machine, over: Record<string, unknown> = {}) => ({
     directoryId: m.dirId,
     folderName: 'survie',

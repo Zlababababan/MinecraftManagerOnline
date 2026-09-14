@@ -49,12 +49,15 @@ Chemins argfiles : `libraries/net/minecraftforge/forge/<mc>-<forge>/` ou `librar
 
 ### Algorithme ordonné
 
+> **Amendement qualification (2026-09-12, remonté à l'usage)** — une installation Forge/NeoForge moderne fraîchement posée (installeur FTB `serverinstall_*.exe`, installeur Forge/NeoForge) n'a **ni jar à la racine** (lancement par argfiles), **ni `server.properties`, ni `eula.txt`** : ces deux fichiers naissent au premier démarrage. Elle n'était donc pas qualifiée, et l'utilisateur devait lancer `run.bat` une fois pour que le panel la voie. Les **argfiles** (`libraries/net/<forge|neoforge>/<v>/{win,unix}_args.txt`) qualifient désormais le dossier : l'installeur ne les écrit que dans un dossier serveur. Le dossier apparaît alors avec la note `eula_missing`, et c'est la garde `E_EULA_REQUIRED` du démarrage (carte EULA de l'onglet Configuration) qui prend le relais — pas le scanner qui se tait. Un `libraries/` sans argfiles reste un simple cache, non détecté (fixture `not-a-server-libraries-only`). La vérité terrain de l'ancienne fixture « libs only » est révisée en conséquence (`forge-fresh-install`).
+>
 > Implémenté en phase 2 : `detectServer()` / `scanForServers()` dans `@mmo/shared` (cœur pur sur une interface `DetectFs`, adaptateur Node + lecteur de jar sans dépendance dans `@mmo/shared/node`). Validé sur 22 fixtures copiées/anonymisées de vrais dossiers (`packages/shared/test/fixtures/servers/`, collecteur `collect-fixtures.mjs`) : 22/22 corrects (loader, version MC, version loader, RAM). Ordre effectif des signaux de loader : libraries NeoForge → argfiles Forge → jar universal Forge → lanceur Fabric → installeur seul → déclaration de pack (`variables.txt` / yaml FTB) → vote des mods → jar vanilla (sans mods) → inconnu ; les mods servent ensuite de **confirmation** (montée en confiance) ou de **contradiction** (confiance faible + evidence).
 
 ```
 Pour chaque sous-dossier D (profondeur 2 par défaut, .mmo-trash/ et destinations
 de backups exclus) :
-  0. Qualifier : server.properties OU eula.txt OU (jar serveur + mods/).
+  0. Qualifier : server.properties OU eula.txt OU velocity.toml OU (jar serveur + mods/)
+     OU argfiles Forge/NeoForge (libraries/net/<forge|neoforge>/<v>/{win,unix}_args.txt).
   1. Loader (premier match, du plus spécifique au moins) :
      neoforge libraries → forge argfiles → forge jar universal → fabric → 
      inspection mods/ → vanilla → « inconnu / à configurer »

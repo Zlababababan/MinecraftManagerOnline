@@ -973,6 +973,7 @@ export const webEn = {
     folderHint:
       'Letters, digits, spaces, dot, dash and underscore. This is the folder name on the machine.',
     folderInvalid: 'Invalid folder name (no accents, no separators).',
+    folderTaken: 'A registered server already uses this folder name here.',
     displayName: 'Display name (optional)',
     finalPath: 'Folder to be created',
     version: 'Minecraft version',

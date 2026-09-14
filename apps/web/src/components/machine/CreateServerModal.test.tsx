@@ -41,6 +41,19 @@ function installFetch(calls: Call[]): void {
           status: 200,
           headers: { 'content-type': 'application/json' },
         });
+      if (path === '/api/servers') {
+        return json({
+          servers: [
+            { id: 'srv-creatif', machineId: 'm1', name: 'Créatif', path: '/srv/minecraft/creatif' },
+            {
+              id: 'srv-ailleurs',
+              machineId: 'm2',
+              name: 'Ailleurs',
+              path: '/srv/minecraft/survie',
+            },
+          ],
+        });
+      }
       if (path.startsWith('/api/install/catalog')) {
         return json({
           loader: path.includes('fabric') ? 'fabric' : 'vanilla',
@@ -122,6 +135,31 @@ describe('CreateServerModal', () => {
     fireEvent.change(screen.getByTestId('install-directory'), { target: { value: 'dir2' } });
     await waitFor(() => {
       expect(screen.getByTestId('install-path')).toHaveTextContent('/data/mc/survie');
+    });
+  });
+
+  it('un nom de dossier déjà pris sur cette machine est dit tout de suite, et n’avance pas', async () => {
+    renderModal();
+    fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'creatif' } });
+    expect(
+      await screen.findByText('Ce nom de dossier est déjà celui d’un serveur enregistré ici.'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('install-next'));
+    expect(screen.getByTestId('install-path')).toBeInTheDocument();
+    // Le même nom sur une AUTRE machine ne compte pas : « survie » y est libre.
+    fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'survie' } });
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Ce nom de dossier est déjà celui d’un serveur enregistré ici.'),
+      ).not.toBeInTheDocument();
+    });
+    // Et sous un autre répertoire non plus.
+    fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'creatif' } });
+    fireEvent.change(screen.getByTestId('install-directory'), { target: { value: 'dir2' } });
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Ce nom de dossier est déjà celui d’un serveur enregistré ici.'),
+      ).not.toBeInTheDocument();
     });
   });
 

@@ -168,5 +168,23 @@
     "needsInstall": true,
     "eula": false
   },
-  "not-a-server-forge-libs-only": null
+  "forge-fresh-install": {
+    "loader": "forge",
+    "mcVersion": "1.19.2",
+    "loaderVersion": "43.2.3",
+    "maxRamMb": 4096,
+    "javaMajor": 17,
+    "launch": "argfile",
+    "eula": false
+  },
+  "neoforge-ftb-fresh-install": {
+    "loader": "neoforge",
+    "mcVersion": "1.21.1",
+    "loaderVersion": "21.1.248",
+    "maxRamMb": 8092,
+    "javaMajor": 21,
+    "launch": "argfile",
+    "eula": false
+  },
+  "not-a-server-libraries-only": null
 }

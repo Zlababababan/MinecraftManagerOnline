@@ -1,0 +1,4 @@
+-p libraries/cpw/mods/bootstraplauncher/2.0.2/bootstraplauncher-2.0.2.jar:libraries/cpw/mods/securejarhandler/3.0.8/securejarhandler-3.0.8.jar
+--add-modules ALL-MODULE-PATH
+--add-opens java.base/java.util.jar=cpw.mods.securejarhandler
+-DlibraryDirectory=libraries

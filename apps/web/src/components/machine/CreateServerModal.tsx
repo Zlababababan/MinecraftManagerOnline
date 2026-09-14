@@ -28,7 +28,8 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { IconAlertTriangle } from '@tabler/icons-react';
-import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 
 import {
   INSTALL_FOLDER_RE,
@@ -38,6 +39,7 @@ import {
 } from '@mmo/protocol/client';
 
 import { useCreateInstall, useInstallCatalog, useInstallPrecheck } from '../../api/installs.js';
+import { serversQuery } from '../../api/queries.js';
 import { useT } from '../../i18n/hooks.js';
 import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 import { ErrorAlert } from '../ErrorAlert.js';
@@ -95,11 +97,34 @@ export function CreateServerModal({
   const catalog = useInstallCatalog(form.values.loader, opened);
   const runPrecheck = useInstallPrecheck(machine.id);
   const create = useCreateInstall(machine.id);
+  const servers = useQuery({ ...serversQuery, enabled: opened });
 
   const directory = directories.find((d) => d.id === form.values.directoryId);
   const separator = machine.os === 'windows' ? String.fromCharCode(92) : '/';
   const fullPath = `${(directory?.path ?? '').replace(/[\\/]+$/, '')}${separator}${form.values.folderName}`;
   const versions = catalog.data?.versions ?? [];
+
+  // Les dossiers déjà enregistrés sur cette machine, sous le répertoire choisi : dire tout de suite
+  // « ce nom est pris » plutôt que laisser avancer jusqu'au refus du panel (recette, 4.9). Casse
+  // ignorée sauf sous Linux, seul système où deux dossiers ne différant que par la casse coexistent.
+  const caseSensitive = machine.os === 'linux';
+  const takenFolders = useMemo(() => {
+    const fold = (s: string): string => (caseSensitive ? s : s.toLowerCase());
+    const normalize = (p: string): string => fold(p.replace(/[\\/]+/g, '/').replace(/\/+$/, ''));
+    const parent = normalize(directory?.path ?? '');
+    const taken = new Set<string>();
+    for (const s of servers.data?.servers ?? []) {
+      if (s.machineId !== machine.id) continue;
+      const full = normalize(s.path);
+      const slash = full.lastIndexOf('/');
+      if (slash < 0 || full.slice(0, slash) !== parent) continue;
+      taken.add(full.slice(slash + 1));
+    }
+    return taken;
+  }, [servers.data, directory?.path, machine.id, caseSensitive]);
+  const folderTaken = takenFolders.has(
+    caseSensitive ? form.values.folderName : form.values.folderName.toLowerCase(),
+  );
 
   const close = () => {
     setStep(0);
@@ -123,6 +148,7 @@ export function CreateServerModal({
   const next = () => {
     if (step === 0 && form.validateField('directoryId').hasError) return;
     if (step === 0 && form.validateField('folderName').hasError) return;
+    if (step === 0 && folderTaken) return;
     if (step === 1 && form.validateField('mcVersion').hasError) return;
     // Dernier pas avant l'engagement : on demande à la machine ce qu'elle en pense.
     if (step === 2) {
@@ -183,6 +209,7 @@ export function CreateServerModal({
               {...TECHNICAL_INPUT_PROPS}
               data-testid="install-folder"
               {...form.getInputProps('folderName')}
+              error={folderTaken ? t('web:install.folderTaken') : form.errors.folderName}
             />
             <TextInput
               label={t('web:install.displayName')}

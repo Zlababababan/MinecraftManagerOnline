@@ -114,7 +114,10 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
       );
       const detected = res.servers[0];
       if (detected === undefined) {
+        // `reason` = variante traduite (`E_CONFLICT_NOT_A_SERVER`) : le message dit ce qu'il faut
+        // pour qu'un dossier soit reconnu, au lieu du « conflit » générique (recette, ajout manuel).
         throw conflict('no Minecraft server detected in this directory', {
+          reason: 'NOT_A_SERVER',
           path: request.body.path,
         });
       }
@@ -122,6 +125,7 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
       const result = await ctx.servers.adoptDetected(machine.id, detected, undefined);
       if (!result.server) {
         throw conflict('marker conflict: this directory carries the marker of a known server', {
+          reason: 'MARKER_CONFLICT',
           conflict: result.conflict,
         });
       }

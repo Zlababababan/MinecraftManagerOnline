@@ -1,5 +1,6 @@
 {
   "source": "forge_43.2.3",
+  "note": "Vérité terrain révisée le 2026-09-12 (ex-« not-a-server-forge-libs-only ») : une installation Forge fraîche — argfiles et run.bat, sans eula.txt ni server.properties — est un serveur prêt à démarrer, détecté AVANT son premier lancement.",
   "files": [
     "libraries/net/minecraftforge/forge/1.19.2-43.2.3/forge-1.19.2-43.2.3-server.jar (placeholder)",
     "libraries/net/minecraftforge/forge/1.19.2-43.2.3/forge-1.19.2-43.2.3-universal.jar (placeholder)",

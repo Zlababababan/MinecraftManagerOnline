@@ -183,6 +183,15 @@ export const fr = {
     E_IO_ARCHIVE_UNREADABLE:
       'L’archive ne peut pas être lue (corrompue ou tronquée) : ne restaurez pas depuis elle — supprimez-la et refaites une sauvegarde.',
     E_CONFLICT: 'Conflit : la ressource a été modifiée entre-temps.',
+    // Variantes `E_CONFLICT_<reason>` : le même code couvre des refus qui n'appellent pas le même geste.
+    E_CONFLICT_NOT_A_SERVER:
+      'Aucun serveur Minecraft reconnu dans {{path}}. Il faut un server.properties, un eula.txt, un jar serveur avec un dossier mods/, ou une installation Forge/NeoForge (run.bat et libraries/).',
+    E_CONFLICT_MARKER_CONFLICT:
+      'Ce dossier porte le marqueur d’un serveur déjà connu du panel : voyez les conflits sur le tableau de bord.',
+    E_CONFLICT_PATH_TAKEN:
+      'Un serveur est déjà enregistré à ce chemin : {{path}}. Choisissez un autre nom de dossier.',
+    E_CONFLICT_PATH_NOT_EMPTY:
+      'Le dossier {{path}} existe déjà et n’est pas vide. Choisissez un autre nom de dossier.',
     E_BUSY: 'L’agent est occupé, réessayez.',
     E_TIMEOUT: 'L’opération a expiré.',
     E_CANCELLED: 'L’opération a été annulée.',

@@ -984,6 +984,7 @@ export const webFr = {
     folderHint:
       'Lettres, chiffres, espaces, point, tiret et souligné. C’est le nom du dossier sur la machine.',
     folderInvalid: 'Nom de dossier invalide (ni accent, ni séparateur).',
+    folderTaken: 'Ce nom de dossier est déjà celui d’un serveur enregistré ici.',
     displayName: 'Nom affiché (facultatif)',
     finalPath: 'Dossier qui sera créé',
     version: 'Version de Minecraft',
