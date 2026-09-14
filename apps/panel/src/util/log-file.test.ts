@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createPanelLogStream } from './log-file.js';
 
@@ -34,6 +34,55 @@ describe('createPanelLogStream', () => {
     expect(content).toContain('ligne 1');
     expect(content).toContain('ligne 2');
     stream.close();
+  });
+
+  it('le journal d’accès va au fichier et pas à la console (sauf avertissement)', async () => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mmo-log-'));
+    const written: string[] = [];
+    const stdout = vi
+      .spyOn(process.stdout, 'write')
+      .mockImplementation((chunk: string | Uint8Array): boolean => {
+        written.push(String(chunk));
+        return true;
+      });
+    // Rendu lisible forcé (les tests n'ont pas de terminal), filtre au réglage par défaut.
+    vi.stubEnv('MMO_LOG_FORMAT', 'pretty');
+    vi.stubEnv('MMO_LOG_CONSOLE', '');
+    try {
+      const stream = createPanelLogStream(dir, () => Date.UTC(2026, 8, 12, 12));
+      const NL = String.fromCharCode(10);
+      const ok = JSON.stringify({
+        level: 30,
+        time: 1,
+        msg: 'request',
+        method: 'GET',
+        route: '/api/servers',
+        status: 200,
+        durationMs: 3,
+      });
+      const slow = JSON.stringify({
+        level: 40,
+        time: 2,
+        msg: 'request',
+        method: 'GET',
+        route: '/api/events',
+        status: 200,
+        durationMs: 1500,
+      });
+      const ready = JSON.stringify({ level: 30, time: 3, msg: 'panel ready' });
+      stream.write([ok, slow, ready].join(NL) + NL);
+      const content = await waitForContent(stream.file!, 'panel ready');
+      stream.close();
+      // Le fichier garde tout : c'est lui que `mmo-panel report` relit.
+      expect(content).toContain('"route":"/api/servers"');
+      const shown = written.join('');
+      expect(shown).not.toContain('/api/servers');
+      expect(shown).toContain('/api/events');
+      expect(shown).toContain('panel ready');
+    } finally {
+      stdout.mockRestore();
+      vi.unstubAllEnvs();
+    }
   });
 
   // Le fichier était choisi UNE FOIS au démarrage : un service qui tourne trois semaines écrivait

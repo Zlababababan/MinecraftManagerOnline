@@ -34,14 +34,19 @@ export interface PanelLogStream {
  * Rendu lisible sur la console : seulement devant un VRAI terminal. Redirigé vers un fichier,
  * piloté par systemd ou Docker, le panel continue d'émettre du NDJSON — c'est ce que ces outils
  * parsent. `NO_COLOR` et `MMO_LOG_FORMAT=json` (sortie brute) sont respectés.
+ *
+ * Le rendu lisible est aussi SILENCIEUX sur le journal d'accès (une ligne par réponse, sous WARN) :
+ * il est dans le fichier, où il sert à corréler un `requestId` ; à l'écran il noyait tout le reste.
+ * `MMO_LOG_CONSOLE=full` le réaffiche.
  */
-function consoleRendering(): { pretty: boolean; color: boolean } {
+function consoleRendering(): { pretty: boolean; color: boolean; quiet: boolean } {
   const forced = process.env.MMO_LOG_FORMAT;
-  if (forced === 'json') return { pretty: false, color: false };
+  if (forced === 'json') return { pretty: false, color: false, quiet: false };
   const tty = process.stdout.isTTY;
   const pretty = forced === 'pretty' || tty;
   const color = pretty && tty && process.env.NO_COLOR === undefined;
-  return { pretty, color };
+  const quiet = pretty && process.env.MMO_LOG_CONSOLE !== 'full';
+  return { pretty, color, quiet };
 }
 
 function maxBytes(): number {
@@ -65,7 +70,7 @@ export function createPanelLogStream(
     maxBytes: maxBytes(),
     now,
   });
-  const { pretty, color } = consoleRendering();
+  const { pretty, color, quiet } = consoleRendering();
   return {
     get file() {
       return log.file;
@@ -80,7 +85,9 @@ export function createPanelLogStream(
       }
       for (const line of chunk.split('\n')) {
         if (line === '') continue;
-        const rendered = formatConsoleLine(line, { color });
+        const rendered = formatConsoleLine(line, { color, quiet });
+        // `null` = écrit pour le fichier seulement (journal d'accès) : rien à montrer ici.
+        if (rendered === null) continue;
         // Une ligne qui n'est pas du JSON de log (trace, avertissement de Node) passe telle
         // quelle : la perdre serait pire que l'afficher brute.
         process.stdout.write(`${rendered ?? line}\n`);

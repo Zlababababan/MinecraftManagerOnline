@@ -84,6 +84,46 @@ describe('formatConsoleLine', () => {
     expect(formatConsoleLine('')).toBeUndefined();
   });
 
+  it('quiet : le journal d’accès reste au fichier — il noyait la console (398 lignes sur 410)', () => {
+    const request = JSON.stringify({
+      level: 30,
+      time: AT,
+      requestId: '01M1RY4FMMCTQSTEYZ234QR8R8',
+      method: 'GET',
+      route: '/api/auth/me',
+      status: 200,
+      durationMs: 15,
+      user: 'admin',
+      ip: '127.0.0.1',
+      msg: 'request',
+    });
+    expect(formatConsoleLine(request, { quiet: true })).toBeNull();
+    // Sans l'option, la ligne est rendue comme n'importe quelle autre.
+    expect(formatConsoleLine(request, { timeZone: 'UTC' })).toContain(
+      'method=GET route=/api/auth/me status=200',
+    );
+  });
+
+  it('quiet : un avertissement du journal d’accès (500, réponse lente) reste affiché', () => {
+    const slow = JSON.stringify({
+      level: 40,
+      time: AT,
+      method: 'GET',
+      route: '/api/events',
+      status: 200,
+      durationMs: 1500,
+      msg: 'request',
+    });
+    expect(formatConsoleLine(slow, { quiet: true, timeZone: 'UTC' })).toBe(
+      '20:49:09 WARN  request method=GET route=/api/events status=200 durationMs=1500',
+    );
+    // Et le reste du journal n'est pas concerné par l'option.
+    const ready = JSON.stringify({ level: 30, time: AT, msg: 'panel ready', users: 1 });
+    expect(formatConsoleLine(ready, { quiet: true, timeZone: 'UTC' })).toBe(
+      '20:49:09 INFO  panel ready users=1',
+    );
+  });
+
   it('colore seulement quand on le demande', () => {
     const line = JSON.stringify({ level: 50, time: AT, msg: 'boom' });
     expect(formatConsoleLine(line, { timeZone: 'UTC' })).not.toContain('\u001b[');

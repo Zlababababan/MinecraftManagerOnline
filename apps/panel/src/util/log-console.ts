@@ -20,6 +20,15 @@
 /** Champs de plomberie de pino : ils n'apprennent rien à qui lit une fenêtre. */
 const NOISE = new Set(['level', 'time', 'pid', 'hostname', 'msg', 'v']);
 
+/**
+ * Messages écrits pour le FICHIER, pas pour la fenêtre : le journal d'accès (`request`, une ligne
+ * par réponse — lot 9) existe pour corréler un `requestId` après coup. À l'écran il noyait tout le
+ * reste (398 lignes sur 410 dans un journal réel : « trop de log, pas très utile », 2026-09-12).
+ * Sous WARN seulement : un 500 ou une réponse lente, c'est justement ce qu'on veut voir passer.
+ */
+const FILE_ONLY_MESSAGES = new Set(['request']);
+const WARN_LEVEL = 40;
+
 const LEVELS: Readonly<Record<number, string>> = {
   10: 'TRACE',
   20: 'DEBUG',
@@ -44,6 +53,11 @@ const RESET = '\u001b[0m';
 export interface ConsoleFormatOptions {
   /** Couleurs ANSI (défaut : non — l'appelant sait s'il écrit dans un terminal). */
   color?: boolean;
+  /**
+   * Taire ce qui n'est écrit que pour le fichier (journal d'accès sous WARN). Défaut : non — la
+   * fonction rend alors chaque ligne, comme avant.
+   */
+  quiet?: boolean;
   /** Horloge du rendu, pour les tests. */
   timeZone?: string;
 }
@@ -51,12 +65,13 @@ export interface ConsoleFormatOptions {
 /**
  * Une ligne NDJSON pino → une ligne lisible. Rend `undefined` si l'entrée n'est pas du JSON
  * d'objet : la ligne est alors recopiée telle quelle (une trace, un avertissement de Node, tout ce
- * qui n'est pas passé par le logger — la perdre serait pire que la laisser brute).
+ * qui n'est pas passé par le logger — la perdre serait pire que la laisser brute). Rend `null`
+ * quand l'entrée est à taire (`quiet`) : elle est dans le fichier, la console n'en veut pas.
  */
 export function formatConsoleLine(
   line: string,
   options: ConsoleFormatOptions = {},
-): string | undefined {
+): string | null | undefined {
   const trimmed = line.trimEnd();
   if (trimmed === '' || !trimmed.startsWith('{')) return undefined;
   let entry: Record<string, unknown>;
@@ -72,6 +87,7 @@ export function formatConsoleLine(
 
   const color = options.color === true;
   const levelNum = typeof entry.level === 'number' ? entry.level : 30;
+  if (options.quiet === true && levelNum < WARN_LEVEL && FILE_ONLY_MESSAGES.has(msg)) return null;
   const level = LEVELS[levelNum] ?? String(levelNum);
   const time = formatTime(entry.time, options.timeZone);
   const rest = describeRest(entry);
