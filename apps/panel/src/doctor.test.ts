@@ -113,5 +113,22 @@ describe('doctor', () => {
     expect(text).toContain('[  ok  ] tout va bien');
     expect(text).toContain('[ warn ] attention');
     expect(text).toContain('[ERROR ] cassé');
+    // Sans l'option, aucune séquence ANSI : un fichier ou un journal ne doit pas en recevoir.
+    expect(text).not.toContain(String.fromCharCode(27));
+  });
+
+  it('colore le niveau quand on le demande — vert, jaune, rouge — et seulement le niveau', () => {
+    const ESC = String.fromCharCode(27);
+    const text = formatChecks(
+      [
+        { code: 'a', level: 'ok', message: 'tout va bien' },
+        { code: 'b', level: 'warn', message: 'attention' },
+        { code: 'c', level: 'error', message: 'cassé' },
+      ],
+      { color: true },
+    );
+    expect(text).toContain(ESC + '[32m[  ok  ]' + ESC + '[0m tout va bien');
+    expect(text).toContain(ESC + '[33m[ warn ]' + ESC + '[0m attention');
+    expect(text).toContain(ESC + '[31m[ERROR ]' + ESC + '[0m cassé');
   });
 });

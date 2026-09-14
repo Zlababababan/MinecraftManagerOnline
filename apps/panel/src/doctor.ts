@@ -227,20 +227,50 @@ export async function runChecks(config: PanelConfig): Promise<Check[]> {
 
 const SYMBOL: Record<CheckLevel, string> = { ok: '  ok  ', warn: ' warn ', error: 'ERROR ' };
 
-export function formatChecks(checks: Check[]): string {
-  return checks.map((c) => `[${SYMBOL[c.level]}] ${c.message}`).join('\n');
+/**
+ * Couleurs ANSI par niveau (remonté à l'usage, 2026-09-14 : « est-ce possible de mettre des
+ * couleurs ? »). Elles marchent dans PowerShell, Windows Terminal et la console cmd de Windows 10+
+ * comme dans tout terminal POSIX — Node active le mode VT de la console Windows lui-même. Seul un
+ * vrai terminal les reçoit ; `NO_COLOR` les coupe (même règle que le journal du panel).
+ */
+const ESC = String.fromCharCode(27);
+const COLORS: Record<CheckLevel, string> = {
+  ok: ESC + '[32m',
+  warn: ESC + '[33m',
+  error: ESC + '[31m',
+};
+const RESET = ESC + '[0m';
+
+export interface FormatChecksOptions {
+  color?: boolean;
+}
+
+export function formatChecks(checks: Check[], options: FormatChecksOptions = {}): string {
+  return checks
+    .map((c) => {
+      const tag = `[${SYMBOL[c.level]}]`;
+      return `${options.color === true ? COLORS[c.level] + tag + RESET : tag} ${c.message}`;
+    })
+    .join('\n');
+}
+
+/** Couleurs seulement devant un terminal, et jamais sous `NO_COLOR`. */
+export function consoleColor(): boolean {
+  return process.stdout.isTTY && process.env.NO_COLOR === undefined;
 }
 
 /** Sortie 0 si aucun contrôle en erreur. */
 export async function doctor(config: PanelConfig): Promise<number> {
   const checks = await runChecks(config);
-  console.log(formatChecks(checks));
+  const color = consoleColor();
+  console.log(formatChecks(checks, { color }));
   const errors = checks.filter((c) => c.level === 'error').length;
-  console.log(
+  const summary =
     errors === 0
-      ? '\nno blocking problem found.'
-      : `\n${String(errors)} blocking problem(s) — the panel will not start until they are fixed.`,
-  );
+      ? 'no blocking problem found.'
+      : `${String(errors)} blocking problem(s) — the panel will not start until they are fixed.`;
+  const painted = color ? (errors === 0 ? COLORS.ok : COLORS.error) + summary + RESET : summary;
+  console.log(`\n${painted}`);
   return errors === 0 ? 0 : 1;
 }
 
