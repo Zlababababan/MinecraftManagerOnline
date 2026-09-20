@@ -6,19 +6,7 @@
  * quatre serveurs d'un coup. L'état du filtre vit dans l'URL — une vue se met en favori et se
  * partage.
  */
-import {
-  Alert,
-  Badge,
-  Button,
-  Checkbox,
-  Group,
-  Select,
-  SimpleGrid,
-  Stack,
-  Table,
-  Text,
-  Title,
-} from '@mantine/core';
+import { Alert, Button, Group, Select, Stack, Text, Title } from '@mantine/core';
 import {
   IconAlertTriangle,
   IconListNumbers,
@@ -28,17 +16,15 @@ import {
 } from '@tabler/icons-react';
 import { useState } from 'react';
 
-import type { BulkActionResult, ServerDto } from '@mmo/protocol/client';
+import type { BulkActionResult } from '@mmo/protocol/client';
 
 import { useGroups } from '../api/groups.js';
 import { useBulkAction, useMachines, useMe, useServers } from '../api/queries.js';
 import { GroupsModal } from '../components/groups/GroupsPanel.js';
-import { RunStateBadge } from '../components/badges.js';
-import { RouterAnchor } from '../components/links.js';
 import { ListToolbar } from '../components/ListToolbar.js';
-import { ServerCard, serverSubtitle } from '../components/ServerCard.js';
+import { ServerCollection } from '../components/ServerCollection.js';
 import { useT } from '../i18n/hooks.js';
-import { formatMb, hasRole } from '../lib/format.js';
+import { hasRole } from '../lib/format.js';
 import type { ListMode } from '../lib/list-view.js';
 import {
   EMPTY_FILTER,
@@ -273,87 +259,27 @@ export function ServersPage({
 
       {bulk.data !== undefined && <BulkReport results={bulk.data.results} />}
 
-      {shown.length === 0 ? (
-        <Text c="dimmed" data-testid="servers-empty">
-          {all.length === 0 ? t('web:servers.none') : t('web:servers.noMatch')}
-        </Text>
-      ) : mode === 'cards' ? (
-        <Stack gap="sm" data-testid="servers-cards">
-          {canOperate && (
-            <Checkbox
-              label={t('web:servers.bulk.selectAll')}
-              checked={allVisibleSelected}
-              indeterminate={visibleSelected.length > 0 && !allVisibleSelected}
-              onChange={() => {
-                setSelected(allVisibleSelected ? new Set() : new Set(shown.map((s) => s.id)));
-              }}
-              data-testid="servers-select-all"
-            />
-          )}
-          <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="sm">
-            {shown.map((s) => (
-              <ServerCard
-                key={s.id}
-                server={s}
-                {...(canOperate
-                  ? {
-                      selectable: true,
-                      selected: selected.has(s.id),
-                      onSelectedChange: () => {
-                        toggle(s.id);
-                      },
-                    }
-                  : {})}
-              />
-            ))}
-          </SimpleGrid>
-        </Stack>
-      ) : (
-        <Table.ScrollContainer minWidth={640}>
-          <Table highlightOnHover data-testid="servers-table">
-            <Table.Thead>
-              <Table.Tr>
-                {canOperate && (
-                  <Table.Th w={40}>
-                    <Checkbox
-                      aria-label={t('web:servers.bulk.selectAll')}
-                      checked={allVisibleSelected}
-                      indeterminate={visibleSelected.length > 0 && !allVisibleSelected}
-                      onChange={() => {
-                        setSelected(
-                          allVisibleSelected ? new Set() : new Set(shown.map((s) => s.id)),
-                        );
-                      }}
-                      data-testid="servers-select-all"
-                    />
-                  </Table.Th>
-                )}
-                <Table.Th>{t('web:servers.columns.name')}</Table.Th>
-                <Table.Th>{t('web:servers.columns.machine')}</Table.Th>
-                <Table.Th>{t('web:servers.columns.state')}</Table.Th>
-                <Table.Th>{t('web:servers.columns.ram')}</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {shown.map((s) => (
-                <ServerRow
-                  key={s.id}
-                  server={s}
-                  machineName={machineName(s.machineId)}
-                  loaderLabel={t(`common:loader.${s.loader}`)}
-                  groupLabel={groupName(s.groupId)}
-                  selectable={canOperate}
-                  selected={selected.has(s.id)}
-                  onToggle={() => {
-                    toggle(s.id);
-                  }}
-                  ramLabel={formatMb(s.maxRamMb)}
-                />
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
-      )}
+      <ServerCollection
+        servers={shown}
+        mode={mode}
+        emptyLabel={all.length === 0 ? t('web:servers.none') : t('web:servers.noMatch')}
+        machineName={machineName}
+        groupName={groupName}
+        {...(canOperate
+          ? {
+              selection: {
+                selected,
+                onToggle: toggle,
+                onToggleAll: () => {
+                  setSelected(allVisibleSelected ? new Set() : new Set(shown.map((s) => s.id)));
+                },
+                allSelected: allVisibleSelected,
+                someSelected: visibleSelected.length > 0,
+              },
+            }
+          : {})}
+      />
+
       <GroupsModal
         opened={groupsOpen}
         onClose={() => {
@@ -361,74 +287,6 @@ export function ServersPage({
         }}
       />
     </Stack>
-  );
-}
-
-function ServerRow({
-  server,
-  machineName,
-  loaderLabel,
-  groupLabel,
-  selectable,
-  selected,
-  onToggle,
-  ramLabel,
-}: {
-  server: ServerDto;
-  machineName: string;
-  loaderLabel: string;
-  groupLabel: string | undefined;
-  selectable: boolean;
-  selected: boolean;
-  onToggle: () => void;
-  ramLabel: string;
-}) {
-  return (
-    <Table.Tr data-testid={`servers-row-${server.id}`}>
-      {selectable && (
-        <Table.Td>
-          <Checkbox
-            aria-label={server.name}
-            checked={selected}
-            onChange={onToggle}
-            data-testid={`servers-select-${server.id}`}
-          />
-        </Table.Td>
-      )}
-      <Table.Td>
-        <Stack gap={0}>
-          <Group gap={6} wrap="nowrap">
-            <RouterAnchor
-              to="/servers/$serverId"
-              params={{ serverId: server.id }}
-              fw={600}
-              truncate="end"
-            >
-              {server.name}
-            </RouterAnchor>
-            {groupLabel !== undefined && (
-              <Badge variant="outline" size="xs" data-testid={`servers-group-badge-${server.id}`}>
-                {groupLabel}
-              </Badge>
-            )}
-          </Group>
-          <Text size="xs" c="dimmed" truncate="end">
-            {serverSubtitle(server, loaderLabel)}
-          </Text>
-        </Stack>
-      </Table.Td>
-      <Table.Td>
-        <Text size="sm" truncate="end">
-          {machineName}
-        </Text>
-      </Table.Td>
-      <Table.Td>
-        <RunStateBadge server={server} />
-      </Table.Td>
-      <Table.Td>
-        <Text size="sm">{ramLabel}</Text>
-      </Table.Td>
-    </Table.Tr>
   );
 }
 

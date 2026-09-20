@@ -165,6 +165,8 @@ function installFetch(state: FakeApi): void {
           return json(200, { conflicts: [] });
         case 'GET /api/groups':
           return json(200, { groups: [] });
+        case 'GET /api/machines/m1':
+          return json(200, { machine });
         case 'GET /api/events':
           return json(200, { events: [] });
         case 'POST /api/servers/s1/start':
@@ -392,5 +394,57 @@ describe('App', () => {
     expect(
       screen.getAllByTestId(/^servers-row-/).map((r) => r.getAttribute('data-testid')),
     ).toEqual(['servers-row-s1', 'servers-row-s2']);
+  });
+  it('tableau de bord : la recherche n’apparaît qu’au-delà de quelques serveurs, et efface les machines sans résultat', async () => {
+    const user = userEvent.setup();
+    state.session = true;
+    // Un seul serveur : la barre serait du bruit, on voit déjà tout.
+    renderApp('/');
+    expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
+    // On attend la liste : sans elle, « pas de barre » ne prouverait que la lenteur du chargement.
+    expect(await screen.findByTestId('server-card')).toBeInTheDocument();
+    expect(screen.queryByTestId('dashboard-servers-search')).not.toBeInTheDocument();
+
+    cleanup();
+    state.servers = [
+      server,
+      crashed,
+      { ...server, id: 's3', name: 'Aventure' },
+      { ...server, id: 's4', name: 'Bac à sable' },
+      { ...server, id: 's5', name: 'Créatif' },
+    ];
+    renderApp('/');
+    const search = await screen.findByTestId('dashboard-servers-search');
+    await user.type(search, 'Zombie');
+    await waitFor(() => {
+      expect(screen.getAllByTestId('server-card')).toHaveLength(1);
+    });
+
+    // Plus rien ne correspond : la carte de la machine s’efface aussi.
+    await user.clear(search);
+    await user.type(search, 'zzz');
+    await waitFor(() => {
+      expect(screen.queryAllByTestId('machine-group')).toHaveLength(0);
+    });
+  });
+  it('page machine : recherche et affichage propres à la machine, mémorisés', async () => {
+    state.session = true;
+    state.servers = [
+      server,
+      crashed,
+      { ...server, id: 's3', name: 'Aventure' },
+      { ...server, id: 's4', name: 'Bac à sable' },
+      { ...server, id: 's5', name: 'Créatif' },
+    ];
+    // La flotte et la machine ont chacune leur mémoire : régler l’une ne règle pas l’autre.
+    localStorage.setItem('mmo-list-machine-servers', JSON.stringify({ mode: 'table' }));
+    renderApp('/machines/m1');
+    expect(await screen.findByTestId('machine-servers-search')).toBeInTheDocument();
+    expect(await screen.findByTestId('servers-table')).toBeInTheDocument();
+
+    cleanup();
+    renderApp('/servers');
+    expect(await screen.findByTestId('servers-table')).toBeInTheDocument();
+    expect(screen.getByTestId('servers-view')).toBeInTheDocument();
   });
 });

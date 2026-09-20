@@ -1,6 +1,7 @@
 /** Dashboard : compteurs, machines (statut/heartbeat) + cartes serveurs groupées par machine, événements. */
 import { Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
+import { useState } from 'react';
 import { RouterButton } from '../components/links.js';
 import { useT } from '../i18n/hooks.js';
 
@@ -12,9 +13,12 @@ import { ErrorAlert } from '../components/ErrorAlert.js';
 import { EventsList } from '../components/EventsList.js';
 import { MachineHeader } from '../components/MachineHeader.js';
 import { OnboardingCard } from '../components/OnboardingCard.js';
-import { ServerCard } from '../components/ServerCard.js';
+import { ListToolbar } from '../components/ListToolbar.js';
+import { LIST_TOOLBAR_MIN, ServerCollection } from '../components/ServerCollection.js';
 import { useNow } from '../lib/hooks.js';
 import { hasRole } from '../lib/format.js';
+import { useListPrefs, type ListPrefs } from '../lib/list-view.js';
+import { EMPTY_FILTER, filterServers, isServerSort } from '../lib/server-filter.js';
 import { useRealtimeStore } from '../store/realtime.js';
 
 function Stat({ label, value, testId }: { label: string; value: string | number; testId: string }) {
@@ -30,6 +34,12 @@ function Stat({ label, value, testId }: { label: string; value: string | number;
   );
 }
 
+/**
+ * Le tableau de bord montre les serveurs groupés par machine : les cartes par défaut, et pas de
+ * tri propre (l'ordre des machines fait déjà la structure de la page).
+ */
+const DASHBOARD_LIST: ListPrefs = { mode: 'cards', sort: 'name', desc: false };
+
 export function DashboardPage() {
   const { t } = useT();
   const me = useMe();
@@ -38,6 +48,8 @@ export function DashboardPage() {
   const conflicts = useConflicts();
   const events = useEvents({ limit: 15 });
   const liveEvents = useRealtimeStore((s) => s.recentEvents);
+  const [listPrefs, setListPrefs] = useListPrefs('dashboard-servers', DASHBOARD_LIST, isServerSort);
+  const [serverQuery, setServerQuery] = useState('');
   const now = useNow(10_000);
   const isAdmin = me.data !== undefined && hasRole(me.data.user.role, 'admin');
 
@@ -92,8 +104,26 @@ export function DashboardPage() {
       </SimpleGrid>
       {conflicts.data !== undefined && <ConflictsPanel conflicts={conflicts.data.conflicts} />}
       <OnboardingCard />
+      {allServers.length > LIST_TOOLBAR_MIN && (
+        <ListToolbar
+          search={serverQuery}
+          onSearch={setServerQuery}
+          searchLabel={t('web:servers.search')}
+          searchPlaceholder={t('web:servers.searchPlaceholder')}
+          searchTestId="dashboard-servers-search"
+          mode={listPrefs.mode}
+          onModeChange={(mode) => {
+            setListPrefs({ mode });
+          }}
+          modeTestId="dashboard-servers-view"
+        />
+      )}
       {machines.data?.machines.map((machine) => {
         const mine = allServers.filter((s) => s.machineId === machine.id);
+        const shown = filterServers(mine, { ...EMPTY_FILTER, q: serverQuery });
+        // Une recherche qui ne trouve rien sur une machine efface sa carte : c’est ce qu’on
+        // attend d’une recherche. Sans recherche, toutes les machines restent visibles.
+        if (serverQuery !== '' && shown.length === 0) return null;
         return (
           <Card
             key={machine.id}
@@ -115,11 +145,11 @@ export function DashboardPage() {
                   {t('web:dashboard.noServers')} {t('web:dashboard.noServersHint')}
                 </Text>
               ) : (
-                <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="sm">
-                  {mine.map((server) => (
-                    <ServerCard key={server.id} server={server} />
-                  ))}
-                </SimpleGrid>
+                <ServerCollection
+                  servers={shown}
+                  mode={listPrefs.mode}
+                  emptyLabel={t('web:servers.noMatch')}
+                />
               )}
             </Stack>
           </Card>

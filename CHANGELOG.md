@@ -18,6 +18,11 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
   other. Filters keep living in the address bar, so a filtered view is still something you can
   bookmark or send to someone; a link that carries its own sort still wins over what the device
   remembers.
+- **The dashboard and the machine page get the same bar.** Past a handful of servers, both
+  gain a search field and the same Cards / Table switch — searching the dashboard hides the
+  machines that have nothing matching, instead of leaving you to scroll past them. Each list
+  keeps its own memory: the table on a machine page does not force the table on the dashboard.
+  Below that handful there is no bar at all, because you can already see everything.
 
 ### Reported while testing (2026-09-12)
 
