@@ -209,6 +209,11 @@ export const webEn = {
     },
     info: 'Agent information',
   },
+  list: {
+    sort: 'Sort by',
+    reset: 'Clear',
+    view: { cards: 'Cards', table: 'Table' },
+  },
   servers: {
     title: 'Servers',
     count_one: '{{count}} server',
@@ -224,10 +229,8 @@ export const webEn = {
       loader: 'Loader',
       version: 'Version',
       state: 'State',
-      reset: 'Clear',
     },
     sort: {
-      label: 'Sort by',
       name: 'Name',
       state: 'State',
       started: 'Last start',
@@ -238,6 +241,7 @@ export const webEn = {
       selected_one: '{{count}} selected',
       selected_other: '{{count}} selected',
       selectAll: 'Select every listed server',
+      selectOne: 'Select {{name}}',
       sequential: 'Run one after another — the memory guard refuses parallel starts.',
       done_one: '{{count}} server done.',
       done_other: '{{count}} servers done.',

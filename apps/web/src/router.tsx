@@ -25,6 +25,7 @@ import { meQuery, setupStatusQuery, useMe } from './api/queries.js';
 import { Shell } from './components/Shell.js';
 import { setLocale } from './i18n/index.js';
 import { hasRole } from './lib/format.js';
+import { useListPrefs, type ListPrefs } from './lib/list-view.js';
 import { configurePrivacy } from './lib/privacy.js';
 import { AccountPage } from './pages/AccountPage.js';
 import { DashboardPage } from './pages/DashboardPage.js';
@@ -33,7 +34,12 @@ import { LoginPage } from './pages/LoginPage.js';
 import { MachinePage } from './pages/MachinePage.js';
 import { MachinesPage } from './pages/MachinesPage.js';
 import { ServersPage } from './pages/ServersPage.js';
-import { filterToSearch, searchToFilter } from './lib/server-filter.js';
+import {
+  filterToSearch,
+  isServerSort,
+  searchToFilter,
+  type ServerFilter,
+} from './lib/server-filter.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { PublicStatusPage } from './pages/PublicStatusPage.js';
 import { SERVER_TABS, ServerPage, type ServerTab } from './pages/ServerPage.js';
@@ -146,6 +152,13 @@ const indexRoute = createRoute({
   component: DashboardPage,
 });
 
+/**
+ * Vue de la flotte : le tableau par défaut (il montre plus de serveurs à l'écran), les cartes
+ * pour qui préfère les actions sous la main. Le choix est mémorisé par appareil.
+ */
+const SERVERS_LIST_KEY = 'servers';
+const SERVERS_LIST_PREFS: ListPrefs = { mode: 'table', sort: 'name', desc: false };
+
 const serversRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/servers',
@@ -155,10 +168,23 @@ const serversRoute = createRoute({
   component: function ServersRoute() {
     const search = serversRoute.useSearch();
     const navigate = useNavigate();
+    const [prefs, setPrefs] = useListPrefs(SERVERS_LIST_KEY, SERVERS_LIST_PREFS, isServerSort);
+    const fromUrl = searchToFilter(search);
+    // L'URL prime : un favori ou un lien partagé porte son propre tri. Sans tri dans l'URL,
+    // on reprend celui de la dernière visite — sinon chaque passage par le menu le remet à zéro.
+    const filter: ServerFilter =
+      search.sort === undefined && isServerSort(prefs.sort)
+        ? { ...fromUrl, sort: prefs.sort, desc: prefs.desc }
+        : fromUrl;
     return (
       <ServersPage
-        filter={searchToFilter(search)}
+        filter={filter}
+        mode={prefs.mode}
+        onModeChange={(mode) => {
+          setPrefs({ mode });
+        }}
         onFilterChange={(next) => {
+          setPrefs({ sort: next.sort, desc: next.desc });
           void navigate({ to: '/servers', search: filterToSearch(next), replace: true });
         }}
       />

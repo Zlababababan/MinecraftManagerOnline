@@ -1,5 +1,5 @@
-/** Carte serveur (dashboard) : nom, loader/version, état, port, actions. */
-import { Card, Group, Stack, Text } from '@mantine/core';
+/** Carte serveur (tableau de bord, page machine, vue de flotte) : nom, loader/version, état, port, actions. */
+import { Card, Checkbox, Group, Stack, Text } from '@mantine/core';
 import { RouterAnchor } from './links.js';
 import { useT } from '../i18n/hooks.js';
 
@@ -21,27 +21,50 @@ export function serverSubtitle(
   return parts.join(' ');
 }
 
-export function ServerCard({ server }: { server: ServerDto }) {
+export function ServerCard({
+  server,
+  selectable,
+  selected,
+  onSelectedChange,
+}: {
+  server: ServerDto;
+  /** Vue de flotte : la carte participe alors aux actions groupées. */
+  selectable?: boolean;
+  selected?: boolean;
+  onSelectedChange?: (next: boolean) => void;
+}) {
   const { t } = useT();
   return (
     <Card withBorder radius="md" padding="md" data-testid="server-card" data-server-id={server.id}>
       <Stack gap="xs">
         <Group justify="space-between" wrap="nowrap" align="flex-start">
-          <Stack gap={2} style={{ minWidth: 0 }}>
-            <RouterAnchor
-              to="/servers/$serverId"
-              params={{ serverId: server.id }}
-              fw={600}
-              size="md"
-              truncate="end"
-              data-testid="server-link"
-            >
-              {server.name}
-            </RouterAnchor>
-            <Text size="xs" c="dimmed" truncate="end">
-              {serverSubtitle(server, t(`common:loader.${server.loader}`))}
-            </Text>
-          </Stack>
+          <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
+            {selectable === true && (
+              <Checkbox
+                checked={selected ?? false}
+                onChange={(e) => {
+                  onSelectedChange?.(e.currentTarget.checked);
+                }}
+                aria-label={t('web:servers.bulk.selectOne', { name: server.name })}
+                data-testid={`server-card-select-${server.id}`}
+              />
+            )}
+            <Stack gap={2} style={{ minWidth: 0 }}>
+              <RouterAnchor
+                to="/servers/$serverId"
+                params={{ serverId: server.id }}
+                fw={600}
+                size="md"
+                truncate="end"
+                data-testid="server-link"
+              >
+                {server.name}
+              </RouterAnchor>
+              <Text size="xs" c="dimmed" truncate="end">
+                {serverSubtitle(server, t(`common:loader.${server.loader}`))}
+              </Text>
+            </Stack>
+          </Group>
           <RunStateBadge server={server} />
         </Group>
         <Group gap="md">

@@ -13,10 +13,10 @@ import {
   Checkbox,
   Group,
   Select,
+  SimpleGrid,
   Stack,
   Table,
   Text,
-  TextInput,
   Title,
 } from '@mantine/core';
 import {
@@ -25,8 +25,6 @@ import {
   IconPlayerPlay,
   IconPlayerStop,
   IconRefresh,
-  IconSearch,
-  IconX,
 } from '@tabler/icons-react';
 import { useState } from 'react';
 
@@ -37,10 +35,11 @@ import { useBulkAction, useMachines, useMe, useServers } from '../api/queries.js
 import { GroupsModal } from '../components/groups/GroupsPanel.js';
 import { RunStateBadge } from '../components/badges.js';
 import { RouterAnchor } from '../components/links.js';
-import { serverSubtitle } from '../components/ServerCard.js';
+import { ListToolbar } from '../components/ListToolbar.js';
+import { ServerCard, serverSubtitle } from '../components/ServerCard.js';
 import { useT } from '../i18n/hooks.js';
-import { TECHNICAL_INPUT_PROPS } from '../lib/inputs.js';
 import { formatMb, hasRole } from '../lib/format.js';
+import type { ListMode } from '../lib/list-view.js';
 import {
   EMPTY_FILTER,
   filterOptions,
@@ -52,9 +51,13 @@ import {
 export function ServersPage({
   filter,
   onFilterChange,
+  mode,
+  onModeChange,
 }: {
   filter: ServerFilter;
   onFilterChange: (next: ServerFilter) => void;
+  mode: ListMode;
+  onModeChange: (next: ListMode) => void;
 }) {
   const { t } = useT();
   const me = useMe();
@@ -131,97 +134,90 @@ export function ServersPage({
         </Group>
       </Group>
 
-      <Group gap="xs" wrap="wrap" align="flex-end">
-        <TextInput
-          label={t('web:servers.search')}
-          placeholder={t('web:servers.searchPlaceholder')}
-          value={filter.q}
-          onChange={(e) => {
-            set({ q: e.currentTarget.value });
-          }}
-          leftSection={<IconSearch size={16} />}
-          {...TECHNICAL_INPUT_PROPS}
-          data-testid="servers-search"
-          style={{ flex: '1 1 220px' }}
-        />
-        <Select
-          label={t('web:servers.filters.machine')}
-          placeholder={t('web:servers.filters.any')}
-          value={filter.machineId ?? null}
-          onChange={(v) => {
-            set({ machineId: v ?? undefined });
-          }}
-          data={(machines.data?.machines ?? []).map((m) => ({ value: m.id, label: m.name }))}
-          clearable
-          data-testid="servers-filter-machine"
-          style={{ flex: '0 1 170px' }}
-        />
-        <Select
-          label={t('web:servers.filters.loader')}
-          placeholder={t('web:servers.filters.any')}
-          value={filter.loader ?? null}
-          onChange={(v) => {
-            // Le Select rend `string | null` : on ne retient que les valeurs réellement présentes.
-            set({ loader: options.loaders.find((l) => l === v) });
-          }}
-          data={options.loaders.map((l) => ({ value: l, label: t(`common:loader.${l}`) }))}
-          clearable
-          data-testid="servers-filter-loader"
-          style={{ flex: '0 1 150px' }}
-        />
-        <Select
-          label={t('web:servers.filters.version')}
-          placeholder={t('web:servers.filters.any')}
-          value={filter.mcVersion ?? null}
-          onChange={(v) => {
-            set({ mcVersion: v ?? undefined });
-          }}
-          data={options.mcVersions}
-          clearable
-          searchable
-          data-testid="servers-filter-version"
-          style={{ flex: '0 1 130px' }}
-        />
-        <Select
-          label={t('web:servers.filters.state')}
-          placeholder={t('web:servers.filters.any')}
-          value={filter.runState ?? null}
-          onChange={(v) => {
-            set({ runState: options.runStates.find((s) => s === v) });
-          }}
-          data={options.runStates.map((s) => ({ value: s, label: t(`common:runState.${s}`) }))}
-          clearable
-          data-testid="servers-filter-state"
-          style={{ flex: '0 1 150px' }}
-        />
-        <Select
-          label={t('web:servers.sort.label')}
-          value={filter.sort}
-          onChange={(v) => {
-            if (isServerSort(v)) set({ sort: v });
-          }}
-          data={[
+      <ListToolbar
+        search={filter.q}
+        onSearch={(q) => {
+          set({ q });
+        }}
+        searchLabel={t('web:servers.search')}
+        searchPlaceholder={t('web:servers.searchPlaceholder')}
+        searchTestId="servers-search"
+        filters={
+          <>
+            <Select
+              label={t('web:servers.filters.machine')}
+              placeholder={t('web:servers.filters.any')}
+              value={filter.machineId ?? null}
+              onChange={(v) => {
+                set({ machineId: v ?? undefined });
+              }}
+              data={(machines.data?.machines ?? []).map((m) => ({ value: m.id, label: m.name }))}
+              clearable
+              data-testid="servers-filter-machine"
+              style={{ flex: '0 1 170px' }}
+            />
+            <Select
+              label={t('web:servers.filters.loader')}
+              placeholder={t('web:servers.filters.any')}
+              value={filter.loader ?? null}
+              onChange={(v) => {
+                // Le Select rend `string | null` : on ne retient que les valeurs réellement présentes.
+                set({ loader: options.loaders.find((l) => l === v) });
+              }}
+              data={options.loaders.map((l) => ({ value: l, label: t(`common:loader.${l}`) }))}
+              clearable
+              data-testid="servers-filter-loader"
+              style={{ flex: '0 1 150px' }}
+            />
+            <Select
+              label={t('web:servers.filters.version')}
+              placeholder={t('web:servers.filters.any')}
+              value={filter.mcVersion ?? null}
+              onChange={(v) => {
+                set({ mcVersion: v ?? undefined });
+              }}
+              data={options.mcVersions}
+              clearable
+              searchable
+              data-testid="servers-filter-version"
+              style={{ flex: '0 1 130px' }}
+            />
+            <Select
+              label={t('web:servers.filters.state')}
+              placeholder={t('web:servers.filters.any')}
+              value={filter.runState ?? null}
+              onChange={(v) => {
+                set({ runState: options.runStates.find((s) => s === v) });
+              }}
+              data={options.runStates.map((s) => ({ value: s, label: t(`common:runState.${s}`) }))}
+              clearable
+              data-testid="servers-filter-state"
+              style={{ flex: '0 1 150px' }}
+            />
+          </>
+        }
+        sort={{
+          value: filter.sort,
+          options: [
             { value: 'name', label: t('web:servers.sort.name') },
             { value: 'state', label: t('web:servers.sort.state') },
             { value: 'started', label: t('web:servers.sort.started') },
             { value: 'ram', label: t('web:servers.sort.ram') },
-          ]}
-          allowDeselect={false}
-          data-testid="servers-sort"
-          style={{ flex: '0 1 170px' }}
-        />
-        <Button
-          variant="default"
-          leftSection={<IconX size={16} />}
-          onClick={() => {
-            onFilterChange(EMPTY_FILTER);
-          }}
-          disabled={!filtered && filter.q === '' && filter.sort === 'name'}
-          data-testid="servers-filter-reset"
-        >
-          {t('web:servers.filters.reset')}
-        </Button>
-      </Group>
+          ],
+          onChange: (v) => {
+            if (isServerSort(v)) set({ sort: v });
+          },
+          testId: 'servers-sort',
+        }}
+        mode={mode}
+        onModeChange={onModeChange}
+        modeTestId="servers-view"
+        onReset={() => {
+          onFilterChange(EMPTY_FILTER);
+        }}
+        resetDisabled={!filtered && filter.q === '' && filter.sort === 'name'}
+        resetTestId="servers-filter-reset"
+      />
 
       {canOperate && visibleSelected.length > 0 && (
         <Group
@@ -281,6 +277,37 @@ export function ServersPage({
         <Text c="dimmed" data-testid="servers-empty">
           {all.length === 0 ? t('web:servers.none') : t('web:servers.noMatch')}
         </Text>
+      ) : mode === 'cards' ? (
+        <Stack gap="sm" data-testid="servers-cards">
+          {canOperate && (
+            <Checkbox
+              label={t('web:servers.bulk.selectAll')}
+              checked={allVisibleSelected}
+              indeterminate={visibleSelected.length > 0 && !allVisibleSelected}
+              onChange={() => {
+                setSelected(allVisibleSelected ? new Set() : new Set(shown.map((s) => s.id)));
+              }}
+              data-testid="servers-select-all"
+            />
+          )}
+          <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="sm">
+            {shown.map((s) => (
+              <ServerCard
+                key={s.id}
+                server={s}
+                {...(canOperate
+                  ? {
+                      selectable: true,
+                      selected: selected.has(s.id),
+                      onSelectedChange: () => {
+                        toggle(s.id);
+                      },
+                    }
+                  : {})}
+              />
+            ))}
+          </SimpleGrid>
+        </Stack>
       ) : (
         <Table.ScrollContainer minWidth={640}>
           <Table highlightOnHover data-testid="servers-table">

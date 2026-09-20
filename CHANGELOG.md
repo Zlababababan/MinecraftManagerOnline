@@ -8,6 +8,17 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### The servers list, as cards or as a table (2026-09-20)
+
+- **Pick how the fleet is shown.** The Servers page now has a Cards / Table switch. The table
+  packs more servers on screen; the cards put the Start, Stop and Restart buttons under your
+  thumb, which is what you want on a phone. Selection and group actions work the same in both.
+- **Your choice is remembered, per device.** Layout and sort are kept on the machine you are
+  using — the table on the desktop, the cards on the phone, without either deciding for the
+  other. Filters keep living in the address bar, so a filtered view is still something you can
+  bookmark or send to someone; a link that carries its own sort still wins over what the device
+  remembers.
+
 ### Reported while testing (2026-09-12)
 
 Five things found by using the product, fixed the same day.

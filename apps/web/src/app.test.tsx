@@ -3,7 +3,7 @@
  * first-run → wizard ; sans session → login ; login → dashboard (machine, carte serveur, start).
  */
 import { createMemoryHistory } from '@tanstack/react-router';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -86,6 +86,9 @@ const server: ServerDto = {
   groupPosition: 0,
 };
 
+/** Plus loin dans l’alphabet que « Vanilla », mais en panne : les deux tris s’opposent. */
+const crashed: ServerDto = { ...server, id: 's2', name: 'Zombie', runState: 'crashed' };
+
 const access: AccessStatusDto = {
   mode: 'tailscale',
   publicUrl: 'https://tour.tailnet.ts.net',
@@ -160,6 +163,8 @@ function installFetch(state: FakeApi): void {
           return json(200, { history: [] });
         case 'GET /api/servers/conflicts':
           return json(200, { conflicts: [] });
+        case 'GET /api/groups':
+          return json(200, { groups: [] });
         case 'GET /api/events':
           return json(200, { events: [] });
         case 'POST /api/servers/s1/start':
@@ -216,6 +221,7 @@ describe('App', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     useRealtimeStore.getState().reset();
+    localStorage.clear();
   });
 
   it('first-run : toute page protégée redirige vers le wizard', async () => {
@@ -347,5 +353,44 @@ describe('App', () => {
     await user.click(await screen.findByTestId('lang-en'));
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
     expect(document.documentElement.lang).toBe('en');
+  });
+  it('vue de flotte : le choix cartes/tableau est mémorisé d’une visite à l’autre', async () => {
+    const user = userEvent.setup();
+    state.session = true;
+    state.servers = [server, crashed];
+    renderApp('/servers');
+    expect(await screen.findByTestId('servers-table')).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('Cartes'));
+    expect(await screen.findByTestId('servers-cards')).toBeInTheDocument();
+    expect(screen.queryByTestId('servers-table')).not.toBeInTheDocument();
+
+    // On quitte tout et on revient : le panel doit se souvenir de l’affichage choisi.
+    cleanup();
+    renderApp('/servers');
+    expect(await screen.findByTestId('servers-cards')).toBeInTheDocument();
+  });
+
+  it('vue de flotte : le tri mémorisé s’applique, l’URL garde le dernier mot', async () => {
+    state.session = true;
+    localStorage.setItem(
+      'mmo-list-servers',
+      JSON.stringify({ mode: 'table', sort: 'state', desc: false }),
+    );
+    state.servers = [server, crashed];
+    renderApp('/servers');
+    await screen.findByTestId('servers-table');
+    // Tri par état : ce qui demande de l’attention d’abord.
+    expect(
+      screen.getAllByTestId(/^servers-row-/).map((r) => r.getAttribute('data-testid')),
+    ).toEqual(['servers-row-s2', 'servers-row-s1']);
+
+    // Un lien partagé ou un favori porte son propre tri : il prime sur la mémoire de l’appareil.
+    cleanup();
+    renderApp('/servers?sort=name');
+    await screen.findByTestId('servers-table');
+    expect(
+      screen.getAllByTestId(/^servers-row-/).map((r) => r.getAttribute('data-testid')),
+    ).toEqual(['servers-row-s1', 'servers-row-s2']);
   });
 });

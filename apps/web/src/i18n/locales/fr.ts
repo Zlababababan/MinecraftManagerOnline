@@ -207,6 +207,11 @@ export const webFr = {
     },
     info: 'Informations de l’agent',
   },
+  list: {
+    sort: 'Trier par',
+    reset: 'Effacer',
+    view: { cards: 'Cartes', table: 'Tableau' },
+  },
   servers: {
     title: 'Serveurs',
     count_one: '{{count}} serveur',
@@ -222,10 +227,8 @@ export const webFr = {
       loader: 'Loader',
       version: 'Version',
       state: 'État',
-      reset: 'Effacer',
     },
     sort: {
-      label: 'Trier par',
       name: 'Nom',
       state: 'État',
       started: 'Dernier démarrage',
@@ -236,6 +239,7 @@ export const webFr = {
       selected_one: '{{count}} sélectionné',
       selected_other: '{{count}} sélectionnés',
       selectAll: 'Sélectionner tous les serveurs listés',
+      selectOne: 'Sélectionner {{name}}',
       sequential:
         'Exécution l’un après l’autre — le garde-fou mémoire refuse les démarrages en parallèle.',
       done_one: '{{count}} serveur traité.',
