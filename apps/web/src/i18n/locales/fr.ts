@@ -209,6 +209,7 @@ export const webFr = {
   },
   list: {
     sort: 'Trier par',
+    noMatch: 'Aucun résultat pour cette recherche.',
     reset: 'Effacer',
     view: { cards: 'Cartes', table: 'Tableau' },
   },
@@ -390,6 +391,8 @@ export const webFr = {
     },
     players: {
       none: 'Aucun joueur en ligne.',
+      search: 'Rechercher un joueur',
+      searchPlaceholder: 'Pseudo ou adresse',
       online: '{{online}} joueur(s) en ligne',
       name: 'Joueur',
       views: {
@@ -574,6 +577,8 @@ export const webFr = {
   },
   files: {
     title: 'Fichiers',
+    search: 'Filtrer ce dossier',
+    searchPlaceholder: 'Nom du fichier',
     advancedHint:
       'Mode avancé : vous modifiez directement le dossier du serveur. Les éléments supprimés vont dans le dossier .mmo-trash pendant 7 jours.',
     root: 'Dossier du serveur',

@@ -33,6 +33,7 @@ import {
   IconFolderPlus,
   IconLink,
   IconPencil,
+  IconSearch,
   IconTrash,
   IconUpload,
 } from '@tabler/icons-react';
@@ -51,6 +52,7 @@ import { formatBytes, formatDateTime } from '../../lib/format.js';
 import { canServer } from '../../lib/permissions.js';
 import { ErrorAlert } from '../ErrorAlert.js';
 import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
+import { LIST_TOOLBAR_MIN, matchesQuery } from '../../lib/list-view.js';
 
 const TEXT_EXTENSIONS =
   /\.(txt|properties|json|json5|yml|yaml|toml|cfg|conf|ini|log|md|sh|bat|cmd|ps1|csv|xml|html?|js|mjs|ts|py|snbt|mcmeta|lang|nbt\.txt)$/i;
@@ -242,6 +244,10 @@ export function FileExplorer({ server }: { server: ServerDto }) {
   const { t, i18n } = useT();
   const me = useMe();
   const [dir, setDir] = useState('');
+  // Le filtre appartient au dossier où il a été saisi : changer de dossier l’efface, sinon on
+  // croirait un dossier vide alors qu’on y arrive avec un filtre invisible.
+  const [filter, setFilter] = useState<{ dir: string; q: string }>({ dir: '', q: '' });
+  const q = filter.dir === dir ? filter.q : '';
   const [editing, setEditing] = useState<string | undefined>(undefined);
   const listing = useFiles(server.id, dir);
   const fsm = useFileMutations(server.id);
@@ -253,6 +259,8 @@ export function FileExplorer({ server }: { server: ServerDto }) {
     notifications.show({ color: 'red', message: describeError(i18n, error) });
   };
   const crumbs = dir === '' ? [] : dir.split('/');
+  const all = listing.data?.entries ?? [];
+  const entries = all.filter((e) => matchesQuery(e.name, q));
 
   const askName = (
     title: string,
@@ -463,12 +471,25 @@ export function FileExplorer({ server }: { server: ServerDto }) {
           </Group>
         )}
       </Group>
+      {all.length > LIST_TOOLBAR_MIN && (
+        <TextInput
+          label={t('web:files.search')}
+          placeholder={t('web:files.searchPlaceholder')}
+          value={q}
+          onChange={(e) => {
+            setFilter({ dir, q: e.currentTarget.value });
+          }}
+          leftSection={<IconSearch size={16} />}
+          {...TECHNICAL_INPUT_PROPS}
+          data-testid="files-search"
+        />
+      )}
       {listing.isPending && <Loader size="sm" />}
       {listing.error && <ErrorAlert error={listing.error} />}
       {listing.data !== undefined &&
-        (listing.data.entries.length === 0 ? (
-          <Text size="sm" c="dimmed">
-            {t('web:files.empty')}
+        (entries.length === 0 ? (
+          <Text size="sm" c="dimmed" data-testid="files-empty">
+            {t(all.length === 0 ? 'web:files.empty' : 'web:list.noMatch')}
           </Text>
         ) : (
           <Table striped highlightOnHover withTableBorder>
@@ -481,7 +502,7 @@ export function FileExplorer({ server }: { server: ServerDto }) {
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {listing.data.entries.map((entry) => (
+              {entries.map((entry) => (
                 <Table.Tr
                   key={entry.name}
                   data-testid={`file-${entry.name}`}

@@ -23,6 +23,14 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
   machines that have nothing matching, instead of leaving you to scroll past them. Each list
   keeps its own memory: the table on a machine page does not force the table on the dashboard.
   Below that handful there is no bar at all, because you can already see everything.
+- **A `mods/` folder can be searched.** The file explorer filters the folder you are looking
+  at — three hundred jars, and you can find the one you came for. The filter belongs to that
+  folder: opening another one clears it, so a folder is never made to look empty by a filter
+  you forgot about. A list emptied by a search says so instead of looking empty.
+- **Players can be searched too.** One field above the Online / Whitelist / Operators /
+  Banned / History views, searching names (and addresses among banned IPs). It follows you
+  from one view to the next, because looking up a name in the whitelist and then in the bans
+  is one single question.
 
 ### Reported while testing (2026-09-12)
 

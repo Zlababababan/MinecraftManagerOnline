@@ -50,14 +50,14 @@ import { JavaCard } from '../components/machine/JavaCard.js';
 import { MachineMetricsPanel } from '../components/metrics/MetricsPanel.js';
 import { PairingCodeCard } from '../components/PairingCodeCard.js';
 import { ListToolbar } from '../components/ListToolbar.js';
-import { LIST_TOOLBAR_MIN, ServerCollection } from '../components/ServerCollection.js';
+import { ServerCollection } from '../components/ServerCollection.js';
 import { describeError } from '../lib/errors.js';
 import { formatDateTime, hasRole } from '../lib/format.js';
 import { CreateServerModal } from '../components/machine/CreateServerModal.js';
 import { canMachine } from '../lib/permissions.js';
 import { useNow } from '../lib/hooks.js';
 import { TECHNICAL_INPUT_PROPS } from '../lib/inputs.js';
-import { useListPrefs, type ListPrefs } from '../lib/list-view.js';
+import { LIST_TOOLBAR_MIN, useListPrefs, type ListPrefs } from '../lib/list-view.js';
 import { EMPTY_FILTER, filterServers, isServerSort } from '../lib/server-filter.js';
 
 /**

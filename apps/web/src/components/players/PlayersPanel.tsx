@@ -27,6 +27,7 @@ import {
   IconDotsVertical,
   IconShield,
   IconShieldOff,
+  IconSearch,
   IconTrash,
   IconUserPlus,
   IconUserX,
@@ -57,6 +58,7 @@ import { PlayerAvatar } from './PlayerAvatar.js';
 import { PlayerStatsView } from './PlayerStatsView.js';
 import { WhitelistRequestsCard } from './WhitelistRequestsCard.js';
 import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
+import { matchesQuery } from '../../lib/list-view.js';
 
 export const PLAYER_VIEWS = ['online', 'whitelist', 'ops', 'bans', 'history', 'stats'] as const;
 export type PlayerView = (typeof PLAYER_VIEWS)[number];
@@ -275,7 +277,15 @@ function PlayerCell({ name, uuid }: { name: string; uuid: string | null | undefi
 
 // --- Vues ---------------------------------------------------------------------------------------
 
-function OnlineView({ server, canOperate }: { server: ServerDto; canOperate: boolean }) {
+function OnlineView({
+  server,
+  canOperate,
+  q,
+}: {
+  server: ServerDto;
+  canOperate: boolean;
+  q: string;
+}) {
   const { t, i18n } = useT();
   const running = server.runState === 'running';
   const players = usePlayers(server.id, running);
@@ -291,7 +301,8 @@ function OnlineView({ server, canOperate }: { server: ServerDto; canOperate: boo
   }
   if (players.isPending) return <Loader size="sm" />;
   if (players.error) return <ErrorAlert error={players.error} />;
-  const list = players.data.players;
+  const all = players.data.players;
+  const list = all.filter((p) => matchesQuery(p.name, q));
   const opNames = new Set((ops.data?.data ?? []).map((o) => o.name.toLowerCase()));
   const run = (action: PlayerActionKind, target: string, reason?: string) => {
     act.mutate(
@@ -420,7 +431,15 @@ function OnlineView({ server, canOperate }: { server: ServerDto; canOperate: boo
   );
 }
 
-function WhitelistView({ server, canOperate }: { server: ServerDto; canOperate: boolean }) {
+function WhitelistView({
+  server,
+  canOperate,
+  q,
+}: {
+  server: ServerDto;
+  canOperate: boolean;
+  q: string;
+}) {
   const { t, i18n } = useT();
   const list = useConfigFile(server.id, 'whitelist.json');
   const props = useConfigFile(server.id, 'server.properties');
@@ -428,7 +447,8 @@ function WhitelistView({ server, canOperate }: { server: ServerDto; canOperate: 
   const enabled = (props.data?.data['white-list'] ?? 'false').toLowerCase() === 'true';
   if (list.isPending) return <Loader size="sm" />;
   if (list.error) return <ErrorAlert error={list.error} />;
-  const entries = list.data.data;
+  const all = list.data.data;
+  const entries = all.filter((e) => matchesQuery(e.name, q));
   return (
     <Stack gap="md" data-testid="whitelist">
       <Group justify="space-between" wrap="wrap">
@@ -458,7 +478,7 @@ function WhitelistView({ server, canOperate }: { server: ServerDto; canOperate: 
       {canOperate && <AddPlayerForm server={server} action="whitelistAdd" testId="whitelist-add" />}
       {entries.length === 0 ? (
         <Text size="sm" c="dimmed" data-testid="whitelist-empty">
-          {t('web:server.players.empty.whitelist')}
+          {t(all.length === 0 ? 'web:server.players.empty.whitelist' : 'web:list.noMatch')}
         </Text>
       ) : (
         <Table striped withTableBorder>
@@ -487,18 +507,19 @@ function WhitelistView({ server, canOperate }: { server: ServerDto; canOperate: 
   );
 }
 
-function OpsView({ server, canOperate }: { server: ServerDto; canOperate: boolean }) {
+function OpsView({ server, canOperate, q }: { server: ServerDto; canOperate: boolean; q: string }) {
   const { t } = useT();
   const list = useConfigFile(server.id, 'ops.json');
   if (list.isPending) return <Loader size="sm" />;
   if (list.error) return <ErrorAlert error={list.error} />;
-  const entries = list.data.data;
+  const all = list.data.data;
+  const entries = all.filter((e) => matchesQuery(e.name, q));
   return (
     <Stack gap="md" data-testid="ops">
       {canOperate && <AddPlayerForm server={server} action="op" withLevel testId="ops-add" />}
       {entries.length === 0 ? (
         <Text size="sm" c="dimmed">
-          {t('web:server.players.empty.ops')}
+          {t(all.length === 0 ? 'web:server.players.empty.ops' : 'web:list.noMatch')}
         </Text>
       ) : (
         <Table striped withTableBorder>
@@ -535,7 +556,15 @@ function OpsView({ server, canOperate }: { server: ServerDto; canOperate: boolea
   );
 }
 
-function BansView({ server, canOperate }: { server: ServerDto; canOperate: boolean }) {
+function BansView({
+  server,
+  canOperate,
+  q,
+}: {
+  server: ServerDto;
+  canOperate: boolean;
+  q: string;
+}) {
   const { t } = useT();
   const players = useConfigFile(server.id, 'banned-players.json');
   const ips = useConfigFile(server.id, 'banned-ips.json');
@@ -546,6 +575,8 @@ function BansView({ server, canOperate }: { server: ServerDto; canOperate: boole
   if (players.isPending || ips.isPending) return <Loader size="sm" />;
   if (players.error) return <ErrorAlert error={players.error} />;
   if (ips.error) return <ErrorAlert error={ips.error} />;
+  const bannedPlayers = players.data.data.filter((e) => matchesQuery(e.name, q));
+  const bannedIps = ips.data.data.filter((e) => matchesQuery(e.ip, q));
   const expires = (v: string | undefined) =>
     v === undefined || v === 'forever' ? t('web:server.players.forever') : v;
   return (
@@ -555,9 +586,11 @@ function BansView({ server, canOperate }: { server: ServerDto; canOperate: boole
           {t('web:server.players.bannedPlayers')}
         </Text>
         {canOperate && <AddPlayerForm server={server} action="ban" withReason testId="bans-add" />}
-        {players.data.data.length === 0 ? (
+        {bannedPlayers.length === 0 ? (
           <Text size="sm" c="dimmed">
-            {t('web:server.players.empty.bans')}
+            {t(
+              players.data.data.length === 0 ? 'web:server.players.empty.bans' : 'web:list.noMatch',
+            )}
           </Text>
         ) : (
           <Table striped withTableBorder>
@@ -570,7 +603,7 @@ function BansView({ server, canOperate }: { server: ServerDto; canOperate: boole
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {players.data.data.map((e) => (
+              {bannedPlayers.map((e) => (
                 <Table.Tr key={e.uuid} data-testid={`bans-${e.name}`}>
                   <Table.Td>
                     <PlayerCell name={e.name} uuid={e.uuid} />
@@ -651,14 +684,18 @@ function BansView({ server, canOperate }: { server: ServerDto; canOperate: boole
             </Group>
           </form>
         )}
-        {ips.data.data.length === 0 ? (
+        {bannedIps.length === 0 ? (
           <Text size="sm" c="dimmed">
-            {t('web:server.players.empty.bannedIps')}
+            {t(
+              ips.data.data.length === 0
+                ? 'web:server.players.empty.bannedIps'
+                : 'web:list.noMatch',
+            )}
           </Text>
         ) : (
           <Table striped withTableBorder>
             <Table.Tbody>
-              {ips.data.data.map((e) => (
+              {bannedIps.map((e) => (
                 <Table.Tr key={e.ip} data-testid={`bans-ip-${e.ip}`}>
                   <Table.Td>
                     <Text size="sm" ff="monospace">
@@ -686,16 +723,17 @@ function BansView({ server, canOperate }: { server: ServerDto; canOperate: boole
   );
 }
 
-function HistoryView({ server }: { server: ServerDto }) {
+function HistoryView({ server, q }: { server: ServerDto; q: string }) {
   const { t, i18n } = useT();
   const history = usePlayerHistory(server.id);
   if (history.isPending) return <Loader size="sm" />;
   if (history.error) return <ErrorAlert error={history.error} />;
-  const sessions = history.data.sessions;
+  const all = history.data.sessions;
+  const sessions = all.filter((s) => matchesQuery(s.playerName, q));
   if (sessions.length === 0) {
     return (
       <Text size="sm" c="dimmed">
-        {t('web:server.players.empty.history')}
+        {t(all.length === 0 ? 'web:server.players.empty.history' : 'web:list.noMatch')}
       </Text>
     );
   }
@@ -739,6 +777,10 @@ export function PlayersPanel({ server }: { server: ServerDto }) {
   const { t } = useT();
   const me = useMe();
   const [view, setView] = useState<PlayerView>('online');
+  // Le filtre traverse les vues : chercher un pseudo dans la liste blanche puis regarder s'il
+  // est banni est le geste naturel. Les statistiques ne listent personne, il n’y a rien à y
+  // filtrer.
+  const [q, setQ] = useState('');
   const canOperate = canServer(me.data, server, 'operator') && server.reachable;
   const props = useConfigFile(server.id, 'server.properties');
   const offline = (props.data?.data['online-mode'] ?? 'true').toLowerCase() === 'false';
@@ -779,11 +821,24 @@ export function PlayersPanel({ server }: { server: ServerDto }) {
           {t('web:server.players.offlineHint')}
         </Text>
       )}
-      {view === 'online' && <OnlineView server={server} canOperate={canOperate} />}
-      {view === 'whitelist' && <WhitelistView server={server} canOperate={canOperate} />}
-      {view === 'ops' && <OpsView server={server} canOperate={canOperate} />}
-      {view === 'bans' && <BansView server={server} canOperate={canOperate} />}
-      {view === 'history' && <HistoryView server={server} />}
+      {view !== 'stats' && (
+        <TextInput
+          label={t('web:server.players.search')}
+          placeholder={t('web:server.players.searchPlaceholder')}
+          value={q}
+          onChange={(e) => {
+            setQ(e.currentTarget.value);
+          }}
+          leftSection={<IconSearch size={16} />}
+          {...TECHNICAL_INPUT_PROPS}
+          data-testid="players-search"
+        />
+      )}
+      {view === 'online' && <OnlineView server={server} canOperate={canOperate} q={q} />}
+      {view === 'whitelist' && <WhitelistView server={server} canOperate={canOperate} q={q} />}
+      {view === 'ops' && <OpsView server={server} canOperate={canOperate} q={q} />}
+      {view === 'bans' && <BansView server={server} canOperate={canOperate} q={q} />}
+      {view === 'history' && <HistoryView server={server} q={q} />}
       {view === 'stats' && <PlayerStatsView server={server} />}
     </Stack>
   );

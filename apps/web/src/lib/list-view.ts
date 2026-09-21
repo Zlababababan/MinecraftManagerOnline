@@ -11,6 +11,20 @@
  */
 import { useState } from 'react';
 
+/**
+ * Filtre texte commun à toutes les listes : casse ignorée, chaîne vide = tout passe. Un filtre
+ * ne doit jamais être un piège silencieux — c'est toujours réversible en vidant le champ.
+ */
+export function matchesQuery(value: string, q: string): boolean {
+  const needle = q.trim().toLowerCase();
+  return needle === '' || value.toLowerCase().includes(needle);
+}
+
+/**
+ * En deçà de ce nombre d'éléments, une barre de recherche est du bruit : on voit déjà tout.
+ */
+export const LIST_TOOLBAR_MIN = 4;
+
 export const LIST_MODES = ['cards', 'table'] as const;
 export type ListMode = (typeof LIST_MODES)[number];
 

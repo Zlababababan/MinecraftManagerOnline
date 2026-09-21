@@ -211,6 +211,7 @@ export const webEn = {
   },
   list: {
     sort: 'Sort by',
+    noMatch: 'Nothing matches this search.',
     reset: 'Clear',
     view: { cards: 'Cards', table: 'Table' },
   },
@@ -390,6 +391,8 @@ export const webEn = {
     },
     players: {
       none: 'No player online.',
+      search: 'Search a player',
+      searchPlaceholder: 'Name or address',
       online: '{{online}} player(s) online',
       name: 'Player',
       views: {
@@ -566,6 +569,8 @@ export const webEn = {
   },
   files: {
     title: 'Files',
+    search: 'Filter this folder',
+    searchPlaceholder: 'File name',
     advancedHint:
       'Advanced mode: you are editing the server folder directly. Deleted items go to the .mmo-trash folder for 7 days.',
     root: 'Server folder',

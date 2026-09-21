@@ -19,3 +19,5 @@ apps/web/playwright-report/**
 apps/web/dev-dist/**
 # Généré par `pnpm release:notices` : la mise en forme vient du générateur
 THIRD-PARTY-NOTICES.md
+# Copies de travail des sessions Claude Code (worktrees git) : ce ne sont pas nos fichiers
+.claude/worktrees/**

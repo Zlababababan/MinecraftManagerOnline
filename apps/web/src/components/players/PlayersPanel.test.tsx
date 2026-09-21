@@ -200,4 +200,32 @@ describe('PlayersPanel — liste blanche sans jamais voir un fichier', () => {
     });
     expect(state.whitelist).toEqual([]);
   });
+  it('la recherche filtre la liste, et le dit quand rien ne correspond', async () => {
+    const user = userEvent.setup();
+    state.whitelist = [
+      { uuid: '00000000-0000-3000-8000-00000000000a', name: 'Alice' },
+      { uuid: '00000000-0000-3000-8000-00000000000b', name: 'Bob' },
+      { uuid: '00000000-0000-3000-8000-00000000000c', name: 'Charlie' },
+    ];
+    renderPanel();
+    await user.click(screen.getByTestId('players-view-whitelist'));
+    expect(await screen.findByTestId('whitelist-Alice')).toBeInTheDocument();
+
+    await user.type(screen.getByTestId('players-search'), 'bo');
+    await waitFor(() => {
+      expect(screen.queryByTestId('whitelist-Alice')).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId('whitelist-Bob')).toBeInTheDocument();
+
+    // Une liste vidée par un filtre doit le DIRE : sinon on croit la liste blanche vide, et on
+    // rajoute un joueur qui y est déjà.
+    await user.clear(screen.getByTestId('players-search'));
+    await user.type(screen.getByTestId('players-search'), 'zzz');
+    const empty = await screen.findByTestId('whitelist-empty');
+    expect(empty).toHaveTextContent('Aucun résultat pour cette recherche.');
+
+    // Le filtre traverse les vues : on cherche un pseudo, puis on regarde s’il est banni.
+    await user.click(screen.getByTestId('players-view-ops'));
+    expect(screen.getByTestId('players-search')).toHaveValue('zzz');
+  });
 });

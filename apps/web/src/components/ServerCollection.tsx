@@ -18,11 +18,6 @@ import { RunStateBadge } from './badges.js';
 import { RouterAnchor } from './links.js';
 import { ServerCard, serverSubtitle } from './ServerCard.js';
 
-/**
- * En deca de ce nombre de serveurs, une barre de recherche est du bruit : on voit tout.
- */
-export const LIST_TOOLBAR_MIN = 4;
-
 export interface ServerSelection {
   selected: Set<string>;
   onToggle: (id: string) => void;

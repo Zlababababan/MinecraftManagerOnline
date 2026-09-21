@@ -14,10 +14,10 @@ import { EventsList } from '../components/EventsList.js';
 import { MachineHeader } from '../components/MachineHeader.js';
 import { OnboardingCard } from '../components/OnboardingCard.js';
 import { ListToolbar } from '../components/ListToolbar.js';
-import { LIST_TOOLBAR_MIN, ServerCollection } from '../components/ServerCollection.js';
+import { ServerCollection } from '../components/ServerCollection.js';
 import { useNow } from '../lib/hooks.js';
 import { hasRole } from '../lib/format.js';
-import { useListPrefs, type ListPrefs } from '../lib/list-view.js';
+import { LIST_TOOLBAR_MIN, useListPrefs, type ListPrefs } from '../lib/list-view.js';
 import { EMPTY_FILTER, filterServers, isServerSort } from '../lib/server-filter.js';
 import { useRealtimeStore } from '../store/realtime.js';
 
