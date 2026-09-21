@@ -127,6 +127,51 @@ describe('gestionnaire de serveurs (garde-fous doc 05 §6, provisionnement doc 0
     });
   });
 
+  it('applique la priorité CPU au démarrage, puis à chaud, et un refus ne bloque rien', async () => {
+    // Faux OS : le nice suit les écritures, exactement comme `os.getPriority` le rendrait.
+    let nice = 0;
+    const calls: [number, number][] = [];
+    const priorityIo = {
+      getPriority: () => nice,
+      setPriority: (pid: number, value: number) => {
+        calls.push([pid, value]);
+        nice = value;
+      },
+    };
+    const m = await makeManager({ priorityIo });
+    await m.applyConfigs([config(dir, { cpuPriority: 'below_normal' })]);
+    const { pid } = await m.start('srv_1');
+    await waitFor(() => m.require('srv_1').state === 'running', 5000);
+    expect(pid).toBeDefined();
+    expect(calls).toEqual([[pid, 10]]);
+
+    // Réglage changé pendant que le serveur tourne : pris tout de suite, sans redémarrage.
+    await m.applyConfigs([config(dir, { cpuPriority: 'low' })]);
+    expect(calls).toEqual([
+      [pid, 10],
+      [pid, 19],
+    ]);
+
+    // Reconfiguration sans changement (chaque reconnexion d'agent en fait une) : aucune écriture.
+    await m.applyConfigs([config(dir, { cpuPriority: 'low' })]);
+    expect(calls).toHaveLength(2);
+  });
+
+  it('un OS qui refuse la priorité n’empêche pas le serveur de démarrer', async () => {
+    const m = await makeManager({
+      priorityIo: {
+        getPriority: () => 0,
+        setPriority: () => {
+          throw new Error('A system error occurred: uv_os_setpriority returned EACCES (denied)');
+        },
+      },
+    });
+    await m.applyConfigs([config(dir, { cpuPriority: 'low' })]);
+    const { pid } = await m.start('srv_1');
+    expect(pid).toBeDefined();
+    await waitFor(() => m.require('srv_1').state === 'running', 5000);
+  });
+
   it('E_JAVA_UNAVAILABLE typé (javaPath invalide)', async () => {
     const m = await makeManager({ javaResolver: undefined });
     await m.applyConfigs([config(dir, { javaPath: '/nope/java' })]);
@@ -241,16 +286,33 @@ describe('gestionnaire de serveurs (garde-fous doc 05 §6, provisionnement doc 0
   it(
     'ré-adoption par une nouvelle instance (agent redémarré) : detached, puis stop RCON',
     async () => {
-      const m1 = await makeManager();
+      let nice = 0;
+      const priorityCalls: [number | undefined, number][] = [];
+      const priorityIo = {
+        getPriority: () => nice,
+        setPriority: (p: number, value: number) => {
+          priorityCalls.push([p, value]);
+          nice = value;
+        },
+      };
+      const m1 = await makeManager({ priorityIo });
       await m1.applyConfigs([config(dir)]);
       const { pid } = await m1.start('srv_1');
       await waitFor(() => m1.require('srv_1').state === 'running', 5000);
       await sleep(300); // laisse l'heure de démarrage observée se persister
       m1.dispose(); // l'agent « meurt » : le serveur survit (détaché)
       managers.length = 0;
+      expect(priorityCalls).toEqual([]); // priorité normale : rien n'a été écrit
 
-      const m2 = await makeManager();
+      const m2 = await makeManager({ priorityIo });
+      // Le réglage a changé pendant que l'agent était éteint : la ré-adoption doit le réaffirmer
+      // sur un processus qui, lui, n'a pas bougé.
+      await m2.store.update((s) => {
+        const r = s.servers.srv_1;
+        if (r) r.config = { ...r.config, cpuPriority: 'low' };
+      });
       await m2.init();
+      expect(priorityCalls).toEqual([[pid, 19]]);
       const proc = m2.require('srv_1');
       expect(proc.pid).toBe(pid);
       expect(proc.attachMode).toBe('detached');

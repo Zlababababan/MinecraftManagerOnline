@@ -25,6 +25,7 @@ Liste de référence, validée avant le développement. Chaque fonctionnalité e
 | Lancement construit par l'application (indépendant des scripts `.bat`/`.sh`) | V1 |
 | Gestionnaire de versions Java : détection de la version requise, téléchargement automatique du bon JRE (tous OS, x64 et ARM) | V1 |
 | Garde-fou RAM : refus de lancement si mémoire insuffisante sur la machine | V1 |
+| Priorité CPU par serveur (normale / réduite / minimale) | V1 |
 | Gestion des ports : affichage, modification, détection de conflit par machine avant lancement | V1 |
 | Acceptation guidée de l'EULA | V1 |
 | États de provisionnement (en installation / prêt / archivé) | V1 |

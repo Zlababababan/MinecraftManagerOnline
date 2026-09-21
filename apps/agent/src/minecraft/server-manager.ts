@@ -37,6 +37,7 @@ import { getProcessInfo, isProcessAlive } from '../platform/process-info.js';
 import type { ServerRecord, ServerRuntime, StateStore } from '../state/store.js';
 import { assertServerDirWritable, describeFsRefusal, withFsErrors } from '../util/fs-error.js';
 import { ConfigService, type CommandResult } from './config-files.js';
+import { applyAndLogCpuPriority, type PriorityIo } from './cpu-priority.js';
 import { buildLaunchCommand, type LaunchCommand } from './launch.js';
 import { resolvePlayers, type FetchLike } from './players.js';
 import { parseBooleanProperty } from './properties.js';
@@ -86,6 +87,8 @@ export interface ServerManagerOptions {
   exitPollMs?: number;
   /** Résolution Mojang (tests : stub). */
   fetchImpl?: FetchLike | undefined;
+  /** Tests : priorité CPU sans renicer de vrais processus. */
+  priorityIo?: PriorityIo | undefined;
   now?: () => number;
 }
 
@@ -120,6 +123,9 @@ export class ServerManager {
       const proc = this.getOrCreate(serverId, record);
       const adopted = await proc.adopt(record.runtime);
       if (adopted) {
+        // Le processus a survécu à l'agent : il porte la priorité qu'on lui avait donnée, qui
+        // peut avoir changé depuis (réglage modifié agent éteint). On la réaffirme ici.
+        this.applyCpuPriority(serverId, record.runtime.pid, record.config);
         await this.options.store.update((s) => {
           const r = s.servers[serverId];
           if (r?.runtime) r.runtime.attachMode = 'detached';
@@ -173,6 +179,13 @@ export class ServerManager {
       s.servers = kept;
     });
     for (const config of configs) {
+      // Un réglage de priorité changé pendant que le serveur tourne prend effet tout de suite
+      // (sous Windows, complètement ; ailleurs voir cpu-priority.ts). Sans appel quand la
+      // priorité est déjà la bonne, ce qui est le cas de toutes les reconfigurations ordinaires.
+      const proc = this.processes.get(config.serverId);
+      if (proc?.isRunning === true && proc.pid !== undefined) {
+        this.applyCpuPriority(config.serverId, proc.pid, config);
+      }
       await writeMarker(config.path, config.serverId).catch((error: unknown) => {
         this.options.logger.warn('marker write failed', {
           path: config.path,
@@ -332,6 +345,9 @@ export class ServerManager {
           jvmArgs: config.jvmArgs,
         });
     const { pid } = await proc.start(command);
+    // Tout de suite après le spawn : sous Linux le `nice` ne vaut que pour le thread qui le reçoit
+    // et pour ceux qu'il crée ensuite, et la JVM n'a pas encore déplié les siens (cpu-priority.ts).
+    this.applyCpuPriority(serverId, pid, config);
     const runtime: ServerRuntime = {
       pid,
       startedAt: proc.startedAt ?? Date.now(),
@@ -661,6 +677,21 @@ export class ServerManager {
     }
     if (event.kind === 'lines') this.persist(this.options.store.flush());
     this.options.onEvent(serverId, event);
+  }
+
+  /**
+   * Priorité CPU du processus Java. Jamais bloquant : un OS qui refuse (Unix ne laisse pas
+   * REMONTER un `nice` sans privilège) n'empêche ni le démarrage, ni la ré-adoption, ni la prise
+   * en compte du reste de la configuration — le réglage s'appliquera au démarrage suivant.
+   */
+  private applyCpuPriority(serverId: string, pid: number, config: ServerConfig): void {
+    applyAndLogCpuPriority(
+      this.options.logger,
+      serverId,
+      pid,
+      config.cpuPriority,
+      this.options.priorityIo,
+    );
   }
 
   /** Écriture d'état en arrière-plan : une erreur (dossier supprimé à l'arrêt…) est journalisée, jamais fatale. */

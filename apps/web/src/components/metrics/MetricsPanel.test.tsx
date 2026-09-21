@@ -28,6 +28,7 @@ const base: ServerDto = {
   javaArgs: [],
   minRamMb: 1024,
   maxRamMb: 2048,
+  cpuPriority: 'normal',
   gamePort: 25565,
   rconEnabled: true,
   rconPort: 25575,

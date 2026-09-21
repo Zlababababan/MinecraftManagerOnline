@@ -7,6 +7,7 @@
 import {
   detectedServerSchema,
   ulid,
+  type CpuPriority,
   type DetectedServer,
   type ParsedEventPayload,
   type ParsedRequestPayload,
@@ -47,6 +48,7 @@ export interface UpdateServerInput {
   maxRamMb?: number | undefined;
   javaMajorRequired?: number | null | undefined;
   javaArgs?: string[] | undefined;
+  cpuPriority?: CpuPriority | undefined;
   gamePort?: number | null | undefined;
   exposeMode?: 'tailnet' | 'direct' | undefined;
   autoRestart?: boolean | undefined;
@@ -162,6 +164,7 @@ export class ServersService {
       javaArgs: parseJson<string[]>(row.javaArgs, []),
       minRamMb: row.minRamMb,
       maxRamMb: row.maxRamMb,
+      cpuPriority: row.cpuPriority,
       gamePort: row.gamePort,
       rconEnabled: row.rconEnabled === 1,
       rconPort: row.rconPort,
@@ -389,6 +392,7 @@ export class ServersService {
       javaArgs: null,
       minRamMb: d.minRamMb?.value ?? Math.min(1024, d.maxRamMb.value),
       maxRamMb: d.maxRamMb.value,
+      cpuPriority: 'normal',
       gamePort: d.gamePort ?? null,
       // Un proxy Velocity n'a pas de RCON (et le provisionner créerait un server.properties).
       rconEnabled: d.loader.value === 'velocity' ? 0 : 1,
@@ -502,6 +506,7 @@ export class ServersService {
       throw conflict('minRamMb must be ≤ maxRamMb');
     }
     if (input.javaArgs !== undefined) patch.javaArgs = toJson(input.javaArgs);
+    if (input.cpuPriority !== undefined) patch.cpuPriority = input.cpuPriority;
     if (input.gamePort !== undefined) patch.gamePort = input.gamePort;
     if (input.exposeMode !== undefined) patch.exposeMode = input.exposeMode;
     if (input.autoRestart !== undefined) patch.autoRestart = input.autoRestart ? 1 : 0;
@@ -711,6 +716,7 @@ export class ServersService {
       javaArgs: null,
       minRamMb: input.minRamMb,
       maxRamMb: input.maxRamMb,
+      cpuPriority: 'normal',
       gamePort: input.gamePort,
       rconEnabled: input.loader === 'velocity' ? 0 : 1,
       rconPort: null,
@@ -828,6 +834,7 @@ export class ServersService {
       ...(r.javaMajorRequired === null ? {} : { javaMajor: r.javaMajorRequired }),
       ...(d?.javaRequirement?.strict === true ? { javaStrict: true } : {}),
       ...(javaArgs.length === 0 ? {} : { jvmArgs: javaArgs }),
+      ...(r.cpuPriority === 'normal' ? {} : { cpuPriority: r.cpuPriority }),
     };
   }
 

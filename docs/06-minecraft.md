@@ -91,6 +91,10 @@ de backups exclus) :
 - Prêt = regex `Done \([\d.,]+\s*s\)!` (le nombre suit la locale JVM — virgule possible ; ne pas exiger « For help ») **OU** authentification RCON réussie (le listener RCON démarre en toute fin de boot — sonde de readiness fiable).
 - États intermédiaires affichables : `Starting minecraft server version…`, `Preparing spawn area: X%`. Timeout de démarrage configurable, défaut 10 min (gros packs : 3–10 min réels).
 - Premier lancement : `You need to agree to the EULA` + exit rapide → déclenche le flux EULA guidé.
+- **Priorité CPU (2026-09-20)** : juste après le spawn, l'agent applique `cpuPriority` par `os.setPriority` (`normal` 0 / `below_normal` 10 / `low` 19 — libuv les traduit en NORMAL / BELOW_NORMAL / IDLE sous Windows). Elle est réappliquée après une ré-adoption et à chaque `agent.configure` sur un serveur en marche, mais **seulement si elle diffère de la priorité courante**. Un refus de l'OS n'empêche jamais un démarrage : il est journalisé et le réglage prend effet au démarrage suivant.
+  - Windows applique la classe au **processus** entier, immédiatement : c'est la plateforme d'où vient la remontée, et le réglage y est exact, serveur en marche compris.
+  - Linux compte le `nice` par **thread**. Appliqué juste après le spawn, le thread principal de la JVM est encore seul et tous ceux qu'il crée en héritent ; appliqué à un serveur qui tourne déjà, il ne touche que ce thread principal et ne vaut vraiment qu'au redémarrage suivant. Unix n'autorise pas non plus à **remonter** un `nice` sans privilège : repasser un serveur en marche de `low` à `normal` est refusé (EPERM), pas en panne.
+  - `low` n'est pas le réglage à recommander : le serveur n'y tourne plus que sur les restes, TPS compris. `below_normal` suffit à rendre la main au navigateur.
 
 ### Arrêt gracieux
 

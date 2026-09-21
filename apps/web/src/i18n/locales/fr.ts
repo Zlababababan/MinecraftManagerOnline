@@ -506,6 +506,14 @@ export const webFr = {
       minRam: 'RAM minimale (Mo)',
       maxRam: 'RAM maximale (Mo)',
       autoRestart: 'Redémarrer automatiquement après un plantage',
+      cpuPriority: 'Priorité processeur',
+      cpuPriorityNormal: 'Normale',
+      cpuPriorityBelowNormal: 'Réduite',
+      cpuPriorityLow: 'Minimale',
+      cpuPriorityHint:
+        'Réduite : le reste de la machine (navigateur, jeu) passe devant le serveur quand les deux calculent. Minimale : le serveur ne tourne plus que sur les restes — le TPS en souffre.',
+      cpuPriorityApplies:
+        'Appliquée au prochain démarrage, et tout de suite sur un serveur en marche sous Windows.',
       saved: 'Réglages enregistrés.',
       adminOnly: 'Seuls les administrateurs peuvent modifier les réglages.',
     },

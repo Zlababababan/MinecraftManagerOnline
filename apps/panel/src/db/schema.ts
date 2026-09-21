@@ -301,6 +301,15 @@ export const servers = sqliteTable(
     javaArgs: text('java_args'),
     minRamMb: integer('min_ram_mb').notNull().default(1024),
     maxRamMb: integer('max_ram_mb').notNull().default(4096),
+    /**
+     * Priorité CPU du processus Java (`os.setPriority` côté agent). Volontairement **sans CHECK** :
+     * une contrainte de plus sur cette table force drizzle-kit à la recréer, et recréer `servers`
+     * fait tomber les suppressions en cascade des sauvegardes et planifications (leçon du lot 7).
+     * Zod valide la valeur à l'entrée de l'API, comme pour les portées du lot 8.
+     */
+    cpuPriority: text('cpu_priority', { enum: ['normal', 'below_normal', 'low'] })
+      .notNull()
+      .default('normal'),
     gamePort: integer('game_port'),
     rconEnabled: integer('rcon_enabled').notNull().default(1),
     rconPort: integer('rcon_port'),

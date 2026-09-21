@@ -23,6 +23,8 @@ Java : l'agent inventorie les JRE présents ; si la version requise manque, inst
 
 Démarrez le serveur depuis sa carte (tableau de bord) ou sa fiche, et suivez l'état `starting` → `running` (PID affiché). L'onglet **Console** montre les lignes en direct et accepte les commandes. Au premier lancement d'un serveur neuf, si l'EULA de Mojang n'est pas encore acceptée, le panel vous guide (explication, lien, case à cocher) puis vous relancez. Le reste se fait par les onglets de la fiche : **Joueurs** (whitelist, ops, bans — sans jamais ouvrir un fichier), **Configuration** (`server.properties` expliqué champ par champ), **Fichiers**, **Sauvegardes**, **Métriques**, **Planificateur**, **Journaux**.
 
+**Si le reste de la machine rame pendant qu'un serveur tourne**, l'onglet **Réglages** du serveur propose une **priorité processeur**. Un gros modpack prend tous les cœurs au démarrage et à la génération du monde ; en **Réduite**, c'est le reste de la machine (navigateur, jeu, visioconférence) qui passe devant quand les deux calculent. **Minimale** va plus loin — le serveur ne tourne plus que sur les restes, et son TPS le montre : à réserver à un serveur dont personne ne se sert à ce moment-là. Le réglage vaut pour le prochain démarrage, et s'applique tout de suite à un serveur déjà en marche sous Windows. Il ne change rien à la mémoire : pour ça, baissez la RAM maximale du serveur.
+
 ## 4. Adresses pour les joueurs
 
 Chaque serveur a un réglage **Exposition** (carte **Accès des joueurs**, onglet Aperçu de la fiche serveur) :

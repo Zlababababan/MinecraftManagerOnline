@@ -8,6 +8,21 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### A server can run at a lower CPU priority (2026-09-21)
+
+- **Reported while using it:** a browser tab crawls while a modded server boots. It is not the
+  browser — a big modpack takes every core while it starts and generates the world. The panel
+  already refuses to start a server when memory is short; it now has the matching setting for the
+  processor. The server's **Settings** tab offers a **CPU priority**: at **Below normal** the rest
+  of the machine goes first whenever both need the CPU, which is usually all it takes. **Low** goes
+  further — the server only gets the leftovers, and its TPS shows it, so keep that one for a server
+  nobody is playing on. It changes nothing about memory: for that, lower the maximum RAM.
+- The setting applies to the next start, is re-applied when the agent adopts a server that outlived
+  it, and takes effect immediately on a running server under Windows. On Linux it fully applies at
+  the next start (the system counts priority per thread, and only lets a process be slowed down,
+  never sped back up, without extra privileges) — the agent says so in its log rather than failing.
+- A refusal from the operating system never prevents a server from starting.
+
 ### The servers list, as cards or as a table (2026-09-20)
 
 - **Pick how the fleet is shown.** The Servers page now has a Cards / Table switch. The table

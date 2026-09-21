@@ -23,6 +23,8 @@ Java: the agent inventories the JREs present; if the required version is missing
 
 Start the server from its card (dashboard) or its page, and watch the state go `starting` → `running` (PID shown). The **Console** tab shows the lines live and accepts commands. On the first start of a fresh server, if the Mojang EULA has not been accepted yet, the panel walks you through it (explanation, link, checkbox), then you start again. Everything else lives in the server page tabs: **Players** (whitelist, ops, bans — without ever opening a file), **Configuration** (`server.properties` explained field by field), **Files**, **Backups**, **Metrics**, **Scheduler**, **Logs**.
 
+**If the rest of the machine crawls while a server runs**, the server's **Settings** tab offers a **CPU priority**. A big modpack takes every core while it boots and generates the world; at **Below normal**, the rest of the machine (browser, game, video call) goes first whenever both need the CPU. **Low** goes further — the server only gets the leftovers, and its TPS shows it: keep that one for a server nobody is playing on right now. The setting applies to the next start, and takes effect immediately on a running server under Windows. It changes nothing about memory: for that, lower the server's maximum RAM.
+
 ## 4. Addresses for players
 
 Each server has an **Exposure** setting (**Player access** card, Overview tab of the server page):

@@ -1,0 +1,1 @@
+ALTER TABLE `servers` ADD `cpu_priority` text DEFAULT 'normal' NOT NULL;

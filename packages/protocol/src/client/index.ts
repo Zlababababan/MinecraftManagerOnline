@@ -8,6 +8,7 @@ import { z } from 'zod';
 import {
   archSchema,
   attachModeSchema,
+  cpuPrioritySchema,
   desiredStateSchema,
   epochMsSchema,
   exitReasonSchema,
@@ -315,6 +316,8 @@ export const serverDtoSchema = z.object({
   javaArgs: z.array(z.string()),
   minRamMb: z.int(),
   maxRamMb: z.int(),
+  /** Priorité CPU du processus Java ; défaut pour un panel qui ne la connaît pas encore. */
+  cpuPriority: cpuPrioritySchema.default('normal'),
   gamePort: z.int().nullable(),
   rconEnabled: z.boolean(),
   rconPort: z.int().nullable(),
@@ -356,6 +359,7 @@ export const updateServerSchema = z.object({
   /** Override Java (null = retour à la détection). */
   javaMajorRequired: z.int().positive().nullable().optional(),
   javaArgs: z.array(z.string()).optional(),
+  cpuPriority: cpuPrioritySchema.optional(),
   gamePort: z.int().min(1).max(65535).nullable().optional(),
   exposeMode: z.enum(['tailnet', 'direct']).optional(),
   autoRestart: z.boolean().optional(),

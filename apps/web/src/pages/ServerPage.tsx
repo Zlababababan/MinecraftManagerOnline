@@ -7,8 +7,10 @@ import {
   Button,
   Card,
   Group,
+  Input,
   Loader,
   NumberInput,
+  SegmentedControl,
   SimpleGrid,
   Stack,
   Switch,
@@ -216,7 +218,8 @@ function Overview({ server }: { server: ServerDto }) {
   );
 }
 
-function Settings({ server }: { server: ServerDto }) {
+/** Exporté pour le test : monté seul, sans routeur ni onglets. */
+export function Settings({ server }: { server: ServerDto }) {
   const { t, i18n } = useT();
   const me = useMe();
   const update = useUpdateServer(server.id);
@@ -228,6 +231,7 @@ function Settings({ server }: { server: ServerDto }) {
       name: server.name,
       minRamMb: server.minRamMb,
       maxRamMb: server.maxRamMb,
+      cpuPriority: server.cpuPriority,
       autoRestart: server.autoRestart,
     },
     validate: {
@@ -286,6 +290,27 @@ function Settings({ server }: { server: ServerDto }) {
           step={256}
           {...form.getInputProps('maxRamMb')}
         />
+        <Input.Wrapper
+          label={t('web:server.settings.cpuPriority')}
+          description={t('web:server.settings.cpuPriorityHint')}
+        >
+          {/* SegmentedControl et non Select : trois valeurs, et il rend de vrais boutons radio
+              (le menu d'un Select ne s'ouvre pas sous jsdom — piège connu). */}
+          <SegmentedControl
+            mt={6}
+            fullWidth
+            data-testid="cpu-priority"
+            data={[
+              { value: 'normal', label: t('web:server.settings.cpuPriorityNormal') },
+              { value: 'below_normal', label: t('web:server.settings.cpuPriorityBelowNormal') },
+              { value: 'low', label: t('web:server.settings.cpuPriorityLow') },
+            ]}
+            {...form.getInputProps('cpuPriority')}
+          />
+        </Input.Wrapper>
+        <Text size="xs" c="dimmed" mt={-6}>
+          {t('web:server.settings.cpuPriorityApplies')}
+        </Text>
         <Switch
           label={t('web:server.settings.autoRestart')}
           {...form.getInputProps('autoRestart', { type: 'checkbox' })}

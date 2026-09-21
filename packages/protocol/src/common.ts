@@ -38,6 +38,18 @@ export const provisioningSchema = z.enum([
 export const exitReasonSchema = z.enum(['stop', 'kill', 'crash', 'freeze_kill']);
 export type ExitReason = z.infer<typeof exitReasonSchema>;
 
+/**
+ * Priorité CPU du processus Java d'un serveur. Remontée d'usage : un modpack qui démarre prend
+ * tous les cœurs et rend la machine inutilisable le temps de la génération du monde.
+ *
+ * Les valeurs sont celles que `os.setPriority` sait rendre des deux côtés (aucun module natif) :
+ * `normal` = 0, `below_normal` = 10, `low` = 19 — sous Windows NORMAL / BELOW_NORMAL / IDLE, sous
+ * Unix le `nice` du même nom. `low` n'est PAS le réglage à recommander : le serveur n'y tourne
+ * plus que sur les restes, TPS compris ; `below_normal` suffit à rendre la main au navigateur.
+ */
+export const cpuPrioritySchema = z.enum(['normal', 'below_normal', 'low']);
+export type CpuPriority = z.infer<typeof cpuPrioritySchema>;
+
 export const logLevelSchema = z.enum(['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL']);
 export type LogLevel = z.infer<typeof logLevelSchema>;
 

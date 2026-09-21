@@ -5,6 +5,7 @@ import {
   attachModeSchema,
   capabilitySchema,
   compressionSchema,
+  cpuPrioritySchema,
   cpuSourceSchema,
   desiredStateSchema,
   emptyPayloadSchema,
@@ -200,6 +201,11 @@ export const serverConfigSchema = z.object({
   jvmArgs: z.array(z.string()).optional(),
   startTimeoutSec: z.int().positive().optional(),
   stopTimeoutSec: z.int().positive().optional(),
+  /**
+   * Priorité CPU du processus Java (ajout sans bump). Absent = `normal` : un agent N-1 ignore le
+   * champ et lance comme avant, un panel N-1 ne l'envoie pas et l'agent N n'abaisse rien.
+   */
+  cpuPriority: cpuPrioritySchema.optional(),
 });
 export type ServerConfig = z.infer<typeof serverConfigSchema>;
 

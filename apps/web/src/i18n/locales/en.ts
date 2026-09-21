@@ -500,6 +500,14 @@ export const webEn = {
       minRam: 'Minimum RAM (MB)',
       maxRam: 'Maximum RAM (MB)',
       autoRestart: 'Restart automatically after a crash',
+      cpuPriority: 'CPU priority',
+      cpuPriorityNormal: 'Normal',
+      cpuPriorityBelowNormal: 'Below normal',
+      cpuPriorityLow: 'Low',
+      cpuPriorityHint:
+        'Below normal: the rest of the machine (browser, game) goes first when both need the CPU. Low: the server only gets the leftovers — TPS suffers.',
+      cpuPriorityApplies:
+        'Applied on the next start, and right away on a running server under Windows.',
       saved: 'Settings saved.',
       adminOnly: 'Only administrators can edit settings.',
     },
