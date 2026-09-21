@@ -102,6 +102,7 @@ Contexte : à la première passe, l'agent du PC (build release 1.0.5) a été r�
 - [ ] **5.5** Démarrer, puis tuer `java.exe` **depuis le Gestionnaire des tâches**. Attendu : état **plantage** (« Dernière sortie : plantage »), événement Watchdog ; redémarrage auto désactivé (Réglages du serveur) → il reste arrêté ; activé → il redémarre (tentative 1).
 - [ ] **5.6** Survie à l'agent : serveur `running`, puis `services.msc` (admin) → `mmo-agent` → Redémarrer. Attendu : le processus Java **ne tombe pas**, même PID après ré-adoption, la console fonctionne en RCON (attachement « détaché » jusqu'au prochain redémarrage du serveur — normal).
 - [ ] **5.7** EULA : sur `test-fabric`, éditer `eula.txt` → `eula=false`, Démarrer. Attendu : refus avec la carte « EULA Minecraft » ; cocher « J'ai lu et j'accepte » → « Accepter et continuer » → démarrage.
+- [ ] **5.8** _(nouveau le 21 septembre)_ `test-vanilla` **arrêté** → onglet **Réglages** → **Priorité processeur** : choisir **Réduite**, Enregistrer, puis Démarrer. Attendu : dans le Gestionnaire des tâches (onglet Détails, colonne **Priorité de base** à ajouter par clic droit sur les en-têtes), le `java.exe` du serveur est en **Inférieure à la normale** ; les autres serveurs restent en **Normal**. Repasser ensuite le réglage sur **Normale** serveur **en marche** : sous Windows la priorité redevient Normal tout de suite. Enfin, sur un vrai modpack (`ATM10Aero` par exemple), mettre **Réduite** et le démarrer : la génération du monde ne doit plus figer le navigateur.
 
 ## 6. Console
 
