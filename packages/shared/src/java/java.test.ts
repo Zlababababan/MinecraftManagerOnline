@@ -44,6 +44,9 @@ describe('table de repli MC → Java', () => {
     ['1.21.1', 21],
     ['1.7.10', 8],
     ['24w14a', 21],
+    ['26.1', 25],
+    ['26.2', 25],
+    ['26.4-snapshot-1', 25],
   ])('%s → Java %i', (mc, major) => {
     expect(javaMajorFromTable(mc)).toBe(major);
   });

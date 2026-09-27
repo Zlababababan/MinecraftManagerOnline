@@ -253,6 +253,10 @@ describe('détection — cas synthétiques (FS mémoire)', () => {
     expect(mcVersionFromNeoForge('21.0.167')).toBe('1.21');
     expect(mcVersionFromNeoForge('1.20.1-47.1.3')).toBe('1.20.1');
     expect(mcVersionFromNeoForge('garbage')).toBeUndefined();
+    // Numérotation par année (mesuré sur maven.neoforged.net, 2026-09-27).
+    expect(mcVersionFromNeoForge('26.1.2.112')).toBe('26.1.2');
+    expect(mcVersionFromNeoForge('26.2.0.88')).toBe('26.2');
+    expect(mcVersionFromNeoForge('26.3.0.25-beta')).toBe('26.3');
   });
 
   it('installer Forge seul + jar vanilla + mods : loader par l’installer, version par version.json, needsInstall', async () => {

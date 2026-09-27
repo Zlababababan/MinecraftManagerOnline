@@ -236,6 +236,13 @@ export class ServerInstaller {
         );
         return;
       }
+      case 'remove': {
+        // `relativePathSchema` a déjà refusé `..` et les chemins absolus ; le chemin vide (le dossier
+        // du serveur lui-même) est refusé par le schéma de l'étape.
+        ctx.progress('writing', base, step.path);
+        await withFsErrors(target, () => rm(target, { recursive: true, force: true }));
+        return;
+      }
     }
   }
 

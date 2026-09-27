@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import {
   CatalogFormatError,
+  compareBuilds,
   fabricServerJarName,
+  forgeInstallerUrl,
+  forgeMavenVersion,
+  groupNeoForgeVersions,
+  neoforgeInstallerUrl,
+  parseForgePromotions,
+  parseMavenSha1,
+  parseMavenVersions,
   fabricServerJarUrl,
   parseFabricGameVersions,
   parseFabricInstallers,
@@ -11,6 +19,7 @@ import {
   parseMcVersionManifest,
   pickStable,
 } from './catalogs.js';
+import { mcVersionFromNeoForge } from '../detection/detect.js';
 
 /** Extraits réels (2026-09-04), réduits aux champs que le code lit. */
 const MANIFEST = {
@@ -165,5 +174,85 @@ describe('catalogue Fabric (meta.fabricmc.net)', () => {
     // Le tableau vide est typé explicitement : sans cela, T se réduit à never.
     const none: { stable: boolean }[] = [];
     expect(pickStable(none)).toBeUndefined();
+  });
+});
+
+describe('Forge', () => {
+  it('lit les promotions par version de jeu', () => {
+    const promos = parseForgePromotions({
+      homepage: 'x',
+      promos: {
+        '1.20.1-latest': '47.4.16',
+        '1.20.1-recommended': '47.4.10',
+        '26.3-latest': '66.0.6',
+        'bizarre': '1',
+      },
+    });
+    expect(promos.get('1.20.1')).toEqual({ recommended: '47.4.10', latest: '47.4.16' });
+    expect(promos.get('26.3')).toEqual({ recommended: undefined, latest: '66.0.6' });
+    expect(promos.size).toBe(2);
+    expect(() => parseForgePromotions({})).toThrow(CatalogFormatError);
+  });
+
+  it('retrouve la coordonnée maven, suffixée ou non', () => {
+    const published = parseMavenVersions(
+      '<versions><version>1.20.1-47.4.10</version><version>1.7.10-10.13.4.1614-1.7.10</version></versions>',
+      'forge.maven',
+    );
+    expect(forgeMavenVersion('1.20.1', '47.4.10', published)).toBe('1.20.1-47.4.10');
+    expect(forgeMavenVersion('1.7.10', '10.13.4.1614', published)).toBe(
+      '1.7.10-10.13.4.1614-1.7.10',
+    );
+    expect(forgeMavenVersion('1.12.2', '14.23.5.2859', published)).toBeUndefined();
+    expect(forgeInstallerUrl('1.20.1-47.4.10')).toBe(
+      'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.10/forge-1.20.1-47.4.10-installer.jar',
+    );
+    expect(() => parseMavenVersions('<metadata/>', 'forge.maven')).toThrow(CatalogFormatError);
+  });
+
+  it('lit une empreinte .sha1 et refuse le reste', () => {
+    expect(parseMavenSha1('66BFEA9963BFA60D88BAB6B2750E74A958392715\n', 's')).toBe(
+      '66bfea9963bfa60d88bab6b2750e74a958392715',
+    );
+    expect(() => parseMavenSha1('<html>404</html>', 's')).toThrow(CatalogFormatError);
+  });
+});
+
+describe('NeoForge', () => {
+  it('regroupe par version de jeu, le plus récent et le stable d’abord', () => {
+    const groups = groupNeoForgeVersions(
+      [
+        '21.1.9',
+        '21.1.209',
+        '21.1.210-beta',
+        '26.1.2.112',
+        '26.3.0.25-beta',
+        '0.25w14craftmine.5-beta',
+        '26.1.0.0-alpha.1+snapshot-1',
+        '20.2.3-beta',
+      ],
+      mcVersionFromNeoForge,
+    );
+    expect(groups.get('1.21.1')?.map((v) => v.version)).toEqual([
+      '21.1.210-beta',
+      '21.1.209',
+      '21.1.9',
+    ]);
+    expect(pickStable(groups.get('1.21.1') ?? [])?.version).toBe('21.1.209');
+    expect(groups.get('26.1.2')).toEqual([{ version: '26.1.2.112', stable: true }]);
+    expect(pickStable(groups.get('26.3') ?? [])).toEqual({
+      version: '26.3.0.25-beta',
+      stable: false,
+    });
+    expect([...groups.keys()].sort()).toEqual(['1.20.2', '1.21.1', '26.1.2', '26.3']);
+    expect(neoforgeInstallerUrl('21.1.209')).toBe(
+      'https://maven.neoforged.net/releases/net/neoforged/neoforge/21.1.209/neoforge-21.1.209-installer.jar',
+    );
+  });
+
+  it('compare les builds numériquement', () => {
+    expect(compareBuilds('21.1.209', '21.1.99')).toBeGreaterThan(0);
+    expect(compareBuilds('21.1.209', '21.1.209-beta')).toBeGreaterThan(0);
+    expect(compareBuilds('26.1.2.112', '26.1.2.112')).toBe(0);
   });
 });

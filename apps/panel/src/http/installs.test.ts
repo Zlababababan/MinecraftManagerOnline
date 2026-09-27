@@ -25,6 +25,12 @@ const MANIFEST = {
   latest: { release: '1.20.1', snapshot: '1.20.2-pre1' },
   versions: [
     {
+      id: '1.21.1',
+      type: 'release',
+      url: 'https://piston.invalid/1.21.1.json',
+      releaseTime: '2024-08-08T12:24:45+00:00',
+    },
+    {
       id: '1.20.2-pre1',
       type: 'snapshot',
       url: 'https://piston.invalid/1.20.2-pre1.json',
@@ -77,6 +83,32 @@ function fakeFetch(calls: string[]): typeof fetch {
       ]);
     }
     if (url.includes('/versions/loader/')) return json([]);
+    const text = (body: string) => Promise.resolve(new Response(body, { status: 200 }));
+    // Forge : promotions (1.20.1 recommandé, 1.7.10 seulement « latest »), maven, empreintes.
+    if (url.endsWith('promotions_slim.json')) {
+      return json({
+        promos: {
+          '1.20.1-latest': '47.4.16',
+          '1.20.1-recommended': '47.4.10',
+          '1.7.10-latest': '10.13.4.1614',
+        },
+      });
+    }
+    if (url.endsWith('/forge/maven-metadata.xml')) {
+      return text(
+        '<metadata><versioning><versions><version>1.20.1-47.4.10</version>' +
+          '<version>1.20.1-47.4.16</version><version>1.7.10-10.13.4.1614-1.7.10</version>' +
+          '</versions></versioning></metadata>',
+      );
+    }
+    if (url.endsWith('/neoforge/maven-metadata.xml')) {
+      return text(
+        '<metadata><versioning><versions><version>20.1.99-beta</version>' +
+          '<version>21.1.209</version><version>0.25w14craftmine.5-beta</version>' +
+          '</versions></versioning></metadata>',
+      );
+    }
+    if (url.endsWith('-installer.jar.sha1')) return text('66bfea9963bfa60d88bab6b2750e74a958392715');
     return Promise.resolve(new Response('nope', { status: 404 }));
   }) as typeof fetch;
 }
@@ -115,6 +147,7 @@ describe('installation d’un serveur — routes et service du panel', () => {
     id: string;
     agent: FakeAgent;
     installs: RequestPayload<'server.install'>[];
+    prechecks: RequestPayload<'migration.precheck'>[];
     dirId: string;
     /** Réponse du pré-contrôle (défaut : tout va bien). */
     precheckOk: boolean;
@@ -132,19 +165,29 @@ describe('installation d’un serveur — routes et service du panel', () => {
     await pairer.close();
     const a = await connectFakeAgent(panel.wsUrl);
     agents.push(a);
-    const m: Machine = { id: machine.id, agent: a, installs: [], dirId: '', precheckOk: true };
+    const m: Machine = {
+      id: machine.id,
+      agent: a,
+      installs: [],
+      prechecks: [],
+      dirId: '',
+      precheckOk: true,
+    };
     a.peer.handle('agent.configure', () => ({ applied: true as const }));
     a.peer.handle('event.ack', () => ({}));
     a.peer.handle('task.ackResult', () => ({}));
     a.peer.handle('task.list', () => ({ tasks: [] }));
     a.peer.handle('scan.run', () => ({ scannedPaths: [], servers: [] }));
-    a.peer.handle('migration.precheck', () => ({
+    a.peer.handle('migration.precheck', (req) => {
+      m.prechecks.push(req);
+      return {
       ok: m.precheckOk,
       path: { ok: m.precheckOk, ...(m.precheckOk ? {} : { code: 'path_exists' }) },
       port: { ok: true },
       java: { ok: true },
       disk: { ok: true, freeBytes: 10 ** 11 },
-    }));
+      };
+    });
     if (capabilities.includes('server-install')) {
       a.peer.handle('server.install', (req) => {
         m.installs.push(req);
@@ -237,6 +280,7 @@ describe('installation d’un serveur — routes et service du panel', () => {
     const vanilla = await api('GET', '/api/install/catalog?loader=vanilla');
     expect(vanilla.statusCode, vanilla.body).toBe(200);
     expect(vanilla.json<{ versions: { id: string }[] }>().versions.map((v) => v.id)).toEqual([
+      '1.21.1',
       '1.20.2-pre1',
       '1.20.1',
       '1.7.10',
@@ -321,6 +365,98 @@ describe('installation d’un serveur — routes et service du panel', () => {
     const props = req.steps[2];
     if (props?.kind !== 'setProperties') throw new Error('plan inattendu');
     expect(props.values.motd).toBe('Chez nous');
+  });
+
+  it('catalogue Forge et NeoForge : seulement les versions qui ont un build, avec ce build', async () => {
+    await online('Tour');
+    const forge = await api('GET', '/api/install/catalog?loader=forge');
+    expect(forge.statusCode, forge.body).toBe(200);
+    const fv = forge.json<{ versions: { id: string; loaderVersion?: string }[] }>().versions;
+    // Le recommandé passe devant le plus récent ; sans recommandé, le plus récent.
+    expect(fv).toEqual([
+      expect.objectContaining({ id: '1.20.1', loaderVersion: '47.4.10' }),
+      expect.objectContaining({ id: '1.7.10', loaderVersion: '10.13.4.1614' }),
+    ]);
+    const neo = await api('GET', '/api/install/catalog?loader=neoforge');
+    const nv = neo.json<{ versions: { id: string; loaderVersion?: string }[] }>().versions;
+    // Sans build stable, la bêta est proposée plutôt que rien (1.20.1 ici) ; le poisson d'avril
+    // (0.25w14craftmine) n'apparaît nulle part.
+    expect(nv.map((v) => [v.id, v.loaderVersion])).toEqual([
+      ['1.21.1', '21.1.209'],
+      ['1.20.1', '20.1.99-beta'],
+    ]);
+  });
+
+  it('forge : installeur vérifié, lancé avec --installServer, puis retiré ; Java 8 exigé jusqu’en 1.16.5', async () => {
+    const m = await online('Tour');
+    const pre = await api(
+      'POST',
+      `/api/machines/${m.id}/install/precheck`,
+      (({ acceptEula: _a, ...rest }) => rest)(body(m, { loader: 'forge', mcVersion: '1.7.10' })),
+    );
+    expect(pre.statusCode, pre.body).toBe(200);
+    // Le serveur démarrera sous Java 8 et rien d'autre : le pré-contrôle le demande ainsi.
+    expect(m.prechecks[0]).toMatchObject({ javaMajor: 8, javaStrict: true });
+    const res = await api(
+      'POST',
+      `/api/machines/${m.id}/install`,
+      body(m, { loader: 'forge', mcVersion: '1.7.10' }),
+    );
+    expect(res.statusCode, res.body).toBe(202);
+    await waitFor(() => m.installs.length === 1, 5_000);
+    const req = m.installs[0];
+    if (req === undefined) throw new Error('aucune installation reçue');
+    expect(req.loader).toBe('forge');
+    expect(req.loaderVersion).toBe('10.13.4.1614');
+    expect(req.steps.map((s) => s.kind)).toEqual([
+      'download',
+      'runJar',
+      'remove',
+      'remove',
+      'setProperties',
+    ]);
+    const [dl, run, rm1, rm2] = req.steps;
+    if (dl?.kind !== 'download' || run?.kind !== 'runJar') throw new Error('plan inattendu');
+    // L'ancienne coordonnée maven porte la version de jeu en suffixe : lue dans la liste publiée.
+    expect(dl.url).toBe(
+      'https://maven.minecraftforge.net/net/minecraftforge/forge/1.7.10-10.13.4.1614-1.7.10/forge-1.7.10-10.13.4.1614-1.7.10-installer.jar',
+    );
+    expect(dl.sha1).toBe('66bfea9963bfa60d88bab6b2750e74a958392715');
+    expect(dl.path).toBe('.mmo-install/forge-installer.jar');
+    expect(run.jar).toBe(dl.path);
+    expect(run.args).toEqual(['--installServer']);
+    expect(run.expect).toContain('libraries');
+    // Le JRE de l'installeur est quelconque (mesuré doc 06 §6bis) : aucune majeure imposée.
+    expect(run.javaMajor).toBeUndefined();
+    expect(rm1).toEqual({ kind: 'remove', path: '.mmo-install' });
+    expect(rm2).toEqual({ kind: 'remove', path: 'installer.jar.log' });
+    const row = panel.ctx.servers.list()[0];
+    expect(row?.javaMajorRequired).toBe(8);
+  });
+
+  it('neoforge : build stable par défaut, un build inconnu est refusé avant toute écriture', async () => {
+    const m = await online('Tour');
+    const bad = await api(
+      'POST',
+      `/api/machines/${m.id}/install`,
+      body(m, { loader: 'neoforge', mcVersion: '1.21.1', loaderVersion: '99.9.9' }),
+    );
+    expect(bad.statusCode).toBe(400);
+    expect(bad.json<{ details?: { reason?: string } }>().details?.reason).toBe('NO_LOADER');
+    expect(panel.ctx.servers.list()).toHaveLength(0);
+    const ok = await api(
+      'POST',
+      `/api/machines/${m.id}/install`,
+      body(m, { loader: 'neoforge', mcVersion: '1.21.1' }),
+    );
+    expect(ok.statusCode, ok.body).toBe(202);
+    await waitFor(() => m.installs.length === 1, 5_000);
+    const dl = m.installs[0]?.steps[0];
+    if (dl?.kind !== 'download') throw new Error('plan inattendu');
+    expect(dl.url).toBe(
+      'https://maven.neoforged.net/releases/net/neoforged/neoforge/21.1.209/neoforge-21.1.209-installer.jar',
+    );
+    expect(m.installs[0]?.loaderVersion).toBe('21.1.209');
   });
 
   it('une version que Fabric ne supporte pas est refusée avant toute écriture', async () => {

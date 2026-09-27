@@ -464,6 +464,13 @@ function compareVersionStrings(a: string, b: string): number {
 export function mcVersionFromNeoForge(version: string): string | undefined {
   const legacy = /^(1\.\d+(?:\.\d+)?)-/.exec(version);
   if (legacy?.[1]) return legacy[1];
+  // Depuis que Minecraft numérote par année (26.1, 26.2…), NeoForge suit la version de jeu sur
+  // quatre composantes : `26.1.2.112` → `26.1.2`, `26.2.0.88` → `26.2`. Lu `1.26.1` jusqu'ici.
+  const modern = /^(\d+)\.(\d+)\.(\d+)\.\d+/.exec(version);
+  if (modern && Number(modern[1]) >= 26) {
+    const [, year, drop, hotfix] = modern;
+    return hotfix === '0' ? `${String(year)}.${String(drop)}` : `${String(year)}.${String(drop)}.${String(hotfix)}`;
+  }
   const m = /^(\d+)\.(\d+)\.\d+/.exec(version);
   if (!m) return undefined;
   const minor = Number(m[1]);

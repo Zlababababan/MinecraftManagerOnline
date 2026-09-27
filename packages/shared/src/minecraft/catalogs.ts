@@ -1,6 +1,6 @@
 /**
- * Catalogues de versions installables (lot 5, première moitié : vanilla et Fabric — les deux
- * familles qui n'exigent aucun installeur tiers). Sur le modèle exact des fournisseurs de JRE
+ * Catalogues de versions installables (lot 5) : vanilla et Fabric, puis Forge et NeoForge (seconde
+ * moitié — leurs installeurs tournent par `runJar`, doc 06 §6bis). Sur le modèle exact des fournisseurs de JRE
  * (`java/providers.ts`) : **constructeurs d'URL et parseurs purs, aucune requête réseau**. Le panel
  * fait les appels, met en cache et construit le plan envoyé à l'agent (`server.install.steps`).
  *
@@ -241,4 +241,132 @@ export function parseFabricLoaders(json: unknown): FabricLoaderVersion[] {
  */
 export function pickStable<T extends { stable: boolean }>(versions: readonly T[]): T | undefined {
   return versions.find((v) => v.stable) ?? versions[0];
+}
+
+// --- Forge (files.minecraftforge.net + maven.minecraftforge.net) ----------------------------------
+
+export const FORGE_PROMOTIONS_URL =
+  'https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json';
+export const FORGE_MAVEN = 'https://maven.minecraftforge.net/net/minecraftforge/forge';
+export const FORGE_MAVEN_METADATA_URL = `${FORGE_MAVEN}/maven-metadata.xml`;
+
+export interface ForgePromotion {
+  /** Build « recommandé » par l'équipe Forge, s'il y en a un. */
+  recommended: string | undefined;
+  /** Build le plus récent. */
+  latest: string | undefined;
+}
+
+/**
+ * `promotions_slim.json` → promotions par version de jeu (`1.20.1` → recommandé/dernier). C'est la
+ * liste que le site de Forge propose ; le maven, lui, contient 5 000 builds dont aucun n'est
+ * signalé comme meilleur que l'autre (mesuré 2026-09-27 : 117 promotions, 5 053 builds).
+ */
+export function parseForgePromotions(json: unknown): Map<string, ForgePromotion> {
+  const promos = (json as { promos?: unknown } | null)?.promos;
+  if (promos === null || typeof promos !== 'object') {
+    throw new CatalogFormatError('forge.promotions', 'no_promos');
+  }
+  const out = new Map<string, ForgePromotion>();
+  for (const [key, value] of Object.entries(promos as Record<string, unknown>)) {
+    const m = /^(.+)-(recommended|latest)$/.exec(key);
+    const build = str(value);
+    if (!m?.[1] || build === undefined) continue;
+    const entry = out.get(m[1]) ?? { recommended: undefined, latest: undefined };
+    if (m[2] === 'recommended') entry.recommended = build;
+    else entry.latest = build;
+    out.set(m[1], entry);
+  }
+  if (out.size === 0) throw new CatalogFormatError('forge.promotions', 'no_promos');
+  return out;
+}
+
+/** `<version>` d'un `maven-metadata.xml`, dans l'ordre du fichier. */
+export function parseMavenVersions(xml: string, source: string): string[] {
+  const out: string[] = [];
+  for (const m of xml.matchAll(/<version>\s*([^<\s]+)\s*<\/version>/g)) {
+    if (m[1] !== undefined) out.push(m[1]);
+  }
+  if (out.length === 0) throw new CatalogFormatError(source, 'no_versions');
+  return out;
+}
+
+/**
+ * Coordonnée maven complète d'un build Forge. Les anciennes versions portent la version de jeu en
+ * suffixe (`1.7.10-10.13.4.1614-1.7.10`, `1.8.9-11.15.1.2318-1.8.9`), les récentes non
+ * (`1.20.1-47.4.10`, `26.2-65.1.0`) : on ne devine pas, on cherche dans la liste publiée.
+ */
+export function forgeMavenVersion(
+  mcVersion: string,
+  forgeVersion: string,
+  published: readonly string[],
+): string | undefined {
+  const plain = `${mcVersion}-${forgeVersion}`;
+  const suffixed = `${plain}-${mcVersion}`;
+  if (published.includes(plain)) return plain;
+  if (published.includes(suffixed)) return suffixed;
+  return undefined;
+}
+
+export function forgeInstallerUrl(mavenVersion: string): string {
+  const v = encodeURIComponent(mavenVersion);
+  return `${FORGE_MAVEN}/${v}/forge-${v}-installer.jar`;
+}
+
+// --- NeoForge (maven.neoforged.net) ---------------------------------------------------------------
+
+export const NEOFORGE_MAVEN = 'https://maven.neoforged.net/releases/net/neoforged/neoforge';
+export const NEOFORGE_MAVEN_METADATA_URL = `${NEOFORGE_MAVEN}/maven-metadata.xml`;
+
+export function neoforgeInstallerUrl(version: string): string {
+  const v = encodeURIComponent(version);
+  return `${NEOFORGE_MAVEN}/${v}/neoforge-${v}-installer.jar`;
+}
+
+/** Empreinte publiée à côté d'un artefact maven (`<url>.sha1`, 40 caractères hexadécimaux). */
+export function mavenSha1Url(artifactUrl: string): string {
+  return `${artifactUrl}.sha1`;
+}
+export function parseMavenSha1(text: string, source: string): string {
+  const sha1 = text.trim().slice(0, 40).toLowerCase();
+  if (!/^[0-9a-f]{40}$/.test(sha1)) throw new CatalogFormatError(source, 'bad_sha1');
+  return sha1;
+}
+
+/**
+ * Builds NeoForge regroupés par version de jeu, le plus récent d'abord. `stable` = sans suffixe
+ * (`-beta`, `-alpha…`). Écartés : les poissons d'avril (`0.25w14craftmine…`) et tout ce dont on ne
+ * sait pas tirer la version de jeu.
+ */
+export function groupNeoForgeVersions(
+  versions: readonly string[],
+  mcVersionOf: (neoforge: string) => string | undefined,
+): Map<string, FabricVersion[]> {
+  const out = new Map<string, FabricVersion[]>();
+  for (const version of versions) {
+    if (/^0\./.test(version) || version.includes('+')) continue;
+    const mc = mcVersionOf(version);
+    if (mc === undefined) continue;
+    const list = out.get(mc) ?? [];
+    list.push({ version, stable: !version.includes('-') });
+    out.set(mc, list);
+  }
+  for (const list of out.values()) list.sort((a, b) => compareBuilds(b.version, a.version));
+  return out;
+}
+
+/** Compare deux numéros de build pointés (`21.1.209` > `21.1.99`) ; le suffixe `-beta` départage. */
+export function compareBuilds(a: string, b: string): number {
+  const [na = '', sa] = a.split('-', 2);
+  const [nb = '', sb] = b.split('-', 2);
+  const pa = na.split('.').map(Number);
+  const pb = nb.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (!Number.isNaN(d) && d !== 0) return d;
+  }
+  // À numéro égal, la version sans suffixe (stable) passe devant la bêta.
+  if (sa === undefined && sb !== undefined) return 1;
+  if (sa !== undefined && sb === undefined) return -1;
+  return 0;
 }

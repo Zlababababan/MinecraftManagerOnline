@@ -125,6 +125,7 @@ export class InstallsService {
       path: prepared.target.path,
       gamePort: prepared.target.gamePort,
       ...(prepared.plan.javaMajor === undefined ? {} : { javaMajor: prepared.plan.javaMajor }),
+      ...(prepared.plan.javaStrict ? { javaStrict: true } : {}),
       requiredBytes: estimateBytes(prepared.plan),
     });
     return { ...result, target: prepared.target };

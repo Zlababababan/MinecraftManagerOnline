@@ -200,6 +200,62 @@ describe('ServerInstaller (lot 5)', () => {
     expect(await exists(path.join(serverDir, 'eula.txt'))).toBe(true);
   });
 
+  it('Forge/NeoForge : installeur rangé à part, exécuté dans le dossier, puis retiré avec son journal', async () => {
+    // Mesuré sur les vrais installeurs (doc 06 §6quater) : lancé depuis un sous-dossier, il
+    // installe dans le dossier courant et y laisse `installer.jar.log`.
+    await writeFile(
+      fakeInstaller,
+      [
+        "import { mkdirSync, writeFileSync } from 'node:fs';",
+        "if (!process.argv.includes('--installServer')) process.exit(2);",
+        "mkdirSync('libraries/net/neoforged/neoforge/21.1.209', { recursive: true });",
+        "writeFileSync('libraries/net/neoforged/neoforge/21.1.209/win_args.txt', '-cp x');",
+        "writeFileSync('libraries/net/neoforged/neoforge/21.1.209/unix_args.txt', '-cp x');",
+        "writeFileSync('run.bat', 'java @libraries/net/neoforged/neoforge/21.1.209/win_args.txt');",
+        "writeFileSync('installer.jar.log', 'log');",
+        "console.log('The server installed successfully');",
+      ].join('\n'),
+      'utf8',
+    );
+    const jar = serve('/neoforge-installer.jar', 'installer');
+    const record = await run(
+      base({
+        loader: 'neoforge',
+        mcVersion: '1.21.1',
+        acceptEula: true,
+        steps: [
+          { kind: 'download', path: '.mmo-install/installer.jar', url: jar.url, sha1: jar.sha1 },
+          {
+            kind: 'runJar',
+            jar: '.mmo-install/installer.jar',
+            args: ['--installServer'],
+            expect: ['libraries'],
+          },
+          { kind: 'remove', path: '.mmo-install' },
+          { kind: 'remove', path: 'installer.jar.log' },
+        ],
+      }),
+    );
+    expect(record?.status).toBe('done');
+    expect(await exists(path.join(serverDir, '.mmo-install'))).toBe(false);
+    expect(await exists(path.join(serverDir, 'installer.jar.log'))).toBe(false);
+    expect(await exists(path.join(serverDir, 'run.bat'))).toBe(true);
+    const result = record?.result as { detected?: { loader: { value: string } } };
+    expect(result.detected?.loader.value).toBe('neoforge');
+    // Une étape `remove` ne peut viser ni le dossier lui-même, ni en sortir.
+    for (const bad of ['', '..', '../voisin', 'a/../../b']) {
+      expect(() =>
+        serverInstallSchema.parse({
+          taskId: '01J5X8ZK3Q9WYE2R7M4T6B8N2B',
+          serverId: 'srv_new',
+          path: serverDir,
+          loader: 'forge',
+          steps: [{ kind: 'remove', path: bad }],
+        }),
+      ).toThrow();
+    }
+  });
+
   it('un installeur qui échoue, qui ne produit rien, ou qui s’éternise : trois échecs distincts', async () => {
     const jar = serve('/launcher.jar', 'launcher');
     await writeFile(

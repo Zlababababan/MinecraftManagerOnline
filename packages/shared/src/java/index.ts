@@ -14,8 +14,13 @@ export interface JavaRequirement {
   source: 'override' | 'manifest' | 'table';
 }
 
-/** Table de repli : `[1.12,1.17)→8`, `[1.17,1.20.5)→17`, `[1.20.5,…)→21` ; avant 1.12 → 8 ; snapshot → 21. */
+/**
+ * Table de repli : `[1.12,1.17)→8`, `[1.17,1.20.5)→17`, `[1.20.5,26.1)→21`, `[26.1,…)→25` ; avant 1.12
+ * → 8 ; ancien snapshot (`24w14a`, tous antérieurs à 26.1) → 21. Java 25 pour 26.x : mesuré sur le
+ * manifest Mojang (`java-runtime-epsilon`), 2026-09-27.
+ */
 export const JAVA_FALLBACK_TABLE: readonly { min: string; major: number }[] = [
+  { min: '26.1', major: 25 },
   { min: '1.20.5', major: 21 },
   { min: '1.17', major: 17 },
   { min: '0.0', major: 8 },

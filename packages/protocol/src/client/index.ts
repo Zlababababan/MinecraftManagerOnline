@@ -971,8 +971,11 @@ export type DuplicatePrecheckDto = z.infer<typeof duplicatePrecheckDtoSchema>;
 
 // --- Lot 5 : créer un serveur depuis le panel -----------------------------------------------------
 
-/** Familles installables sans installeur tiers (première moitié du lot 5). */
-export const INSTALL_LOADERS = ['vanilla', 'fabric'] as const;
+/**
+ * Familles installables depuis le panel : vanilla et Fabric (sans installeur tiers), Forge et
+ * NeoForge (leur installeur tourne sur la machine, doc 06 §6bis).
+ */
+export const INSTALL_LOADERS = ['vanilla', 'fabric', 'forge', 'neoforge'] as const;
 export const installLoaderSchema = z.enum(INSTALL_LOADERS);
 export type InstallLoader = z.infer<typeof installLoaderSchema>;
 
@@ -988,6 +991,8 @@ export const catalogVersionDtoSchema = z.object({
   /** Version de release (par opposition à une pré-release ou un snapshot). */
   stable: z.boolean(),
   releasedAt: epochMsSchema.optional(),
+  /** Build du loader que le panel installera par défaut (Forge : recommandé, NeoForge : stable). */
+  loaderVersion: z.string().optional(),
 });
 export type CatalogVersionDto = z.infer<typeof catalogVersionDtoSchema>;
 
@@ -1005,7 +1010,7 @@ export const createInstallSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   loader: installLoaderSchema,
   mcVersion: z.string().min(1).max(64),
-  /** Version de loader ; la plus récente stable si absente (Fabric). */
+  /** Version de loader ; la plus récente stable (Fabric, NeoForge) ou recommandée (Forge) si absente. */
   loaderVersion: z.string().min(1).max(64).optional(),
   maxRamMb: z.int().min(512).max(1_048_576),
   minRamMb: z.int().min(256).max(1_048_576).optional(),

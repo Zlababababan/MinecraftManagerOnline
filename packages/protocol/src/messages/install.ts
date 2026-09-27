@@ -85,6 +85,14 @@ export const installStepSchema = z.discriminatedUnion('kind', [
     path: relativePathSchema.default('server.properties'),
     values: z.record(z.string(), z.string()),
   }),
+  /**
+   * Supprime un fichier ou un dossier du serveur (l'installeur Forge/NeoForge et son journal, une
+   * fois leur travail fait). Jamais le dossier lui-même, jamais un chemin hors du jail.
+   */
+  z.object({
+    kind: z.literal('remove'),
+    path: relativePathSchema.refine((p) => p !== '', { message: 'path expected' }),
+  }),
 ]);
 export type InstallStep = z.infer<typeof installStepSchema>;
 

@@ -1,5 +1,5 @@
 /**
- * Lot 5 — catalogue des versions installables et construction du **plan** envoyé à l'agent
+ * Lot 5 — catalogue des versions installables (vanilla, Fabric, Forge, NeoForge) et construction du **plan** envoyé à l'agent
  * (doc 05 §6 « Installation », doc 06 §6ter). Le panel est le seul à parler aux fournisseurs :
  * l'agent ne connaît ni Mojang ni Fabric, il exécute une liste d'étapes.
  *
@@ -11,17 +11,32 @@
  */
 import {
   CatalogFormatError,
+  FORGE_MAVEN_METADATA_URL,
+  FORGE_PROMOTIONS_URL,
+  NEOFORGE_MAVEN_METADATA_URL,
   fabricGameUrl,
   fabricInstallerUrl,
   fabricLoaderUrl,
   fabricServerJarName,
   fabricServerJarUrl,
+  forgeInstallerUrl,
+  forgeMavenVersion,
+  groupNeoForgeVersions,
+  isStrictJava8,
+  mavenSha1Url,
+  mcVersionFromNeoForge,
+  neoforgeInstallerUrl,
   parseFabricGameVersions,
   parseFabricInstallers,
   parseFabricLoaders,
   parseMcVersionDetail,
+  parseForgePromotions,
+  parseMavenSha1,
+  parseMavenVersions,
   parseMcVersionManifest,
   pickStable,
+  type FabricVersion,
+  type ForgePromotion,
   MOJANG_VERSION_MANIFEST_URL,
   type McServerDownload,
   type McVersionEntry,
@@ -47,7 +62,12 @@ export interface InstallPlan {
   loaderVersion: string | undefined;
   /** Java du **serveur** (le `runJar` d'installation, lui, se contente de ce qu'il trouve). */
   javaMajor: number | undefined;
+  /** Exactement cette version (Forge ≤ 1.16.5 ne démarre que sous Java 8). */
+  javaStrict: boolean;
 }
+
+/** Dossier où l'installeur Forge/NeoForge est posé, puis retiré (doc 06 §6quater). */
+export const INSTALLER_DIR = '.mmo-install';
 
 interface Cached<T> {
   at: number;
@@ -62,6 +82,9 @@ export class InstallCatalogService {
   private fabricInstaller: Cached<string> | undefined;
   private readonly fabricLoaders = new Map<string, Cached<string | undefined>>();
   private readonly details = new Map<string, McServerDownload>();
+  private forgePromos: Cached<Map<string, ForgePromotion>> | undefined;
+  private forgeMaven: Cached<string[]> | undefined;
+  private neoforge: Cached<Map<string, FabricVersion[]>> | undefined;
 
   constructor(private readonly deps: InstallCatalogDeps) {}
 
@@ -76,21 +99,35 @@ export class InstallCatalogService {
   /** Versions proposées pour un loader, les plus récentes d'abord. */
   async versions(loader: InstallLoader): Promise<CatalogVersionDto[]> {
     const mojang = await this.mojangVersions();
-    if (loader === 'vanilla') {
-      return mojang.map((v) => ({
-        id: v.id,
-        stable: v.type === 'release',
-        releasedAt: v.releasedAt === 0 ? undefined : v.releasedAt,
-      }));
-    }
-    const supported = new Set(await this.fabricGameVersions());
-    // L'ordre et les dates viennent de Mojang ; Fabric ne dit que ce qu'il supporte.
-    const known = mojang.filter((v) => supported.has(v.id));
-    return known.map((v) => ({
+    const dto = (v: McVersionEntry, loaderVersion?: string): CatalogVersionDto => ({
       id: v.id,
       stable: v.type === 'release',
-      releasedAt: v.releasedAt === 0 ? undefined : v.releasedAt,
-    }));
+      ...(v.releasedAt === 0 ? {} : { releasedAt: v.releasedAt }),
+      ...(loaderVersion === undefined ? {} : { loaderVersion }),
+    });
+    // L'ordre et les dates viennent toujours de Mojang ; chaque loader ne dit que ce qu'il supporte.
+    switch (loader) {
+      case 'vanilla':
+        return mojang.map((v) => dto(v));
+      case 'fabric': {
+        const supported = new Set(await this.fabricGameVersions());
+        return mojang.filter((v) => supported.has(v.id)).map((v) => dto(v));
+      }
+      case 'forge': {
+        const promos = await this.forgePromotions();
+        return mojang.flatMap((v) => {
+          const build = forgeBuildOf(promos.get(v.id));
+          return build === undefined ? [] : [dto(v, build)];
+        });
+      }
+      case 'neoforge': {
+        const groups = await this.neoforgeVersions();
+        return mojang.flatMap((v) => {
+          const build = pickStable(groups.get(v.id) ?? [])?.version;
+          return build === undefined ? [] : [dto(v, build)];
+        });
+      }
+    }
   }
 
   /** Construit le plan d'installation. Toute panne de fournisseur est dite, pas devinée. */
@@ -100,12 +137,16 @@ export class InstallCatalogService {
     loaderVersion?: string | undefined;
   }): Promise<InstallPlan> {
     const download = await this.serverDownload(input.mcVersion);
+    if (input.loader === 'forge' || input.loader === 'neoforge') {
+      return this.forgeLikePlan(input.loader, input.mcVersion, input.loaderVersion, download);
+    }
     if (input.loader === 'vanilla') {
       return {
         loader: 'vanilla',
         mcVersion: input.mcVersion,
         loaderVersion: undefined,
         javaMajor: download.javaMajor,
+        javaStrict: false,
         steps: [
           {
             kind: 'download',
@@ -131,6 +172,7 @@ export class InstallCatalogService {
       mcVersion: input.mcVersion,
       loaderVersion,
       javaMajor: download.javaMajor,
+      javaStrict: false,
       steps: [
         {
           kind: 'download',
@@ -149,6 +191,66 @@ export class InstallCatalogService {
           expect: ['libraries'],
           label: `Fabric ${loaderVersion}`,
         },
+      ],
+    };
+  }
+
+  /**
+   * Forge et NeoForge : l'installeur est posé dans `.mmo-install/`, exécuté avec
+   * `--installServer` depuis le dossier du serveur (il installe dans le dossier courant, mesuré doc
+   * 06 §6quater), puis retiré avec le journal qu'il laisse. Le serveur n'a besoin ni de l'un ni de
+   * l'autre pour tourner.
+   */
+  private async forgeLikePlan(
+    loader: 'forge' | 'neoforge',
+    mcVersion: string,
+    requested: string | undefined,
+    download: McServerDownload,
+  ): Promise<InstallPlan> {
+    let build: string | undefined;
+    let url: string | undefined;
+    if (loader === 'forge') {
+      build = requested ?? forgeBuildOf((await this.forgePromotions()).get(mcVersion));
+      const coordinate =
+        build === undefined
+          ? undefined
+          : forgeMavenVersion(mcVersion, build, await this.forgeMavenVersions());
+      url = coordinate === undefined ? undefined : forgeInstallerUrl(coordinate);
+    } else {
+      const builds = (await this.neoforgeVersions()).get(mcVersion) ?? [];
+      build = requested ?? pickStable(builds)?.version;
+      url =
+        build !== undefined && builds.some((b) => b.version === build)
+          ? neoforgeInstallerUrl(build)
+          : undefined;
+    }
+    if (build === undefined || url === undefined) {
+      throw new AppError('E_VALIDATION', `${loader} does not support this Minecraft version`, {
+        details: { reason: 'NO_LOADER', mcVersion, loader },
+      });
+    }
+    const label = `${loader === 'forge' ? 'Forge' : 'NeoForge'} ${build}`;
+    const jar = `${INSTALLER_DIR}/${loader}-installer.jar`;
+    const strict = isStrictJava8(loader, mcVersion);
+    return {
+      loader,
+      mcVersion,
+      loaderVersion: build,
+      javaMajor: strict ? 8 : download.javaMajor,
+      javaStrict: strict,
+      steps: [
+        { kind: 'download', path: jar, url, sha1: await this.sha1Of(url, loader), label },
+        {
+          kind: 'runJar',
+          jar,
+          args: ['--installServer'],
+          timeoutSec: INSTALL_RUN_TIMEOUT_DEFAULT_SEC,
+          // Toutes les générations mesurées écrivent libraries/ : sans lui, rien n'est installé.
+          expect: ['libraries'],
+          label,
+        },
+        { kind: 'remove', path: INSTALLER_DIR },
+        { kind: 'remove', path: 'installer.jar.log' },
       ],
     };
   }
@@ -213,7 +315,52 @@ export class InstallCatalogService {
     return value;
   }
 
+  private async forgePromotions(): Promise<Map<string, ForgePromotion>> {
+    const cached = this.fresh(this.forgePromos);
+    if (cached) return cached;
+    const json = await this.get(FORGE_PROMOTIONS_URL, 'forge.promotions');
+    const value = this.parse(() => parseForgePromotions(json));
+    this.forgePromos = { at: this.deps.now(), value };
+    return value;
+  }
+
+  private async forgeMavenVersions(): Promise<string[]> {
+    const cached = this.fresh(this.forgeMaven);
+    if (cached) return cached;
+    const xml = await this.getText(FORGE_MAVEN_METADATA_URL, 'forge.maven');
+    const value = this.parse(() => parseMavenVersions(xml, 'forge.maven'));
+    this.forgeMaven = { at: this.deps.now(), value };
+    return value;
+  }
+
+  private async neoforgeVersions(): Promise<Map<string, FabricVersion[]>> {
+    const cached = this.fresh(this.neoforge);
+    if (cached) return cached;
+    const xml = await this.getText(NEOFORGE_MAVEN_METADATA_URL, 'neoforge.maven');
+    const value = this.parse(() =>
+      groupNeoForgeVersions(parseMavenVersions(xml, 'neoforge.maven'), mcVersionFromNeoForge),
+    );
+    this.neoforge = { at: this.deps.now(), value };
+    return value;
+  }
+
+  /** Empreinte publiée à côté de l'installeur : il est vérifié comme le serveur vanilla. */
+  private async sha1Of(url: string, loader: string): Promise<string> {
+    const text = await this.getText(mavenSha1Url(url), loader + '.sha1');
+    return this.parse(() => parseMavenSha1(text, loader + '.sha1'));
+  }
+
+  private async getText(url: string, source: string): Promise<string> {
+    const res = await this.fetchOk(url, source);
+    return await res.text();
+  }
+
   private async get(url: string, source: string): Promise<unknown> {
+    const res = await this.fetchOk(url, source);
+    return await res.json();
+  }
+
+  private async fetchOk(url: string, source: string): Promise<Response> {
     const doFetch = this.deps.fetchImpl ?? globalThis.fetch;
     const res = await doFetch(url, { signal: AbortSignal.timeout(15_000) }).catch(
       (error: unknown) => {
@@ -230,7 +377,7 @@ export class InstallCatalogService {
         details: { reason: 'CATALOG_HTTP', source, status: res.status },
       });
     }
-    return await res.json();
+    return res;
   }
 
   /** Une réponse de forme inattendue est une panne du fournisseur, nommée comme telle. */
@@ -248,4 +395,9 @@ export class InstallCatalogService {
       throw error;
     }
   }
+}
+
+/** Forge : le build recommandé s'il y en a un, sinon le plus récent. */
+function forgeBuildOf(promo: ForgePromotion | undefined): string | undefined {
+  return promo?.recommended ?? promo?.latest;
 }
