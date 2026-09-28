@@ -16,6 +16,7 @@ import {
 } from './db/client.js';
 import type { SqliteHandle } from './db/sqlite.js';
 import { PublicRateLimits, type PublicRateLimitOptions } from './http/rate-limits.js';
+import { PoliteFetcher, type PoliteFetcherOptions } from './util/polite-fetch.js';
 import { AuditService } from './services/audit.js';
 import { BackupsService } from './services/backups.js';
 import { EventBus } from './services/events.js';
@@ -36,6 +37,8 @@ import { ProcessedEventsService } from './services/processed-events.js';
 import { UpdateCheckService } from './services/update-check.js';
 import { WebhooksService, type WebhooksServiceOptions } from './services/webhooks.js';
 import { InstallCatalogService } from './services/install-catalog.js';
+// Intégration FTB, retirable en entier (docs/services-tiers.md).
+import { FtbService } from './services/modpacks/ftb.js';
 import { InstallsService } from './services/installs.js';
 import { ReplicationService } from './services/replication.js';
 import { StatusPagesService, type StatusPagesDeps } from './services/status-pages.js';
@@ -111,12 +114,15 @@ export interface AppContext {
   /** Lot 4 : copies hors-site des archives vers une autre machine du parc (chaîne de migration). */
   replication: ReplicationService;
   installCatalog: InstallCatalogService;
+  ftb: FtbService;
   installs: InstallsService;
   /** Lot 8 : page de statut publique d'un serveur (`/s/<jeton>`, lecture seule, anonyme). */
   statusPages: StatusPagesService;
   whitelistRequests: WhitelistRequestsService;
   /** `fetch` injectable (tests) pour les appels sortants du panel (manifest Mojang, API spark). */
   fetchImpl: typeof fetch | undefined;
+  /** Seul point de sortie poli vers les services tiers (docs/services-tiers.md). */
+  politeFetch: PoliteFetcher;
   /**
    * Lot 9 : ce que `/api/health` montre à un administrateur — instant de démarrage, journal
    * courant, dernier passage de maintenance (rempli par `runMaintenance`).
@@ -158,6 +164,8 @@ export interface ContextOptions {
   /** Lot 8 : page de statut publique (ping injectable, cache court — tests). */
   statusPages?: Pick<StatusPagesDeps, 'ping' | 'cacheMs' | 'pingTimeoutMs'>;
   fetch?: typeof fetch;
+  /** Politesse envers les services tiers : bornes et délais (tests : attentes courtes). */
+  politeFetch?: Omit<PoliteFetcherOptions, 'fetchImpl' | 'now' | 'logger'>;
   /** Période du planificateur (0 = manuel, tests). */
   schedulerTickMs?: number;
   /** Attente de reconnexion d'un agent pendant un transfert (tests : court). */
@@ -469,11 +477,27 @@ export function createContext(options: ContextOptions): AppContext {
     ttlMs: options.migrationTtlMs,
   });
 
-  // Lot 5 : catalogue des versions installables, et création de serveurs.
-  const installCatalog = new InstallCatalogService({
+  // Services tiers (docs/services-tiers.md) : un seul point de sortie poli pour tous les
+  // catalogues, partagé pour que la borne par hôte vaille pour tout le panel.
+  const politeFetch = new PoliteFetcher({
     fetchImpl: options.fetch ?? fetch,
     now,
     logger,
+    ...(options.politeFetch ?? {}),
+  });
+
+  // Lot 5 : catalogue des versions installables, et création de serveurs.
+  const installCatalog = new InstallCatalogService({
+    fetcher: politeFetch,
+    now,
+    logger,
+    ...(options.installCatalogTtlMs === undefined ? {} : { ttlMs: options.installCatalogTtlMs }),
+  });
+  const ftb = new FtbService({
+    fetcher: politeFetch,
+    now,
+    logger,
+    enabled: () => settings.getBool(SETTING_KEYS.ftbEnabled),
     ...(options.installCatalogTtlMs === undefined ? {} : { ttlMs: options.installCatalogTtlMs }),
   });
   const installs = new InstallsService({
@@ -484,6 +508,7 @@ export function createContext(options: ContextOptions): AppContext {
     servers,
     tasks,
     catalog: installCatalog,
+    modpacks: new Map([['ftb', ftb]]),
     events,
     logger,
     reachable: (machineId) => registry.isConnected(machineId),
@@ -602,10 +627,12 @@ export function createContext(options: ContextOptions): AppContext {
     webhooks,
     replication,
     installCatalog,
+    ftb,
     installs,
     statusPages,
     whitelistRequests,
     fetchImpl: options.fetch,
+    politeFetch,
     diagnostics: {
       startedAt: now(),
       logFile: options.logFile ?? (() => undefined),

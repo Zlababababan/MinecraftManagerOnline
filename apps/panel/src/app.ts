@@ -22,6 +22,8 @@ import { registerPhase9Routes } from './http/routes/phase9.js';
 import { registerPhase10Routes } from './http/routes/phase10.js';
 import { registerPhase11Routes } from './http/routes/phase11.js';
 import { registerInstallRoutes } from './http/routes/installs.js';
+// Intégration FTB, retirable en entier (docs/services-tiers.md).
+import { registerFtbRoutes } from './http/routes/modpacks-ftb.js';
 import { registerReplicationRoutes } from './http/routes/replication.js';
 import { registerStatusPageRoutes } from './http/routes/status-page.js';
 import { registerWhitelistRequestRoutes } from './http/routes/whitelist-requests.js';
@@ -84,6 +86,7 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
     ...(options.access === undefined ? {} : { access: options.access }),
     ...(options.logFile === undefined ? {} : { logFile: options.logFile }),
     ...(options.publicRateLimit === undefined ? {} : { publicRateLimit: options.publicRateLimit }),
+    ...(options.politeFetch === undefined ? {} : { politeFetch: options.politeFetch }),
     ...(options.backpressure === undefined ? {} : { backpressure: options.backpressure }),
     ...(options.webhooks === undefined ? {} : { webhooks: options.webhooks }),
     ...(options.statusPages === undefined ? {} : { statusPages: options.statusPages }),
@@ -113,6 +116,7 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   registerWebhookRoutes(app, ctx);
   registerReplicationRoutes(app, ctx);
   registerInstallRoutes(app, ctx);
+  registerFtbRoutes(app, ctx);
   registerStatusPageRoutes(app, ctx);
   registerWhitelistRequestRoutes(app, ctx);
   registerWsRoutes(app, ctx);

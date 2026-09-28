@@ -44,6 +44,7 @@ import {
   type InstallPrecheckDto,
   type MachineDto,
 } from '@mmo/protocol/client';
+import type { ThirdPartyServiceId } from '@mmo/shared';
 
 import { useCreateInstall, useInstallCatalog, useInstallPrecheck } from '../../api/installs.js';
 import { useActiveTasks } from '../../api/phase8.js';
@@ -55,6 +56,9 @@ import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 import { ErrorAlert } from '../ErrorAlert.js';
 import { HelpLink } from '../HelpLink.js';
 import { TaskProgressRow } from '../tasks/TaskProgress.js';
+import { ThirdPartyNote } from '../ThirdPartyNote.js';
+// Intégration FTB, retirable en entier (docs/services-tiers.md).
+import { FtbPackPicker, type FtbSelection } from './FtbPackPicker.js';
 
 export interface CreateServerModalProps {
   machine: MachineDto;
@@ -74,6 +78,14 @@ interface FormValues {
   motd: string;
   acceptEula: boolean;
 }
+
+/** Services tiers qu'interroge chaque chargeur (notes « à vérifier », Réglages → Services tiers). */
+const LOADER_SERVICES: Record<InstallLoader, ThirdPartyServiceId[]> = {
+  vanilla: ['mojang'],
+  fabric: ['mojang', 'fabric'],
+  forge: ['mojang', 'forge'],
+  neoforge: ['mojang', 'neoforge'],
+};
 
 const LOADER_LABELS: Record<InstallLoader, string> = {
   vanilla: 'Minecraft',
@@ -142,6 +154,12 @@ export function CreateServerModal({
   const [step, setStep] = useState(0);
   const [precheck, setPrecheck] = useState<InstallPrecheckDto | undefined>(undefined);
   const [showUnstable, setShowUnstable] = useState(false);
+  // Intégration FTB (retirable) : un modpack au lieu d'un chargeur nu.
+  const [mode, setMode] = useState<'plain' | 'ftb'>('plain');
+  const [ftbPick, setFtbPick] = useState<FtbSelection | undefined>(undefined);
+  const [ftbError, setFtbError] = useState<string | undefined>(undefined);
+  // Dernière mémoire proposée par l'assistant : tant que le champ la porte, on peut la remplacer.
+  const suggestedRam = useRef<number>(DEFAULT_RAM_MB.vanilla);
   const form = useForm<FormValues>({
     initialValues: {
       directoryId: directories[0]?.id ?? '',
@@ -162,7 +180,7 @@ export function CreateServerModal({
     },
   });
 
-  const catalog = useInstallCatalog(form.values.loader, opened);
+  const catalog = useInstallCatalog(form.values.loader, opened && mode === 'plain');
   const runPrecheck = useInstallPrecheck(machine.id);
   const create = useCreateInstall(machine.id);
   const installJava = useInstallJava(machine.id);
@@ -170,6 +188,7 @@ export function CreateServerModal({
   const tasks = useActiveTasks();
   const servers = useQuery({ ...serversQuery, enabled: opened });
   const isAdmin = me.data !== undefined && hasRole(me.data.user.role, 'admin');
+  const ftbAvailable = me.data?.features?.ftb === true;
 
   const directory = directories.find((d) => d.id === form.values.directoryId);
   const separator = machine.os === 'windows' ? String.fromCharCode(92) : '/';
@@ -183,10 +202,11 @@ export function CreateServerModal({
   const { setFieldValue } = form;
   const currentVersion = form.values.mcVersion;
   useEffect(() => {
-    if (currentVersion !== '') return;
+    // En mode modpack, c'est le pack qui dit la version de jeu.
+    if (mode === 'ftb' || currentVersion !== '') return;
     const first = versions.find((v) => v.stable);
     if (first !== undefined) setFieldValue('mcVersion', first.id);
-  }, [versions, currentVersion, setFieldValue]);
+  }, [versions, currentVersion, setFieldValue, mode]);
 
   // Les dossiers déjà enregistrés sur cette machine, sous le répertoire choisi : dire tout de suite
   // « ce nom est pris » plutôt que laisser avancer jusqu'au refus du panel (recette, 4.9). Casse
@@ -218,6 +238,10 @@ export function CreateServerModal({
     setStep(0);
     setPrecheck(undefined);
     setShowUnstable(false);
+    setMode('plain');
+    setFtbPick(undefined);
+    setFtbError(undefined);
+    suggestedRam.current = DEFAULT_RAM_MB.vanilla;
     form.reset();
     create.reset();
     runPrecheck.reset();
@@ -233,6 +257,15 @@ export function CreateServerModal({
     maxRamMb: form.values.maxRamMb,
     ...(form.values.name.trim() === '' ? {} : { name: form.values.name.trim() }),
     ...(form.values.motd.trim() === '' ? {} : { motd: form.values.motd.trim() }),
+    ...(mode === 'ftb' && ftbPick !== undefined
+      ? {
+          modpack: {
+            provider: 'ftb' as const,
+            packId: ftbPick.pack.id,
+            versionId: ftbPick.version.id,
+          },
+        }
+      : {}),
   });
 
   const check = (then?: () => void) => {
@@ -261,7 +294,11 @@ export function CreateServerModal({
     if (step === 0 && form.validateField('directoryId').hasError) return;
     if (step === 0 && form.validateField('folderName').hasError) return;
     if (step === 0 && folderTaken) return;
-    if (step === 1 && form.validateField('mcVersion').hasError) return;
+    if (step === 1 && mode === 'ftb' && ftbPick === undefined) {
+      setFtbError(t('web:install.ftb.required'));
+      return;
+    }
+    if (step === 1 && mode === 'plain' && form.validateField('mcVersion').hasError) return;
     // Dernier pas avant l'engagement : on demande à la machine ce qu'elle en pense.
     if (step === 2) {
       check(() => {
@@ -295,13 +332,41 @@ export function CreateServerModal({
   const javaMissing = precheck !== undefined && !precheck.java.ok;
   const javaMajor = precheck?.target.javaMajor ?? undefined;
 
+  // La mémoire suit ce que l'assistant propose tant que l'utilisateur ne l'a pas réglée lui-même.
+  const suggestRam = (value: number) => {
+    if (form.values.maxRamMb === suggestedRam.current) form.setFieldValue('maxRamMb', value);
+    suggestedRam.current = value;
+  };
+
   const changeLoader = (value: InstallLoader) => {
-    // La mémoire suit la famille tant que l'utilisateur ne l'a pas réglée lui-même.
-    if (form.values.maxRamMb === DEFAULT_RAM_MB[form.values.loader]) {
-      form.setFieldValue('maxRamMb', DEFAULT_RAM_MB[value]);
-    }
+    suggestRam(DEFAULT_RAM_MB[value]);
     form.setFieldValue('loader', value);
     form.setFieldValue('mcVersion', '');
+  };
+
+  const changeSource = (value: string) => {
+    if (value === 'ftb') {
+      setMode('ftb');
+      setFtbPick(undefined);
+      form.setFieldValue('mcVersion', '');
+      return;
+    }
+    setMode('plain');
+    setFtbPick(undefined);
+    setFtbError(undefined);
+    changeLoader(value as InstallLoader);
+  };
+
+  const pickFtb = (selection: FtbSelection | undefined) => {
+    setFtbPick(selection);
+    setFtbError(undefined);
+    if (selection === undefined) return;
+    const { version } = selection;
+    // Le pack fait autorité : le panel le relira de toute façon, mais le récapitulatif et le
+    // pré-contrôle (Java, place) doivent parler du bon chargeur dès maintenant.
+    if (version.loader !== null) form.setFieldValue('loader', version.loader);
+    if (version.mcVersion !== null) form.setFieldValue('mcVersion', version.mcVersion);
+    suggestRam(version.ramRecommendedMb ?? DEFAULT_RAM_MB[version.loader ?? 'neoforge']);
   };
 
   return (
@@ -356,55 +421,65 @@ export function CreateServerModal({
                 { value: 'fabric', label: t('web:install.loaderFabric') },
                 { value: 'forge', label: t('web:install.loaderForge') },
                 { value: 'neoforge', label: t('web:install.loaderNeoForge') },
+                // Intégration FTB : proposée seulement si elle est activée (Réglages → Services tiers).
+                ...(ftbAvailable ? [{ value: 'ftb', label: t('web:install.loaderFtb') }] : []),
               ]}
               data-testid="install-loader"
-              value={form.values.loader}
-              onChange={(value) => {
-                changeLoader(value as InstallLoader);
-              }}
+              value={mode === 'ftb' ? 'ftb' : form.values.loader}
+              onChange={changeSource}
             />
             <Text size="sm" c="dimmed" data-testid="install-loader-hint">
-              {t(`web:install.loaderHint.${form.values.loader}`)}
+              {mode === 'ftb'
+                ? t('web:install.loaderHint.ftb')
+                : t(`web:install.loaderHint.${form.values.loader}`)}
             </Text>
-            <NativeSelect
-              label={t('web:install.version')}
-              disabled={catalog.isPending}
-              data={[
-                { value: '', label: catalog.isPending ? t('web:common.loading') : '—' },
-                ...groups.map((g) => ({
-                  group:
-                    g.series === undefined
-                      ? t('web:install.unstableGroup')
-                      : t('web:install.seriesGroup', { series: g.series }),
-                  items: g.items.map((v) => ({
-                    value: v.id,
-                    label: v.stable ? v.id : `${v.id} (${t('web:install.snapshot')})`,
-                  })),
-                })),
-              ]}
-              data-testid="install-version"
-              {...form.getInputProps('mcVersion')}
-            />
-            {selected?.loaderVersion !== undefined && (
-              <Text size="sm" data-testid="install-loader-version">
-                {t('web:install.loaderBuild', {
-                  loader: LOADER_LABELS[form.values.loader],
-                  version: selected.loaderVersion,
-                })}
-              </Text>
+            {mode === 'ftb' && (
+              <FtbPackPicker value={ftbPick} onChange={pickFtb} error={ftbError} />
             )}
-            <Switch
-              label={t('web:install.showUnstable')}
-              checked={showUnstable}
-              data-testid="install-show-unstable"
-              onChange={(e) => {
-                setShowUnstable(e.currentTarget.checked);
-              }}
-            />
-            <ErrorAlert error={catalog.error} />
-            <Text size="xs" c="dimmed">
-              {t('web:install.versionHint')}
-            </Text>
+            {mode === 'plain' && (
+              <>
+                <NativeSelect
+                  label={t('web:install.version')}
+                  disabled={catalog.isPending}
+                  data={[
+                    { value: '', label: catalog.isPending ? t('web:common.loading') : '—' },
+                    ...groups.map((g) => ({
+                      group:
+                        g.series === undefined
+                          ? t('web:install.unstableGroup')
+                          : t('web:install.seriesGroup', { series: g.series }),
+                      items: g.items.map((v) => ({
+                        value: v.id,
+                        label: v.stable ? v.id : `${v.id} (${t('web:install.snapshot')})`,
+                      })),
+                    })),
+                  ]}
+                  data-testid="install-version"
+                  {...form.getInputProps('mcVersion')}
+                />
+                {selected?.loaderVersion !== undefined && (
+                  <Text size="sm" data-testid="install-loader-version">
+                    {t('web:install.loaderBuild', {
+                      loader: LOADER_LABELS[form.values.loader],
+                      version: selected.loaderVersion,
+                    })}
+                  </Text>
+                )}
+                <Switch
+                  label={t('web:install.showUnstable')}
+                  checked={showUnstable}
+                  data-testid="install-show-unstable"
+                  onChange={(e) => {
+                    setShowUnstable(e.currentTarget.checked);
+                  }}
+                />
+                <ErrorAlert error={catalog.error} />
+                <Text size="xs" c="dimmed">
+                  {t('web:install.versionHint')}
+                </Text>
+                <ThirdPartyNote services={LOADER_SERVICES[form.values.loader]} />
+              </>
+            )}
           </Stack>
         )}
 
@@ -433,7 +508,11 @@ export function CreateServerModal({
                 />
                 <Summary
                   label={t('web:install.version')}
-                  value={`${LOADER_LABELS[form.values.loader]} ${form.values.mcVersion}${
+                  value={`${
+                    mode === 'ftb' && ftbPick !== undefined
+                      ? `${ftbPick.pack.name} ${ftbPick.version.name} — `
+                      : ''
+                  }${LOADER_LABELS[form.values.loader]} ${form.values.mcVersion}${
                     precheck?.target.loaderVersion === null ||
                     precheck?.target.loaderVersion === undefined
                       ? ''

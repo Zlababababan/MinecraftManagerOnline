@@ -45,9 +45,11 @@ import { INSTALL_RUN_TIMEOUT_DEFAULT_SEC, type InstallStep } from '@mmo/protocol
 import type { CatalogVersionDto, InstallLoader } from '@mmo/protocol/client';
 
 import { AppError } from '../errors.js';
+import { PoliteFetchError, type PoliteFetcher } from '../util/polite-fetch.js';
 
 export interface InstallCatalogDeps {
-  fetchImpl: typeof fetch | undefined;
+  /** Seul point de sortie vers les fournisseurs (User-Agent, débit borné, 429, cache négatif). */
+  fetcher: PoliteFetcher;
   now: () => number;
   logger: { warn: (obj: object, msg: string) => void };
   /** Durée de validité des listes de versions (défaut 1 h). */
@@ -351,26 +353,32 @@ export class InstallCatalogService {
   }
 
   private async getText(url: string, source: string): Promise<string> {
-    const res = await this.fetchOk(url, source);
-    return await res.text();
+    return (await this.fetchOk(url, source)).text;
   }
 
   private async get(url: string, source: string): Promise<unknown> {
-    const res = await this.fetchOk(url, source);
-    return await res.json();
+    const text = await this.getText(url, source);
+    try {
+      return JSON.parse(text) as unknown;
+    } catch {
+      throw new AppError('E_UNREACHABLE', `${source}: not_json`, {
+        details: { reason: 'NOT_JSON', source },
+      });
+    }
   }
 
-  private async fetchOk(url: string, source: string): Promise<Response> {
-    const doFetch = this.deps.fetchImpl ?? globalThis.fetch;
-    const res = await doFetch(url, { signal: AbortSignal.timeout(15_000) }).catch(
-      (error: unknown) => {
-        this.deps.logger.warn({ url, source, error: String(error) }, 'catalog fetch failed');
-        throw new AppError('E_UNREACHABLE', 'version catalog is unreachable', {
-          retryable: true,
-          details: { reason: 'CATALOG_UNREACHABLE', source },
-        });
-      },
-    );
+  private async fetchOk(url: string, source: string) {
+    const res = await this.deps.fetcher.get(url).catch((error: unknown) => {
+      if (!(error instanceof PoliteFetchError)) throw error;
+      throw new AppError('E_UNREACHABLE', 'version catalog is unreachable', {
+        retryable: true,
+        details: {
+          reason: 'CATALOG_UNREACHABLE',
+          source,
+          ...(error.retryInMs === undefined ? {} : { retryInMs: error.retryInMs }),
+        },
+      });
+    });
     if (!res.ok) {
       throw new AppError('E_UNREACHABLE', 'version catalog answered an error', {
         retryable: true,

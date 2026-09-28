@@ -208,6 +208,8 @@ export function useUpdateSettings() {
       void queryClient.invalidateQueries({ queryKey: phase10Keys.access });
       void queryClient.invalidateQueries({ queryKey: phase10Keys.firewall });
       void queryClient.invalidateQueries({ queryKey: keys.machines });
+      // Les interrupteurs d'intégration (FTB) voyagent avec /api/auth/me.
+      void queryClient.invalidateQueries({ queryKey: keys.me });
     },
   });
 }

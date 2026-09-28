@@ -61,6 +61,52 @@ const DETAIL = {
   },
 };
 
+const FTB_TARGETS = [
+  { name: 'minecraft', version: '1.21.1', type: 'game' },
+  { name: 'neoforge', version: '21.1.209', type: 'modloader' },
+];
+const FTB_PACK = {
+  id: 125,
+  name: 'FTB Evolution',
+  synopsis: 'Tech et magie',
+  versions: [
+    {
+      id: 100487,
+      name: '1.43.1',
+      type: 'release',
+      released: 1_780_000_000,
+      targets: FTB_TARGETS,
+      specs: { minimum: 6144, recommended: 8092 },
+    },
+    { id: 7, name: 'ancienne', type: 'alpha', released: 1, targets: [] },
+  ],
+};
+const FTB_VERSION = {
+  id: 100487,
+  name: '1.43.1',
+  targets: FTB_TARGETS,
+  files: [
+    {
+      path: './mods',
+      name: 'a.jar',
+      url: 'https://files.feed-the-beast.com/a.jar',
+      mirrors: ['https://edge.forgecdn.net/a.jar'],
+      sha1: 'A'.repeat(40),
+      size: 10,
+      clientonly: false,
+    },
+    {
+      path: './mods',
+      name: 'shader.jar',
+      url: 'https://files.feed-the-beast.com/s.jar',
+      mirrors: [],
+      sha1: 'b'.repeat(40),
+      size: 5,
+      clientonly: true,
+    },
+  ],
+};
+
 /** Fournisseurs simulés : aucune requête ne sort, mais tout le chemin réel est exercé. */
 function fakeFetch(calls: string[]): typeof fetch {
   return ((input: string | URL) => {
@@ -108,6 +154,14 @@ function fakeFetch(calls: string[]): typeof fetch {
           '</versions></versioning></metadata>',
       );
     }
+    // FTB : un pack lisible, un introuvable.
+    const FTB = 'https://api.feed-the-beast.com/v1/modpacks/public/modpack';
+    if (url.startsWith(FTB + '/search/') || url.startsWith(FTB + '/popular/')) {
+      return json({ status: 'success', packs: [125, 999], curseforge: [317007] });
+    }
+    if (url === FTB + '/999') return Promise.resolve(new Response('nope', { status: 404 }));
+    if (url === FTB + '/125') return json(FTB_PACK);
+    if (url === FTB + '/125/100487') return json(FTB_VERSION);
     if (url.endsWith('-installer.jar.sha1'))
       return text('66bfea9963bfa60d88bab6b2750e74a958392715');
     return Promise.resolve(new Response('nope', { status: 404 }));
@@ -132,7 +186,7 @@ describe('installation d’un serveur — routes et service du panel', () => {
   });
 
   const api = (
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     url: string,
     payload?: unknown,
     cookie = admin,
@@ -489,6 +543,111 @@ describe('installation d’un serveur — routes et service du panel', () => {
       body(m, { loader: 'vanilla', mcVersion: '1.20.1' }),
     );
     expect(vanilla.statusCode, vanilla.body).toBe(202);
+  });
+
+  describe('modpacks FTB (retirables, docs/services-tiers.md)', () => {
+    const FTB = 'https://api.feed-the-beast.com/v1/modpacks/public/modpack';
+    const ftbCalls = () => calls.filter((c) => c.startsWith(FTB));
+    const ftbBody = (m: Machine) =>
+      body(m, {
+        folderName: 'evolution',
+        // Ignorés : le pack fait autorité.
+        loader: 'vanilla',
+        mcVersion: '1.20.1',
+        modpack: { provider: 'ftb', packId: 125, versionId: 100487 },
+      });
+
+    it('liste et détail : seuls les packs lisibles, versions et chargeur du pack, avec cache', async () => {
+      await online('Tour');
+      const list = await api('GET', '/api/install/modpacks/ftb?q=evo');
+      expect(list.statusCode, list.body).toBe(200);
+      // 999 est introuvable chez FTB : sauté, la liste garde les autres.
+      expect(list.json<{ packs: unknown[] }>().packs).toEqual([
+        { id: 125, name: 'FTB Evolution', synopsis: 'Tech et magie' },
+      ]);
+      const pack = await api('GET', '/api/install/modpacks/ftb/125');
+      const versions = pack.json<{
+        pack: { versions: { id: number; installable: boolean; loader: string | null }[] };
+      }>().pack.versions;
+      expect(versions.map((v) => [v.id, v.installable, v.loader])).toEqual([
+        [100487, true, 'neoforge'],
+        [7, false, null],
+      ]);
+      const before = ftbCalls().length;
+      await api('GET', '/api/install/modpacks/ftb?q=evo');
+      await api('GET', '/api/install/modpacks/ftb/125');
+      expect(ftbCalls().length).toBe(before);
+    });
+
+    it('interrupteur coupé : 404 FEATURE_DISABLED, et plus aucun appel à FTB', async () => {
+      const m = await online('Tour');
+      const off = await api('PATCH', '/api/settings', { 'modpacks.ftb.enabled': 'false' });
+      expect(off.statusCode, off.body).toBe(200);
+      const me = await api('GET', '/api/auth/me');
+      expect(me.json<{ features: { ftb: boolean } }>().features.ftb).toBe(false);
+      for (const url of ['/api/install/modpacks/ftb?q=x', '/api/install/modpacks/ftb/125']) {
+        const res = await api('GET', url);
+        expect(res.statusCode).toBe(404);
+        expect(res.json<{ details?: { reason?: string } }>().details?.reason).toBe(
+          'FEATURE_DISABLED',
+        );
+      }
+      const create = await api('POST', `/api/machines/${m.id}/install`, ftbBody(m));
+      expect(create.statusCode).toBe(404);
+      expect(ftbCalls()).toHaveLength(0);
+      expect(m.installs).toHaveLength(0);
+      expect(panel.ctx.servers.list()).toHaveLength(0);
+      const bad = await api('PATCH', '/api/settings', { 'modpacks.ftb.enabled': 'non' });
+      expect(bad.statusCode).toBe(400);
+    });
+
+    it('installer un pack : fichiers du pack AVANT l’installeur, chargeur et build imposés par le pack', async () => {
+      const m = await online('Tour', [
+        'tasks',
+        'server-install',
+        'install-remove',
+        'install-fetch-many',
+      ]);
+      const res = await api('POST', `/api/machines/${m.id}/install`, ftbBody(m));
+      expect(res.statusCode, res.body).toBe(202);
+      await waitFor(() => m.installs.length === 1, 5_000);
+      const req = m.installs[0];
+      if (req === undefined) throw new Error('aucune installation reçue');
+      expect(req.loader).toBe('neoforge');
+      expect(req.loaderVersion).toBe('21.1.209');
+      const [files, dl] = req.steps;
+      if (files?.kind !== 'fetchMany' || dl?.kind !== 'download') throw new Error('plan inattendu');
+      // Le fichier « clientonly » n’a rien à faire sur un serveur.
+      expect(files.files).toEqual([
+        {
+          path: 'mods/a.jar',
+          url: 'https://files.feed-the-beast.com/a.jar',
+          mirrors: ['https://edge.forgecdn.net/a.jar'],
+          sha1: 'a'.repeat(40),
+          size: 10,
+        },
+      ]);
+      expect(dl.url).toContain('/neoforge/21.1.209/');
+    });
+
+    it('un agent sans fetchMany : refus AGENT_TOO_OLD, rien n’est créé', async () => {
+      const m = await online('Ancien');
+      const res = await api('POST', `/api/machines/${m.id}/install`, ftbBody(m));
+      expect(res.statusCode, res.body).toBe(501);
+      expect(res.json<{ details?: { reason?: string } }>().details?.reason).toBe('AGENT_TOO_OLD');
+      expect(m.installs).toHaveLength(0);
+      expect(panel.ctx.servers.list()).toHaveLength(0);
+    });
+
+    it('politesse : dix consultations simultanées de la même liste = un seul appel', async () => {
+      await online('Tour');
+      const all = await Promise.all(
+        Array.from({ length: 10 }, () => api('GET', '/api/install/modpacks/ftb?q=same')),
+      );
+      expect(all.every((r) => r.statusCode === 200)).toBe(true);
+      expect(ftbCalls().filter((c) => c.includes('/search/'))).toHaveLength(1);
+      expect(ftbCalls().filter((c) => c === FTB + '/125')).toHaveLength(1);
+    });
   });
 
   it('une version que Fabric ne supporte pas est refusée avant toute écriture', async () => {

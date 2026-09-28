@@ -51,6 +51,7 @@ import { formatDateTime } from '../../lib/format.js';
 import { coerceOriginInput } from '../../lib/origin.js';
 import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 import { HelpLink } from '../HelpLink.js';
+import { ThirdPartyNote } from '../ThirdPartyNote.js';
 
 const LE_STAGING = 'https://acme-staging-v02.api.letsencrypt.org/directory';
 
@@ -263,6 +264,7 @@ function DirectSection({
             label={t('web:access.direct.acmeStaging')}
             {...form.getInputProps('staging', { type: 'checkbox' })}
           />
+          <ThirdPartyNote services={['letsEncrypt']} />
           <Switch
             label={t('web:access.direct.dyndnsEnabled')}
             disabled={form.values.provider === 'manual'}

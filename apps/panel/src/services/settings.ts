@@ -39,6 +39,11 @@ export const SETTING_KEYS = {
    */
   mojangLookup: 'privacy.mojangLookup',
   externalAvatars: 'privacy.externalAvatars',
+  /**
+   * Intégration FTB (lot 5) : proposer les modpacks FTB dans l'assistant de création. Coupée, le
+   * panel ne contacte plus du tout l'API FTB (docs/services-tiers.md).
+   */
+  ftbEnabled: 'modpacks.ftb.enabled',
   restoreOnBoot: 'agents.restoreOnBoot',
   metricsIntervalSec: 'metrics.intervalSec',
   /** Phase 9 : mise à jour automatique des agents à la connexion. */
@@ -87,6 +92,7 @@ const DEFAULTS: Readonly<Record<string, string>> = {
   [SETTING_KEYS.tasksRetentionDays]: '30',
   [SETTING_KEYS.mojangLookup]: 'true',
   [SETTING_KEYS.externalAvatars]: 'true',
+  [SETTING_KEYS.ftbEnabled]: 'true',
   [SETTING_KEYS.restoreOnBoot]: 'true',
   [SETTING_KEYS.metricsIntervalSec]: '15',
   [SETTING_KEYS.accessHttpsPort]: '443',

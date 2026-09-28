@@ -989,6 +989,81 @@ export const webFr = {
     warnMinutesHint: 'Liste de minutes, ex. 10, 5, 1.',
   },
 
+  thirdParty: {
+    title: 'Services tiers',
+    hint: 'Ce que le panel, les agents ou le navigateur vont chercher ailleurs que chez vous. « À vérifier » veut dire qu’un point reste à confirmer avant de s’y fier dans un produit vendu (conditions d’utilisation, droit de télécharger directement…) — pas que quelque chose ne marche pas.',
+    ftbSwitch: 'Proposer les modpacks FTB à la création d’un serveur',
+    ftbSwitchHint: 'Coupé, l’assistant ne propose plus FTB et le panel ne contacte plus leur API.',
+    colService: 'Service',
+    colUse: 'Sert à',
+    colStatus: 'État',
+    verified: 'Vérifié',
+    toVerify: 'À vérifier',
+    notePrefix: 'À vérifier (note pour l’administrateur) :',
+    noteSuffix: 'Détails dans Réglages → Services tiers.',
+    services: {
+      ftb: {
+        name: 'API des modpacks FTB',
+        use: 'Liste des modpacks FTB et de leurs fichiers, à la création d’un serveur.',
+        check:
+          'Les conditions d’utilisation de l’API FTB par un outil tiers n’ont pas été trouvées : les demander à FTB.',
+      },
+      curseforge: {
+        name: 'Fichiers CurseForge',
+        use: 'Téléchargement direct des mods d’un pack FTB hébergés chez CurseForge.',
+        check:
+          'CurseForge accepte-t-il qu’un outil tiers télécharge ses fichiers directement, hors de son application ?',
+      },
+      mojang: {
+        name: 'Mojang',
+        use: 'Liste des versions, serveur officiel, et pseudo → UUID des joueurs.',
+        check:
+          'L’EULA et les règles d’usage de Minecraft autorisent-elles un outil vendu à télécharger le serveur à la place de l’utilisateur ?',
+      },
+      mcHeads: {
+        name: 'mc-heads.net',
+        use: 'Têtes des joueurs affichées dans le navigateur.',
+        check: 'Les conditions d’usage de mc-heads.net, service gratuit tenu par un tiers.',
+      },
+      fabric: {
+        name: 'Fabric',
+        use: 'Versions de Fabric et lanceur de serveur.',
+        check: 'Les conditions d’usage de meta.fabricmc.net par un outil tiers.',
+      },
+      forge: {
+        name: 'Forge',
+        use: 'Versions de Forge et installeur.',
+        check:
+          'Forge vit en partie de la publicité de sa page de téléchargement : accepte-t-il qu’un outil vendu prenne l’installeur directement dans son dépôt ?',
+      },
+      neoforge: {
+        name: 'NeoForge',
+        use: 'Versions de NeoForge et installeur.',
+        check: 'Les conditions d’usage du dépôt de NeoForge par un outil tiers.',
+      },
+      adoptium: {
+        name: 'Adoptium (Temurin)',
+        use: 'Installation de Java sur une machine.',
+        check: 'La licence de Temurin et l’usage de l’API Adoptium par un outil vendu.',
+      },
+      azul: {
+        name: 'Azul (Zulu)',
+        use: 'Java de repli quand Temurin n’en propose pas.',
+        check: 'Les conditions de Zulu Community quand c’est un outil vendu qui l’installe.',
+      },
+      spark: {
+        name: 'spark',
+        use: 'Installation en un clic du mod spark (mesure des TPS).',
+        check: 'La licence de spark et l’usage de son API de téléchargement.',
+      },
+      letsEncrypt: {
+        name: 'Let’s Encrypt',
+        use: 'Certificat HTTPS en mode d’accès direct.',
+        check:
+          'Le panel accepte automatiquement le contrat d’abonné de Let’s Encrypt en demandant un certificat : l’interface devrait le dire avant.',
+      },
+    },
+  },
   install: {
     title: 'Créer un serveur',
     create: 'Créer le serveur',
@@ -1018,7 +1093,21 @@ export const webFr = {
     loaderFabric: 'Fabric',
     loaderForge: 'Forge',
     loaderNeoForge: 'NeoForge',
+    loaderFtb: 'Modpack FTB',
+    ftb: {
+      search: 'Chercher un modpack',
+      searchPlaceholder: 'Evolution, StoneBlock…',
+      searchButton: 'Chercher',
+      popular: 'Modpacks les plus installés',
+      results: 'Résultats',
+      noResult: 'Aucun modpack trouvé',
+      version: 'Version du modpack',
+      notInstallable: 'chargeur non pris en charge',
+      required: 'Choisissez un modpack et sa version.',
+      hint: 'Les fichiers viennent de FTB et de CurseForge, vérifiés un par un. Un gros pack pèse plus d’un gigaoctet.',
+    },
     loaderHint: {
+      ftb: 'Un modpack Feed The Beast tout prêt : le panel pose ses fichiers, puis installe son chargeur (NeoForge, Forge ou Fabric).',
       vanilla: 'Le jeu tel que Mojang le publie, sans mods.',
       fabric: 'Un chargeur léger, pour des mods de performance ou quelques ajouts.',
       forge: 'Le chargeur historique : la plupart des modpacks jusqu’en 1.20.1 l’utilisent.',

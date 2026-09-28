@@ -5,6 +5,7 @@
  * des fournisseurs ; en **mode relais** (machine sans Internet sortant) le panel télécharge l'archive
  * dans `<dataDir>/jre-cache/` et la sert à l'agent via un jeton de relais.
  */
+import { politeHeaders } from '../util/polite-fetch.js';
 import { createHash } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdir, rename, rm, stat } from 'node:fs/promises';
@@ -160,7 +161,9 @@ export class JavaRuntimesService {
       if (input.vendor !== undefined && c.vendor !== input.vendor) continue;
       let source: (JavaSource & { packageUuid?: string }) | undefined;
       try {
-        const res = await doFetch(c.metadataUrl, { headers: { accept: 'application/json' } });
+        const res = await doFetch(c.metadataUrl, {
+          headers: politeHeaders({ accept: 'application/json' }),
+        });
         if (!res.ok) continue; // 404 = combo indisponible (cas normal)
         const json: unknown = await res.json();
         source =
@@ -168,7 +171,9 @@ export class JavaRuntimesService {
             ? parseTemurinAssets(json, os, c.emulated)
             : parseZuluPackages(json, os, c.emulated);
         if (source && c.vendor === 'zulu' && source.sha256 === undefined && source.packageUuid) {
-          const detail = await doFetch(zuluPackageDetailUrl(source.packageUuid));
+          const detail = await doFetch(zuluPackageDetailUrl(source.packageUuid), {
+            headers: politeHeaders(),
+          });
           const sha = detail.ok ? parseZuluDetail(await detail.json()) : undefined;
           if (sha !== undefined) source.sha256 = sha;
         }
@@ -276,7 +281,7 @@ export class JavaRuntimesService {
       }
     }
     const doFetch = this.deps.fetchImpl ?? fetch;
-    const res = await doFetch(source.url, { redirect: 'follow' });
+    const res = await doFetch(source.url, { redirect: 'follow', headers: politeHeaders() });
     if (!res.ok || !res.body) throw new Error(`HTTP ${String(res.status)} from ${source.url}`);
     const part = `${file}.part`;
     const hash = createHash('sha256');

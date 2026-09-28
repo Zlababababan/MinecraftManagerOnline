@@ -3,6 +3,7 @@
  * politiques poussées à l'agent), planificateur du panel (actions programmées), transferts
  * (download/upload de l'explorateur), spark en un clic, sauvegarde du panel (`VACUUM INTO`).
  */
+import type { PoliteFetcher } from '../../util/polite-fetch.js';
 import { createReadStream, statSync } from 'node:fs';
 
 import type { FastifyInstance, FastifyRequest } from 'fastify';
@@ -663,7 +664,7 @@ export function registerTaskRoutes(app: FastifyInstance, ctx: AppContext): void 
         throw conflict('spark is not available for this loader', { loader: row.loader });
       }
       if (status.installed) throw conflict('spark already installed', { file: status.file });
-      const download = await resolveSparkDownload(status.platform, ctx.fetchImpl);
+      const download = await resolveSparkDownload(status.platform, ctx.politeFetch);
       const taskId = ulid(ctx.now());
       const target = `mods/${download.fileName}`;
       ctx.tasks.create({
@@ -778,14 +779,14 @@ interface SparkDownload {
  */
 async function resolveSparkDownload(
   platform: string,
-  fetchImpl: typeof fetch | undefined,
+  fetcher: PoliteFetcher,
 ): Promise<SparkDownload> {
-  const doFetch = fetchImpl ?? fetch;
   let json: unknown;
   try {
-    const res = await doFetch(SPARK_API, { headers: { accept: 'application/json' } });
+    // Point de sortie commun (User-Agent, débit borné, cache négatif) : docs/services-tiers.md.
+    const res = await fetcher.get(SPARK_API, { accept: 'application/json' });
     if (!res.ok) throw new Error(`HTTP ${String(res.status)}`);
-    json = await res.json();
+    json = JSON.parse(res.text);
   } catch (error) {
     throw new AppError(
       'E_IO',

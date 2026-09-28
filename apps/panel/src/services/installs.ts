@@ -36,6 +36,7 @@ import { AppError } from '../errors.js';
 import type { EventBus } from './events.js';
 import type { InstallCatalogService, InstallPlan } from './install-catalog.js';
 import type { MachinesService } from './machines.js';
+import type { ModpackProvider } from './modpacks/types.js';
 import { pickGamePort } from './migrations.js';
 import type { ServersService } from './servers.js';
 import type { TasksService } from './tasks.js';
@@ -48,6 +49,8 @@ export interface InstallsDeps {
   servers: ServersService;
   tasks: TasksService;
   catalog: InstallCatalogService;
+  /** Fournisseurs de modpacks, par identifiant (`ftb`) ; vide = aucun modpack installable. */
+  modpacks: ReadonlyMap<string, ModpackProvider>;
   events: EventBus;
   logger: { warn: (obj: object, msg: string) => void; info: (obj: object, msg: string) => void };
   broadcast: (server: ServerDto) => void;
@@ -89,11 +92,7 @@ export class InstallsService {
         details: { reason: 'PATH_TAKEN', serverId: existing.id, path },
       });
     }
-    const plan = await this.deps.catalog.plan({
-      loader: input.loader,
-      mcVersion: input.mcVersion,
-      ...(input.loaderVersion === undefined ? {} : { loaderVersion: input.loaderVersion }),
-    });
+    const plan = await this.buildPlan(input);
     const used = new Set<number>();
     for (const row of this.deps.servers.listByMachine(machine.id)) {
       if (row.gamePort !== null) used.add(row.gamePort);
@@ -111,6 +110,33 @@ export class InstallsService {
         loaderVersion: plan.loaderVersion ?? null,
       },
     };
+  }
+
+  /**
+   * Plan d'installation. Pour un modpack, le fournisseur fait autorité : il dit le chargeur, la
+   * version de jeu et le build, et ses fichiers sont posés AVANT l'installeur du chargeur.
+   */
+  private async buildPlan(input: InstallInput): Promise<InstallPlan> {
+    if (input.modpack === undefined) {
+      return this.deps.catalog.plan({
+        loader: input.loader,
+        mcVersion: input.mcVersion,
+        ...(input.loaderVersion === undefined ? {} : { loaderVersion: input.loaderVersion }),
+      });
+    }
+    const provider = this.deps.modpacks.get(input.modpack.provider);
+    if (provider === undefined) {
+      throw new AppError('E_NOT_FOUND', 'this modpack provider is not available', {
+        details: { reason: 'FEATURE_DISABLED', feature: input.modpack.provider },
+      });
+    }
+    const pack = await provider.resolve(input.modpack);
+    const plan = await this.deps.catalog.plan({
+      loader: pack.loader,
+      mcVersion: pack.mcVersion,
+      ...(pack.loaderVersion === undefined ? {} : { loaderVersion: pack.loaderVersion }),
+    });
+    return { ...plan, steps: [pack.files, ...plan.steps] };
   }
 
   /**
@@ -298,19 +324,28 @@ function estimateBytes(plan: InstallPlan): number {
   let known = 0;
   for (const step of plan.steps) {
     if (step.kind === 'download' && step.size !== undefined) known += step.size;
+    if (step.kind === 'fetchMany') for (const f of step.files) known += f.size;
   }
   return known * 2 + 256 * 1024 * 1024;
 }
 
 /**
- * Un plan qui retire des fichiers (installeurs Forge/NeoForge) exige un agent qui connaît l'étape
+ * Un plan qui retire des fichiers (installeurs Forge/NeoForge) ou pose ceux d'un modpack exige un agent qui connaît l'étape
  * `remove` : un agent N-1 refuserait tout le message pour un schéma inconnu, avec une erreur qui ne
  * dit pas qu'il suffit de le mettre à jour. Le refus est donné ici, avant d'écrire quoi que ce soit.
  */
+const STEP_CAPABILITIES: Readonly<Record<string, string>> = {
+  remove: 'install-remove',
+  fetchMany: 'install-fetch-many',
+};
+
 function assertAgentCanRun(session: AgentSession, steps: readonly { kind: string }[]): void {
-  if (steps.some((s) => s.kind === 'remove') && !session.supports('install-remove')) {
-    throw new AppError('E_UNSUPPORTED_TYPE', 'this agent is too old to install this loader', {
-      details: { reason: 'AGENT_TOO_OLD', capability: 'install-remove' },
-    });
+  for (const step of steps) {
+    const capability = STEP_CAPABILITIES[step.kind];
+    if (capability !== undefined && !session.supports(capability)) {
+      throw new AppError('E_UNSUPPORTED_TYPE', 'this agent is too old for this installation', {
+        details: { reason: 'AGENT_TOO_OLD', capability },
+      });
+    }
   }
 }

@@ -149,7 +149,7 @@ export function registerMiscRoutes(app: FastifyInstance, ctx: AppContext): void 
           ctx.settings.set(key, String(days));
           continue;
         }
-        if (key.startsWith('privacy.')) {
+        if (key.startsWith('privacy.') || key === 'modpacks.ftb.enabled') {
           // Booléens stricts : `getBool` lirait « yes » comme faux, en silence.
           if (value !== 'true' && value !== 'false') {
             throw new AppError('E_VALIDATION', `${key} must be 'true' or 'false'`, {

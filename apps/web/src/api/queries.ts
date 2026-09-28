@@ -119,6 +119,8 @@ export const meQuery = queryOptions({
       panelUpdate?: { current: string; latest: string } | null;
       /** Vie privée (lot 9) : le navigateur peut-il charger les avatars chez mc-heads.net ? */
       privacy?: { externalAvatars: boolean };
+      /** Intégrations optionnelles (FTB) : l'assistant de création ne les montre que si activées. */
+      features?: { ftb: boolean };
       /** Lot 8 : portées d'un compte limité (`null` = le rôle vaut partout). */
       grants?: UserGrantsDto | null;
     }>('/api/auth/me', signal),

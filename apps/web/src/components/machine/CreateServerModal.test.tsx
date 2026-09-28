@@ -5,7 +5,7 @@
  */
 import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { MachineDto } from '@mmo/protocol/client';
@@ -29,6 +29,8 @@ interface FetchOptions {
   /** Le pré-contrôle dit-il que Java manque ? */
   javaMissing?: boolean;
   role?: 'admin' | 'operator';
+  /** L'intégration FTB est-elle activée (Réglages → Services tiers) ? */
+  ftb?: boolean;
 }
 
 function installFetch(calls: Call[], options: FetchOptions = {}): void {
@@ -50,6 +52,7 @@ function installFetch(calls: Call[], options: FetchOptions = {}): void {
       if (path === '/api/auth/me') {
         return json({
           user: { id: 'u1', username: 'ambre', role: options.role ?? 'admin', scoped: false },
+          features: { ftb: options.ftb === true },
         });
       }
       if (path.startsWith('/api/tasks')) return json({ tasks: [] });
@@ -65,6 +68,29 @@ function installFetch(calls: Call[], options: FetchOptions = {}): void {
               path: '/srv/minecraft/survie',
             },
           ],
+        });
+      }
+      if (path.startsWith('/api/install/modpacks/ftb?')) {
+        return json({ packs: [{ id: 125, name: 'FTB Evolution', synopsis: 'Tech et magie' }] });
+      }
+      if (path === '/api/install/modpacks/ftb/125') {
+        const v = (id: number, name: string, installable: boolean) => ({
+          id,
+          name,
+          type: 'release',
+          mcVersion: installable ? '1.21.1' : null,
+          loader: installable ? 'neoforge' : null,
+          loaderVersion: installable ? '21.1.209' : null,
+          ramRecommendedMb: 8092,
+          installable,
+        });
+        return json({
+          pack: {
+            id: 125,
+            name: 'FTB Evolution',
+            synopsis: 'Tech et magie',
+            versions: [v(100487, '1.43.1', true), v(7, 'ancienne', false)],
+          },
         });
       }
       if (path.startsWith('/api/install/catalog')) {
@@ -295,6 +321,82 @@ describe('CreateServerModal', () => {
       'Un administrateur peut l’installer',
     );
     expect(screen.queryByTestId('install-java-button')).not.toBeInTheDocument();
+  });
+});
+
+describe('CreateServerModal — modpacks FTB et services tiers', () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage('fr');
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const toLoaderStep = async () => {
+    fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'evolution' } });
+    fireEvent.click(screen.getByTestId('install-next'));
+    await screen.findByTestId('install-loader');
+  };
+
+  it('l’option « Modpack FTB » n’existe que si l’intégration est activée', async () => {
+    renderModal({ ftb: false });
+    await toLoaderStep();
+    await screen.findByTestId('install-version');
+    expect(screen.queryByLabelText('Modpack FTB')).not.toBeInTheDocument();
+  });
+
+  it('choisir un pack, puis une version installable : le pack part avec la création', async () => {
+    const { calls, created } = renderModal({ ftb: true });
+    await toLoaderStep();
+    fireEvent.click(await screen.findByLabelText('Modpack FTB'));
+    const packSelect = await screen.findByTestId('ftb-pack');
+    await waitFor(() => {
+      expect(packSelect.querySelectorAll('option').length).toBe(2);
+    });
+    // Aucune recherche à chaque frappe : seul le bouton interroge le panel.
+    const searches = () => calls.filter((c) => c.path.startsWith('/api/install/modpacks/ftb?'));
+    const before = searches().length;
+    fireEvent.change(screen.getByTestId('ftb-search'), { target: { value: 'evo' } });
+    fireEvent.change(screen.getByTestId('ftb-search'), { target: { value: 'evol' } });
+    expect(searches().length).toBe(before);
+    // Sans pack choisi, on n'avance pas.
+    fireEvent.click(screen.getByTestId('install-next'));
+    expect(screen.getByTestId('ftb-pack')).toBeInTheDocument();
+    fireEvent.change(packSelect, { target: { value: '125' } });
+    const versionSelect = await screen.findByTestId('ftb-version');
+    await waitFor(() => {
+      expect(versionSelect.querySelectorAll('option').length).toBe(3);
+    });
+    // Une version sans chargeur installable est montrée, mais inchoisissable.
+    expect(versionSelect.querySelector('option[value="7"]')).toBeDisabled();
+    fireEvent.change(versionSelect, { target: { value: '100487' } });
+    fireEvent.click(screen.getByTestId('install-next'));
+    fireEvent.click(await screen.findByTestId('install-next'));
+    fireEvent.click(await screen.findByTestId('install-eula'));
+    fireEvent.click(screen.getByTestId('install-submit'));
+    await waitFor(() => {
+      expect(created).toEqual(['srv-new']);
+    });
+    const post = calls.find((c) => c.method === 'POST' && c.path === '/api/machines/m1/install');
+    expect(post?.body).toMatchObject({
+      folderName: 'evolution',
+      modpack: { provider: 'ftb', packId: 125, versionId: 100487 },
+    });
+  });
+
+  it('la note « à vérifier » est pour l’administrateur, pas pour l’opérateur', async () => {
+    renderModal({ ftb: true });
+    await toLoaderStep();
+    fireEvent.click(await screen.findByLabelText('Modpack FTB'));
+    const note = await screen.findByTestId('third-party-note');
+    expect(note).toHaveTextContent('À vérifier');
+    vi.unstubAllGlobals();
+    cleanup();
+    renderModal({ ftb: true, role: 'operator' });
+    await toLoaderStep();
+    fireEvent.click(await screen.findByLabelText('Modpack FTB'));
+    await screen.findByTestId('ftb-pack');
+    expect(screen.queryByTestId('third-party-note')).not.toBeInTheDocument();
   });
 });
 

@@ -7,6 +7,7 @@
  * `panel.updateCheck.enabled` (défaut activé) coupe tout : un panel auto-hébergé ne doit pas être
  * forcé de parler à GitHub.
  */
+import { politeHeaders } from '../util/polite-fetch.js';
 import { compareVersions } from '@mmo/shared';
 
 import { PANEL_VERSION } from '../version.js';
@@ -50,7 +51,7 @@ export class UpdateCheckService {
     const doFetch = this.deps.fetchImpl ?? fetch;
     const res = await doFetch(this.deps.atomUrl ?? DEFAULT_ATOM_URL, {
       signal: AbortSignal.timeout(10_000),
-      headers: { accept: 'application/atom+xml' },
+      headers: politeHeaders({ accept: 'application/atom+xml' }),
     });
     if (!res.ok) throw new Error(`releases.atom: HTTP ${String(res.status)}`);
     const latest = latestReleaseIn(await res.text());

@@ -29,9 +29,11 @@ import { ApiKeysCard } from '../components/admin/ApiKeysCard.js';
 import { AuditCard } from '../components/admin/AuditCard.js';
 import { DistributionCard } from '../components/admin/DistributionCard.js';
 import { PanelBackupsCard } from '../components/admin/PanelBackupsCard.js';
+import { ThirdPartyCard } from '../components/admin/ThirdPartyCard.js';
 import { UsersCard } from '../components/admin/UsersCard.js';
 import { WebhooksCard } from '../components/admin/WebhooksCard.js';
 import { HelpLink } from '../components/HelpLink.js';
+import { ThirdPartyNote } from '../components/ThirdPartyNote.js';
 import { useT } from '../i18n/hooks.js';
 import { describeError } from '../lib/errors.js';
 import { coerceOriginInput, isValidOriginInput } from '../lib/origin.js';
@@ -291,6 +293,7 @@ function PrivacyCard({ settings }: { settings: Record<string, string> }) {
             {...form.getInputProps('externalAvatars', { type: 'checkbox' })}
             data-testid="settings-privacy-avatars"
           />
+          <ThirdPartyNote services={['mojang', 'mcHeads']} />
           <Group justify="flex-end">
             <Button
               type="submit"
@@ -343,6 +346,7 @@ export function SettingsPage() {
       </Title>
       {settings.data !== undefined && <GeneralCard settings={settings.data.settings} />}
       {settings.data !== undefined && <PrivacyCard settings={settings.data.settings} />}
+      {settings.data !== undefined && <ThirdPartyCard settings={settings.data.settings} />}
       <UsersCard />
       <ApiKeysCard all />
       <AccessCard />

@@ -75,6 +75,7 @@ export function registerInstallRoutes(app: FastifyInstance, ctx: AppContext): vo
           loader: server.loader,
           mcVersion: server.mcVersion,
           loaderVersion: server.loaderVersion,
+          ...(request.body.modpack === undefined ? {} : { modpack: request.body.modpack }),
           // Qui a accepté l'EULA, et quand : c'est le seul endroit où cela se lit après coup.
           eulaAcceptedBy: user.username,
           taskId,

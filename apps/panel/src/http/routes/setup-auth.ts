@@ -208,6 +208,7 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
             scheduleTimezone: z.string(),
             panelUpdate: z.object({ current: z.string(), latest: z.string() }).nullable(),
             privacy: z.object({ externalAvatars: z.boolean() }),
+            features: z.object({ ftb: z.boolean() }),
             grants: userGrantsDtoSchema.nullable(),
           }),
         },
@@ -231,6 +232,8 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
         // Vie privée (lot 9) : le navigateur doit savoir, avant d'afficher un joueur, s'il a le
         // droit d'aller chercher sa tête chez mc-heads.net.
         privacy: { externalAvatars: ctx.settings.getBool(SETTING_KEYS.externalAvatars) },
+        // Intégrations optionnelles : l'assistant de création n'affiche FTB que si elle est activée.
+        features: { ftb: ctx.settings.getBool(SETTING_KEYS.ftbEnabled) },
       };
     },
   );
