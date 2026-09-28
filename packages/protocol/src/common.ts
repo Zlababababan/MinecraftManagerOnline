@@ -78,6 +78,8 @@ export const KNOWN_CAPABILITIES = [
   'server-install',
   /** Lot 5 : étape `remove` d'un plan `server.install` (installeurs Forge et NeoForge, retirés après usage). */
   'install-remove',
+  /** Lot 5 : étape `fetchMany` (fichiers d'un modpack, doc 06 §6quinquies). */
+  'install-fetch-many',
 ] as const;
 export const capabilitySchema = z.string().min(1);
 

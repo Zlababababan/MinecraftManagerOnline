@@ -980,6 +980,19 @@ export const installLoaderSchema = z.enum(INSTALL_LOADERS);
 export type InstallLoader = z.infer<typeof installLoaderSchema>;
 
 /**
+ * Fournisseurs de modpacks : le panel pose les fichiers du pack puis installe son chargeur. FTB est
+ * une intégration optionnelle et retirable (docs/services-tiers.md) : la retirer, c'est retirer
+ * `'ftb'` de cette liste.
+ */
+export const MODPACK_PROVIDERS = ['ftb'] as const;
+export const modpackRefSchema = z.object({
+  provider: z.enum(MODPACK_PROVIDERS),
+  packId: z.int().positive(),
+  versionId: z.int().positive(),
+});
+export type ModpackRef = z.infer<typeof modpackRefSchema>;
+
+/**
  * Nom du dossier à créer : un seul segment, sans séparateur ni « .. », et sans les caractères que
  * Windows refuse. Le panel compose le chemin lui-même à partir d’un répertoire surveillé — un
  * chemin libre rouvrirait la traversée que la portée par machine (lot 8) vient de fermer.
@@ -1012,6 +1025,11 @@ export const createInstallSchema = z.object({
   mcVersion: z.string().min(1).max(64),
   /** Version de loader ; la plus récente stable (Fabric, NeoForge) ou recommandée (Forge) si absente. */
   loaderVersion: z.string().min(1).max(64).optional(),
+  /**
+   * Installer un modpack : le panel en tire lui-même le chargeur, la version de jeu et le build —
+   * `loader`/`mcVersion`/`loaderVersion` envoyés à côté sont ignorés (le pack fait autorité).
+   */
+  modpack: modpackRefSchema.optional(),
   maxRamMb: z.int().min(512).max(1_048_576),
   minRamMb: z.int().min(256).max(1_048_576).optional(),
   gamePort: z.int().min(1).max(65535).optional(),
@@ -1182,6 +1200,8 @@ export const EDITABLE_SETTINGS = [
   /** Vie privée ('true'/'false') : résolution des pseudos chez Mojang, avatars mc-heads.net. */
   'privacy.mojangLookup',
   'privacy.externalAvatars',
+  /** Modpacks FTB dans l'assistant de création (intégration retirable, docs/services-tiers.md). */
+  'modpacks.ftb.enabled',
   'agents.restoreOnBoot',
   'metrics.intervalSec',
   /** Fuseau dans lequel toutes les planifications sont lues (nom IANA, ex. `Europe/Paris`). */
@@ -2015,3 +2035,6 @@ export const distPlatformDtoSchema = distArtifactDtoSchema.extend({
   runtimeVersion: z.string(),
 });
 export type DistPlatformDto = z.infer<typeof distPlatformDtoSchema>;
+
+// Intégration FTB, retirable en entier (docs/services-tiers.md).
+export * from './ftb.js';

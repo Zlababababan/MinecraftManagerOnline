@@ -8,6 +8,8 @@ export const PROJECT_NAME = 'MinecraftManagerOnline';
 export * from './i18n/index.js';
 export * from './minecraft/version.js';
 export * from './minecraft/catalogs.js';
+// Intégration FTB, retirable en entier (docs/services-tiers.md).
+export * from './minecraft/ftb.js';
 export * from './minecraft/tps.js';
 export * from './minecraft/commands.js';
 export * from './java/index.js';
@@ -20,3 +22,4 @@ export * from './detection/scan.js';
 export * from './detection/velocity.js';
 export * from './cron.js';
 export * from './timezone.js';
+export * from './third-party.js';

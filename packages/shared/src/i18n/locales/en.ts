@@ -155,6 +155,10 @@ export const en = {
     E_UNSUPPORTED_TYPE: 'This operation is not supported by the agent (requires a newer agent).',
     E_INVALID_PAYLOAD: 'Invalid request payload.',
     E_NOT_FOUND: 'Resource not found.',
+    E_NOT_FOUND_FEATURE_DISABLED:
+      'This integration is turned off (Settings → Third-party services).',
+    E_NOT_FOUND_UNKNOWN_MODPACK: 'This modpack or version does not exist (any more) at FTB.',
+    E_VALIDATION_TOO_MANY_FILES: 'This modpack has too many files to be installed here.',
     E_NOT_FOUND_PATHS_NOT_IN_ARCHIVE: 'Not in this archive: {{list}}. Nothing was changed.',
     E_INVALID_PAYLOAD_RESERVED_PATH:
       'This path is managed by the agent and is never restored: {{path}}.',

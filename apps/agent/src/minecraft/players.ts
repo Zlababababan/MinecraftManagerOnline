@@ -4,6 +4,7 @@
  * sinon UUID v3 hors ligne (`nameUUIDFromBytes("OfflinePlayer:" + name)`, MD5) — identique à
  * ce que calcule le serveur.
  */
+import { AGENT_USER_AGENT } from '../util/user-agent.js';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -73,10 +74,16 @@ export async function resolveMojang(
     try {
       const res = await fetchImpl(MOJANG_BULK_URL, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json',
+          'user-agent': AGENT_USER_AGENT,
+        },
         body: JSON.stringify(chunk),
         signal: controller.signal,
       });
+      // Limité ou en panne : on s'arrête là (les lots suivants iraient au même refus).
+      if (res.status === 429 || res.status >= 500) break;
       if (!res.ok) continue;
       const json = await res.json();
       if (!Array.isArray(json)) continue;
@@ -88,7 +95,8 @@ export async function resolveMojang(
         }
       }
     } catch {
-      // réseau indisponible : les noms restent non résolus
+      // réseau indisponible : les noms restent non résolus, sans relancer les lots suivants
+      break;
     } finally {
       clearTimeout(timer);
     }

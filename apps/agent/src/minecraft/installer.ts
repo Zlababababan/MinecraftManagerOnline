@@ -16,6 +16,8 @@
  * d'une task en échec ferait un `rm -r` sur des données utilisateur.
  */
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { createReadStream } from 'node:fs';
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -24,6 +26,7 @@ import {
   type DetectedServer,
   type JavaRuntime,
   type Os,
+  type FetchManyFile,
   type InstallStep,
   type ParsedRequestPayload,
   type ServerInstallResult,
@@ -172,6 +175,10 @@ export class ServerInstaller {
     base: number,
     span: number,
   ): Promise<void> {
+    if (step.kind === 'fetchMany') {
+      await this.fetchMany(step, req, ctx, base, span);
+      return;
+    }
     const target = path.join(req.path, step.kind === 'runJar' ? step.jar : step.path);
     switch (step.kind) {
       case 'download': {
@@ -244,6 +251,99 @@ export class ServerInstaller {
         return;
       }
     }
+  }
+
+  /**
+   * Télécharge les fichiers d'un modpack, quelques-uns à la fois (les petits fichiers dominent :
+   * 7 124 pour 1,09 Gio mesurés, doc 06 §6quinquies). Chaque fichier est vérifié par son sha1 et
+   * repris par `Range`, avec les miroirs du fournisseur en repli ; le premier échec définitif arrête
+   * l'étape (et la task : ses `.part` sont des artefacts). En réparation, un fichier déjà présent
+   * avec la bonne empreinte est gardé tel quel.
+   */
+  private async fetchMany(
+    step: Extract<InstallStep, { kind: 'fetchMany' }>,
+    req: ServerInstallRequest,
+    ctx: TaskContext,
+    base: number,
+    span: number,
+  ): Promise<void> {
+    const label = step.label ?? 'modpack';
+    const totalBytes = step.files.reduce((sum, f) => sum + f.size, 0);
+    let doneBytes = 0;
+    let doneFiles = 0;
+    let skipped = 0;
+    let lastReport = 0;
+    const report = (force = false): void => {
+      const now = Date.now();
+      if (!force && now - lastReport < 250) return;
+      lastReport = now;
+      ctx.progress(
+        'downloading',
+        base + (totalBytes === 0 ? span : Math.min(span, (doneBytes / totalBytes) * span)),
+        `${label} — ${String(doneFiles)}/${String(step.files.length)}`,
+      );
+    };
+    report(true);
+    const queue = [...step.files];
+    // Un échec arrête les autres ouvriers : sans cela ils continueraient à télécharger pour une
+    // task déjà perdue.
+    const state = { failed: false };
+    const worker = async (): Promise<void> => {
+      for (let file = queue.shift(); file !== undefined && !state.failed; file = queue.shift()) {
+        ctx.throwIfCancelled();
+        try {
+          if (await this.fetchOne(file, req, ctx)) skipped++;
+        } catch (error) {
+          state.failed = true;
+          throw error;
+        }
+        doneBytes += file.size;
+        doneFiles++;
+        report();
+      }
+    };
+    const workers = Math.min(step.concurrency, step.files.length);
+    // `allSettled` : attendre que les téléchargements en vol se terminent avant de rendre l'échec,
+    // sinon le nettoyage de la task passerait avant eux et laisserait des `.part` derrière.
+    const settled = await Promise.allSettled(Array.from({ length: workers }, () => worker()));
+    const failure = settled.find((r) => r.status === 'rejected');
+    if (failure !== undefined) throw failure.reason;
+    report(true);
+    this.options.logger.info('install files downloaded', {
+      files: step.files.length,
+      skipped,
+      bytes: totalBytes,
+    });
+  }
+
+  /** Un fichier de `fetchMany` ; rend `true` s'il était déjà là (réparation). */
+  private async fetchOne(
+    file: FetchManyFile,
+    req: ServerInstallRequest,
+    ctx: TaskContext,
+  ): Promise<boolean> {
+    const target = path.join(req.path, file.path);
+    if (req.repair && (await sha1IfSize(target, file.size)) === file.sha1.toLowerCase()) {
+      return true;
+    }
+    await withFsErrors(path.dirname(target), () =>
+      mkdir(path.dirname(target), { recursive: true }),
+    );
+    const partPath = `${target}.${ctx.taskId}.part`;
+    ctx.artifact(partPath);
+    await downloadWithResume({
+      partPath,
+      sources: [file.url, ...(file.mirrors ?? [])].map((url) => ({ url, kind: 'direct' })),
+      panelOrigin: this.options.panelOrigin(),
+      sha1: file.sha1,
+      size: file.size,
+      signal: ctx.signal,
+      fetchImpl: this.options.fetchImpl,
+    });
+    await rm(target, { force: true });
+    await withFsErrors(target, () => rename(partPath, target));
+    ctx.keep(partPath);
+    return false;
   }
 
   /**
@@ -374,4 +474,13 @@ async function measureTree(root: string): Promise<{ files: number; bytes: number
     }
   }
   return { files, bytes };
+}
+
+/** sha1 d'un fichier s'il existe avec la taille attendue ; `undefined` sinon (rien à relire). */
+async function sha1IfSize(file: string, size: number): Promise<string | undefined> {
+  const info = await stat(file).catch(() => undefined);
+  if (info?.isFile() !== true || info.size !== size) return undefined;
+  const hash = createHash('sha1');
+  for await (const chunk of createReadStream(file)) hash.update(chunk as Buffer);
+  return hash.digest('hex');
 }

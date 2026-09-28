@@ -4,7 +4,14 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { tmpDir } from '../test/helpers.js';
-import { formatUuid, offlineUuid, resolvePlayers, type FetchLike } from './players.js';
+import { AGENT_USER_AGENT } from '../util/user-agent.js';
+import {
+  formatUuid,
+  offlineUuid,
+  resolveMojang,
+  resolvePlayers,
+  type FetchLike,
+} from './players.js';
 
 describe('identité des joueurs (doc 06 §7)', () => {
   let dir: string;
@@ -96,5 +103,24 @@ describe('identité des joueurs (doc 06 §7)', () => {
       { name: 'Notch', uuid: null, source: 'unknown' },
     ]);
     expect(calls).toBe(0);
+  });
+
+  it('Mojang limité (429) ou en panne : on s’arrête, sans lancer les lots suivants', async () => {
+    const names = Array.from({ length: 35 }, (_, i) => 'joueur' + String(i));
+    for (const answer of [
+      () => Promise.resolve(new Response('', { status: 429 })),
+      () => Promise.resolve(new Response('', { status: 503 })),
+      () => Promise.reject(new Error('ECONNRESET')),
+    ]) {
+      const agents: (string | undefined)[] = [];
+      const fetchImpl = ((_url: string, init?: RequestInit) => {
+        agents.push((init?.headers as Record<string, string> | undefined)?.['user-agent']);
+        return answer();
+      }) as unknown as FetchLike;
+      const out = await resolveMojang(names, fetchImpl);
+      expect(out.size).toBe(0);
+      // 4 lots de 10 possibles : un seul part.
+      expect(agents).toEqual([AGENT_USER_AGENT]);
+    }
   });
 });

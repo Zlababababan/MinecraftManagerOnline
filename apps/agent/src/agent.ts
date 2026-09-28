@@ -68,6 +68,7 @@ export const AGENT_CAPABILITIES = [
   'replication',
   'server-install',
   'install-remove',
+  'install-fetch-many',
 ];
 
 export function currentOs(): Os {

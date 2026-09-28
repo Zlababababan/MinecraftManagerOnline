@@ -20,6 +20,7 @@ import { ForbiddenRoots } from '../files/forbidden.js';
 import { Logger } from '../log.js';
 import { TaskJournal, TaskRunner } from '../tasks/runner.js';
 import { freePort, tmpDir } from '../test/helpers.js';
+import { AGENT_USER_AGENT } from '../util/user-agent.js';
 import { ServerInstaller, type ServerInstallRequest } from './installer.js';
 
 const logger = new Logger('test', { stderr: false });
@@ -39,6 +40,8 @@ describe('ServerInstaller (lot 5)', () => {
   let server: http.Server;
   let origin: string;
   let files: Map<string, Buffer>;
+  /** Requêtes reçues par le faux fournisseur (chemin, User-Agent). */
+  let hits: { url: string; ua: string | undefined }[];
   let runner: TaskRunner;
   let installer: ServerInstaller;
   let events: { type: string; payload: unknown }[];
@@ -50,7 +53,9 @@ describe('ServerInstaller (lot 5)', () => {
     ({ dir: stateDir, cleanup } = await tmpDir('mmo-install-'));
     serverDir = path.join(stateDir, 'servers', 'new-one');
     files = new Map();
+    hits = [];
     server = http.createServer((req, res) => {
+      hits.push({ url: req.url ?? '', ua: req.headers['user-agent'] });
       const data = files.get(req.url ?? '');
       if (!data) {
         res.writeHead(404).end();
@@ -350,6 +355,75 @@ describe('ServerInstaller (lot 5)', () => {
     expect(record?.status).toBe('failed');
     expect(record?.error).toMatchObject({ code: 'E_JAVA_UNAVAILABLE' });
     expect(record?.error?.details).toMatchObject({ reason: 'NO_JAVA' });
+  });
+
+  describe('fetchMany (modpacks)', () => {
+    const many = (
+      list: { path: string; url: string; sha1: string; size: number; mirrors?: string[] }[],
+    ) =>
+      base({
+        loader: 'neoforge',
+        steps: [{ kind: 'fetchMany', label: 'Pack', concurrency: 2, files: list }],
+      });
+
+    it('pose chaque fichier vérifié, passe au miroir, se présente, et ne laisse aucun .part', async () => {
+      const a = serve('/mods/a.jar', 'mod a');
+      const b = serve('/cfg/b.toml', 'x = 1');
+      const c = serve('/mirror/c.jar', 'mod c');
+      const record = await run(
+        many([
+          { path: 'mods/a.jar', ...a },
+          { path: 'config/deep/b.toml', ...b },
+          // Source principale absente (404) : le miroir prend le relais.
+          { path: 'mods/c.jar', ...c, url: `${origin}/gone/c.jar`, mirrors: [c.url] },
+        ]),
+      );
+      expect(record?.status).toBe('done');
+      expect(await readFile(path.join(serverDir, 'mods', 'a.jar'), 'utf8')).toBe('mod a');
+      expect(await readFile(path.join(serverDir, 'config', 'deep', 'b.toml'), 'utf8')).toBe(
+        'x = 1',
+      );
+      expect(await readFile(path.join(serverDir, 'mods', 'c.jar'), 'utf8')).toBe('mod c');
+      expect(
+        (await readdir(path.join(serverDir, 'mods'))).filter((n) => n.endsWith('.part')),
+      ).toEqual([]);
+      expect(hits.map((h) => h.url)).toEqual(
+        expect.arrayContaining(['/mods/a.jar', '/gone/c.jar', '/mirror/c.jar']),
+      );
+      // Un client identifiable auprès des CDN (docs/services-tiers.md).
+      expect(new Set(hits.map((h) => h.ua))).toEqual(new Set([AGENT_USER_AGENT]));
+    });
+
+    it('une empreinte fausse fait échouer l’installation entière, sans rien laisser', async () => {
+      const a = serve('/mods/a.jar', 'mod a');
+      const b = serve('/mods/b.jar', 'mod b');
+      const record = await run(
+        many([
+          { path: 'mods/a.jar', ...a },
+          { path: 'mods/b.jar', ...b, sha1: 'b'.repeat(40) },
+        ]),
+      );
+      expect(record?.status).toBe('failed');
+      expect(await exists(serverDir)).toBe(false);
+    });
+
+    it('en réparation, les fichiers déjà bons ne sont pas retéléchargés', async () => {
+      const a = serve('/mods/a.jar', 'mod a');
+      const b = serve('/mods/b.jar', 'mod b');
+      await mkdir(path.join(serverDir, 'mods'), { recursive: true });
+      await writeFile(path.join(serverDir, 'mods', 'a.jar'), 'mod a', 'utf8');
+      await writeFile(path.join(serverDir, 'mods', 'b.jar'), 'abîmé', 'utf8');
+      const record = await run({
+        ...many([
+          { path: 'mods/a.jar', ...a },
+          { path: 'mods/b.jar', ...b },
+        ]),
+        repair: true,
+      });
+      expect(record?.status).toBe('done');
+      expect(hits.map((h) => h.url)).toEqual(['/mods/b.jar']);
+      expect(await readFile(path.join(serverDir, 'mods', 'b.jar'), 'utf8')).toBe('mod b');
+    });
   });
 
   describe('précheck', () => {

@@ -4,6 +4,7 @@
  * taille à la fin. Une URL relative est résolue contre l'origine HTTP du panel (mode relais).
  * Utilisé par `java.install`, `migration.import`, `agent.update` et `runtime.update`.
  */
+import { AGENT_USER_AGENT } from './user-agent.js';
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { open, rm, stat } from 'node:fs/promises';
@@ -140,7 +141,10 @@ async function fetchChunk(
 ): Promise<'complete' | 'interrupted'> {
   const existing = (await stat(options.partPath).catch(() => undefined))?.size ?? 0;
   if (total !== undefined && existing >= total && total > 0) return 'complete';
-  const headers: Record<string, string> = { ...(source.headers ?? {}) };
+  const headers: Record<string, string> = {
+    'user-agent': AGENT_USER_AGENT,
+    ...(source.headers ?? {}),
+  };
   if (existing > 0) headers.Range = `bytes=${String(existing)}-`;
   const connectTimeout = options.connectTimeoutMs ?? (source.kind === 'direct' ? 5_000 : 30_000);
   const controller = new AbortController();

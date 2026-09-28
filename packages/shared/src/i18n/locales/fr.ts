@@ -181,6 +181,9 @@ export const fr = {
     E_UNSUPPORTED_TYPE: 'Opération non supportée par l’agent (nécessite un agent plus récent).',
     E_INVALID_PAYLOAD: 'Contenu de requête invalide.',
     E_NOT_FOUND: 'Ressource introuvable.',
+    E_NOT_FOUND_FEATURE_DISABLED: 'Cette intégration est désactivée (Réglages → Services tiers).',
+    E_NOT_FOUND_UNKNOWN_MODPACK: 'Ce modpack ou cette version n’existe pas (ou plus) chez FTB.',
+    E_VALIDATION_TOO_MANY_FILES: 'Ce modpack contient trop de fichiers pour être installé ici.',
     E_NOT_FOUND_PATHS_NOT_IN_ARCHIVE: 'Absent de cette archive : {{list}}. Rien n’a été modifié.',
     E_INVALID_PAYLOAD_RESERVED_PATH:
       'Ce chemin est géré par l’agent et n’est jamais restauré : {{path}}.',

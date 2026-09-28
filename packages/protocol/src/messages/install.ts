@@ -26,6 +26,25 @@ export const MAX_INSTALL_STEPS = 50;
 /** Durée maximale d'un `runJar` (un installeur moddé sur ligne lente se compte en minutes). */
 export const INSTALL_RUN_TIMEOUT_MAX_SEC = 3600;
 export const INSTALL_RUN_TIMEOUT_DEFAULT_SEC = 1800;
+/**
+ * Fichiers d'une étape `fetchMany` : un modpack FTB en compte ~7 000 (mesuré doc 06 §6quinquies,
+ * plan de 1,8 Mio). Au-delà, le panel devra servir la liste plutôt que l'embarquer.
+ */
+export const MAX_FETCH_MANY_FILES = 20_000;
+/** Téléchargements simultanés d'un `fetchMany` (les petits fichiers dominent). */
+export const FETCH_MANY_CONCURRENCY_DEFAULT = 6;
+export const FETCH_MANY_CONCURRENCY_MAX = 16;
+
+/** Un fichier d'une étape `fetchMany` : empreinte et taille toujours connues (vérifiées). */
+export const fetchManyFileSchema = z.object({
+  path: relativePathSchema.refine((p) => p !== '', { message: 'path expected' }),
+  url: z.url(),
+  /** Sources de repli, dans l'ordre (miroirs publiés par le fournisseur). */
+  mirrors: z.array(z.url()).max(4).optional(),
+  sha1: z.string().length(40),
+  size: z.int().nonnegative(),
+});
+export type FetchManyFile = z.infer<typeof fetchManyFileSchema>;
 
 /** Source de repli d'un téléchargement (miroir, ou relais du panel pour une machine sans Internet). */
 export const installSourceSchema = z.object({
@@ -89,6 +108,21 @@ export const installStepSchema = z.discriminatedUnion('kind', [
    * Supprime un fichier ou un dossier du serveur (l'installeur Forge/NeoForge et son journal, une
    * fois leur travail fait). Jamais le dossier lui-même, jamais un chemin hors du jail.
    */
+  /**
+   * Télécharge une liste de fichiers (le contenu d'un modpack) : empreinte vérifiée pour chacun,
+   * reprise `Range`, miroirs en repli, plusieurs à la fois. En mode `repair`, un fichier déjà
+   * présent avec la bonne empreinte n'est pas retéléchargé. Capacité `install-fetch-many`.
+   */
+  z.object({
+    kind: z.literal('fetchMany'),
+    files: z.array(fetchManyFileSchema).min(1).max(MAX_FETCH_MANY_FILES),
+    concurrency: z
+      .int()
+      .min(1)
+      .max(FETCH_MANY_CONCURRENCY_MAX)
+      .default(FETCH_MANY_CONCURRENCY_DEFAULT),
+    label: z.string().max(120).optional(),
+  }),
   z.object({
     kind: z.literal('remove'),
     path: relativePathSchema.refine((p) => p !== '', { message: 'path expected' }),
