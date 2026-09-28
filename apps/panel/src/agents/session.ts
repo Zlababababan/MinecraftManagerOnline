@@ -97,6 +97,7 @@ export class AgentSession {
   private configQueued: Promise<void> | undefined;
   private readonly log: FastifyBaseLogger;
   private agentVersion: string | undefined;
+  private capabilities: ReadonlySet<string> = new Set();
 
   constructor(
     private readonly transport: AgentTransport,
@@ -134,6 +135,11 @@ export class AgentSession {
 
   get heartbeat(): AgentHeartbeat | undefined {
     return this.latestHeartbeat;
+  }
+
+  /** Capacité annoncée par l'agent dans `auth.hello` (chaîne libre, doc 05 §3). */
+  supports(capability: string): boolean {
+    return this.capabilities.has(capability);
   }
 
   close(code?: number, reason?: string): void {
@@ -537,6 +543,7 @@ export class AgentSession {
       runtimeVersion: p.runtimeVersion,
     });
     this.agentVersion = p.agentVersion;
+    this.capabilities = new Set(p.capabilities);
     this.lastHeartbeatAt = this.deps.now();
     this.startWatchdog();
     this.deps.events.publish({

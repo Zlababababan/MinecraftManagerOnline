@@ -57,6 +57,18 @@ describe('sortie des erreurs HTTP', () => {
     expect(body.details?.requestId).toBeTruthy();
   });
 
+  it('laisse passer une erreur 5xx levée exprès par le panel, sa raison et la trace en plus', async () => {
+    const { status, body } = await panelThatThrows(
+      new AppError('E_UNSUPPORTED_TYPE', 'this agent is too old to install this loader', {
+        details: { reason: 'AGENT_TOO_OLD' },
+      }),
+    );
+    expect(status).toBe(501);
+    expect(body.message).toBe('this agent is too old to install this loader');
+    expect(body.details?.reason).toBe('AGENT_TOO_OLD');
+    expect(body.details?.requestId).toBeTruthy();
+  });
+
   it('laisse passer les erreurs métier du panel sous 500', async () => {
     const { status, body } = await panelThatThrows(
       new AppError('E_NOT_FOUND', 'unknown server srv_9'),

@@ -156,7 +156,7 @@ describe('installation d’un serveur — routes et service du panel', () => {
 
   async function online(
     name: string,
-    capabilities = ['tasks', 'server-install'],
+    capabilities = ['tasks', 'server-install', 'install-remove'],
     os: 'linux' | 'windows' = 'linux',
   ): Promise<Machine> {
     const res = await api('POST', '/api/machines', { name });
@@ -460,6 +460,37 @@ describe('installation d’un serveur — routes et service du panel', () => {
     expect(m.installs[0]?.loaderVersion).toBe('21.1.209');
   });
 
+  it('un agent qui ne connaît pas l’étape remove : Forge refusé en disant de le mettre à jour, vanilla accepté', async () => {
+    const m = await online('Ancien', ['tasks', 'server-install']);
+    const pre = await api(
+      'POST',
+      `/api/machines/${m.id}/install/precheck`,
+      (({ acceptEula: _a, ...rest }) => rest)(body(m, { loader: 'neoforge', mcVersion: '1.21.1' })),
+    );
+    expect(pre.statusCode).toBe(501);
+    const res = await api(
+      'POST',
+      `/api/machines/${m.id}/install`,
+      body(m, { loader: 'forge', mcVersion: '1.7.10' }),
+    );
+    expect(res.statusCode, res.body).toBe(501);
+    expect(res.json<{ code: string; details?: { reason?: string } }>()).toMatchObject({
+      code: 'E_UNSUPPORTED_TYPE',
+      details: { reason: 'AGENT_TOO_OLD' },
+    });
+    // Rien n'est parti vers l'agent, aucune ligne n'est restée.
+    expect(m.installs).toHaveLength(0);
+    expect(m.prechecks).toHaveLength(0);
+    expect(panel.ctx.servers.list()).toHaveLength(0);
+    // Un plan sans retrait reste possible sur ce même agent.
+    const vanilla = await api(
+      'POST',
+      `/api/machines/${m.id}/install`,
+      body(m, { loader: 'vanilla', mcVersion: '1.20.1' }),
+    );
+    expect(vanilla.statusCode, vanilla.body).toBe(202);
+  });
+
   it('une version que Fabric ne supporte pas est refusée avant toute écriture', async () => {
     const m = await online('Tour');
     const res = await api(
@@ -572,7 +603,7 @@ describe('installation d’un serveur — routes et service du panel', () => {
   it('agent N-1 : 501 lisible, et rien de créé', async () => {
     const m = await online('Vieille', ['tasks']);
     const res = await api('POST', `/api/machines/${m.id}/install`, body(m));
-    expect(res.statusCode).toBe(501);
+    expect(res.statusCode, res.body).toBe(501);
     expect(panel.ctx.servers.list()).toHaveLength(0);
   });
 

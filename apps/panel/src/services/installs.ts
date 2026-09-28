@@ -29,6 +29,7 @@ import type {
 import { eq } from 'drizzle-orm';
 
 import type { AgentRegistry } from '../agents/registry.js';
+import type { AgentSession } from '../agents/session.js';
 import type { MmoDatabase } from '../db/client.js';
 import { servers, type ServerRow, type TaskRow } from '../db/schema.js';
 import { AppError } from '../errors.js';
@@ -119,6 +120,7 @@ export class InstallsService {
   async precheck(input: InstallInput): Promise<InstallPrecheckDto> {
     const prepared = await this.prepare(input);
     const session = this.deps.registry.require(prepared.machineId);
+    assertAgentCanRun(session, prepared.plan.steps);
     const result = await session.peer.request('migration.precheck', {
       // Le serveur n'existe pas encore : l'id ne sert qu'au journal de l'agent.
       serverId: 'pending',
@@ -138,6 +140,8 @@ export class InstallsService {
   ): Promise<{ server: ServerRow; taskId: string }> {
     const prepared = await this.prepare(input);
     const session = this.deps.registry.require(prepared.machineId);
+    // Avant la ligne : un refus ici ne laisse rien derrière lui.
+    assertAgentCanRun(session, prepared.plan.steps);
     const serverId = ulid(this.deps.now());
     const taskId = ulid(this.deps.now());
     const row = this.deps.servers.insertPlanned({
@@ -197,6 +201,7 @@ export class InstallsService {
       });
     }
     const session = this.deps.registry.require(row.machineId);
+    assertAgentCanRun(session, previous.steps);
     const taskId = ulid(this.deps.now());
     const request = { ...previous, repair: true };
     this.deps.tasks.create({
@@ -295,4 +300,17 @@ function estimateBytes(plan: InstallPlan): number {
     if (step.kind === 'download' && step.size !== undefined) known += step.size;
   }
   return known * 2 + 256 * 1024 * 1024;
+}
+
+/**
+ * Un plan qui retire des fichiers (installeurs Forge/NeoForge) exige un agent qui connaît l'étape
+ * `remove` : un agent N-1 refuserait tout le message pour un schéma inconnu, avec une erreur qui ne
+ * dit pas qu'il suffit de le mettre à jour. Le refus est donné ici, avant d'écrire quoi que ce soit.
+ */
+function assertAgentCanRun(session: AgentSession, steps: readonly { kind: string }[]): void {
+  if (steps.some((s) => s.kind === 'remove') && !session.supports('install-remove')) {
+    throw new AppError('E_UNSUPPORTED_TYPE', 'this agent is too old to install this loader', {
+      details: { reason: 'AGENT_TOO_OLD', capability: 'install-remove' },
+    });
+  }
 }

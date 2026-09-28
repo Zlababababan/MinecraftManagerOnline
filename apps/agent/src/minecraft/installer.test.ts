@@ -15,6 +15,7 @@ import path from 'node:path';
 import { serverInstallSchema, type JavaRuntime } from '@mmo/protocol';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { AGENT_CAPABILITIES } from '../agent.js';
 import { ForbiddenRoots } from '../files/forbidden.js';
 import { Logger } from '../log.js';
 import { TaskJournal, TaskRunner } from '../tasks/runner.js';
@@ -254,6 +255,9 @@ describe('ServerInstaller (lot 5)', () => {
         }),
       ).toThrow();
     }
+    // Et l'agent qui sait retirer le dit : sans la capacité, le panel refuse Forge/NeoForge en
+    // demandant une mise à jour de l'agent (doc 05 §6).
+    expect(AGENT_CAPABILITIES).toContain('install-remove');
   });
 
   it('un installeur qui échoue, qui ne produit rien, ou qui s’éternise : trois échecs distincts', async () => {

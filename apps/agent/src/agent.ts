@@ -67,6 +67,7 @@ export const AGENT_CAPABILITIES = [
   'partial-restore',
   'replication',
   'server-install',
+  'install-remove',
 ];
 
 export function currentOs(): Os {

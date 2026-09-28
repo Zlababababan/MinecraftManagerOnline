@@ -68,8 +68,16 @@ export function registerErrorHandler(
       // L'effacer ne protégeait rien et transformait un diagnostic complet en « internal error ».
       // Seules les exceptions inattendues du panel (SQLite, TypeError…) sont masquées — et elles
       // repartent avec l'identifiant de requête, qui est la clé pour retrouver la ligne de journal.
+      // Une `AppError` levée EXPRÈS par le panel est du même vocabulaire (« agent trop ancien »,
+      // `details.reason` compris) : la masquer effaçait justement ce qui disait quoi faire.
       if (isProtocolError(error)) {
         void reply.code(app.status).send(app.toJSON());
+        return;
+      }
+      if (error instanceof AppError) {
+        void reply
+          .code(app.status)
+          .send({ ...app.toJSON(), details: { ...app.details, requestId: request.id } });
         return;
       }
       void reply.code(app.status).send({

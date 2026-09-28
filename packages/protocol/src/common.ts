@@ -76,6 +76,8 @@ export const KNOWN_CAPABILITIES = [
   'replication',
   /** Lot 5 : `server.install` (créer un serveur dans un dossier vide, ou finir une installation). */
   'server-install',
+  /** Lot 5 : étape `remove` d'un plan `server.install` (installeurs Forge et NeoForge, retirés après usage). */
+  'install-remove',
 ] as const;
 export const capabilitySchema = z.string().min(1);
 
