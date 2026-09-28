@@ -344,7 +344,7 @@ export function groupNeoForgeVersions(
 ): Map<string, FabricVersion[]> {
   const out = new Map<string, FabricVersion[]>();
   for (const version of versions) {
-    if (/^0\./.test(version) || version.includes('+')) continue;
+    if (version.startsWith('0.') || version.includes('+')) continue;
     const mc = mcVersionOf(version);
     if (mc === undefined) continue;
     const list = out.get(mc) ?? [];
