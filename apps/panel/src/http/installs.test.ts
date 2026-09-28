@@ -108,7 +108,8 @@ function fakeFetch(calls: string[]): typeof fetch {
           '</versions></versioning></metadata>',
       );
     }
-    if (url.endsWith('-installer.jar.sha1')) return text('66bfea9963bfa60d88bab6b2750e74a958392715');
+    if (url.endsWith('-installer.jar.sha1'))
+      return text('66bfea9963bfa60d88bab6b2750e74a958392715');
     return Promise.resolve(new Response('nope', { status: 404 }));
   }) as typeof fetch;
 }
@@ -181,11 +182,11 @@ describe('installation d’un serveur — routes et service du panel', () => {
     a.peer.handle('migration.precheck', (req) => {
       m.prechecks.push(req);
       return {
-      ok: m.precheckOk,
-      path: { ok: m.precheckOk, ...(m.precheckOk ? {} : { code: 'path_exists' }) },
-      port: { ok: true },
-      java: { ok: true },
-      disk: { ok: true, freeBytes: 10 ** 11 },
+        ok: m.precheckOk,
+        path: { ok: m.precheckOk, ...(m.precheckOk ? {} : { code: 'path_exists' }) },
+        port: { ok: true },
+        java: { ok: true },
+        disk: { ok: true, freeBytes: 10 ** 11 },
       };
     });
     if (capabilities.includes('server-install')) {

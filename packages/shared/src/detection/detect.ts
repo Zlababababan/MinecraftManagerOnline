@@ -469,7 +469,9 @@ export function mcVersionFromNeoForge(version: string): string | undefined {
   const modern = /^(\d+)\.(\d+)\.(\d+)\.\d+/.exec(version);
   if (modern && Number(modern[1]) >= 26) {
     const [, year, drop, hotfix] = modern;
-    return hotfix === '0' ? `${String(year)}.${String(drop)}` : `${String(year)}.${String(drop)}.${String(hotfix)}`;
+    return hotfix === '0'
+      ? `${String(year)}.${String(drop)}`
+      : `${String(year)}.${String(drop)}.${String(hotfix)}`;
   }
   const m = /^(\d+)\.(\d+)\.\d+/.exec(version);
   if (!m) return undefined;

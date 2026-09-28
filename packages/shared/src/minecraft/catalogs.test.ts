@@ -185,7 +185,7 @@ describe('Forge', () => {
         '1.20.1-latest': '47.4.16',
         '1.20.1-recommended': '47.4.10',
         '26.3-latest': '66.0.6',
-        'bizarre': '1',
+        bizarre: '1',
       },
     });
     expect(promos.get('1.20.1')).toEqual({ recommended: '47.4.10', latest: '47.4.16' });
