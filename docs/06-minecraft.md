@@ -286,6 +286,59 @@ l'autre (§6bis, point 5). L'EULA reste le drapeau appliqué en dernier, les ré
 (l'API l'accepte, `loaderVersion`) ; les Forge très anciens (1.7–1.10) n'ont pas été rejoués de
 bout en bout sur une vraie machine.
 
+## 6quinquies. Installer un modpack FTB — mesures du spike (2026-09-28)
+
+Préalable à la fin du lot 5 (« FTB via l'API plutôt que l'exe », décidé session 26). Mesuré contre
+les API réelles et recoupé avec un vrai serveur de l'utilisateur, **en lecture seule** (liste de
+`mods/` de `FTBEvolution_1.43.1`, posé le 12/09 par l'installeur officiel `serverinstall_125_100487.exe`).
+
+**1. Deux API, et l'ancienne est figée.** `api.modpacks.ch/public/modpack/125` ne connaît que
+**7 versions** de FTB Evolution (1.0.0 → 1.3.0) ; `api.feed-the-beast.com/v1/modpacks/public/modpack/125`
+en connaît **74**, dont la 1.43.1 installée et la 1.44.0. C'est la seconde que l'installeur officiel
+utilise ; la première ne doit pas être employée. Recherche (`…/modpack/search/<n>?term=`),
+populaires (`…/popular/installs/<n>`) et liste complète (`…/all` : 94 packs) répondent sans clé.
+
+**2. Une version = une liste de fichiers complète et vérifiable.** `…/modpack/125/100487` (5,3 Mio de
+JSON, 0,15 s) : 7 153 fichiers, chacun avec `path`, `name`, `url`, `size`, `sha1` (+ `sha256`
+dans `hashes`), `clientonly`, parfois `mirrors[]`. **Aucun fichier sans URL ni sans sha1** ; aucun
+`serveronly` ; aucun `optional`. Les cibles (`targets`) donnent Minecraft **1.21.1**, NeoForge
+**21.1.248** et le Java ; `specs` donne la mémoire (minimum 6 144, recommandé « 8 092 » — la faute de
+frappe vient de FTB et se retrouve telle quelle dans le `user_jvm_args.txt` posé par l'installeur).
+
+**3. Fidélité : exacte.** Les fichiers non `clientonly` rangés sous `./mods` sont **494**, et le
+dossier réel en contient **494, les mêmes noms, sans un écart** dans un sens ni dans l'autre. Les 29
+`clientonly` (Iris, ImmediatelyFast, Discord Rich Presence…) sont bien absents du serveur. La liste
+de l'API suffit donc à reproduire ce que pose l'exe — sans exécuter un binaire tiers propre à
+Windows, et sur tous les OS de l'agent.
+
+**4. Volume.** 7 124 fichiers côté serveur, **1,09 Gio** : `config` 2 288, `datapacks` 3 104,
+`shaderpacks` 618, `kubejs` 574, `mods` 494… — les petits fichiers dominent, d'où un
+téléchargement **parallélisé** (quelques connexions) plutôt que série. Plus gros fichier : 70 Mio.
+Chemins tous relatifs, aucun `..`, aucun doublon même en ignorant la casse (vérifié : le jail de
+l'agent s'appliquera quand même à chacun).
+
+**5. Hébergement.** `files.feed-the-beast.com` (6 631), `edge.forgecdn.net` (520, les mods
+publiés sur CurseForge), `cdn.feed-the-beast.com` (2). Les deux premiers servent **sans clé ni
+en-tête particulier** et le sha1 téléchargé concorde avec l'annoncé (vérifié sur un fichier de
+chaque). 493 fichiers ont un miroir `files.feed-the-beast.com` : il servira de source de repli.
+
+**6. Taille du plan.** La liste réduite à `{ path, url, sha1, size, mirrors? }` pèse **1,8 Mio** en
+JSON (523 Kio compressé) : elle tient dans un message `server.install` (le WebSocket accepte
+16 Mio), mais sera aussi stockée avec la task pour le mode « réparer ». Décision : liste **en ligne**
+dans une étape `fetchMany`, plafonnée ; si un pack dépasse le plafond, le panel servira la liste par
+le relais au lieu de l'embarquer.
+
+**Conséquence pour le plan** : `fetchMany` (les fichiers du pack, sha1 vérifié, repris par `Range`,
+miroir en repli) puis le plan NeoForge/Forge du §6quater avec le build **imposé par le pack**
+(`targets`, pas le « recommandé » du panel), mémoire proposée depuis `specs.recommended`, Java
+depuis la version de jeu. `fetchMany` et `extract` étaient déjà prévus au protocole pour les
+modpacks (doc 05 §6). **Reste ouvert** : l'API est publique et documentée (Apiary, « modpacksch »)
+et déjà employée par des outils tiers (l'image Docker `itzg/minecraft-server`), mais aucune
+condition d'utilisation écrite n'a été trouvée (recherche du 2026-09-28) — à confirmer auprès de FTB
+avant de livrer ; chaque mod garde ses propres conditions de redistribution, que l'agent respecte en
+téléchargeant depuis l'URL publiée plutôt qu'en redistribuant. L'installeur officiel est public :
+`FTBTeam/FTB-Server-Installer`.
+
 ## 7. Fichiers édités par MMO
 
 ### `server.properties`
