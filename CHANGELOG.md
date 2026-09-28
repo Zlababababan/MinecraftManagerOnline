@@ -8,6 +8,22 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### Create a Forge or NeoForge server from the panel (2026-09-28)
+
+- **Forge and NeoForge join Vanilla and Fabric** in the "Create a server" wizard. The panel picks
+  Forge's recommended build (NeoForge's latest stable one), checks the installer against its
+  published fingerprint, runs it on the machine, then removes it — the server folder only keeps
+  what the server needs.
+- **The version list is readable.** It used to be one column of 900 entries, snapshots and 2010
+  alphas included. Versions are now grouped by series, test versions are hidden unless you ask for
+  them, and the latest stable release is already selected. The wizard says which loader build will
+  be installed, and suggests more memory for a modded server.
+- **A missing Java is fixed on the spot.** When the machine lacks the Java the server needs, the
+  wizard names it and, for an administrator, installs it without leaving the wizard. The machine
+  page now offers **Java 25**, which Minecraft 26.x requires.
+- An agent too old to install Forge or NeoForge is told so ("requires a newer agent") before
+  anything is written; Vanilla and Fabric still install on it.
+
 ### A server can run at a lower CPU priority (2026-09-21)
 
 - **Reported while using it:** a browser tab crawls while a modded server boots. It is not the

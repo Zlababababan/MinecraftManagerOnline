@@ -209,6 +209,20 @@ Plannings de backups : poussés via `agent.configure`, **déclenchés localement
 > dossier n'est **jamais** déclaré artefact de task : le nettoyage d'un échec ferait un `rm -r` sur
 > des données utilisateur. Hors réparation il l'est, et un échec ne laisse rien derrière.
 >
+> **Amendement (2026-09-28, lot 5 — Forge et NeoForge) : étape `remove`, capacité
+> `install-remove`.** Le plan Forge/NeoForge pose l'installeur dans `.mmo-install/`, l'exécute, puis
+> le **retire** avec son `installer.jar.log` (étape `remove { path }` : chemin relatif non vide, jail
+> du dossier du serveur ; jamais le dossier lui-même). Un agent N-1 ne connaît pas cette étape et
+> refuserait le message entier pour un schéma inconnu — avec une erreur qui ne dit pas qu'il suffit de
+> le mettre à jour. D'où la capacité **`install-remove`**, gardée par le panel **avant d'écrire quoi
+> que ce soit** (pré-contrôle, création, reprise) : un plan qui contient une étape `remove` vers un
+> agent qui ne l'annonce pas → `501 E_UNSUPPORTED_TYPE`, `details.reason = AGENT_TOO_OLD`, aucune
+> ligne `servers`, rien d'envoyé. Vanilla et Fabric restent installables par un agent N-1. Le
+> panel mémorise désormais les capacités annoncées dans `auth.hello` (`AgentSession.supports`) ; il
+> ne les gardait pas jusque-là. Au passage, une `AppError` 5xx levée **exprès** par le panel n'est
+> plus masquée en « internal error » (seules les exceptions inattendues le sont) : sa raison et le
+> `requestId` repartent ensemble.
+>
 > Les refus contrôlables (chemin interdit, dossier non vide, EULA déguisée) sont rendus **à la
 > requête** et non par une task en échec : un 400 côté panel, pas une ligne `install_failed` à
 > nettoyer. La sortie d'un `runJar` n'est **jamais** relayée en console (7 580 lignes mesurées pour

@@ -243,6 +243,49 @@ laisser le lanceur se débrouiller au premier `server.start` : une coupure rése
 comme une installation en échec, avec sa progression et son message — pas comme un serveur qui
 refuse de démarrer.
 
+## 6quater. Installer un Forge ou un NeoForge — ce que fait le plan (2026-09-27)
+
+Seconde moitié du lot 5, construite sur les mesures du §6bis. Le panel décide du plan, l'agent
+l'exécute sans savoir d'où il vient (doc 05 §6).
+
+**1. Deux catalogues, deux formes.** Forge publie `promotions_slim.json` (le « recommandé » et le
+« dernier » par version de jeu — ce que propose son site) et un `maven-metadata.xml` de plus de
+5 000 builds dont aucun n'est signalé comme meilleur (mesuré le 2026-09-27 : 117 promotions,
+5 053 builds). Le panel prend le **recommandé**, à défaut le dernier. NeoForge n'a que son maven :
+ses builds sont regroupés par version de jeu (`21.1.x` → 1.21.1 ; depuis la numérotation par
+année, `26.x` → 26.x), le plus récent **sans suffixe** (`-beta`, `-alpha`) est pris par défaut, et
+les poissons d'avril (`0.25w14craftmine…`) sont écartés. Dans les deux cas, l'ordre et les dates
+des versions viennent de Mojang ; chaque loader ne dit que lesquelles il supporte. Un build demandé
+qui n'existe pas est refusé **avant toute écriture** (`E_VALIDATION`, `reason NO_LOADER`).
+
+**2. La coordonnée maven ne se devine pas.** Les anciens Forge portent la version de jeu en
+suffixe (`1.7.10-10.13.4.1614-1.7.10`), les récents non (`1.20.1-47.4.10`) : le panel la cherche
+dans la liste publiée. L'installeur est vérifié par le **sha1 publié à côté de lui** (`<url>.sha1`),
+comme le serveur vanilla l'est par le manifest Mojang.
+
+**3. Le plan, en quatre étapes.** `download` de l'installeur dans `.mmo-install/` ; `runJar`
+avec `--installServer`, **exécuté depuis le dossier du serveur** (l'installeur installe dans le
+dossier courant), `expect: ['libraries']` — toutes les générations mesurées l'écrivent, et un
+installeur peut sortir 0 sans rien produire (§6bis) ; puis deux `remove` : `.mmo-install/` et le
+`installer.jar.log` laissé à la racine. Le serveur n'a besoin ni de l'un ni de l'autre pour
+tourner, et un dossier propre est un dossier que la détection (§2) lit sans ambiguïté. Un agent qui
+ne connaît pas l'étape `remove` est refusé par le panel en demandant sa mise à jour (capacité
+`install-remove`, doc 05 §6) ; vanilla et Fabric lui restent ouverts.
+
+**4. Java : strict au lancement, quelconque à l'installation.** Le plan porte `javaMajor` et
+`javaStrict` pour le **serveur** : Java 8 exactement pour Forge ≤ 1.16.5, sinon la version du
+manifest Mojang (Java 25 pour les 26.x). L'installeur, lui, tourne avec le Java que l'agent a sous
+la main (§6bis, point 1). L'assistant du panel dit quel Java le serveur attend et, pour un
+administrateur, propose de l'installer sans quitter l'assistant.
+
+**5. Ni EULA ni `server.properties`** : les installeurs Forge/NeoForge n'écrivent ni l'un ni
+l'autre (§6bis, point 5). L'EULA reste le drapeau appliqué en dernier, les réglages du panel une
+étape `setProperties`.
+
+**Non fait, noté** : l'assistant ne propose pas de choisir un autre build que celui par défaut
+(l'API l'accepte, `loaderVersion`) ; les Forge très anciens (1.7–1.10) n'ont pas été rejoués de
+bout en bout sur une vraie machine.
+
 ## 7. Fichiers édités par MMO
 
 ### `server.properties`

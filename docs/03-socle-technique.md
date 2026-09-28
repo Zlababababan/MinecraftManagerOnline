@@ -145,7 +145,7 @@ Archive par plateforme (win-x64, linux-x64, linux-arm64, darwin-arm64) = `runtim
 
 ## 4. Gestionnaire Java intégré
 
-- Mapping MC→Java : **manifest Mojang** (`piston-meta.mojang.com/.../version_manifest_v2.json`, champ `javaVersion.majorVersion`), caché côté panel ; table statique en fallback hors-ligne : `[1.12,1.17)→8` (**strictement 8** pour Forge ≤ 1.16), `[1.17,1.20.5)→17`, `[1.20.5,…)→21`. **Override par serveur** toujours possible.
+- Mapping MC→Java : **manifest Mojang** (`piston-meta.mojang.com/.../version_manifest_v2.json`, champ `javaVersion.majorVersion`), caché côté panel ; table statique en fallback hors-ligne : `[1.12,1.17)→8` (**strictement 8** pour Forge ≤ 1.16), `[1.17,1.20.5)→17`, `[1.20.5,26.1)→21`, `[26.1,…)→25` (Java 25 pour les 26.x, mesuré sur le manifest Mojang — `java-runtime-epsilon` — le 2026-09-27 ; la carte Java de la page machine dérive ses choix de cette table). **Override par serveur** toujours possible.
 - Téléchargement **multi-fournisseur** (matrice vérifiée le 2026-08-21) : **Temurin** (api.adoptium.net) → **Azul Zulu** (Java 8 macOS ARM, Java 17 Windows ARM) → **build x64 sous émulation** (Java 8 Windows ARM, introuvable ailleurs). Un 404 de l'API = combo indisponible (cas normal), passer au fallback.
 - Chaîne de fallback décidée **par le panel** (payload de `java.install`) + **mode relais** : le panel télécharge et sert le JRE aux agents sans Internet sortant.
 - Vérification SHA-256 systématique ; JREs sous `data/jre/<major>/`.
