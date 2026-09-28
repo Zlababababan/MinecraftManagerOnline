@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MachineDto } from '@mmo/protocol/client';
 
 import { i18n } from '../../i18n/index.js';
-import { CreateServerModal } from './CreateServerModal.js';
+import { CreateServerModal, DEFAULT_RAM_MB, groupVersions } from './CreateServerModal.js';
 
 const machine = { id: 'm1', name: 'Tour', os: 'linux' } as MachineDto;
 const directories = [
@@ -25,7 +25,13 @@ interface Call {
   body: unknown;
 }
 
-function installFetch(calls: Call[]): void {
+interface FetchOptions {
+  /** Le pré-contrôle dit-il que Java manque ? */
+  javaMissing?: boolean;
+  role?: 'admin' | 'operator';
+}
+
+function installFetch(calls: Call[], options: FetchOptions = {}): void {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
@@ -41,6 +47,13 @@ function installFetch(calls: Call[]): void {
           status: 200,
           headers: { 'content-type': 'application/json' },
         });
+      if (path === '/api/auth/me') {
+        return json({
+          user: { id: 'u1', username: 'ambre', role: options.role ?? 'admin', scoped: false },
+        });
+      }
+      if (path.startsWith('/api/tasks')) return json({ tasks: [] });
+      if (path.endsWith('/java/install')) return json({ task: { id: 't-java' }, sources: [] });
       if (path === '/api/servers') {
         return json({
           servers: [
@@ -55,11 +68,18 @@ function installFetch(calls: Call[]): void {
         });
       }
       if (path.startsWith('/api/install/catalog')) {
+        if (path.includes('fabric')) {
+          return json({
+            loader: 'fabric',
+            versions: [{ id: '1.21.1', stable: true, loaderVersion: '0.16.5' }],
+          });
+        }
         return json({
-          loader: path.includes('fabric') ? 'fabric' : 'vanilla',
+          loader: 'vanilla',
           versions: [
-            { id: '1.20.1', stable: true },
             { id: '1.20.2-pre1', stable: false },
+            { id: '1.20.1', stable: true },
+            { id: '1.19.4', stable: true },
           ],
         });
       }
@@ -69,7 +89,7 @@ function installFetch(calls: Call[]): void {
             ok: false,
             path: { ok: true },
             port: { ok: false, code: 'port_in_use' },
-            java: { ok: true },
+            java: options.javaMissing === true ? { ok: false, code: 'java_missing' } : { ok: true },
             disk: { ok: true },
             target: {
               path: '/srv/minecraft/survie',
@@ -85,10 +105,10 @@ function installFetch(calls: Call[]): void {
   );
 }
 
-function renderModal(): { calls: Call[]; created: string[] } {
+function renderModal(options: FetchOptions = {}): { calls: Call[]; created: string[] } {
   const calls: Call[] = [];
   const created: string[] = [];
-  installFetch(calls);
+  installFetch(calls, options);
   render(
     <MantineProvider>
       <QueryClientProvider
@@ -207,14 +227,95 @@ describe('CreateServerModal', () => {
     await waitFor(() => {
       expect(version.querySelectorAll('option').length).toBeGreaterThan(1);
     });
-    fireEvent.change(version, { target: { value: '1.20.1' } });
+    fireEvent.change(version, { target: { value: '1.19.4' } });
     fireEvent.click(screen.getByLabelText('Fabric'));
     await waitFor(() => {
       expect(calls.some((c) => c.path.includes('loader=fabric'))).toBe(true);
     });
-    // La version repart de zéro : celle de vanilla n'est pas forcément supportée par Fabric.
+    // La version choisie pour vanilla est oubliée (Fabric ne la supporte pas forcément) : c'est la
+    // dernière stable de SON catalogue qui est reprise, avec la version du chargeur annoncée.
     await waitFor(() => {
-      expect(screen.getByTestId('install-version')).toHaveValue('');
+      expect(screen.getByTestId('install-version')).toHaveValue('1.21.1');
+    });
+    expect(screen.getByTestId('install-loader-version')).toHaveTextContent('Fabric 0.16.5');
+  });
+
+  it('la dernière stable est présélectionnée, les versions de test masquées sauf demande', async () => {
+    renderModal();
+    fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'survie' } });
+    fireEvent.click(screen.getByTestId('install-next'));
+    const version = await screen.findByTestId('install-version');
+    // Une pré-version arrive en tête du catalogue : elle n'est ni choisie ni proposée.
+    await waitFor(() => {
+      expect(version).toHaveValue('1.20.1');
+    });
+    const ids = () => [...version.querySelectorAll('option')].map((o) => o.value);
+    expect(ids()).not.toContain('1.20.2-pre1');
+    fireEvent.click(screen.getByTestId('install-show-unstable'));
+    await waitFor(() => {
+      expect(ids()).toContain('1.20.2-pre1');
+    });
+    expect(version).toHaveValue('1.20.1');
+  });
+
+  it('la mémoire proposée suit le chargeur tant qu’on n’y a pas touché', async () => {
+    renderModal();
+    fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'survie' } });
+    fireEvent.click(screen.getByTestId('install-next'));
+    await screen.findByTestId('install-version');
+    fireEvent.click(screen.getByLabelText('NeoForge'));
+    // Le catalogue NeoForge arrive et sa dernière stable est reprise avant d'avancer.
+    await waitFor(() => {
+      expect(screen.getByTestId('install-version')).toHaveValue('1.20.1');
+    });
+    fireEvent.click(screen.getByTestId('install-next'));
+    const ram = await screen.findByTestId('install-ram');
+    expect(ram).toHaveValue(String(DEFAULT_RAM_MB.neoforge));
+  });
+
+  it('un Java manquant se règle depuis l’assistant, sans en sortir', async () => {
+    const { calls } = renderModal({ javaMissing: true });
+    await walkToReview();
+    const card = await screen.findByTestId('install-java-missing');
+    expect(card).toHaveTextContent('Java 17 n’est pas installé sur cette machine');
+    // Java a sa carte : il ne double pas dans la liste des autres problèmes.
+    expect(screen.getByTestId('install-precheck-problems')).not.toHaveTextContent('Java');
+    fireEvent.click(screen.getByTestId('install-java-button'));
+    await waitFor(() => {
+      expect(
+        calls.find((c) => c.method === 'POST' && c.path === '/api/machines/m1/java/install')?.body,
+      ).toEqual({ majorVersion: 17, relay: false });
+    });
+  });
+
+  it('un opérateur voit le Java manquant mais n’a pas de bouton pour l’installer', async () => {
+    renderModal({ javaMissing: true, role: 'operator' });
+    await walkToReview();
+    expect(await screen.findByTestId('install-java-missing')).toHaveTextContent(
+      'Un administrateur peut l’installer',
+    );
+    expect(screen.queryByTestId('install-java-button')).not.toBeInTheDocument();
+  });
+});
+
+describe('groupVersions', () => {
+  const v = (id: string, stable = true) => ({ id, stable });
+
+  it('groupe par série dans l’ordre reçu, numérotation par année comprise', () => {
+    const groups = groupVersions([v('26.1'), v('1.21.4'), v('1.21'), v('1.20.1')], false);
+    expect(groups.map((g) => [g.series, g.items.map((i) => i.id)])).toEqual([
+      ['26', ['26.1']],
+      ['1.21', ['1.21.4', '1.21']],
+      ['1.20', ['1.20.1']],
+    ]);
+  });
+
+  it('les versions de test ne viennent que sur demande, dans un groupe à part en fin de liste', () => {
+    const input = [v('24w14a', false), v('1.21'), v('b1.7.3', false)];
+    expect(groupVersions(input, false)).toEqual([{ series: '1.21', items: [v('1.21')] }]);
+    expect(groupVersions(input, true).at(-1)).toEqual({
+      series: undefined,
+      items: [v('24w14a', false), v('b1.7.3', false)],
     });
   });
 });
