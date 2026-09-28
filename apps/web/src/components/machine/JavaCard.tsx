@@ -23,6 +23,7 @@ import { IconCoffee, IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
 
 import type { MachineDto } from '@mmo/protocol/client';
+import { JAVA_FALLBACK_TABLE } from '@mmo/shared';
 
 import { useActiveTasks } from '../../api/phase8.js';
 import { useInstallJava, useJavaRuntimes, useRemoveJava } from '../../api/phase9.js';
@@ -33,7 +34,14 @@ import { describeError } from '../../lib/errors.js';
 import { hasRole } from '../../lib/format.js';
 import { TaskProgressRow } from '../tasks/TaskProgress.js';
 
-const MAJORS = ['8', '11', '17', '21'];
+/**
+ * Les versions proposées : celles que la table MC → Java de shared peut exiger (Java 25 pour les
+ * 26.x compris), plus 11 que quelques serveurs anciens réclament. Dérivé, pour qu'une ligne ajoutée
+ * à la table n'oublie pas ce sélecteur.
+ */
+const MAJORS = [...new Set([11, ...JAVA_FALLBACK_TABLE.map((row) => row.major)])]
+  .sort((x, y) => x - y)
+  .map(String);
 
 export function JavaCard({ machine }: { machine: MachineDto }) {
   const { t, i18n } = useT();
