@@ -233,6 +233,19 @@ Plannings de backups : poussés via `agent.configure`, **déclenchés localement
 > un échec (`RUN_INCOMPLETE`). Le JRE utilisé pour un `runJar` est **quelconque** — l'installation
 > n'est pas soumise à la contrainte Java du serveur (mesuré, doc 06 §6bis), et le bon Java n'est
 > résolu qu'au premier démarrage.
+>
+> **Amendement (2026-09-28, lot 5 — modpacks FTB) : étape `fetchMany`, capacité
+> `install-fetch-many`, `modpack` à la création.** `fetchMany { label?, concurrency (défaut 6, max
+> 16), files[] { path, url, mirrors?, sha1, size } }` (≤ `MAX_FETCH_MANY_FILES` 20 000) pose les
+> fichiers d'un pack : pool d'ouvriers, sha1 vérifié, reprise par `Range`, miroirs en repli, jail du
+> dossier du serveur ; le premier échec arrête les autres ouvriers et l'agent attend les
+> téléchargements en vol avant de rendre l'échec (aucun `.part` laissé derrière) ; en `repair`, un
+> fichier déjà présent à la bonne taille et au bon sha1 est gardé sans être retéléchargé. Même règle
+> que `remove` : capacité **`install-fetch-many`**, gardée par le panel avant toute écriture
+> (`501 AGENT_TOO_OLD`). Côté client, `createInstallSchema.modpack? { provider: 'ftb', packId,
+> versionId }` : **le pack fait autorité** (chargeur, version de jeu, build) et `loader`/`mcVersion`
+> envoyés à côté sont ignorés ; le plan = `fetchMany` puis le plan ordinaire du chargeur. Les appels
+> du panel aux catalogues passent par un point de sortie commun et poli (`docs/services-tiers.md`).
 
 ### Java
 

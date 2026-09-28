@@ -339,6 +339,16 @@ avant de livrer ; chaque mod garde ses propres conditions de redistribution, que
 téléchargeant depuis l'URL publiée plutôt qu'en redistribuant. L'installeur officiel est public :
 `FTBTeam/FTB-Server-Installer`.
 
+> **Implémenté (2026-09-28).** Panel : `services/modpacks/ftb.ts` (`FtbService` : recherche ou
+> packs populaires, fiche d'un pack, résolution d'une version en étape `fetchMany`, fichiers
+> `clientonly` écartés), routes `GET /api/install/modpacks/ftb?q=` et `/:packId` (opérateur), mode
+> « Modpack FTB » dans l'assistant. **Désactivable** (Réglages → Services tiers,
+> `modpacks.ftb.enabled` : coupée, 404 `FEATURE_DISABLED` et plus aucun appel) et **retirable en
+> entier** (liste des fichiers et branchements : `docs/services-tiers.md` §4). Agent : étape
+> `fetchMany` (doc 05 §6). Caches : fiches 1 h, listes de fichiers (plusieurs Mio) les 4 dernières,
+> pack introuvable non redemandé pendant 1 h. Le point ouvert sur les conditions d'utilisation
+> demeure — une note « à vérifier » l'affiche aux administrateurs.
+
 ## 7. Fichiers édités par MMO
 
 ### `server.properties`

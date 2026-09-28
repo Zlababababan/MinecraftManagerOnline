@@ -27,3 +27,6 @@ apps/panel/data/
 # lot 2 : agents embarqués dans l'image Docker (déposés par release.yml avant le build)
 docker/dist-agent/*
 !docker/dist-agent/.gitkeep
+
+# Fichiers de travail locaux (scripts de patch, essais) : jamais commités
+tmp/

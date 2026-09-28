@@ -8,6 +8,24 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### FTB modpacks, and a panel that is polite to the services it uses (2026-09-28)
+
+- **Install an FTB modpack from the "Create a server" wizard.** Search the FTB catalog, pick a
+  pack and a version: the panel downloads every server-side file (checked against its fingerprint,
+  with a mirror as fallback), then installs the exact loader build the pack asks for. Requires an
+  up-to-date agent — an older one is refused with a clear message, nothing is created.
+- **Optional and removable.** Settings → Third-party services turns the FTB integration off (the
+  panel then never contacts FTB), and `docs/services-tiers.md` lists how to remove it entirely.
+- **Third-party services are listed, with what remains to be checked.** Settings → Third-party
+  services shows every outside service the product talks to; administrators see a discreet
+  "to be checked" note next to each one whose terms of use have not been confirmed yet.
+- **Never hammering a public API.** Every catalog call of the panel (Mojang, Fabric, Forge,
+  NeoForge, FTB, spark) now goes through a single polite client: it names the product and its
+  repository in its User-Agent, sends at most 3 requests at a time to a given host, shares
+  identical requests in flight, honours `429`/`Retry-After`, and leaves a failing service alone
+  for a minute (longer if it keeps failing) instead of retrying on every click. The agent identifies
+  itself too, and stops looking up player profiles at Mojang as soon as it is rate-limited.
+
 ### Create a Forge or NeoForge server from the panel (2026-09-28)
 
 - **Forge and NeoForge join Vanilla and Fabric** in the "Create a server" wizard. The panel picks
