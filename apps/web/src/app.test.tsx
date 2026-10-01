@@ -2,6 +2,8 @@
  * Tests d'intégration du front (jsdom) : routeur + gardes + pages clés contre une API simulée.
  * first-run → wizard ; sans session → login ; login → dashboard (machine, carte serveur, start).
  */
+import { modals } from '@mantine/modals';
+import { notifications } from '@mantine/notifications';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -109,6 +111,8 @@ interface FakeApi {
   servers: ServerDto[];
   access: AccessStatusDto | null;
   address: string | null;
+  /** Refus successifs du prochain démarrage de s1 (vidée au fur et à mesure). */
+  startRefusals: { code: string; details?: Record<string, unknown> }[];
 }
 
 function json(status: number, body: unknown): Response {
@@ -172,6 +176,10 @@ function installFetch(state: FakeApi): void {
         case 'GET /api/events':
           return json(200, { events: [] });
         case 'POST /api/servers/s1/start':
+          if (state.startRefusals.length > 0) {
+            const refusal = state.startRefusals.shift();
+            return json(409, { message: 'refused', ...refusal });
+          }
           return json(200, {
             pid: 42,
             server: { ...server, runState: 'starting', desiredState: 'running' },
@@ -210,6 +218,25 @@ function installFetch(state: FakeApi): void {
             machine: created,
             pairing: { machineId: 'm2', code: 'ABCD1234', expiresAt: 1 },
           });
+        }
+        case 'POST /api/servers/s1/eula-accept':
+          return json(200, { server: { ...server, eulaAccepted: true } });
+        case 'POST /api/machines/m1/java/install':
+          return json(200, { task: { id: 't1' }, sources: [] });
+        case 'POST /api/machines/m1/update':
+          return json(200, { version: '1.0.13', alreadyCurrent: false });
+        case 'POST /api/machines/m1/scan':
+          return json(200, {
+            scannedPaths: ['E:\\srv'],
+            servers: [...state.servers, { ...server, id: 's-new', name: 'Trouvé' }],
+            conflicts: [],
+          });
+        case 'POST /api/machines/m1/directories': {
+          const directory = { id: 'd1', path: 'E:\\srv', enabled: true, lastScanAt: null };
+          state.machines = state.machines.map((m) =>
+            m.id === 'm1' ? { ...m, watchedDirectories: [directory] } : m,
+          );
+          return json(200, { directory });
         }
         case 'POST /api/machines/m2/directories': {
           const directory = { id: 'd2', path: 'E:\\srv', enabled: true, lastScanAt: null };
@@ -260,6 +287,7 @@ describe('App', () => {
       servers: [server],
       access: null,
       address: '[2001:db8::1]:25565',
+      startRefusals: [],
     };
     installFetch(state);
     vi.stubGlobal('WebSocket', FakeWebSocket);
@@ -267,6 +295,9 @@ describe('App', () => {
   });
   afterEach(() => {
     vi.unstubAllGlobals();
+    // La file des notifications est globale et bornée : celles d'un test masqueraient les suivantes.
+    notifications.clean();
+    modals.closeAll();
     useRealtimeStore.getState().reset();
     localStorage.clear();
   });
@@ -307,8 +338,8 @@ describe('App', () => {
     expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
     expect(screen.getByTestId('stat-machines')).toHaveTextContent('1');
     expect(screen.getByTestId('machine-link')).toHaveTextContent('Tour');
-    // Sans répertoire surveillé sur la machine, il n'y a nulle part où créer : pas de bouton.
-    expect(screen.queryByTestId('dashboard-create-server')).not.toBeInTheDocument();
+    // Sans répertoire surveillé, le bouton reste : il demandera le dossier au lieu de disparaître.
+    expect(screen.getByTestId('dashboard-create-server')).toBeEnabled();
     // Fraîcheur du heartbeat affichée (ts=1 → ancien, donc « il y a … »).
     expect(screen.getByTestId('machine-updated')).toHaveTextContent(/^Mis à jour il y a /);
     const card = screen.getByTestId('server-card');
@@ -641,16 +672,43 @@ describe('App', () => {
     expect(screen.getByTestId('servers-count')).toHaveTextContent('2 sur 3');
   });
 
-  it('page Serveurs : créer un serveur d’ici quand une machine est prête, sinon pas de bouton', async () => {
+  it('créer un serveur sans dossier surveillé : le dossier se demande sur place, puis l’assistant s’ouvre', async () => {
     const user = userEvent.setup();
     state.session = true;
-    // Aucun répertoire surveillé : nulle part où créer.
     renderApp('/servers');
-    expect(await screen.findByTestId('servers-cards')).toBeInTheDocument();
-    expect(screen.queryByTestId('servers-create-server')).not.toBeInTheDocument();
-    expect(screen.getByTestId('servers-add-machine')).toHaveAttribute('href', '/machines?add=true');
+    await user.click(await screen.findByTestId('servers-create-server'));
+    // Pas d'assistant sans dossier — mais pas de détour non plus : la question est posée ici.
+    expect(await screen.findByTestId('create-needs-directory')).toBeInTheDocument();
+    expect(screen.queryByTestId('install-loader')).not.toBeInTheDocument();
+    await user.type(screen.getByTestId('create-directory'), 'E:\\srv');
+    await user.click(screen.getByTestId('create-directory-add'));
+    expect(await screen.findByTestId('install-loader')).toBeInTheDocument();
+    expect(state.calls).toContain('POST /api/machines/m1/directories');
+    expect(screen.queryByTestId('create-needs-directory')).not.toBeInTheDocument();
+  });
+
+  it('créer un serveur : avec un dossier, l’assistant s’ouvre directement ; agent hors ligne, bouton grisé', async () => {
+    const user = userEvent.setup();
+    state.session = true;
+    const watched = [{ id: 'd1', path: 'E:\\srv', enabled: true, lastScanAt: 1 }];
+    state.machines = [{ ...machine, watchedDirectories: watched }];
+    renderApp('/servers');
+    await user.click(await screen.findByTestId('servers-create-server'));
+    expect(await screen.findByTestId('install-loader')).toBeInTheDocument();
+    expect(screen.queryByTestId('create-needs-directory')).not.toBeInTheDocument();
 
     cleanup();
+    state.machines = [
+      { ...machine, connected: false, status: 'offline', watchedDirectories: watched },
+    ];
+    renderApp('/servers');
+    expect(await screen.findByTestId('servers-create-server')).toBeDisabled();
+    expect(screen.getByTestId('servers-scan')).toBeDisabled();
+  });
+
+  it('page Serveurs : « Actualiser » relit les dossiers surveillés d’ici', async () => {
+    const user = userEvent.setup();
+    state.session = true;
     state.machines = [
       {
         ...machine,
@@ -658,8 +716,173 @@ describe('App', () => {
       },
     ];
     renderApp('/servers');
-    await user.click(await screen.findByTestId('servers-create-server'));
-    expect(await screen.findByTestId('install-loader')).toBeInTheDocument();
+    await user.click(await screen.findByTestId('servers-scan'));
+    await waitFor(() => {
+      expect(state.calls).toContain('POST /api/machines/m1/scan');
+    });
+    expect(await screen.findByText('2 serveurs trouvés, dont 1 nouveau(x).')).toBeInTheDocument();
+    expect(screen.queryByTestId('scan-needs-directory')).not.toBeInTheDocument();
+  });
+
+  it('page Serveurs : « Actualiser » sans dossier surveillé demande le dossier, puis scanne', async () => {
+    const user = userEvent.setup();
+    state.session = true;
+    renderApp('/servers');
+    await user.click(await screen.findByTestId('servers-scan'));
+    expect(await screen.findByTestId('scan-needs-directory')).toBeInTheDocument();
+    expect(state.calls).not.toContain('POST /api/machines/m1/scan');
+    await user.type(screen.getByTestId('scan-directory'), 'E:\\srv');
+    await user.click(screen.getByTestId('scan-directory-add'));
+    await waitFor(() => {
+      expect(state.calls).toContain('POST /api/machines/m1/scan');
+    });
+  });
+
+  it('page Serveurs : ajouter un dossier serveur existant sans passer par la page machine', async () => {
+    const user = userEvent.setup();
+    state.session = true;
+    renderApp('/servers');
+    await user.click(await screen.findByTestId('servers-add-existing'));
+    expect(await screen.findByTestId('server-path')).toBeInTheDocument();
+    // Une seule machine : rien à choisir.
+    expect(screen.queryByTestId('server-machine')).not.toBeInTheDocument();
+  });
+
+  it('démarrage refusé (EULA) : la fenêtre d’acceptation s’ouvre, puis le serveur démarre', async () => {
+    const user = userEvent.setup();
+    state.session = true;
+    state.startRefusals = [{ code: 'E_EULA_REQUIRED', details: { serverId: 's1' } }];
+    renderApp('/servers');
+    await user.click(await screen.findByTestId('action-start'));
+    expect(await screen.findByTestId('eula-dialog')).toBeInTheDocument();
+    expect(state.calls).not.toContain('POST /api/servers/s1/eula-accept');
+    await user.click(screen.getByTestId('eula-checkbox'));
+    await user.click(screen.getByTestId('eula-accept'));
+    await waitFor(() => {
+      expect(state.calls.filter((c) => c === 'POST /api/servers/s1/start')).toHaveLength(2);
+    });
+    expect(state.calls).toContain('POST /api/servers/s1/eula-accept');
+    await waitFor(() => {
+      expect(screen.getByTestId('run-state')).toHaveAttribute('data-state', 'starting');
+    });
+  });
+
+  it('démarrage refusé (Java manquant) : le panel propose de l’installer', async () => {
+    const user = userEvent.setup();
+    state.session = true;
+    state.startRefusals = [
+      { code: 'E_JAVA_UNAVAILABLE', details: { required: 21, strict: false, available: [17] } },
+    ];
+    renderApp('/servers');
+    await user.click(await screen.findByTestId('action-start'));
+    const install = await screen.findByTestId('refusal-install-java');
+    expect(install).toHaveTextContent('Java 21');
+    await user.click(install);
+    await waitFor(() => {
+      expect(state.calls).toContain('POST /api/machines/m1/java/install');
+    });
+  });
+
+  it('démarrage refusé (port pris) : un bouton mène aux réglages du serveur', async () => {
+    const user = userEvent.setup();
+    state.session = true;
+    state.startRefusals = [{ code: 'E_PORT_IN_USE', details: { port: 25565, serverId: 's1' } }];
+    const { history } = renderApp('/servers');
+    await user.click(await screen.findByTestId('action-start'));
+    expect(await screen.findByText('Le port 25565 est déjà utilisé.')).toBeInTheDocument();
+    await user.click(screen.getByTestId('refusal-open-settings'));
+    await waitFor(() => {
+      expect(history.location.pathname).toBe('/servers/s1');
+    });
+    expect(history.location.search).toContain('tab=settings');
+  });
+
+  it('démarrage refusé pour une raison inconnue : le message d’origine, aucune fenêtre', async () => {
+    const user = userEvent.setup();
+    state.session = true;
+    state.startRefusals = [{ code: 'E_FORBIDDEN' }];
+    renderApp('/servers');
+    await user.click(await screen.findByTestId('action-start'));
+    expect(
+      await screen.findByText(/Vous n’avez pas le droit d’effectuer cette action./),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('refusal-open-settings')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('eula-dialog')).not.toBeInTheDocument();
+  });
+
+  it('tableau de bord : une mise à jour de l’agent se signale et se lance d’ici', async () => {
+    const user = userEvent.setup();
+    state.session = true;
+    renderApp('/');
+    expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
+    await screen.findByTestId('server-card');
+    // Agent à jour : pas de bannière.
+    expect(screen.queryByTestId('agent-update-banner')).not.toBeInTheDocument();
+
+    cleanup();
+    state.machines = [{ ...machine, updateAvailable: true, latestRelease: '1.0.13' }];
+    renderApp('/');
+    expect(await screen.findByTestId('agent-update-banner')).toHaveTextContent(
+      'L’agent de « Tour » peut passer de 0.3.0 à 1.0.13.',
+    );
+    await user.click(screen.getByTestId('agent-update-run-m1'));
+    await waitFor(() => {
+      expect(state.calls).toContain('POST /api/machines/m1/update');
+    });
+  });
+
+  it('carte serveur : dit si on peut rejoindre — pas encore pendant le démarrage, oui une fois en marche', async () => {
+    state.session = true;
+    state.servers = [
+      { ...server, id: 'a', name: 'Arrêté' },
+      { ...server, id: 'b', name: 'Bientôt', runState: 'starting', startedAt: Date.now() - 65_000 },
+      { ...server, name: 'Chaud', runState: 'running', startedAt: 1, gamePort: 25570 },
+    ];
+    renderApp('/servers');
+    await waitFor(() => {
+      expect(screen.getAllByTestId('server-card')).toHaveLength(3);
+    });
+    const status = (id: string) =>
+      within(
+        screen.getAllByTestId('server-card').find((c) => c.getAttribute('data-server-id') === id)!,
+      ).queryByTestId('join-status');
+    expect(status('a')).not.toBeInTheDocument();
+    expect(status('b')).toHaveAttribute('data-ready', 'false');
+    expect(status('b')).toHaveTextContent(
+      /Démarrage depuis 1 min 0\d : on ne peut pas encore rejoindre/,
+    );
+    expect(status('s1')).toHaveAttribute('data-ready', 'true');
+    // L'adresse à taper est écrite en clair, port compris — demandée seulement pour ce serveur-là.
+    await waitFor(() => {
+      expect(status('s1')).toHaveTextContent(
+        'Prêt : on peut rejoindre le serveur à l’adresse [2001:db8::1]:25565',
+      );
+    });
+    expect(state.calls.filter((c) => c.endsWith('/address'))).toEqual([
+      'GET /api/servers/s1/address',
+    ]);
+    // Port inhabituel : mis en avant ; port par défaut : l'affichage discret, sans pastille.
+    const card = (id: string) =>
+      within(
+        screen
+          .getAllByTestId('server-card')
+          .find((c) => c.getAttribute('data-server-id') === id)!,
+      );
+    expect(card('s1').getByTestId('card-port')).toHaveTextContent('Port 25570');
+    expect(card('a').queryByTestId('card-port')).not.toBeInTheDocument();
+    expect(card('a').getByText('Port de jeu : 25565')).toBeInTheDocument();
+  });
+
+  it('carte serveur : en marche mais sans adresse connue, « prêt » sans adresse inventée', async () => {
+    state.session = true;
+    state.address = null;
+    state.servers = [{ ...server, runState: 'running', startedAt: 1 }];
+    renderApp('/servers');
+    const ready = await screen.findByTestId('join-status');
+    await waitFor(() => {
+      expect(state.calls).toContain('GET /api/servers/s1/address');
+    });
+    expect(ready).toHaveTextContent('Prêt : on peut rejoindre le serveur.');
   });
 
   it('ajouter une machine : la fenêtre enchaîne sur le dossier puis sur « Créer un serveur »', async () => {

@@ -27,6 +27,7 @@ import { GroupsModal } from '../components/groups/GroupsPanel.js';
 import { RouterButton } from '../components/links.js';
 import { ListToolbar } from '../components/ListToolbar.js';
 import { CreateServerButton } from '../components/machine/CreateServerButton.js';
+import { AddExistingServerButton, ScanButton } from '../components/machine/ServerListTools.js';
 import { ServerCollection } from '../components/ServerCollection.js';
 import { useT } from '../i18n/hooks.js';
 import { hasRole } from '../lib/format.js';
@@ -105,6 +106,8 @@ export function ServersPage({
         </Title>
         <Group gap="xs">
           <CreateServerButton testId="servers-create-server" size="xs" />
+          <AddExistingServerButton machineId={filter.machineId} testId="servers-add-existing" />
+          <ScanButton machineId={filter.machineId} />
           {isAdmin && (
             <RouterButton
               to="/machines"

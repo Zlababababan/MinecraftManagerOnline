@@ -177,6 +177,7 @@ export const webFr = {
     scanResult: '{{count}} serveur(s) détecté(s) dans {{paths}} chemin(s).',
     scanConflicts: '{{count}} conflit(s) de marqueur à résoudre.',
     seeServers: 'Voir les serveurs de cette machine',
+    addServerPlaceholder: 'E:\\Minecraft\\Server\\MonServeur ou /srv/minecraft/monserveur',
     addServer: 'Ajouter un dossier serveur',
     addServerHint:
       'N’importe quel dossier de la machine contenant un serveur Minecraft — il est scanné puis adopté.',
@@ -237,6 +238,7 @@ export const webFr = {
     searchPlaceholder: 'Nom ou dossier',
     none: 'Aucun serveur pour le moment. Ajoutez une machine, puis un répertoire surveillé.',
     card: {
+      port: 'Port {{port}} (à taper dans l’adresse)',
       console: 'Console',
       copyAddress: 'Adresse',
       copyAddressHint: 'Copier l’adresse à donner à vos amis',
@@ -245,6 +247,15 @@ export const webFr = {
       noAddress: 'Aucune adresse connue pour ce serveur. Voyez « Accès des joueurs » sur sa page.',
       favoriteAdd: 'Ajouter {{name}} aux favoris',
       favoriteRemove: 'Retirer {{name}} des favoris',
+    },
+    scan: {
+      button: 'Actualiser',
+      hint: 'Cherche dans les dossiers surveillés les serveurs ajoutés ou retirés sur le disque.',
+      done_one: '{{count}} serveur trouvé, dont {{added}} nouveau(x).',
+      done_other: '{{count}} serveurs trouvés, dont {{added}} nouveau(x).',
+      nothing: 'Aucun dossier surveillé à relire. Demandez à un administrateur d’en ajouter un.',
+      needsDirectory:
+        'Pour trouver vos serveurs, le panel a besoin de savoir où ils sont rangés sur « {{name}} ».',
     },
     noMatch: 'Aucun serveur ne correspond à ces filtres.',
     filters: {
@@ -317,6 +328,22 @@ export const webFr = {
       settings: 'Réglages',
     },
     actions: { start: 'Démarrer', stop: 'Arrêter', restart: 'Redémarrer', kill: 'Kill' },
+    join: {
+      starting: 'Démarrage en cours : on ne peut pas encore rejoindre.',
+      startingSince: 'Démarrage depuis {{elapsed}} : on ne peut pas encore rejoindre.',
+      ready: 'Prêt : on peut rejoindre le serveur.',
+      readyAt: 'Prêt : on peut rejoindre le serveur à l’adresse {{address}}',
+    },
+    refusal: {
+      title: '{{name}} n’a pas démarré',
+      javaTitle: 'Java {{major}} manque sur la machine',
+      java: '{{name}} a besoin de Java {{major}}, qui n’est pas installé sur sa machine. Le panel peut l’installer pour vous (téléchargement de quelques dizaines de Mo).',
+      javaStarted:
+        'Installation de Java {{major}} lancée. Relancez le serveur dès qu’elle est terminée (indicateur des tâches, en haut).',
+      port: 'Changez le port du serveur dans ses réglages, ou arrêtez le programme qui l’occupe.',
+      ram: 'Réduisez la mémoire allouée à ce serveur dans ses réglages, ou arrêtez un autre serveur.',
+      openSettings: 'Ouvrir les réglages du serveur',
+    },
     killConfirm: 'Kill le processus ? Le monde risque de ne pas être sauvegardé.',
     stopAnnounce: 'Annonce aux joueurs (facultatif)',
     acceptEula: 'Accepter l’EULA Minecraft',
@@ -1071,6 +1098,11 @@ export const webFr = {
   },
   install: {
     title: 'Créer un serveur',
+    noMachineOnline:
+      'Aucune machine n’est connectée : l’agent doit tourner sur la machine pour agir dessus.',
+    needsDirectory:
+      'Avant de créer un serveur sur « {{name}} », indiquez le dossier où le panel rangera vos serveurs (un sous-dossier par serveur).',
+    needsDirectoryAdmin: 'Seul un administrateur peut choisir ce dossier.',
     create: 'Créer le serveur',
     stepPlace: 'Réglages',
     stepVersion: 'Quoi installer',
@@ -1244,6 +1276,8 @@ export const webFr = {
     update: 'Mettre à jour l’agent',
     hint: 'Le bundle signé est téléchargé depuis le panel ; l’agent redémarre (les serveurs Minecraft continuent de tourner) et revient en arrière automatiquement s’il ne répond pas sous 30 s.',
     pushed: 'Mise à jour {{version}} envoyée.',
+    banner: 'L’agent de « {{name}} » peut passer de {{current}} à {{version}}.',
+    bannerHint: 'Les serveurs Minecraft continuent de tourner pendant la mise à jour.',
     alreadyCurrent: 'L’agent est déjà dans cette version.',
     applied: 'Mise à jour appliquée : {{version}}',
     rolledBack: 'Mise à jour {{other}} annulée, retour en {{version}} ({{reason}})',

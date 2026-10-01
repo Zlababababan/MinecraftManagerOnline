@@ -3,7 +3,17 @@
  * les plus fréquents sous la main (passe UX du 01/10) — démarrer/arrêter, ouvrir la console,
  * copier l'adresse à donner aux amis, épingler en favori.
  */
-import { ActionIcon, Button, Card, Checkbox, Group, Stack, Text, Tooltip } from '@mantine/core';
+import {
+  ActionIcon,
+  Badge,
+  Button,
+  Card,
+  Checkbox,
+  Group,
+  Stack,
+  Text,
+  Tooltip,
+} from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconCopy, IconStar, IconStarFilled, IconTerminal2 } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -19,8 +29,12 @@ import { describeError } from '../lib/errors.js';
 import { formatMb } from '../lib/format.js';
 import { canServer } from '../lib/permissions.js';
 import { RunStateBadge } from './badges.js';
+import { JoinStatus } from './JoinStatus.js';
 import { RouterAnchor, RouterButton } from './links.js';
 import { ServerActions } from './ServerActions.js';
+
+/** Le port que Minecraft essaie quand on tape une adresse sans port. */
+export const DEFAULT_GAME_PORT = 25565;
 
 export function serverSubtitle(
   server: Pick<ServerDto, 'loader' | 'mcVersion' | 'loaderVersion'>,
@@ -179,10 +193,17 @@ export function ServerCard({
             <FavoriteStar server={server} />
           </Group>
         </Group>
-        <Group gap="md">
-          <Text size="xs" c="dimmed">
-            {t('web:server.fields.gamePort')} : {server.gamePort ?? '—'}
-          </Text>
+        <Group gap="md" align="center">
+          {server.gamePort !== null && server.gamePort !== DEFAULT_GAME_PORT ? (
+            // Port inhabituel : il faut le taper dans Minecraft, donc il se voit, serveur arrêté ou non.
+            <Badge color="orange" variant="light" size="sm" data-testid="card-port">
+              {t('web:servers.card.port', { port: server.gamePort })}
+            </Badge>
+          ) : (
+            <Text size="xs" c="dimmed">
+              {t('web:server.fields.gamePort')} : {server.gamePort ?? '—'}
+            </Text>
+          )}
           <Text size="xs" c="dimmed">
             {t('web:server.fields.ram')} : {formatMb(server.maxRamMb)}
           </Text>
@@ -192,6 +213,7 @@ export function ServerCard({
             </Text>
           )}
         </Group>
+        <JoinStatus server={server} />
         {/* Serré exprès : Démarrer + Console + Adresse tiennent sur une ligne dans une carte étroite. */}
         <Group gap={6} wrap="wrap">
           <ServerActions server={server} />

@@ -13,7 +13,7 @@ import { describeError } from '../../lib/errors.js';
 
 export const EULA_URL = 'https://www.minecraft.net/eula';
 
-function EulaDialog({ onAccept, pending }: { onAccept: () => void; pending: boolean }) {
+export function EulaDialog({ onAccept, pending }: { onAccept: () => void; pending: boolean }) {
   const { t } = useT();
   const [checked, setChecked] = useState(false);
   return (

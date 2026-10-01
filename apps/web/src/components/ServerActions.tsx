@@ -18,6 +18,7 @@ import { useRetryInstall } from '../api/installs.js';
 import { useMe, useServerAction, type ServerAction } from '../api/queries.js';
 import { describeError } from '../lib/errors.js';
 import { canServer } from '../lib/permissions.js';
+import { useStartRefusal } from './StartRefusal.js';
 
 export function ServerActions({
   server,
@@ -32,6 +33,7 @@ export function ServerActions({
   const me = useMe();
   const action = useServerAction(server.id);
   const retryInstall = useRetryInstall(server.id);
+  const refusal = useStartRefusal(server);
   const canOperate = canServer(me.data, server, 'operator');
   const busy = action.isPending;
   const reachable = server.reachable && server.provisioning === 'ready';
@@ -44,6 +46,15 @@ export function ServerActions({
       { action: name },
       {
         onError: (error) => {
+          // Démarrage refusé pour une raison qu'on sait régler : le remède, pas seulement le message.
+          if (
+            (name === 'start' || name === 'restart') &&
+            refusal(error, () => {
+              run(name);
+            })
+          ) {
+            return;
+          }
           notifications.show({
             color: 'red',
             title: t(`web:server.actions.${name}`),

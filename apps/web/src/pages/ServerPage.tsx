@@ -30,6 +30,7 @@ import { notifications } from '@mantine/notifications';
 import { IconChevronDown, IconTrash } from '@tabler/icons-react';
 import { useNavigate } from '@tanstack/react-router';
 import { Suspense, lazy } from 'react';
+import { JoinStatus } from '../components/JoinStatus.js';
 import { RouterAnchor } from '../components/links.js';
 import type { ReactNode } from 'react';
 import { useT } from '../i18n/hooks.js';
@@ -383,6 +384,7 @@ export function ServerPage({ serverId, tab }: { serverId: string; tab: ServerTab
             {serverSubtitle(s, t(`common:loader.${s.loader}`))}
             {s.gamePort === null ? '' : ` · :${String(s.gamePort)}`}
           </Text>
+          <JoinStatus server={s} />
         </Stack>
         <ServerActions server={s} size="sm" />
       </Group>

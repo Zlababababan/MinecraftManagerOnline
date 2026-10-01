@@ -22,14 +22,7 @@ import {
 import { useForm } from '@mantine/form';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
-import {
-  IconFolderPlus,
-  IconKey,
-  IconList,
-  IconPlus,
-  IconRadar,
-  IconTrash,
-} from '@tabler/icons-react';
+import { IconKey, IconList, IconPlus, IconRadar, IconTrash } from '@tabler/icons-react';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useT } from '../i18n/hooks.js';
@@ -39,7 +32,6 @@ import type { PairingCodeDto } from '@mmo/protocol/client';
 import {
   useAddDirectory,
   useConflicts,
-  useCreateServer,
   useDeleteMachine,
   useMachine,
   useMe,
@@ -64,6 +56,7 @@ import { RouterButton } from '../components/links.js';
 import { describeError } from '../lib/errors.js';
 import { formatDateTime, hasRole } from '../lib/format.js';
 import { CreateServerModal } from '../components/machine/CreateServerModal.js';
+import { AddExistingServerButton } from '../components/machine/ServerListTools.js';
 import { canMachine } from '../lib/permissions.js';
 import { useNow } from '../lib/hooks.js';
 import { TECHNICAL_INPUT_PROPS } from '../lib/inputs.js';
@@ -79,21 +72,15 @@ export function MachinePage({ machineId }: { machineId: string }) {
   const addDir = useAddDirectory(machineId);
   const removeDir = useRemoveDirectory(machineId);
   const scan = useScan(machineId);
-  const addServer = useCreateServer();
   const newCode = useNewPairingCode(machineId);
   const rotate = useRotateSecret(machineId);
   const update = useUpdateMachine(machineId);
   const remove = useDeleteMachine();
   const [pairing, setPairing] = useState<PairingCodeDto | undefined>(undefined);
   const [scanResult, setScanResult] = useState<ScanResult | undefined>(undefined);
-  const [addServerOpen, setAddServerOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const dirForm = useForm({
     initialValues: { path: '' },
-    validate: { path: (v) => (v.trim() === '' ? t('web:errors.validation') : null) },
-  });
-  const serverForm = useForm({
-    initialValues: { path: '', name: '' },
     validate: { path: (v) => (v.trim() === '' ? t('web:errors.validation') : null) },
   });
   const isAdmin = me.data !== undefined && hasRole(me.data.user.role, 'admin');
@@ -385,20 +372,7 @@ export function MachinePage({ machineId }: { machineId: string }) {
                   {t('web:install.title')}
                 </Button>
               )}
-              {isAdmin && (
-                <Button
-                  size="xs"
-                  variant="light"
-                  leftSection={<IconFolderPlus size={14} />}
-                  onClick={() => {
-                    setAddServerOpen(true);
-                  }}
-                  disabled={!m.connected}
-                  data-testid="add-server"
-                >
-                  {t('web:machine.addServer')}
-                </Button>
-              )}
+              <AddExistingServerButton machineId={m.id} />
             </Group>
           </Group>
           <Group justify="space-between" wrap="wrap">
@@ -507,60 +481,6 @@ export function MachinePage({ machineId }: { machineId: string }) {
           });
         }}
       />
-
-      <Modal
-        opened={addServerOpen}
-        onClose={() => {
-          setAddServerOpen(false);
-          serverForm.reset();
-          addServer.reset();
-        }}
-        title={t('web:machine.addServer')}
-      >
-        <form
-          onSubmit={serverForm.onSubmit((values) => {
-            addServer.mutate(
-              {
-                machineId: m.id,
-                path: values.path.trim(),
-                ...(values.name.trim() === '' ? {} : { name: values.name.trim() }),
-              },
-              {
-                onSuccess: (data) => {
-                  setAddServerOpen(false);
-                  serverForm.reset();
-                  void navigate({
-                    to: '/servers/$serverId',
-                    params: { serverId: data.server.id },
-                    search: { tab: 'overview' },
-                  });
-                },
-              },
-            );
-          })}
-        >
-          <Stack gap="sm">
-            <Text size="sm" c="dimmed">
-              {t('web:machine.addServerHint')}
-            </Text>
-            <TextInput
-              label={t('web:machine.directoryPath')}
-              placeholder={t('web:machine.directoryPlaceholder')}
-              required
-              {...TECHNICAL_INPUT_PROPS}
-              data-testid="server-path"
-              {...serverForm.getInputProps('path')}
-            />
-            <TextInput label={t('web:common.name')} {...serverForm.getInputProps('name')} />
-            <ErrorAlert error={addServer.error} />
-            <Group justify="flex-end">
-              <Button type="submit" loading={addServer.isPending} data-testid="server-add-submit">
-                {t('web:common.add')}
-              </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
     </Stack>
   );
 }

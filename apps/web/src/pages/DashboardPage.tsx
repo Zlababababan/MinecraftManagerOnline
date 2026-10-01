@@ -16,6 +16,7 @@ import { ConflictsPanel } from '../components/ConflictsPanel.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { EventsList } from '../components/EventsList.js';
 import { RouterAnchor, RouterButton } from '../components/links.js';
+import { AgentUpdateBanner } from '../components/machine/AgentUpdateBanner.js';
 import { CreateServerButton } from '../components/machine/CreateServerButton.js';
 import { MachineHeader } from '../components/MachineHeader.js';
 import { OnboardingCard } from '../components/OnboardingCard.js';
@@ -119,6 +120,7 @@ export function DashboardPage() {
         />
       </SimpleGrid>
       {conflicts.data !== undefined && <ConflictsPanel conflicts={conflicts.data.conflicts} />}
+      <AgentUpdateBanner />
       <OnboardingCard />
 
       {sections.favorites.length > 0 && (

@@ -179,6 +179,7 @@ export const webEn = {
     scanResult: '{{count}} server(s) detected in {{paths}} path(s).',
     scanConflicts: '{{count}} marker conflict(s) to resolve.',
     seeServers: 'See this machine’s servers',
+    addServerPlaceholder: 'E:\\Minecraft\\Server\\MyServer or /srv/minecraft/myserver',
     addServer: 'Add a server folder',
     addServerHint:
       'Any folder on the machine that contains a Minecraft server — it is scanned, then adopted.',
@@ -239,6 +240,7 @@ export const webEn = {
     searchPlaceholder: 'Name or folder',
     none: 'No server yet. Add a machine, then a watched directory.',
     card: {
+      port: 'Port {{port}} (type it in the address)',
       console: 'Console',
       copyAddress: 'Address',
       copyAddressHint: 'Copy the address to give your friends',
@@ -247,6 +249,15 @@ export const webEn = {
       noAddress: 'No known address for this server. See “Player access” on its page.',
       favoriteAdd: 'Add {{name}} to favourites',
       favoriteRemove: 'Remove {{name}} from favourites',
+    },
+    scan: {
+      button: 'Refresh',
+      hint: 'Looks in the watched folders for servers added or removed on disk.',
+      done_one: '{{count}} server found, {{added}} new.',
+      done_other: '{{count}} servers found, {{added}} new.',
+      nothing: 'No watched folder to read. Ask an administrator to add one.',
+      needsDirectory:
+        'To find your servers, the panel needs to know where they are stored on “{{name}}”.',
     },
     noMatch: 'No server matches these filters.',
     filters: {
@@ -318,6 +329,22 @@ export const webEn = {
       settings: 'Settings',
     },
     actions: { start: 'Start', stop: 'Stop', restart: 'Restart', kill: 'Kill' },
+    join: {
+      starting: 'Starting: it cannot be joined yet.',
+      startingSince: 'Starting for {{elapsed}}: it cannot be joined yet.',
+      ready: 'Ready: the server can be joined.',
+      readyAt: 'Ready: the server can be joined at {{address}}',
+    },
+    refusal: {
+      title: '{{name}} did not start',
+      javaTitle: 'Java {{major}} is missing on the machine',
+      java: '{{name}} needs Java {{major}}, which is not installed on its machine. The panel can install it for you (a download of a few dozen MB).',
+      javaStarted:
+        'Java {{major}} is being installed. Start the server again once it is done (task indicator, top bar).',
+      port: 'Change the server port in its settings, or stop the program that is using it.',
+      ram: 'Lower the memory given to this server in its settings, or stop another server.',
+      openSettings: 'Open the server settings',
+    },
     killConfirm: 'Force-kill the process? The world may not be saved.',
     stopAnnounce: 'Announcement to players (optional)',
     acceptEula: 'Accept the Minecraft EULA',
@@ -1060,6 +1087,11 @@ export const webEn = {
   },
   install: {
     title: 'Create a server',
+    noMachineOnline:
+      'No machine is connected: the agent must be running on the machine to act on it.',
+    needsDirectory:
+      'Before creating a server on “{{name}}”, tell the panel which folder should hold your servers (one sub-folder per server).',
+    needsDirectoryAdmin: 'Only an administrator can choose this folder.',
     create: 'Create the server',
     stepPlace: 'Settings',
     stepVersion: 'What to install',
@@ -1232,6 +1264,8 @@ export const webEn = {
     update: 'Update the agent',
     hint: 'The signed bundle is downloaded from the panel; the agent restarts (Minecraft servers keep running) and rolls back automatically if it does not come back within 30 s.',
     pushed: 'Update {{version}} pushed.',
+    banner: 'The agent on “{{name}}” can go from {{current}} to {{version}}.',
+    bannerHint: 'Minecraft servers keep running during the update.',
     alreadyCurrent: 'The agent already runs this version.',
     applied: 'Update applied: {{version}}',
     rolledBack: 'Update {{other}} rolled back to {{version}} ({{reason}})',
