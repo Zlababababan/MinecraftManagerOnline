@@ -1,6 +1,10 @@
 /**
  * Page serveur : en-tête (état temps réel, actions), onglets aperçu / métriques / console / joueurs /
  * configuration / fichiers / sauvegardes / planificateur / journaux / événements / réglages.
+ *
+ * Passe UX du 01/10 : onze onglets sur une ligne, c'était une barre qu'on fait défiler. Cinq
+ * restent visibles (`PRIMARY_TABS`, les gestes de tous les jours) ; les six autres sont sous
+ * « Plus ». Rien ne disparaît : mêmes panneaux, mêmes URL (`?tab=`).
  */
 import {
   Alert,
@@ -9,6 +13,7 @@ import {
   Group,
   Input,
   Loader,
+  Menu,
   NumberInput,
   SegmentedControl,
   SimpleGrid,
@@ -22,7 +27,7 @@ import {
 import { useForm } from '@mantine/form';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
-import { IconTrash } from '@tabler/icons-react';
+import { IconChevronDown, IconTrash } from '@tabler/icons-react';
 import { useNavigate } from '@tanstack/react-router';
 import { Suspense, lazy } from 'react';
 import { RouterAnchor } from '../components/links.js';
@@ -101,6 +106,18 @@ export const SERVER_TABS = [
   'settings',
 ] as const;
 export type ServerTab = (typeof SERVER_TABS)[number];
+
+/** Toujours visibles : ce qu'on ouvre tous les jours. Le reste est sous « Plus ». */
+export const PRIMARY_TABS: readonly ServerTab[] = [
+  'overview',
+  'console',
+  'players',
+  'config',
+  'backups',
+];
+export const MORE_TABS: readonly ServerTab[] = SERVER_TABS.filter(
+  (name) => !PRIMARY_TABS.includes(name),
+);
 
 function Field({ label, value }: { label: string; value: ReactNode }) {
   return (
@@ -385,15 +402,50 @@ export function ServerPage({ serverId, tab }: { serverId: string; tab: ServerTab
         }}
         keepMounted={false}
       >
-        <ScrollableTabsList activeValue={tab}>
-          <Tabs.List style={{ flexWrap: 'nowrap', minWidth: 'max-content' }}>
-            {SERVER_TABS.map((name) => (
-              <Tabs.Tab key={name} value={name} data-testid={`tab-${name}`}>
-                {t(`web:server.tabs.${name}`)}
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
-        </ScrollableTabsList>
+        <Group gap="xs" wrap="nowrap" align="center">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <ScrollableTabsList activeValue={tab}>
+              <Tabs.List style={{ flexWrap: 'nowrap', minWidth: 'max-content' }}>
+                {PRIMARY_TABS.map((name) => (
+                  <Tabs.Tab key={name} value={name} data-testid={`tab-${name}`}>
+                    {t(`web:server.tabs.${name}`)}
+                  </Tabs.Tab>
+                ))}
+              </Tabs.List>
+            </ScrollableTabsList>
+          </div>
+          {/* Hors de la liste d'onglets : un bouton de menu n'est pas un onglet (lecteurs d'écran). */}
+          <Menu position="bottom-end" withinPortal>
+            <Menu.Target>
+              <Button
+                size="xs"
+                variant={MORE_TABS.includes(tab) ? 'light' : 'default'}
+                rightSection={<IconChevronDown size={14} />}
+                data-testid="tab-more"
+                data-active={MORE_TABS.includes(tab)}
+              >
+                {MORE_TABS.includes(tab) ? t(`web:server.tabs.${tab}`) : t('web:server.tabs.more')}
+              </Button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              {MORE_TABS.map((name) => (
+                <Menu.Item
+                  key={name}
+                  onClick={() => {
+                    void navigate({
+                      to: '/servers/$serverId',
+                      params: { serverId },
+                      search: { tab: name },
+                    });
+                  }}
+                  data-testid={`tab-${name}`}
+                >
+                  {t(`web:server.tabs.${name}`)}
+                </Menu.Item>
+              ))}
+            </Menu.Dropdown>
+          </Menu>
+        </Group>
         <Tabs.Panel value="overview" pt="md">
           <Overview server={s} />
         </Tabs.Panel>

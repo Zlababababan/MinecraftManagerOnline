@@ -126,6 +126,8 @@ test('sauvegarde à chaud, restauration, planning, téléchargement, action prog
 
   // Planificateur : action programmée « redémarrer » tous les jours à 4 h, listée avec sa prochaine
   // occurrence, puis supprimée.
+  // Le planificateur est sous « Plus » (cinq onglets seulement restent visibles).
+  await page.getByTestId('tab-more').click();
   await page.getByTestId('tab-schedule').click();
   await expect(page.getByTestId('schedule-panel')).toBeVisible();
   await page.getByTestId('schedule-new').click();

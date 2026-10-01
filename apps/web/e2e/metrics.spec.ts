@@ -28,6 +28,8 @@ test('graphiques en direct et TPS honnête', async ({ page }, testInfo) => {
   await expect(page.getByTestId('server-page')).toBeVisible();
   const serverId = (await page.getByTestId('server-page').getAttribute('data-server-id')) ?? '';
 
+  // Les métriques sont sous « Plus » (cinq onglets seulement restent visibles).
+  await page.getByTestId('tab-more').click();
   await page.getByTestId('tab-metrics').click();
   await expect(page).toHaveURL(/tab=metrics/);
   await expect(page.getByTestId('metrics-panel')).toBeVisible();

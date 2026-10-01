@@ -499,6 +499,73 @@ describe('App', () => {
     await user.click(all);
     expect(await screen.findByTestId('servers-page')).toBeInTheDocument();
   });
+  it('une seule machine : pas d’entrée « Machines » au menu, sa page est dans Réglages', async () => {
+    const user = userEvent.setup();
+    state.session = true;
+    const { history } = renderApp('/settings');
+    expect(await screen.findByTestId('settings-page')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByTestId('nav-machines')).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId('nav-servers')).toBeInTheDocument();
+    // Cinq sections, rangées par besoin ; la première ouverte est « Joueurs et réseau ».
+    expect(screen.getByTestId('settings-section-network')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByTestId('machine-page')).not.toBeInTheDocument();
+
+    const tab = await screen.findByTestId('settings-section-machine');
+    expect(tab).toHaveTextContent('Machine (Tour)');
+    await user.click(tab);
+    expect(await screen.findByTestId('machine-page')).toHaveAttribute('data-machine-id', 'm1');
+    expect(history.location.search).toContain('section=machine');
+  });
+
+  it('plusieurs machines : l’entrée « Machines » revient, et Réglages n’a plus de section Machine', async () => {
+    state.session = true;
+    state.machines = [machine, { ...machine, id: 'm9', name: 'Grenier' }];
+    // Un vieux lien vers la section Machine retombe sur la première section, pas sur du vide.
+    renderApp('/settings?section=machine');
+    expect(await screen.findByTestId('settings-page')).toBeInTheDocument();
+    expect(await screen.findByTestId('nav-machines')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByTestId('settings-section-machine')).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId('settings-section-network')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByTestId('machine-page')).not.toBeInTheDocument();
+  });
+
+  it('page serveur : cinq onglets visibles, les autres sous « Plus »', async () => {
+    const user = userEvent.setup();
+    state.session = true;
+    const { history } = renderApp('/servers/s1');
+    expect(await screen.findByTestId('server-page')).toBeInTheDocument();
+    expect(screen.getAllByRole('tab').map((el) => el.getAttribute('data-testid'))).toEqual([
+      'tab-overview',
+      'tab-console',
+      'tab-players',
+      'tab-config',
+      'tab-backups',
+    ]);
+    // Fermé, le menu ne montre rien ; son bouton dit « Plus ».
+    expect(screen.queryByTestId('tab-events')).not.toBeInTheDocument();
+    const more = screen.getByTestId('tab-more');
+    expect(more).toHaveTextContent('Plus');
+    expect(more).toHaveAttribute('data-active', 'false');
+
+    await user.click(more);
+    for (const name of ['metrics', 'files', 'schedule', 'logs', 'events', 'settings']) {
+      expect(await screen.findByTestId(`tab-${name}`)).toBeInTheDocument();
+    }
+    await user.click(screen.getByTestId('tab-events'));
+    await waitFor(() => {
+      expect(history.location.search).toContain('tab=events');
+    });
+    // L'onglet ouvert par le menu se lit sur le bouton : on sait toujours où l'on est.
+    await waitFor(() => {
+      expect(screen.getByTestId('tab-more')).toHaveTextContent('Événements');
+    });
+    expect(screen.getByTestId('tab-more')).toHaveAttribute('data-active', 'true');
+  });
+
   it('carte serveur : étoile, console et adresse à donner aux amis', async () => {
     const user = userEvent.setup();
     const writeText = vi.fn(() => Promise.resolve());

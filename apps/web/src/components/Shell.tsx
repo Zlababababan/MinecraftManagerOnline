@@ -291,12 +291,31 @@ export function LanguageMenu({ onChange }: { onChange?: (locale: 'fr' | 'en') =>
 
 type NavTo = '/' | '/servers' | '/machines' | '/account' | '/settings';
 
+/**
+ * Avec UNE seule machine, la notion de machine s'efface du menu (passe UX du 01/10) : ses réglages
+ * sont dans Réglages → Machine. Elle revient dès la deuxième. Seul l'admin est concerné : c'est lui
+ * qui a la page Réglages ; les autres gardent l'entrée (scan, répertoires).
+ */
+function useHideMachines(isAdmin: boolean): boolean {
+  const machines = useMachines();
+  return isAdmin && machines.data?.machines.length === 1;
+}
+
 function NavItems({ onNavigate, isAdmin }: { onNavigate?: () => void; isAdmin: boolean }) {
   const { t } = useT();
+  const hideMachines = useHideMachines(isAdmin);
   const items: { to: NavTo; label: string; icon: ReactNode }[] = [
     { to: '/', label: t('web:nav.dashboard'), icon: <IconLayoutDashboard size={18} /> },
     { to: '/servers', label: t('web:nav.servers'), icon: <IconDeviceGamepad2 size={18} /> },
-    { to: '/machines', label: t('web:nav.machines'), icon: <IconServer2 size={18} /> },
+    ...(hideMachines
+      ? []
+      : [
+          {
+            to: '/machines' as const,
+            label: t('web:nav.machines'),
+            icon: <IconServer2 size={18} />,
+          },
+        ]),
     { to: '/account', label: t('web:nav.account'), icon: <IconUserCircle size={18} /> },
     ...(isAdmin
       ? [
@@ -328,10 +347,19 @@ function NavItems({ onNavigate, isAdmin }: { onNavigate?: () => void; isAdmin: b
 
 function BottomNav({ isAdmin }: { isAdmin: boolean }) {
   const { t } = useT();
+  const hideMachines = useHideMachines(isAdmin);
   const items: { to: NavTo; label: string; icon: ReactNode }[] = [
     { to: '/', label: t('web:nav.dashboard'), icon: <IconLayoutDashboard size={22} /> },
     { to: '/servers', label: t('web:nav.servers'), icon: <IconDeviceGamepad2 size={22} /> },
-    { to: '/machines', label: t('web:nav.machines'), icon: <IconServer2 size={22} /> },
+    ...(hideMachines
+      ? []
+      : [
+          {
+            to: '/machines' as const,
+            label: t('web:nav.machines'),
+            icon: <IconServer2 size={22} />,
+          },
+        ]),
     { to: '/account', label: t('web:nav.account'), icon: <IconUserCircle size={22} /> },
     ...(isAdmin
       ? [

@@ -313,6 +313,7 @@ export const webFr = {
       schedule: 'Planificateur',
       logs: 'Journaux',
       events: 'Événements',
+      more: 'Plus',
       settings: 'Réglages',
     },
     actions: { start: 'Démarrer', stop: 'Arrêter', restart: 'Redémarrer', kill: 'Kill' },
@@ -1440,6 +1441,14 @@ export const webFr = {
     },
   },
   settings: {
+    sections: {
+      network: 'Joueurs et réseau',
+      machine: 'Machine',
+      machineNamed: 'Machine ({{name}})',
+      backups: 'Sauvegardes',
+      accounts: 'Comptes',
+      advanced: 'Avancé',
+    },
     title: 'Réglages',
     nav: 'Réglages',
     saved: 'Réglages enregistrés.',

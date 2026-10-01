@@ -108,6 +108,7 @@ function CopyAddressButton({ server }: { server: ServerDto }) {
     <Tooltip label={t('web:servers.card.copyAddressHint')} withArrow>
       <Button
         size="xs"
+        px={8}
         variant="default"
         leftSection={<IconCopy size={16} />}
         loading={busy}
@@ -191,13 +192,15 @@ export function ServerCard({
             </Text>
           )}
         </Group>
-        <Group gap="xs" wrap="wrap">
+        {/* Serré exprès : Démarrer + Console + Adresse tiennent sur une ligne dans une carte étroite. */}
+        <Group gap={6} wrap="wrap">
           <ServerActions server={server} />
           <RouterButton
             to="/servers/$serverId"
             params={{ serverId: server.id }}
             search={{ tab: 'console' }}
             size="xs"
+            px={8}
             variant="default"
             leftSection={<IconTerminal2 size={16} />}
             data-testid="card-console"

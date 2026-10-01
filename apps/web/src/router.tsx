@@ -43,7 +43,7 @@ import {
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { PublicStatusPage } from './pages/PublicStatusPage.js';
 import { SERVER_TABS, ServerPage, type ServerTab } from './pages/ServerPage.js';
-import { SettingsPage } from './pages/SettingsPage.js';
+import { SETTINGS_SECTIONS, SettingsPage, type SettingsSection } from './pages/SettingsPage.js';
 import { SetupPage } from './pages/SetupPage.js';
 import { bindRealtime } from './store/realtime.js';
 import { realtime } from './ws/client.js';
@@ -249,10 +249,18 @@ const accountRoute = createRoute({
 const settingsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/settings',
+  validateSearch: (search: Record<string, unknown>): { section?: SettingsSection } =>
+    typeof search.section === 'string' &&
+    (SETTINGS_SECTIONS as readonly string[]).includes(search.section)
+      ? { section: search.section as SettingsSection }
+      : {},
   beforeLoad: ({ context }) => {
     requireRole(context.user, 'admin');
   },
-  component: SettingsPage,
+  component: function SettingsRoute() {
+    const { section } = settingsRoute.useSearch();
+    return <SettingsPage section={section ?? 'network'} />;
+  },
 });
 
 const routeTree = rootRoute.addChildren([

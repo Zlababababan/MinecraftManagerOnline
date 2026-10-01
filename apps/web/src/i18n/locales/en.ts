@@ -314,6 +314,7 @@ export const webEn = {
       schedule: 'Scheduler',
       logs: 'Logs',
       events: 'Events',
+      more: 'More',
       settings: 'Settings',
     },
     actions: { start: 'Start', stop: 'Stop', restart: 'Restart', kill: 'Kill' },
@@ -1426,6 +1427,14 @@ export const webEn = {
     },
   },
   settings: {
+    sections: {
+      network: 'Players and network',
+      machine: 'Machine',
+      machineNamed: 'Machine ({{name}})',
+      backups: 'Backups',
+      accounts: 'Accounts',
+      advanced: 'Advanced',
+    },
     title: 'Settings',
     nav: 'Settings',
     saved: 'Settings saved.',

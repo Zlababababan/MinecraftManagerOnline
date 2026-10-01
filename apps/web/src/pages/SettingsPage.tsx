@@ -2,6 +2,11 @@
  * Phase 10 — page Réglages (admin) : général (`app_settings` via `PATCH /api/settings`), couche
  * d'accès (`AccessCard`), distribution des archives d'installation (`DistributionCard`, phase 11)
  * état du push côté panel (clés VAPID) et sauvegardes du panel lui-même (`PanelBackupsCard`, phase 12).
+ *
+ * Passe UX du 01/10 : douze cadres empilés devenaient introuvables. Ils sont rangés PAR BESOIN
+ * (Joueurs et réseau, Machine, Sauvegardes, Comptes, Avancé) ; la section vit dans l'URL
+ * (`?section=`). « Machine » n'existe qu'avec une seule machine : c'est sa page, ici, à la place
+ * de l'entrée de menu « Machines ».
  */
 import {
   Alert,
@@ -14,16 +19,19 @@ import {
   SimpleGrid,
   Stack,
   Switch,
+  Tabs,
   Text,
   TextInput,
   Title,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
+import { useNavigate } from '@tanstack/react-router';
 
 import { describeTimeZone, localTimeZone } from '@mmo/shared';
 
 import { usePushStatus, useSettings, useUpdateSettings } from '../api/phase10.js';
+import { useMachines } from '../api/queries.js';
 import { AccessCard } from '../components/admin/AccessCard.js';
 import { ApiKeysCard } from '../components/admin/ApiKeysCard.js';
 import { AuditCard } from '../components/admin/AuditCard.js';
@@ -37,6 +45,10 @@ import { HelpLink } from '../components/HelpLink.js';
 import { useT } from '../i18n/hooks.js';
 import { describeError } from '../lib/errors.js';
 import { coerceOriginInput, isValidOriginInput } from '../lib/origin.js';
+import { MachinePage } from './MachinePage.js';
+
+export const SETTINGS_SECTIONS = ['network', 'machine', 'backups', 'accounts', 'advanced'] as const;
+export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
 
 /**
  * Fuseaux proposés : ceux que connaît le navigateur. La liste est longue (~400) mais le champ est
@@ -335,26 +347,74 @@ function PushAdminCard() {
   );
 }
 
-export function SettingsPage() {
+export function SettingsPage({ section }: { section: SettingsSection }) {
   const { t } = useT();
+  const navigate = useNavigate();
   const settings = useSettings();
+  const machines = useMachines();
+  const all = machines.data?.machines ?? [];
+  const onlyMachine = all.length === 1 ? all[0] : undefined;
+  // « Machine » n'existe qu'avec une seule machine : un lien vers cette section, ouvert alors qu'il
+  // y en a plusieurs (ou aucune), retombe sur la première section au lieu d'une page vide.
+  const sections = SETTINGS_SECTIONS.filter((s) => s !== 'machine' || onlyMachine !== undefined);
+  const active = sections.includes(section) ? section : 'network';
+  const values = settings.data?.settings;
   return (
     <Stack gap="lg" data-testid="settings-page">
       <Title order={1} size="h2">
         {t('web:settings.title')}
       </Title>
-      {settings.data !== undefined && <GeneralCard settings={settings.data.settings} />}
-      {settings.data !== undefined && <PrivacyCard settings={settings.data.settings} />}
-      {settings.data !== undefined && <ThirdPartyCard settings={settings.data.settings} />}
-      {settings.data !== undefined && <PlayerExposureCard settings={settings.data.settings} />}
-      <UsersCard />
-      <ApiKeysCard all />
-      <AccessCard />
-      <DistributionCard />
-      <PanelBackupsCard />
-      <PushAdminCard />
-      <WebhooksCard />
-      <AuditCard />
+      <Tabs
+        value={active}
+        onChange={(value) => {
+          const next = SETTINGS_SECTIONS.find((s) => s === value) ?? 'network';
+          void navigate({ to: '/settings', search: { section: next }, replace: true });
+        }}
+        keepMounted={false}
+      >
+        <Tabs.List>
+          {sections.map((name) => (
+            <Tabs.Tab key={name} value={name} data-testid={`settings-section-${name}`}>
+              {name === 'machine' && onlyMachine !== undefined
+                ? t('web:settings.sections.machineNamed', { name: onlyMachine.name })
+                : t(`web:settings.sections.${name}`)}
+            </Tabs.Tab>
+          ))}
+        </Tabs.List>
+        <Tabs.Panel value="network" pt="md">
+          <Stack gap="lg">
+            {values !== undefined && <PlayerExposureCard settings={values} />}
+            <AccessCard />
+            {values !== undefined && <PrivacyCard settings={values} />}
+          </Stack>
+        </Tabs.Panel>
+        {onlyMachine !== undefined && (
+          <Tabs.Panel value="machine" pt="md">
+            <MachinePage machineId={onlyMachine.id} />
+          </Tabs.Panel>
+        )}
+        <Tabs.Panel value="backups" pt="md">
+          <Stack gap="lg">
+            <PanelBackupsCard />
+          </Stack>
+        </Tabs.Panel>
+        <Tabs.Panel value="accounts" pt="md">
+          <Stack gap="lg">
+            <UsersCard />
+            <ApiKeysCard all />
+            <AuditCard />
+          </Stack>
+        </Tabs.Panel>
+        <Tabs.Panel value="advanced" pt="md">
+          <Stack gap="lg">
+            {values !== undefined && <GeneralCard settings={values} />}
+            {values !== undefined && <ThirdPartyCard settings={values} />}
+            <DistributionCard />
+            <PushAdminCard />
+            <WebhooksCard />
+          </Stack>
+        </Tabs.Panel>
+      </Tabs>
     </Stack>
   );
 }

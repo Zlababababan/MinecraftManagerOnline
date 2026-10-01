@@ -149,7 +149,8 @@ test('Réglages : URL publique, test de joignabilité réel, distribution dépos
 }, testInfo) => {
   const lang = langOf(testInfo.project.use.locale);
   await login(page, lang);
-  await page.goto('/settings');
+  // Les réglages sont rangés par besoin : l'URL publique est dans « Avancé ».
+  await page.goto('/settings?section=advanced');
   await expect(page.getByTestId('settings-page')).toBeVisible();
 
   // URL publique (injectée dans les one-liners et les notifications push).
@@ -159,6 +160,7 @@ test('Réglages : URL publique, test de joignabilité réel, distribution dépos
   await page.reload();
   await expect(page.getByTestId('settings-public-url')).toHaveValue(publicUrl);
 
+  await page.getByTestId('settings-section-network').click();
   // Joignabilité : HTTP + WebSocket + frame binaire de 64 KiB via /ws/probe (TLS sans objet en http).
   await expect(page.getByTestId('access-test-url')).toHaveValue(publicUrl);
   await page.getByTestId('access-test-run').click();
@@ -167,6 +169,7 @@ test('Réglages : URL publique, test de joignabilité réel, distribution dépos
   await expect(result).toHaveAttribute('data-ok', 'true');
   await expect(result).toContainText(publicUrl);
 
+  await page.getByTestId('settings-section-advanced').click();
   // Distribution : vide, puis dépôt factice par l'API admin (fichiers + manifeste vérifiés).
   await expect(page.getByTestId('distribution-empty')).toBeVisible();
   const version = '0.0.1-e2e';
@@ -234,7 +237,7 @@ test('Réglages : sauvegarde du panel à la demande (archive base + TLS) listée
   page,
 }, testInfo) => {
   await login(page, langOf(testInfo.project.use.locale));
-  await page.goto('/settings');
+  await page.goto('/settings?section=backups');
   const card = page.getByTestId('panel-backups-card');
   await expect(card).toBeVisible();
   // Lot 4 : l'avertissement sur les secrets précède toujours le téléchargement.
