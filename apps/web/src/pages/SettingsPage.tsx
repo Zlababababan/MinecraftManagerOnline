@@ -33,7 +33,6 @@ import { ThirdPartyCard } from '../components/admin/ThirdPartyCard.js';
 import { UsersCard } from '../components/admin/UsersCard.js';
 import { WebhooksCard } from '../components/admin/WebhooksCard.js';
 import { HelpLink } from '../components/HelpLink.js';
-import { ThirdPartyNote } from '../components/ThirdPartyNote.js';
 import { useT } from '../i18n/hooks.js';
 import { describeError } from '../lib/errors.js';
 import { coerceOriginInput, isValidOriginInput } from '../lib/origin.js';
@@ -293,7 +292,6 @@ function PrivacyCard({ settings }: { settings: Record<string, string> }) {
             {...form.getInputProps('externalAvatars', { type: 'checkbox' })}
             data-testid="settings-privacy-avatars"
           />
-          <ThirdPartyNote services={['mojang', 'mcHeads']} />
           <Group justify="flex-end">
             <Button
               type="submit"

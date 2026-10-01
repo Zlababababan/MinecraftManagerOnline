@@ -33,7 +33,6 @@ import { HelpLink } from '../HelpLink.js';
 import { describeError } from '../../lib/errors.js';
 import { hasRole } from '../../lib/format.js';
 import { TaskProgressRow } from '../tasks/TaskProgress.js';
-import { ThirdPartyNote } from '../ThirdPartyNote.js';
 
 /**
  * Les versions proposées : celles que la table MC → Java de shared peut exiger (Java 25 pour les
@@ -173,7 +172,6 @@ export function JavaCard({ machine }: { machine: MachineDto }) {
               }}
               data-testid="java-relay"
             />
-            <ThirdPartyNote services={['adoptium', 'azul']} />
             <Button
               type="button"
               size="sm"

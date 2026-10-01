@@ -44,7 +44,6 @@ import {
   type InstallPrecheckDto,
   type MachineDto,
 } from '@mmo/protocol/client';
-import type { ThirdPartyServiceId } from '@mmo/shared';
 
 import { useCreateInstall, useInstallCatalog, useInstallPrecheck } from '../../api/installs.js';
 import { useActiveTasks } from '../../api/phase8.js';
@@ -56,7 +55,6 @@ import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 import { ErrorAlert } from '../ErrorAlert.js';
 import { HelpLink } from '../HelpLink.js';
 import { TaskProgressRow } from '../tasks/TaskProgress.js';
-import { ThirdPartyNote } from '../ThirdPartyNote.js';
 // Intégration FTB, retirable en entier (docs/services-tiers.md).
 import { FtbPackPicker, type FtbSelection } from './FtbPackPicker.js';
 
@@ -78,14 +76,6 @@ interface FormValues {
   motd: string;
   acceptEula: boolean;
 }
-
-/** Services tiers qu'interroge chaque chargeur (notes « à vérifier », Réglages → Services tiers). */
-const LOADER_SERVICES: Record<InstallLoader, ThirdPartyServiceId[]> = {
-  vanilla: ['mojang'],
-  fabric: ['mojang', 'fabric'],
-  forge: ['mojang', 'forge'],
-  neoforge: ['mojang', 'neoforge'],
-};
 
 const LOADER_LABELS: Record<InstallLoader, string> = {
   vanilla: 'Minecraft',
@@ -477,7 +467,6 @@ export function CreateServerModal({
                 <Text size="xs" c="dimmed">
                   {t('web:install.versionHint')}
                 </Text>
-                <ThirdPartyNote services={LOADER_SERVICES[form.values.loader]} />
               </>
             )}
           </Stack>

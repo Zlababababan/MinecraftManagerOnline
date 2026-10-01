@@ -1,12 +1,11 @@
 /**
  * Réglages → Services tiers : tout ce à quoi le panel, les agents ou le navigateur parlent en dehors
- * de chez vous, ce que chacun sert, et ce qui reste **à vérifier** avant de s'y fier dans un produit
- * commercialisable (la liste vient de `THIRD_PARTY_SERVICES`, `@mmo/shared`).
+ * de chez vous, et ce que chacun sert (la liste vient de `THIRD_PARTY_SERVICES`, `@mmo/shared`).
  *
  * L'intégration FTB y a son interrupteur : coupée, l'assistant de création ne propose plus de
  * modpacks FTB et le panel ne contacte plus leur API.
  */
-import { Badge, Card, Stack, Switch, Table, Text, Title } from '@mantine/core';
+import { Card, Stack, Switch, Table, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 
 import { THIRD_PARTY_SERVICES } from '@mmo/shared';
@@ -53,7 +52,6 @@ export function ThirdPartyCard({ settings }: { settings: Record<string, string> 
               <Table.Tr>
                 <Table.Th>{t('web:thirdParty.colService')}</Table.Th>
                 <Table.Th>{t('web:thirdParty.colUse')}</Table.Th>
-                <Table.Th>{t('web:thirdParty.colStatus')}</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -69,22 +67,6 @@ export function ThirdPartyCard({ settings }: { settings: Record<string, string> 
                   </Table.Td>
                   <Table.Td>
                     <Text size="sm">{t(`web:thirdParty.services.${s.id}.use`)}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    {s.verified ? (
-                      <Badge color="teal" variant="light">
-                        {t('web:thirdParty.verified')}
-                      </Badge>
-                    ) : (
-                      <Stack gap={4}>
-                        <Badge color="gray" variant="light">
-                          {t('web:thirdParty.toVerify')}
-                        </Badge>
-                        <Text size="xs" c="dimmed">
-                          {t(`web:thirdParty.services.${s.id}.check`)}
-                        </Text>
-                      </Stack>
-                    )}
                   </Table.Td>
                 </Table.Tr>
               ))}

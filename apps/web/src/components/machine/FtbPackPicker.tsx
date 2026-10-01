@@ -15,7 +15,6 @@ import type { FtbPackSummaryDto, FtbVersionDto } from '@mmo/protocol/client';
 import { useFtbPack, useFtbPacks } from '../../api/ftb.js';
 import { useT } from '../../i18n/hooks.js';
 import { ErrorAlert } from '../ErrorAlert.js';
-import { ThirdPartyNote } from '../ThirdPartyNote.js';
 
 export interface FtbSelection {
   pack: FtbPackSummaryDto;
@@ -143,7 +142,6 @@ export function FtbPackPicker({
       <Text size="xs" c="dimmed">
         {t('web:install.ftb.hint')}
       </Text>
-      <ThirdPartyNote services={['ftb', 'curseforge']} />
     </Stack>
   );
 }

@@ -346,8 +346,8 @@ téléchargeant depuis l'URL publiée plutôt qu'en redistribuant. L'installeur 
 > `modpacks.ftb.enabled` : coupée, 404 `FEATURE_DISABLED` et plus aucun appel) et **retirable en
 > entier** (liste des fichiers et branchements : `docs/services-tiers.md` §4). Agent : étape
 > `fetchMany` (doc 05 §6). Caches : fiches 1 h, listes de fichiers (plusieurs Mio) les 4 dernières,
-> pack introuvable non redemandé pendant 1 h. Le point ouvert sur les conditions d'utilisation
-> demeure — une note « à vérifier » l'affiche aux administrateurs.
+> pack introuvable non redemandé pendant 1 h. Conditions d'utilisation : usage personnel, produit non
+> vendu (`docs/services-tiers.md` §3 et §5).
 
 ## 7. Fichiers édités par MMO
 

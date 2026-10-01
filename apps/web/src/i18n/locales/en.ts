@@ -980,75 +980,55 @@ export const webEn = {
 
   thirdParty: {
     title: 'Third-party services',
-    hint: 'What the panel, the agents or the browser fetch from somewhere other than your machines. "To verify" means one point still needs confirming before relying on it in a product that is sold (terms of use, right to download directly…) — not that something is broken.',
+    hint: 'What the panel, the agents or the browser fetch from outside, and what for. The panel contacts them sparingly: few requests at a time, no automatic retries.',
     ftbSwitch: 'Offer FTB modpacks when creating a server',
     ftbSwitchHint: 'Off, the wizard no longer offers FTB and the panel stops contacting their API.',
     colService: 'Service',
     colUse: 'Used for',
-    colStatus: 'Status',
-    verified: 'Verified',
-    toVerify: 'To verify',
-    notePrefix: 'To verify (note for the administrator):',
-    noteSuffix: 'Details in Settings → Third-party services.',
     services: {
       ftb: {
         name: 'FTB modpack API',
         use: 'Lists FTB modpacks and their files when creating a server.',
-        check: 'No terms of use were found for third-party tools using the FTB API: ask FTB.',
       },
       curseforge: {
         name: 'CurseForge files',
         use: 'Direct download of the mods of an FTB pack that CurseForge hosts.',
-        check:
-          'Does CurseForge accept a third-party tool downloading its files directly, outside its app?',
       },
       mojang: {
         name: 'Mojang',
         use: 'Version list, official server, and player name → UUID.',
-        check:
-          'Do the Minecraft EULA and usage guidelines allow a tool that is sold to download the server on the user’s behalf?',
       },
       mcHeads: {
         name: 'mc-heads.net',
         use: 'Player heads shown in the browser.',
-        check: 'The terms of mc-heads.net, a free service run by a third party.',
       },
       fabric: {
         name: 'Fabric',
         use: 'Fabric versions and server launcher.',
-        check: 'The terms for third-party tools using meta.fabricmc.net.',
       },
       forge: {
         name: 'Forge',
         use: 'Forge versions and installer.',
-        check:
-          'Forge is partly funded by ads on its download page: does it accept a tool that is sold fetching the installer straight from its repository?',
       },
       neoforge: {
         name: 'NeoForge',
         use: 'NeoForge versions and installer.',
-        check: 'The terms for third-party tools using the NeoForge repository.',
       },
       adoptium: {
         name: 'Adoptium (Temurin)',
         use: 'Installing Java on a machine.',
-        check: 'The Temurin licence and the use of the Adoptium API by a tool that is sold.',
       },
       azul: {
         name: 'Azul (Zulu)',
         use: 'Fallback Java when Temurin has none.',
-        check: 'The Zulu Community terms when a tool that is sold installs it.',
       },
       spark: {
         name: 'spark',
         use: 'One-click install of the spark mod (TPS measurement).',
-        check: 'The spark licence and the use of its download API.',
       },
       letsEncrypt: {
         name: 'Let’s Encrypt',
         use: 'HTTPS certificate in direct access mode.',
-        check:
-          'The panel accepts the Let’s Encrypt subscriber agreement automatically when requesting a certificate: the interface should say so first.',
       },
     },
   },

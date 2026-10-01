@@ -5,7 +5,7 @@
  */
 import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { MachineDto } from '@mmo/protocol/client';
@@ -382,21 +382,6 @@ describe('CreateServerModal — modpacks FTB et services tiers', () => {
       folderName: 'evolution',
       modpack: { provider: 'ftb', packId: 125, versionId: 100487 },
     });
-  });
-
-  it('la note « à vérifier » est pour l’administrateur, pas pour l’opérateur', async () => {
-    renderModal({ ftb: true });
-    await toLoaderStep();
-    fireEvent.click(await screen.findByLabelText('Modpack FTB'));
-    const note = await screen.findByTestId('third-party-note');
-    expect(note).toHaveTextContent('À vérifier');
-    vi.unstubAllGlobals();
-    cleanup();
-    renderModal({ ftb: true, role: 'operator' });
-    await toLoaderStep();
-    fireEvent.click(await screen.findByLabelText('Modpack FTB'));
-    await screen.findByTestId('ftb-pack');
-    expect(screen.queryByTestId('third-party-note')).not.toBeInTheDocument();
   });
 });
 

@@ -31,7 +31,6 @@ import {
   type MetricsRange,
 } from '../../api/queries.js';
 import { useT } from '../../i18n/hooks.js';
-import { ThirdPartyNote } from '../ThirdPartyNote.js';
 import { describeError } from '../../lib/errors.js';
 import { formatGb, formatMb, formatPct } from '../../lib/format.js';
 import { canServer } from '../../lib/permissions.js';
@@ -162,7 +161,6 @@ function SparkInstall({ server }: { server: ServerDto }) {
       <Text size="xs" c="dimmed">
         {t('web:metrics.sparkInstallHint')}
       </Text>
-      <ThirdPartyNote services={['spark']} />
     </Group>
   );
 }

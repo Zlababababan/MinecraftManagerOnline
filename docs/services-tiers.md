@@ -1,13 +1,11 @@
 # Services tiers
 
 Tout ce à quoi MinecraftManagerOnline parle en dehors de chez vous, comment il s'y prend pour ne
-jamais abuser de ces services, ce qui reste **à vérifier** avant de s'y fier dans un produit
-commercialisable, et comment retirer l'intégration FTB en entier.
+jamais abuser de ces services, et comment retirer l'intégration FTB en entier.
 
 La liste de référence est dans le code : `packages/shared/src/third-party.ts`
 (`THIRD_PARTY_SERVICES`). L'interface la montre aux administrateurs dans **Réglages → Services
-tiers**, et pose une note grise « À vérifier » à côté de chaque endroit où un service non vérifié est
-employé.
+tiers** (nom, adresses, usage).
 
 ## 1. Les services
 
@@ -72,16 +70,16 @@ hôte** pour `fetchMany` (les 6 téléchargements se répartissent entre `files.
 redémarré relit les catalogues) ; aucun service n'expose de quota documenté que l'on pourrait
 suivre.
 
-## 3. Marquer un service « vérifié »
+## 3. Conditions d'utilisation
 
-Pour chaque service, la ligne `web:thirdParty.services.<id>.check` (traductions de l'interface) dit
-ce qu'il reste à confirmer : conditions d'utilisation par un outil tiers, droit de télécharger
-directement, licence, publicité perdue par l'éditeur…
+Le produit **n'est pas vendu** : c'est un usage strictement personnel (décision de Yassin,
+01/10/2026). Les notes « à vérifier » que l'interface affichait à côté de chaque service — elles
+portaient surtout sur l'usage dans un produit vendu — ont été retirées le même jour, avec le champ
+`verified`. Ce qui reste dû à ces services, vendu ou non : les règles de politesse du §2.
 
-1. Faire la vérification, et noter ici la source (lien, date, ce qui a été lu) dans la section 5.
-2. Passer `verified: true` sur l'entrée dans `packages/shared/src/third-party.ts`.
-3. C'est tout : les notes disparaissent d'elles-mêmes et Réglages → Services tiers affiche
-   « Vérifié ».
+Si le produit devait un jour être vendu, reprendre la question service par service (conditions
+d'utilisation par un outil tiers, droit de télécharger directement, licence de Java, publicité
+perdue par Forge…) avant toute chose ; le §5 garde ce qui a déjà été lu.
 
 ## 4. Retirer l'intégration FTB en entier
 
@@ -127,12 +125,6 @@ la création (un autre fournisseur s'y branche de la même façon), `PoliteFetch
   User-Agent qui nomme le produit et le dépôt. **Non dit par l'article** : limites de débit, outils
   côté serveur, produits payants, téléchargement direct des fichiers. **Décision (Yassin,
   01/10/2026)** : « Le produit ne sera pas vendu. C'est une utilisation strictement personnelle » et
-  « FTB ne donne pas de limite mais on ne va pas exagérer » → l'entrée passe à `verified: true`. À
-  revoir si le produit devait un jour être vendu (documentation annoncée sur
-  docs.feed-the-beast.com ; contact : page `/support` de FTB).
-
-Les autres services sont encore « à vérifier ».
-
-Point ouvert le plus important : les **conditions d'utilisation de l'API FTB** par un outil tiers
-(API publique et documentée, utilisée par d'autres gestionnaires, mais aucun texte écrit trouvé —
-doc 06 §6quinquies).
+  « FTB ne donne pas de limite mais on ne va pas exagérer » : usage accepté tel quel. À revoir si
+  le produit devait un jour être vendu (documentation annoncée sur docs.feed-the-beast.com ;
+  contact : page `/support` de FTB).
