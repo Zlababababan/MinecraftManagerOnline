@@ -512,7 +512,7 @@ describe('App', () => {
     });
     // userEvent installe son propre presse-papiers : on l’espionne après coup.
     vi.spyOn(navigator.clipboard, 'writeText').mockImplementation(writeText);
-    const card = within(screen.getAllByTestId('server-card')[1] as HTMLElement);
+    const card = within(screen.getAllByTestId('server-card')[1]!);
 
     // Épingler : le serveur passe en tête de la liste.
     const star = card.getByTestId('favorite-s1');
@@ -525,7 +525,7 @@ describe('App', () => {
     expect(screen.getByTestId('favorite-s1')).toHaveAttribute('aria-pressed', 'true');
 
     // La console est à un clic, l’adresse aussi — demandée au panel seulement au clic.
-    const pinned = within(screen.getAllByTestId('server-card')[0] as HTMLElement);
+    const pinned = within(screen.getAllByTestId('server-card')[0]!);
     expect(pinned.getByTestId('card-console')).toHaveAttribute('href', '/servers/s1?tab=console');
     expect(state.calls).not.toContain('GET /api/servers/s1/address');
     await user.click(pinned.getByTestId('card-copy-address'));
