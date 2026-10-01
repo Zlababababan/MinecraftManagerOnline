@@ -125,8 +125,14 @@ try {
   Move-Item $src $new
   if (Test-Path $InstallDir) {
     # Conserve les versions reçues par agent.update (rollback possible) ; le reste vient de l'archive.
+    # Jamais par-dessus une version que l'archive apporte : réinstaller le MÊME numéro (build de
+    # développement) doit remplacer le code, pas remettre l'ancien.
     $oldVersions = Join-Path $InstallDir 'versions'
-    if (Test-Path $oldVersions) { Copy-Item -Recurse -Force "$oldVersions\*" (Join-Path $new 'versions') -ErrorAction SilentlyContinue }
+    if (Test-Path $oldVersions) {
+      Get-ChildItem -LiteralPath $oldVersions -Directory |
+        Where-Object { -not (Test-Path -LiteralPath (Join-Path $new "versions\$($_.Name)")) } |
+        ForEach-Object { Copy-Item -Recurse -Force -LiteralPath $_.FullName -Destination (Join-Path $new 'versions') -ErrorAction SilentlyContinue }
+    }
     $old = "$InstallDir.old"
     if (Test-Path $old) { Remove-Item -Recurse -Force $old }
     Move-Item $InstallDir $old

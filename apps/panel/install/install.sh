@@ -205,7 +205,16 @@ rm -rf "$INSTALL_DIR.new"
 mv "$TMP/x/mmo-agent" "$INSTALL_DIR.new"
 if [ -d "$INSTALL_DIR" ]; then
   # Conserve les versions reçues par `agent.update` (rollback possible) ; le reste vient de l'archive.
-  if [ -d "$INSTALL_DIR/versions" ]; then cp -R "$INSTALL_DIR/versions/." "$INSTALL_DIR.new/versions/" 2>/dev/null || true; fi
+  # Jamais par-dessus une version que l'archive apporte : réinstaller le MÊME numéro (build de
+  # développement) doit remplacer le code, pas remettre l'ancien.
+  if [ -d "$INSTALL_DIR/versions" ]; then
+    for old_version in "$INSTALL_DIR/versions"/*/; do
+      [ -d "$old_version" ] || continue
+      old_name=$(basename "$old_version")
+      [ -e "$INSTALL_DIR.new/versions/$old_name" ] && continue
+      cp -R "$old_version" "$INSTALL_DIR.new/versions/$old_name" 2>/dev/null || true
+    done
+  fi
   rm -rf "$INSTALL_DIR.old"; mv "$INSTALL_DIR" "$INSTALL_DIR.old"
 fi
 mv "$INSTALL_DIR.new" "$INSTALL_DIR"
