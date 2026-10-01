@@ -111,7 +111,18 @@ la création (un autre fournisseur s'y branche de la même façon), `PoliteFetch
 
 ## 5. Journal des vérifications
 
-_Aucune vérification enregistrée pour l'instant — tous les services sont « à vérifier »._
+- **FTB — vérification partielle (2026-10-01).** Source : <https://feed-the-beast.com/blog/p/ftb-api>
+  (article du 12 mars 2025, lien fourni par Yassin, lu par résumé automatique). Ce qu'il dit : l'API
+  `api.feed-the-beast.com/v1/modpacks/` remplace `api.modpacks.ch` ; les **lanceurs tiers peuvent
+  l'utiliser** et FTB s'engage à ne pas leur retirer l'accès ; FTB **demande un User-Agent
+  personnalisé** (format libre) pour pouvoir remonter à l'outil en cas de problème ; FTB préfère
+  qu'on passe par son application, puis CurseForge, puis les outils tiers. **Respecté** : bonne API,
+  User-Agent qui nomme le produit et le dépôt. **Non dit par l'article** : limites de débit, outils
+  côté serveur, produits payants, téléchargement direct des fichiers. L'entrée reste `verified:
+  false` tant que l'usage dans un produit **vendu** n'est pas confirmé (documentation annoncée sur
+  docs.feed-the-beast.com ; contact : page `/support` de FTB).
+
+Les autres services sont encore « à vérifier ».
 
 Point ouvert le plus important : les **conditions d'utilisation de l'API FTB** par un outil tiers
 (API publique et documentée, utilisée par d'autres gestionnaires, mais aucun texte écrit trouvé —
