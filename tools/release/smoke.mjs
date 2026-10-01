@@ -35,7 +35,17 @@ const outRoot = path.resolve(
   ROOT,
   args.includes('--out') ? args[args.indexOf('--out') + 1] : 'release',
 );
-const versions = readdirSync(outRoot).sort();
+// Tri numérique : en tri de texte, « 1.0.10 » passe avant « 1.0.7 » et l'on testerait ou publierait
+// une vieille version sans le voir.
+const versions = readdirSync(outRoot).sort((a, b) => {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0);
+    if (d !== 0) return d;
+  }
+  return 0;
+});
 const version = versions[versions.length - 1];
 if (!version) throw new Error(`aucune release dans ${outRoot}`);
 const dir = path.join(outRoot, version);

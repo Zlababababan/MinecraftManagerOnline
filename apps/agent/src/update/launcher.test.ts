@@ -163,6 +163,21 @@ describe('launcher : bascule, health-check, rollback', () => {
     expect(await json('current.json')).toEqual({ version: '1.1.0' });
   });
 
+  it('sans current.json valable : la version la plus récente EN NOMBRES (1.0.10 après 1.0.7)', async () => {
+    const say = "process.stdout.write('agent ' + process.env.MMO_AGENT_VERSION); process.exit(0);";
+    await setup({ '1.0.5': say, '1.0.7': say, '1.0.10': say }, '9.9.9-absente');
+    const out: Buffer[] = [];
+    child = spawn(process.execPath, [LAUNCHER, '--version'], {
+      env: { ...process.env, MMO_AGENT_HOME: home },
+      stdio: ['ignore', 'pipe', 'ignore'],
+      windowsHide: true,
+    });
+    child.stdout?.on('data', (d: Buffer) => out.push(d));
+    await new Promise<number | null>((r) => child?.once('exit', r));
+    expect(Buffer.concat(out).toString()).toBe('agent 1.0.10');
+    expect(await json('current.json')).toEqual({ version: '1.0.10' });
+  });
+
   it('phase 11 — `--version` : exécution unique, code de sortie rendu tel quel, pas de relance', async () => {
     await setup(
       {

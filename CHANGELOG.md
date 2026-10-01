@@ -8,6 +8,10 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+## 1.0.10 — 2026-10-01
+
+Versions 1.0.8 and 1.0.9 were never published: the number jumps from 1.0.7 to 1.0.10.
+
 ### A dashboard you can act from, a shorter wizard (2026-10-01)
 
 - **The dashboard no longer repeats the machine page.** It shows what is running, what needs

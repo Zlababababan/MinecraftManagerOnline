@@ -21,7 +21,22 @@ function opt(name, fallback) {
   return i === -1 ? fallback : args[i + 1];
 }
 const outRoot = path.resolve(ROOT, opt('out', 'release'));
-const version = opt('version', readdirSync(outRoot).sort().at(-1));
+// Tri numérique : en tri de texte, « 1.0.10 » passe avant « 1.0.7 » et l'on testerait ou publierait
+// une vieille version sans le voir.
+const version = opt(
+  'version',
+  readdirSync(outRoot)
+    .sort((a, b) => {
+      const pa = a.split('.').map(Number);
+      const pb = b.split('.').map(Number);
+      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const d = (pa[i] || 0) - (pb[i] || 0);
+        if (d !== 0) return d;
+      }
+      return 0;
+    })
+    .at(-1),
+);
 if (!version) throw new Error(`aucune release dans ${outRoot}`);
 const dir = path.join(outRoot, version);
 const manifest = JSON.parse(readFileSync(path.join(dir, 'manifest.json'), 'utf8'));

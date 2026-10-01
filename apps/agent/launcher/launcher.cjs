@@ -77,12 +77,23 @@ function nodeOf(version) {
   }
   return undefined;
 }
+// Tri NUMÉRIQUE : en tri de texte, « 1.0.10 » se range avant « 1.0.7 » et le repli ci-dessous
+// relancerait une vieille version (vu en préparant la 1.0.10).
+const byVersion = (a, b) => {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0);
+    if (d !== 0) return d;
+  }
+  return 0;
+};
 function listVersions() {
   try {
     return fs
       .readdirSync(path.join(HOME, 'versions'))
       .filter((v) => fs.existsSync(bundleOf(v)))
-      .sort();
+      .sort(byVersion);
   } catch {
     return [];
   }
