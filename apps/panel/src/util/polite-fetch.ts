@@ -31,6 +31,19 @@ export function politeHeaders(extra: Record<string, string> = {}): Record<string
   return { 'user-agent': USER_AGENT, ...extra };
 }
 
+/**
+ * `fetch` qui se présente : pose le `User-Agent` du panel quand l'appelant n'en a pas mis. Pour les
+ * services qui ont leur propre client (ACME, DNS dynamique, manifest Mojang du résolveur Java) et ne
+ * passent donc pas par `PoliteFetcher` — un appel anonyme est le premier qu'un service coupe.
+ */
+export function identifiedFetch(fetchImpl: typeof fetch): typeof fetch {
+  return (input, init) => {
+    const headers = new Headers(init?.headers);
+    if (!headers.has('user-agent')) headers.set('user-agent', USER_AGENT);
+    return fetchImpl(input, { ...init, headers });
+  };
+}
+
 export interface PoliteResponse {
   status: number;
   ok: boolean;

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { PoliteFetchError, PoliteFetcher, USER_AGENT, parseRetryAfter } from './polite-fetch.js';
+import {
+  PoliteFetchError,
+  PoliteFetcher,
+  USER_AGENT,
+  parseRetryAfter,
+  identifiedFetch,
+} from './polite-fetch.js';
 
 interface Call {
   url: string;
@@ -198,5 +204,18 @@ describe('PoliteFetcher — appels aux services tiers', () => {
     expect(parseRetryAfter('Mon, 28 Sep 2026 12:00:30 GMT', now)).toBe(30_000);
     expect(parseRetryAfter(null, now)).toBeUndefined();
     expect(parseRetryAfter('bientôt', now)).toBeUndefined();
+  });
+
+  it('identifiedFetch : pose le User-Agent du panel, sans écraser celui de l’appelant', async () => {
+    const seen: (string | null)[] = [];
+    const base: typeof fetch = (_input, init) => {
+      seen.push(new Headers(init?.headers).get('user-agent'));
+      return Promise.resolve(new Response('ok'));
+    };
+    const f = identifiedFetch(base);
+    await f('https://example.invalid/a');
+    await f('https://example.invalid/b', { headers: { 'User-Agent': 'autre/1.0', accept: 'x' } });
+    expect(seen[0]).toMatch(/^MinecraftManagerOnline\//);
+    expect(seen[1]).toBe('autre/1.0');
   });
 });

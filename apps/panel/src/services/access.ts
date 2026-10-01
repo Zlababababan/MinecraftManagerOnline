@@ -82,6 +82,12 @@ interface AccessState {
 const RENEW_BEFORE_DAYS = 30;
 const PROBE_BYTES = 64 * 1024;
 
+/** Republication DynDNS d'une adresse inchangée : une fois par jour, pas plus. */
+export const DYNDNS_REFRESH_MS = 24 * 3_600_000;
+/** Recul après un échec DynDNS : 10 min, doublé à chaque échec, plafonné à 6 h. */
+export const DYNDNS_BACKOFF_MS = 10 * 60_000;
+export const DYNDNS_BACKOFF_MAX_MS = 6 * 3_600_000;
+
 export class AccessService {
   private readonly tlsDir: string;
   private readonly stateFile: string;
@@ -90,6 +96,9 @@ export class AccessService {
   private httpsServer: https.Server | undefined;
   private httpsHost: string | undefined;
   private timers: NodeJS.Timeout[] = [];
+  /** Échecs DynDNS consécutifs et prochain essai automatique permis (recul croissant). */
+  private dynFailures = 0;
+  private dynRetryAt = 0;
   private issuing: Promise<CertificateDto> | undefined;
   private dnsClient: DnsClient | undefined;
   private dnsClientKey = '';
@@ -439,12 +448,36 @@ export class AccessService {
     }
   }
 
-  private async tickDynDns(): Promise<void> {
+  /**
+   * Passage périodique du DynDNS. Il **n'envoie rien quand l'adresse publiée est toujours la
+   * bonne** : republier la même adresse toutes les dix minutes, c'est 144 requêtes par jour pour
+   * rien, et les fournisseurs DynDNS le sanctionnent (réponse `abuse`). Une republication par jour
+   * suffit à garder l'enregistrement vivant. Après un échec, l'essai suivant attend de plus en plus
+   * longtemps ; le bouton « Mettre à jour maintenant » (`updateDynDns`) reste immédiat.
+   */
+  async tickDynDns(): Promise<void> {
     if (!this.deps.settings.getBool('access.dyndns.enabled')) return;
+    const now = this.deps.now();
+    if (now < this.dynRetryAt) return;
+    const upToDate =
+      this.state.lastError === null &&
+      this.state.publishedAddress !== null &&
+      this.state.publishedAddress === this.currentAddress() &&
+      this.state.lastUpdateAt !== null &&
+      now - this.state.lastUpdateAt < DYNDNS_REFRESH_MS;
+    if (upToDate) return;
     try {
       await this.updateDynDns();
+      this.dynFailures = 0;
+      this.dynRetryAt = 0;
     } catch (error) {
-      this.deps.logger.warn({ err: error }, 'dyndns update failed');
+      this.dynFailures += 1;
+      this.dynRetryAt =
+        now + Math.min(DYNDNS_BACKOFF_MAX_MS, DYNDNS_BACKOFF_MS * 2 ** (this.dynFailures - 1));
+      this.deps.logger.warn(
+        { err: error, retryInMs: this.dynRetryAt - now },
+        'dyndns update failed',
+      );
     }
   }
 

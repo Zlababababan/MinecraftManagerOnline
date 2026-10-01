@@ -23,6 +23,7 @@ import {
   waitFor,
   type TestPanel,
 } from '../test/helpers.js';
+import { DYNDNS_BACKOFF_MAX_MS, DYNDNS_BACKOFF_MS, DYNDNS_REFRESH_MS } from './access.js';
 
 const urlOf = (input: string | URL | Request): string =>
   typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
@@ -103,9 +104,13 @@ describe('AccessService', () => {
   let data: Awaited<ReturnType<typeof tmpDir>>;
   let httpsPort: number;
   const duck: URL[] = [];
+  /** En-tête `User-Agent` reçu par chaque hôte tiers. */
+  const agents = new Map<string, string | null>();
+  let addresses = ['2001:db8::1', '2001:db8::2'];
 
   const fetchImpl: typeof fetch = async (input, init) => {
     const url = new URL(urlOf(input));
+    agents.set(url.hostname, new Headers(init?.headers).get('user-agent'));
     if (url.hostname === 'www.duckdns.org') {
       duck.push(url);
       return new Response(url.searchParams.get('token') === 'secret' ? 'OK' : 'KO', {
@@ -117,6 +122,8 @@ describe('AccessService', () => {
 
   beforeEach(async () => {
     duck.length = 0;
+    agents.clear();
+    addresses = ['2001:db8::1', '2001:db8::2'];
     data = await tmpDir('mmo-access-');
     acme = await startFakeAcme();
     httpsPort = await freePort();
@@ -124,7 +131,7 @@ describe('AccessService', () => {
       fetch: fetchImpl,
       config: { dataDir: data.dir },
       access: {
-        localAddresses: () => ({ ipv6: ['2001:db8::1', '2001:db8::2'], ipv4: [] }),
+        localAddresses: () => ({ ipv6: addresses, ipv4: [] }),
         resolveTxt: (name) => acme.resolveTxt(name),
         acmeDirectory: acme.directoryUrl,
         acme: { pollIntervalMs: 10, propagationTimeoutMs: 5_000, statusTimeoutMs: 5_000 },
@@ -363,6 +370,80 @@ describe('AccessService', () => {
     expect(bad.statusCode).toBe(502);
     expect(bad.json<{ code: string }>().code).toBe('E_DNS_FAILED');
     expect((await status()).direct?.dyndns.lastError).toContain('KO');
+  });
+
+  it('DynDNS poli : rien n’est renvoyé tant que l’adresse n’a pas changé, un échec espace les essais', async () => {
+    await patchSettings({
+      'access.mode': 'direct',
+      'access.domain': 'mmo.duckdns.org',
+      'access.dns.provider': 'duckdns',
+      'access.dns.token': 'secret',
+      'access.dyndns.enabled': 'true',
+    });
+    const post = () =>
+      panel.app.inject({ method: 'POST', url: '/api/access/dyndns', headers: { cookie: admin } });
+    expect((await post()).statusCode).toBe(200);
+    // Le fournisseur sait qui l'appelle.
+    expect(agents.get('www.duckdns.org')).toMatch(/^MinecraftManagerOnline\//);
+
+    // Dix minutes, vingt, trente… : même adresse, aucun envoi.
+    const sent = duck.length;
+    for (let i = 0; i < 5; i++) {
+      panel.clock.advance(10 * 60_000);
+      await panel.ctx.access.tickDynDns();
+    }
+    expect(duck.length).toBe(sent);
+    // Une fois par jour, l'enregistrement est rafraîchi — une seule fois.
+    panel.clock.advance(DYNDNS_REFRESH_MS);
+    await panel.ctx.access.tickDynDns();
+    await panel.ctx.access.tickDynDns();
+    expect(duck.length).toBe(sent + 1);
+    // L'adresse change : publiée au passage suivant.
+    addresses = ['2001:db8::99'];
+    await panel.ctx.access.tickDynDns();
+    expect(duck.length).toBe(sent + 2);
+    expect(duck.at(-1)?.searchParams.get('ipv6')).toBe('2001:db8::99');
+    // Le bouton, lui, envoie toujours.
+    expect((await post()).statusCode).toBe(200);
+    expect(duck.length).toBe(sent + 3);
+
+    // Jeton refusé : un essai, puis du recul — pas un refus toutes les dix minutes.
+    await patchSettings({ 'access.dns.token': 'wrong' });
+    const before = duck.length;
+    addresses = ['2001:db8::77'];
+    await panel.ctx.access.tickDynDns();
+    const afterFirst = duck.length;
+    expect(afterFirst).toBeGreaterThan(before);
+    panel.clock.advance(DYNDNS_BACKOFF_MS - 1);
+    await panel.ctx.access.tickDynDns();
+    expect(duck.length).toBe(afterFirst);
+    panel.clock.advance(1);
+    await panel.ctx.access.tickDynDns();
+    expect(duck.length).toBe(afterFirst + 1);
+    // Deuxième échec : l'attente double.
+    panel.clock.advance(DYNDNS_BACKOFF_MS);
+    await panel.ctx.access.tickDynDns();
+    expect(duck.length).toBe(afterFirst + 1);
+    panel.clock.advance(DYNDNS_BACKOFF_MS);
+    await panel.ctx.access.tickDynDns();
+    expect(duck.length).toBe(afterFirst + 2);
+    // Jeton corrigé : l'essai suivant passe, et le recul est oublié.
+    await patchSettings({ 'access.dns.token': 'secret' });
+    panel.clock.advance(DYNDNS_BACKOFF_MAX_MS);
+    await panel.ctx.access.tickDynDns();
+    expect((await status()).direct?.dyndns.lastError).toBeNull();
+
+    // Une erreur restée affichée (bouton, jeton refusé) n'est pas « à jour » : même adresse, mais le
+    // passage suivant réessaie.
+    await patchSettings({ 'access.dns.token': 'wrong' });
+    expect((await post()).statusCode).toBe(502);
+    const stuck = duck.length;
+    // Régler le jeton réapplique la couche d'accès, qui fait elle-même un passage : on compte à
+    // partir d'avant, et on accepte que l'envoi vienne de l'un ou de l'autre.
+    await patchSettings({ 'access.dns.token': 'secret' });
+    await panel.ctx.access.tickDynDns();
+    await waitFor(() => duck.length > stuck, 2_000);
+    expect((await status()).direct?.dyndns.lastError).toBeNull();
   });
 
   it('adresse à donner aux amis, règles pare-feu et Server List Ping', async () => {

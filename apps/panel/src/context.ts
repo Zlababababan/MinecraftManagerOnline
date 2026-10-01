@@ -16,7 +16,7 @@ import {
 } from './db/client.js';
 import type { SqliteHandle } from './db/sqlite.js';
 import { PublicRateLimits, type PublicRateLimitOptions } from './http/rate-limits.js';
-import { PoliteFetcher, type PoliteFetcherOptions } from './util/polite-fetch.js';
+import { PoliteFetcher, identifiedFetch, type PoliteFetcherOptions } from './util/polite-fetch.js';
 import { AuditService } from './services/audit.js';
 import { BackupsService } from './services/backups.js';
 import { EventBus } from './services/events.js';
@@ -214,7 +214,8 @@ export function createContext(options: ContextOptions): AppContext {
   const machines = new MachinesService(db, now);
   const java = new JavaResolver({
     manifest: config.mojangManifest,
-    ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
+    // Le manifest Mojang est lu en se présentant (docs/services-tiers.md).
+    fetch: identifiedFetch(options.fetch ?? fetch),
     now,
   });
   const servers = new ServersService({
@@ -539,7 +540,8 @@ export function createContext(options: ContextOptions): AppContext {
     audit,
     logger,
     now,
-    fetchImpl: options.fetch ?? fetch,
+    // Let's Encrypt (RFC 8555 §6.1 : User-Agent exigé) et les fournisseurs DNS reçoivent un nom.
+    fetchImpl: identifiedFetch(options.fetch ?? fetch),
     ...(options.access ?? {}),
   });
   // Lot 8 : la page publique lit ce que le panel sait déjà (état, joueurs, politiques) et ne

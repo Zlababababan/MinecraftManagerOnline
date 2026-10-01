@@ -22,6 +22,7 @@ tiers** (nom, adresses, usage).
 | `azul`        | `api.azul.com`                                                          | panel                             | Java (Zulu), en repli                                             |
 | `spark`       | `sparkapi.lucko.me`, `spark.lucko.me`                                   | panel, agent                      | spark en un clic                                                  |
 | `letsEncrypt` | `acme-v02.api.letsencrypt.org`                                          | panel                             | certificat du mode d'accès direct                                 |
+| `dyndns`      | `www.duckdns.org`, `api.cloudflare.com`, ou l'adresse de mise à jour réglée | panel                             | DNS dynamique et défi DNS-01 du mode d'accès direct               |
 
 Hors liste parce qu'ils ne sont pas « tiers » au même sens : GitHub (`releases.atom`, vérification
 de mise à jour du panel, une fois par jour au plus, réglage `panel.updateCheck.enabled`), les
@@ -67,6 +68,22 @@ version de chaque appel :
   (« Le téléchargement de mods/x.jar depuis edge.forgecdn.net a échoué… ») et dit quoi faire ;
   « Reprendre l'installation » garde les fichiers déjà bons. C'est une personne qui décide de
   réessayer, jamais une boucle.
+
+- **Services du mode d'accès direct** (audit du 01/10/2026 : ils avaient été oubliés). Let's Encrypt,
+  DuckDNS, Cloudflare et l'adresse DynDNS générique ont leur propre client, hors `PoliteFetcher` ;
+  ils passent par `identifiedFetch` (même `User-Agent` — la RFC 8555 §6.1 l'exige pour ACME), comme
+  le manifest Mojang lu par le résolveur Java. **Le DynDNS ne republie plus une adresse
+  inchangée** : avant, la même adresse partait toutes les 10 minutes (144 requêtes par jour, ce que
+  ces fournisseurs sanctionnent par `abuse`) ; désormais une republication par jour, un envoi dès
+  que l'adresse change, et après un échec un recul de 10 min doublé à chaque fois (plafond 6 h). Le
+  bouton « Mettre à jour maintenant » reste immédiat.
+
+**Regardé le 01/10 et laissé tel quel** : les têtes de joueurs viennent de `mc-heads.net`
+directement depuis chaque navigateur (une image par joueur affiché, mise en cache par le
+navigateur ; réglage `privacy.externalAvatars` pour couper) — c'est le seul service qu'un
+navigateur contacte lui-même ; les relayer par le panel serait la suite logique si l'usage grossit.
+Webhooks et notifications push partent vers des adresses choisies par l'administrateur ou par le
+navigateur, une requête par événement.
 
 **Ce qui manque encore** (à reprendre si l'usage le demande) : l'agent n'a pas de borne **par
 hôte** pour `fetchMany` (les 6 téléchargements se répartissent entre `files.feed-the-beast.com` et

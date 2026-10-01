@@ -17,6 +17,10 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
   the folder name and the memory are then suggested, so there is nothing to type to get going. The
   wizard is three screens instead of four.
 - Reinstalling the agent at the same version number now really replaces its code.
+- **Dynamic DNS is no longer re-sent when nothing changed.** In direct access mode the panel used
+  to publish the same address every ten minutes; it now does so once a day, immediately when the
+  address changes, and backs off after a failure. Let's Encrypt and DNS providers are now called
+  with a User-Agent naming the product.
 
 ### Create a server from a zip (2026-10-01)
 
