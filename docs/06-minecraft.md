@@ -349,6 +349,46 @@ téléchargeant depuis l'URL publiée plutôt qu'en redistribuant. L'installeur 
 > pack introuvable non redemandé pendant 1 h. Conditions d'utilisation : usage personnel, produit non
 > vendu (`docs/services-tiers.md` §3 et §5).
 
+## 6sexies. Créer un serveur depuis une archive — mesures et plan (2026-10-01)
+
+Demande : installer les modpacks **All the Mods** sans que le panel contacte CurseForge. ATM ne publie
+ses « Server Files » que là : c'est donc **l'utilisateur qui télécharge le zip** dans son navigateur
+et le pose dans un répertoire surveillé ; le panel fait le reste. Générique : tout « server pack »
+livré en zip dont les scripts déclarent le chargeur.
+
+**Mesuré (lecture seule) sur `ATM10AERO-0.7.1-server.zip`** : 861 Mio, 1 941 fichiers, 993 Mio
+dépliés ; racine **sans dossier englobant** — `mods/` (418 jars, tous inclus), `config/`, `kubejs/`,
+`defaultconfigs/`, `datapacks/`, `startserver.bat`, `startserver.sh` ; ni `libraries/`, ni
+`server.properties`, ni `eula.txt`. Le chargeur est dit par les deux scripts
+(`NEOFORGE_VERSION=21.1.250` / `set NEOFORGE_VERSION=21.1.250`) ; le script ne fait que télécharger
+l'installeur NeoForge, lancer `--installServer`, écrire cinq lignes de `server.properties`, puis
+démarrer le serveur **dans une boucle de redémarrage** (avec `pause`).
+
+**Règles.**
+1. **Le script de l'archive n'est jamais exécuté** : il est lu. `readArchiveHints` (shared) y
+   cherche `NEOFORGE_VERSION=` (version de jeu par `mcVersionFromNeoForge`) ou `FORGE_VERSION=`
+   (version de jeu dans `MINECRAFT_VERSION=`, dans le nom de l'installeur ou dans le build
+   complet `1.20.1-47.3.0`) ; `readArchiveProperties` reprend le `server.properties` par défaut du
+   script (`printf "…" > server.properties` ou bloc d'`echo`), **sans** les clés que le panel gère
+   (port, RCON, query).
+2. **Plan** = `extract` (doc 05 §6) → plan ordinaire du chargeur déclaré (§6quater, au build de
+   l'archive) → `setProperties` du pack → `setProperties` du panel (port) → EULA. Le seul service
+   contacté est celui du chargeur (maven.neoforged.net, déjà poli) ; **CurseForge jamais**.
+3. **L'archive fait autorité** sur le chargeur, comme un modpack FTB. Une archive qui ne dit rien :
+   le panel prend le chargeur du formulaire (API) ; l'assistant web, lui, refuse d'avancer plutôt
+   que de deviner.
+4. **Dossier englobant** : si toutes les entrées vivent sous un seul dossier (qui n'est pas
+   `mods`, `config`, `world`…), il est ignoré (`strip: 1`).
+
+**Banc réel (01/10)** : le code de l'agent a déplié le vrai zip en ~43 s — 1 941 fichiers,
+1 041 326 457 octets, identique à `unzip -l` ; les deux scripts réels rendent NeoForge 21.1.250,
+Minecraft 1.21.1 et les cinq réglages.
+
+**Non mesuré** : `FORGE_VERSION=` (packs ATM plus anciens) — écrit d'après la même forme, à
+vérifier sur un vrai zip ; archive avec dossier englobant (testé sur un zip fabriqué seulement) ;
+ZIP64 (> 4 Gio ou > 65 535 entrées) refusé comme illisible ; aucune installation complète
+(extraction + NeoForge + premier démarrage) n'a été rejouée de bout en bout.
+
 ## 7. Fichiers édités par MMO
 
 ### `server.properties`

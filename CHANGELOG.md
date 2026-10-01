@@ -8,6 +8,17 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### Create a server from a zip (2026-10-01)
+
+- **Modpacks shipped as "server files" archives can be installed** (All the Mods and the like).
+  Download the zip with your browser, drop it as is into a watched directory of the machine, then
+  pick "Archive (.zip)" when creating a server: the panel reads the archive, says which loader it
+  will install, extracts it, installs the loader and prepares the server. The pack's own start
+  script is never run, and the zip is left untouched.
+- **The panel never contacts CurseForge for this.** The only outside service involved is the
+  loader's own (NeoForge or Forge).
+- Agents must be updated to use it (an older agent answers that it is too old).
+
 ### Waiting is visible, failures are explained (2026-10-01)
 
 - **A banner says when to wait.** When the panel has just started and an agent has not reconnected

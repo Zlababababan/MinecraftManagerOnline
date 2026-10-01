@@ -31,6 +31,10 @@ interface FetchOptions {
   role?: 'admin' | 'operator';
   /** L'intégration FTB est-elle activée (Réglages → Services tiers) ? */
   ftb?: boolean;
+  /** Zips posés sur la machine (mode « Archive »). */
+  archives?: string[];
+  /** L'inspection reconnaît-elle le chargeur de l'archive ? (défaut : oui.) */
+  archiveRecognized?: boolean;
 }
 
 function installFetch(calls: Call[], options: FetchOptions = {}): void {
@@ -90,6 +94,38 @@ function installFetch(calls: Call[], options: FetchOptions = {}): void {
             name: 'FTB Evolution',
             synopsis: 'Tech et magie',
             versions: [v(100487, '1.43.1', true), v(7, 'ancienne', false)],
+          },
+        });
+      }
+      if (path.endsWith('/install/archives')) {
+        return json({
+          archives: (options.archives ?? []).map((name) => ({
+            directoryId: 'dir1',
+            name,
+            path: `/srv/minecraft/${name}`,
+            size: 903_000_000,
+            modifiedAt: 1_790_000_000_000,
+          })),
+        });
+      }
+      if (path.endsWith('/install/archives/inspect')) {
+        return json({
+          inspection: {
+            path: (body as { path: string }).path,
+            files: 1941,
+            bytes: 1_041_326_457,
+            root: '',
+            recognized:
+              options.archiveRecognized === false
+                ? null
+                : {
+                    loader: 'neoforge',
+                    mcVersion: '1.21.1',
+                    loaderVersion: '21.1.250',
+                    source: 'startserver.sh',
+                  },
+            properties: options.archiveRecognized === false ? {} : { 'allow-flight': 'true' },
+            hasMods: true,
           },
         });
       }
@@ -382,6 +418,119 @@ describe('CreateServerModal — modpacks FTB et services tiers', () => {
       folderName: 'evolution',
       modpack: { provider: 'ftb', packId: 125, versionId: 100487 },
     });
+  });
+});
+
+describe('CreateServerModal — serveur depuis une archive', () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage('fr');
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const toArchiveMode = async () => {
+    fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'atm10' } });
+    fireEvent.click(screen.getByTestId('install-next'));
+    await screen.findByTestId('install-loader');
+    fireEvent.click(await screen.findByLabelText('Archive (.zip)'));
+    return screen.findByTestId('archive-select');
+  };
+  const archiveCalls = (calls: Call[]) => calls.filter((c) => c.path.includes('/install/archives'));
+
+  it('sans zip : dit où le poser, n’avance pas, et ne relit la liste qu’au bouton', async () => {
+    const { calls } = renderModal({ archives: [] });
+    const select = await toArchiveMode();
+    await waitFor(() => {
+      expect(select).not.toBeDisabled();
+    });
+    expect(screen.getByTestId('archive-directories')).toHaveTextContent('/srv/minecraft');
+    expect(select).toHaveTextContent('Aucun zip dans ces dossiers');
+    // Hors du mode archive, la liste n'est jamais demandée ; dedans, une seule fois.
+    expect(archiveCalls(calls)).toHaveLength(1);
+    fireEvent.click(screen.getByTestId('install-next'));
+    expect(
+      await screen.findByText('Choisissez une archive dont le chargeur est reconnu.'),
+    ).toBeVisible();
+    expect(screen.getByTestId('archive-picker')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('archive-refresh'));
+    await waitFor(() => {
+      expect(archiveCalls(calls)).toHaveLength(2);
+    });
+  });
+
+  it('choisir un zip : chargeur lu affiché, mémoire proposée, archive envoyée à la création', async () => {
+    const { calls, created } = renderModal({ archives: ['ATM10AERO-0.7.1-server.zip'] });
+    const select = await toArchiveMode();
+    await waitFor(() => {
+      expect(select.querySelectorAll('option').length).toBe(2);
+    });
+    expect(screen.queryByTestId('archive-summary')).not.toBeInTheDocument();
+    fireEvent.change(select, { target: { value: '/srv/minecraft/ATM10AERO-0.7.1-server.zip' } });
+    const recognized = await screen.findByTestId('archive-recognized');
+    expect(recognized).toHaveTextContent(
+      'Le panel installera NeoForge 21.1.250 pour Minecraft 1.21.1 (lu dans startserver.sh).',
+    );
+    expect(screen.getByTestId('archive-properties')).toHaveTextContent('allow-flight=true');
+    expect(screen.queryByTestId('archive-unrecognized')).not.toBeInTheDocument();
+    // Le catalogue des versions n'est pas demandé pour NeoForge : l'archive dit tout.
+    expect(calls.filter((c) => c.path.includes('catalog?loader=neoforge'))).toHaveLength(0);
+    fireEvent.click(screen.getByTestId('install-next'));
+    expect(await screen.findByTestId('install-ram')).toHaveValue('8192');
+    fireEvent.click(screen.getByTestId('install-next'));
+    fireEvent.click(await screen.findByTestId('install-eula'));
+    expect(screen.getByText(/ATM10AERO-0\.7\.1-server\.zip — NeoForge 1\.21\.1/)).toBeVisible();
+    fireEvent.click(screen.getByTestId('install-submit'));
+    await waitFor(() => {
+      expect(created).toEqual(['srv-new']);
+    });
+    const pre = calls.find((c) => c.path.endsWith('/install/precheck'));
+    const post = calls.find((c) => c.method === 'POST' && c.path === '/api/machines/m1/install');
+    for (const call of [pre, post]) {
+      expect(call?.body).toMatchObject({
+        folderName: 'atm10',
+        loader: 'neoforge',
+        mcVersion: '1.21.1',
+        maxRamMb: 8192,
+        archive: { path: '/srv/minecraft/ATM10AERO-0.7.1-server.zip' },
+      });
+    }
+  });
+
+  it('chargeur non reconnu : l’assistant le dit et n’avance pas', async () => {
+    renderModal({ archives: ['inconnu.zip'], archiveRecognized: false });
+    const select = await toArchiveMode();
+    await waitFor(() => {
+      expect(select.querySelectorAll('option').length).toBe(2);
+    });
+    fireEvent.change(select, { target: { value: '/srv/minecraft/inconnu.zip' } });
+    expect(await screen.findByTestId('archive-unrecognized')).toBeVisible();
+    expect(screen.queryByTestId('archive-recognized')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('install-next'));
+    expect(screen.getByTestId('archive-picker')).toBeInTheDocument();
+    expect(screen.queryByTestId('install-ram')).not.toBeInTheDocument();
+  });
+
+  it('revenir à un chargeur nu : plus d’archive dans la requête', async () => {
+    const { calls } = renderModal({ archives: ['ATM10AERO-0.7.1-server.zip'] });
+    const select = await toArchiveMode();
+    await waitFor(() => {
+      expect(select.querySelectorAll('option').length).toBe(2);
+    });
+    fireEvent.change(select, { target: { value: '/srv/minecraft/ATM10AERO-0.7.1-server.zip' } });
+    await screen.findByTestId('archive-recognized');
+    fireEvent.click(screen.getByLabelText('Vanilla'));
+    const version = await screen.findByTestId('install-version');
+    await waitFor(() => {
+      expect(version).toHaveValue('1.20.1');
+    });
+    expect(screen.queryByTestId('archive-picker')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('install-next'));
+    fireEvent.click(await screen.findByTestId('install-next'));
+    await screen.findByTestId('install-eula');
+    const pre = calls.find((c) => c.path.endsWith('/install/precheck'));
+    expect(pre?.body).toMatchObject({ loader: 'vanilla', mcVersion: '1.20.1' });
+    expect(pre?.body).not.toHaveProperty('archive');
   });
 });
 

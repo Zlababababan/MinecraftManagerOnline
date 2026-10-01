@@ -246,6 +246,27 @@ Plannings de backups : poussés via `agent.configure`, **déclenchés localement
 > versionId }` : **le pack fait autorité** (chargeur, version de jeu, build) et `loader`/`mcVersion`
 > envoyés à côté sont ignorés ; le plan = `fetchMany` puis le plan ordinaire du chargeur. Les appels
 > du panel aux catalogues passent par un point de sortie commun et poli (`docs/services-tiers.md`).
+>
+> **Amendement (2026-10-01, lot 5 — serveur depuis une archive) : étape `extract`, messages
+> `install.archives` et `install.archiveInspect`, capacité `install-extract`.** Le zip est **déjà
+> sur la machine** : l'utilisateur l'a posé à la racine d'un répertoire surveillé (aucun envoi par
+> le navigateur, aucun service contacté pour l'obtenir). `install.archives {}` →
+> `{ archives[] { directoryId, name, path, size, modifiedAt } }` (zips de la racine des répertoires
+> surveillés actifs, jamais plus profond) ; `install.archiveInspect { path }` →
+> `{ files, bytes, root, topLevel[], texts[] { name, content } }` : répertoire central et petits
+> fichiers texte de premier niveau (≤ 12 fichiers de ≤ 64 Kio : scripts de démarrage), **rien n'est
+> déplié et rien n'est interprété** — c'est le panel qui en déduit le chargeur (doc 06 §6sexies).
+> Étape `extract { archive, strip (0|1), size?, label? }` : zip déplié dans le dossier du serveur,
+> chemins jailés (zip-slip), plafonds d'octets et d'entrées de l'extraction des JRE, `strip` pour un
+> dossier englobant, marqueur `.mmo-server.json` de l'archive jamais posé, zip ni modifié ni
+> supprimé ; phase `extracting`. **L'agent refuse toute archive qui n'est pas un `.zip` posé à la
+> racine d'un répertoire surveillé** (`E_INVALID_PAYLOAD ARCHIVE_OUTSIDE`, `E_NOT_FOUND
+> ARCHIVE_MISSING`), à l'inspection, au pré-contrôle de `server.install` et à l'exécution — sans
+> cela ces messages liraient n'importe quel fichier de la machine ; le panel applique la même règle
+> avant de l'interroger. Un zip illisible : `E_IO ZIP_UNREADABLE` ; vide : `E_IO ARCHIVE_EMPTY`.
+> Côté client : `GET /api/machines/:id/install/archives`, `POST …/install/archives/inspect`,
+> `createInstallSchema.archive? { path }` (incompatible avec `modpack`) ; rôle opérateur sur la
+> machine, comme la création.
 
 ### Java
 

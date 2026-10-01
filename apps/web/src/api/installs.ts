@@ -6,6 +6,8 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/r
 
 import type {
   CreateInstallInput,
+  InstallArchiveDto,
+  InstallArchiveInspectionDto,
   InstallCatalogDto,
   InstallLoader,
   InstallPrecheckDto,
@@ -26,6 +28,30 @@ export const installCatalogQuery = (loader: InstallLoader) =>
 
 export const useInstallCatalog = (loader: InstallLoader, enabled: boolean) =>
   useQuery({ ...installCatalogQuery(loader), enabled });
+
+/** Zips posés dans les répertoires surveillés de la machine : relus à la demande, jamais en boucle. */
+export const useInstallArchives = (machineId: string, enabled: boolean) =>
+  useQuery({
+    queryKey: ['install', 'archives', machineId] as const,
+    queryFn: ({ signal }) =>
+      api.get<{ archives: InstallArchiveDto[] }>(
+        `/api/machines/${machineId}/install/archives`,
+        signal,
+      ),
+    enabled,
+    staleTime: 0,
+    retry: false,
+  });
+
+export function useInspectArchive(machineId: string) {
+  return useMutation({
+    mutationFn: (path: string) =>
+      api.post<{ inspection: InstallArchiveInspectionDto }>(
+        `/api/machines/${machineId}/install/archives/inspect`,
+        { path },
+      ),
+  });
+}
 
 export type InstallBody = Omit<CreateInstallInput, 'acceptEula'>;
 

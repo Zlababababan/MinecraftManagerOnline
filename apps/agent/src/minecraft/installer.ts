@@ -686,6 +686,6 @@ function downloadFailure(error: unknown, file: string, url: string): unknown {
 function archiveUnreadable(error: unknown, archive: string): unknown {
   if (error instanceof ProtocolError) return error;
   return new ProtocolError('E_IO', 'archive cannot be read', {
-    details: { reason: 'ARCHIVE_UNREADABLE', path: archive, cause: errorMessage(error) },
+    details: { reason: 'ZIP_UNREADABLE', path: archive, cause: errorMessage(error) },
   });
 }

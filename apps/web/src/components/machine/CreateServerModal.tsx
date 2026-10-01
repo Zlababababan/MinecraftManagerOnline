@@ -55,6 +55,7 @@ import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 import { ErrorAlert } from '../ErrorAlert.js';
 import { HelpLink } from '../HelpLink.js';
 import { TaskProgressRow } from '../tasks/TaskProgress.js';
+import { ArchivePicker, type ArchiveSelection } from './ArchivePicker.js';
 // Intégration FTB, retirable en entier (docs/services-tiers.md).
 import { FtbPackPicker, type FtbSelection } from './FtbPackPicker.js';
 
@@ -94,6 +95,9 @@ export const DEFAULT_RAM_MB: Record<InstallLoader, number> = {
   forge: 6144,
   neoforge: 6144,
 };
+
+/** Un « server pack » moddé livré en zip (ATM10 : 418 mods) ne démarre pas dans 6 Gio. */
+export const ARCHIVE_MODDED_RAM_MB = 8192;
 
 export interface VersionGroup {
   /** Série (`1.21`, `26`) ; `undefined` pour le groupe des versions de test. */
@@ -145,7 +149,10 @@ export function CreateServerModal({
   const [precheck, setPrecheck] = useState<InstallPrecheckDto | undefined>(undefined);
   const [showUnstable, setShowUnstable] = useState(false);
   // Intégration FTB (retirable) : un modpack au lieu d'un chargeur nu.
-  const [mode, setMode] = useState<'plain' | 'ftb'>('plain');
+  // … ou un zip « server files » posé sur la machine (doc 06 §6sexies).
+  const [mode, setMode] = useState<'plain' | 'ftb' | 'archive'>('plain');
+  const [archivePick, setArchivePick] = useState<ArchiveSelection | undefined>(undefined);
+  const [archiveError, setArchiveError] = useState<string | undefined>(undefined);
   const [ftbPick, setFtbPick] = useState<FtbSelection | undefined>(undefined);
   const [ftbError, setFtbError] = useState<string | undefined>(undefined);
   // Dernière mémoire proposée par l'assistant : tant que le champ la porte, on peut la remplacer.
@@ -192,8 +199,8 @@ export function CreateServerModal({
   const { setFieldValue } = form;
   const currentVersion = form.values.mcVersion;
   useEffect(() => {
-    // En mode modpack, c'est le pack qui dit la version de jeu.
-    if (mode === 'ftb' || currentVersion !== '') return;
+    // En mode modpack ou archive, c'est le pack qui dit la version de jeu.
+    if (mode !== 'plain' || currentVersion !== '') return;
     const first = versions.find((v) => v.stable);
     if (first !== undefined) setFieldValue('mcVersion', first.id);
   }, [versions, currentVersion, setFieldValue, mode]);
@@ -231,6 +238,8 @@ export function CreateServerModal({
     setMode('plain');
     setFtbPick(undefined);
     setFtbError(undefined);
+    setArchivePick(undefined);
+    setArchiveError(undefined);
     suggestedRam.current = DEFAULT_RAM_MB.vanilla;
     form.reset();
     create.reset();
@@ -255,6 +264,9 @@ export function CreateServerModal({
             versionId: ftbPick.version.id,
           },
         }
+      : {}),
+    ...(mode === 'archive' && archivePick !== undefined
+      ? { archive: { path: archivePick.archive.path } }
       : {}),
   });
 
@@ -286,6 +298,11 @@ export function CreateServerModal({
     if (step === 0 && folderTaken) return;
     if (step === 1 && mode === 'ftb' && ftbPick === undefined) {
       setFtbError(t('web:install.ftb.required'));
+      return;
+    }
+    // Une archive dont le panel n'a pas reconnu le chargeur n'avance pas : il ne devine pas.
+    if (step === 1 && mode === 'archive' && (archivePick?.inspection.recognized ?? null) === null) {
+      setArchiveError(t('web:install.archive.required'));
       return;
     }
     if (step === 1 && mode === 'plain' && form.validateField('mcVersion').hasError) return;
@@ -335,6 +352,14 @@ export function CreateServerModal({
   };
 
   const changeSource = (value: string) => {
+    setArchivePick(undefined);
+    setArchiveError(undefined);
+    if (value === 'archive') {
+      setMode('archive');
+      setFtbPick(undefined);
+      form.setFieldValue('mcVersion', '');
+      return;
+    }
     if (value === 'ftb') {
       setMode('ftb');
       setFtbPick(undefined);
@@ -357,6 +382,19 @@ export function CreateServerModal({
     if (version.loader !== null) form.setFieldValue('loader', version.loader);
     if (version.mcVersion !== null) form.setFieldValue('mcVersion', version.mcVersion);
     suggestRam(version.ramRecommendedMb ?? DEFAULT_RAM_MB[version.loader ?? 'neoforge']);
+  };
+
+  const pickArchive = (selection: ArchiveSelection | undefined) => {
+    setArchivePick(selection);
+    setArchiveError(undefined);
+    const declared = selection?.inspection.recognized ?? null;
+    if (selection === undefined || declared === null) return;
+    // L'archive fait autorité (le panel la relira) : récapitulatif et pré-contrôle parlent d'elle.
+    form.setFieldValue('loader', declared.loader);
+    form.setFieldValue('mcVersion', declared.mcVersion);
+    suggestRam(
+      selection.inspection.hasMods ? ARCHIVE_MODDED_RAM_MB : DEFAULT_RAM_MB[declared.loader],
+    );
   };
 
   return (
@@ -413,18 +451,28 @@ export function CreateServerModal({
                 { value: 'neoforge', label: t('web:install.loaderNeoForge') },
                 // Intégration FTB : proposée seulement si elle est activée (Réglages → Services tiers).
                 ...(ftbAvailable ? [{ value: 'ftb', label: t('web:install.loaderFtb') }] : []),
+                { value: 'archive', label: t('web:install.loaderArchive') },
               ]}
               data-testid="install-loader"
-              value={mode === 'ftb' ? 'ftb' : form.values.loader}
+              value={mode === 'plain' ? form.values.loader : mode}
               onChange={changeSource}
             />
             <Text size="sm" c="dimmed" data-testid="install-loader-hint">
-              {mode === 'ftb'
-                ? t('web:install.loaderHint.ftb')
-                : t(`web:install.loaderHint.${form.values.loader}`)}
+              {mode === 'plain'
+                ? t(`web:install.loaderHint.${form.values.loader}`)
+                : t(`web:install.loaderHint.${mode}`)}
             </Text>
             {mode === 'ftb' && (
               <FtbPackPicker value={ftbPick} onChange={pickFtb} error={ftbError} />
+            )}
+            {mode === 'archive' && (
+              <ArchivePicker
+                machineId={machine.id}
+                directories={directories}
+                value={archivePick}
+                onChange={pickArchive}
+                error={archiveError}
+              />
             )}
             {mode === 'plain' && (
               <>
@@ -500,7 +548,9 @@ export function CreateServerModal({
                   value={`${
                     mode === 'ftb' && ftbPick !== undefined
                       ? `${ftbPick.pack.name} ${ftbPick.version.name} — `
-                      : ''
+                      : mode === 'archive' && archivePick !== undefined
+                        ? `${archivePick.archive.name} — `
+                        : ''
                   }${LOADER_LABELS[form.values.loader]} ${form.values.mcVersion}${
                     precheck?.target.loaderVersion === null ||
                     precheck?.target.loaderVersion === undefined

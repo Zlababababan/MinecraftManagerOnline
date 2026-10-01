@@ -74,6 +74,13 @@ hôte** pour `fetchMany` (les 6 téléchargements se répartissent entre `files.
 redémarré relit les catalogues) ; aucun service n'expose de quota documenté que l'on pourrait
 suivre.
 
+### Serveur depuis une archive : aucun service de plus
+
+Créer un serveur depuis un zip (doc 06 §6sexies) ne contacte **aucun** service pour obtenir le
+pack : c'est l'utilisateur qui le télécharge. CurseForge n'est jamais appelé ; le seul appel est
+celui du chargeur (NeoForge/Forge), déjà couvert ci-dessus. La liste des archives ne se relit qu'au
+bouton « Actualiser » (aucune interrogation périodique de l'agent).
+
 ## 3. Conditions d'utilisation
 
 Le produit **n'est pas vendu** : c'est un usage strictement personnel (décision de Yassin,

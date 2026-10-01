@@ -574,11 +574,11 @@ describe('ServerInstaller (lot 5)', () => {
       const fake = path.join(stateDir, 'servers', 'fake.zip');
       await writeFile(fake, Buffer.alloc(4096, 7));
       await expect(installer.inspectArchive(fake)).rejects.toMatchObject({
-        details: { reason: 'ARCHIVE_UNREADABLE' },
+        details: { reason: 'ZIP_UNREADABLE' },
       });
       const record = await run(step(fake));
       expect(record?.status).toBe('failed');
-      expect(record?.error).toMatchObject({ details: { reason: 'ARCHIVE_UNREADABLE' } });
+      expect(record?.error).toMatchObject({ details: { reason: 'ZIP_UNREADABLE' } });
       // Le dossier créé pour l'installation est défait ; l'archive, elle, reste.
       expect(await exists(serverDir)).toBe(false);
       expect(await exists(fake)).toBe(true);

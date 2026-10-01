@@ -1062,6 +1062,23 @@ export const webEn = {
     loaderForge: 'Forge',
     loaderNeoForge: 'NeoForge',
     loaderFtb: 'FTB modpack',
+    loaderArchive: 'Archive (.zip)',
+    archive: {
+      where:
+        'Download the modpack’s “server files” zip with your browser, then drop it as is (do not unzip it) into one of these folders on the machine:',
+      select: 'Archive to use',
+      none: 'No zip in these folders',
+      refresh: 'Refresh',
+      reading: 'Reading the archive…',
+      content: '{{files}} files, {{size}} once extracted.',
+      recognized:
+        'The panel will install {{loader}} {{loaderVersion}} for Minecraft {{mcVersion}} (read from {{source}}).',
+      properties: 'Pack settings kept: {{list}}.',
+      unrecognized:
+        'This archive does not say which loader to install (no known start script). The panel does not guess: this case is not handled here yet.',
+      required: 'Pick an archive whose loader is recognised.',
+      hint: 'The panel extracts the archive, installs the loader itself, then prepares the server. The pack’s start script is never run, and the zip is neither changed nor deleted.',
+    },
     ftb: {
       search: 'Search for a modpack',
       searchPlaceholder: 'Evolution, StoneBlock…',
@@ -1075,6 +1092,8 @@ export const webEn = {
       hint: 'Files come from FTB and CurseForge, each one checked. A big pack weighs more than a gigabyte.',
     },
     loaderHint: {
+      archive:
+        'A modpack shipped as a zip (for instance All the Mods “Server Files”): you download it, the panel does the rest.',
       ftb: 'A ready-made Feed The Beast modpack: the panel lays down its files, then installs its loader (NeoForge, Forge or Fabric).',
       vanilla: 'The game as Mojang ships it, without mods.',
       fabric: 'A lightweight loader, for performance mods or a few additions.',

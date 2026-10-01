@@ -187,6 +187,16 @@ export const fr = {
     E_NOT_FOUND_PATHS_NOT_IN_ARCHIVE: 'Absent de cette archive : {{list}}. Rien n’a été modifié.',
     E_INVALID_PAYLOAD_RESERVED_PATH:
       'Ce chemin est géré par l’agent et n’est jamais restauré : {{path}}.',
+    E_VALIDATION_ARCHIVE_OUTSIDE:
+      'L’archive doit être un fichier .zip posé directement dans un répertoire surveillé de la machine.',
+    E_INVALID_PAYLOAD_ARCHIVE_OUTSIDE:
+      'L’archive doit être un fichier .zip posé directement dans un répertoire surveillé de la machine.',
+    E_NOT_FOUND_ARCHIVE_MISSING:
+      'L’archive n’est plus à cet endroit : {{path}}. Reposez-la, puis actualisez la liste.',
+    E_IO_ZIP_UNREADABLE:
+      'Ce fichier n’est pas un zip lisible (téléchargement incomplet ?) : {{path}}. Téléchargez-le de nouveau.',
+    E_IO_ARCHIVE_EMPTY: 'Cette archive ne contient aucun fichier utilisable : {{path}}.',
+    E_VALIDATION_ARCHIVE_AND_MODPACK: 'Une archive et un modpack ne se combinent pas.',
     E_IO_ARCHIVE_UNREADABLE:
       'L’archive ne peut pas être lue (corrompue ou tronquée) : ne restaurez pas depuis elle — supprimez-la et refaites une sauvegarde.',
     E_CONFLICT: 'Conflit : la ressource a été modifiée entre-temps.',

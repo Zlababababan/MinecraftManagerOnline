@@ -162,6 +162,16 @@ export const en = {
     E_NOT_FOUND_PATHS_NOT_IN_ARCHIVE: 'Not in this archive: {{list}}. Nothing was changed.',
     E_INVALID_PAYLOAD_RESERVED_PATH:
       'This path is managed by the agent and is never restored: {{path}}.',
+    E_VALIDATION_ARCHIVE_OUTSIDE:
+      'The archive must be a .zip file dropped directly into a watched directory of the machine.',
+    E_INVALID_PAYLOAD_ARCHIVE_OUTSIDE:
+      'The archive must be a .zip file dropped directly into a watched directory of the machine.',
+    E_NOT_FOUND_ARCHIVE_MISSING:
+      'The archive is no longer there: {{path}}. Put it back, then refresh the list.',
+    E_IO_ZIP_UNREADABLE:
+      'This file is not a readable zip (incomplete download?): {{path}}. Download it again.',
+    E_IO_ARCHIVE_EMPTY: 'This archive holds no usable file: {{path}}.',
+    E_VALIDATION_ARCHIVE_AND_MODPACK: 'An archive and a modpack cannot be combined.',
     E_IO_ARCHIVE_UNREADABLE:
       'The archive cannot be read (corrupted or truncated): do not restore from it — delete it and take a new backup.',
     E_CONFLICT: 'Conflict: the resource changed in the meantime.',

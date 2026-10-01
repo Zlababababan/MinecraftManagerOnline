@@ -1073,6 +1073,23 @@ export const webFr = {
     loaderForge: 'Forge',
     loaderNeoForge: 'NeoForge',
     loaderFtb: 'Modpack FTB',
+    loaderArchive: 'Archive (.zip)',
+    archive: {
+      where:
+        'Téléchargez le zip « server files » du modpack avec votre navigateur, puis posez-le tel quel (sans le décompresser) dans l’un de ces dossiers de la machine :',
+      select: 'Archive à utiliser',
+      none: 'Aucun zip dans ces dossiers',
+      refresh: 'Actualiser',
+      reading: 'Lecture de l’archive…',
+      content: '{{files}} fichiers, {{size}} une fois dépliés.',
+      recognized:
+        'Le panel installera {{loader}} {{loaderVersion}} pour Minecraft {{mcVersion}} (lu dans {{source}}).',
+      properties: 'Réglages du pack repris : {{list}}.',
+      unrecognized:
+        'Cette archive ne dit pas quel chargeur installer (aucun script de démarrage reconnu). Le panel ne devine pas : ce cas n’est pas encore pris en charge ici.',
+      required: 'Choisissez une archive dont le chargeur est reconnu.',
+      hint: 'Le panel déplie l’archive, installe le chargeur lui-même, puis prépare le serveur. Le script de démarrage du pack n’est jamais exécuté, et le zip n’est ni modifié ni supprimé.',
+    },
     ftb: {
       search: 'Chercher un modpack',
       searchPlaceholder: 'Evolution, StoneBlock…',
@@ -1086,6 +1103,8 @@ export const webFr = {
       hint: 'Les fichiers viennent de FTB et de CurseForge, vérifiés un par un. Un gros pack pèse plus d’un gigaoctet.',
     },
     loaderHint: {
+      archive:
+        'Un modpack fourni en zip (par exemple les « Server Files » d’All the Mods) : c’est vous qui le téléchargez, le panel fait le reste.',
       ftb: 'Un modpack Feed The Beast tout prêt : le panel pose ses fichiers, puis installe son chargeur (NeoForge, Forge ou Fabric).',
       vanilla: 'Le jeu tel que Mojang le publie, sans mods.',
       fabric: 'Un chargeur léger, pour des mods de performance ou quelques ajouts.',
