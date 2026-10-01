@@ -20,6 +20,8 @@ export const installCatalogQuery = (loader: InstallLoader) =>
     queryFn: ({ signal }) =>
       api.get<InstallCatalogDto>(`/api/install/catalog?loader=${loader}`, signal),
     staleTime: 60 * 60_000,
+    // Aucune relance automatique vers un service tiers : l'erreur est affichée, on réessaie à la main.
+    retry: false,
   });
 
 export const useInstallCatalog = (loader: InstallLoader, enabled: boolean) =>

@@ -15,6 +15,8 @@ export const ftbPacksQuery = (q: string) =>
     queryFn: ({ signal }) =>
       api.get<FtbPackListDto>(`/api/install/modpacks/ftb?q=${encodeURIComponent(q)}`, signal),
     staleTime: 5 * 60_000,
+    // Aucune relance automatique vers un service tiers : l'erreur est affichée, on réessaie à la main.
+    retry: false,
   });
 
 export const ftbPackQuery = (packId: number) =>
@@ -23,6 +25,8 @@ export const ftbPackQuery = (packId: number) =>
     queryFn: ({ signal }) =>
       api.get<{ pack: FtbPackDto }>(`/api/install/modpacks/ftb/${String(packId)}`, signal),
     staleTime: 5 * 60_000,
+    // Aucune relance automatique vers un service tiers : l'erreur est affichée, on réessaie à la main.
+    retry: false,
   });
 
 export const useFtbPacks = (q: string, enabled: boolean) =>

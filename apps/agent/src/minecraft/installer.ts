@@ -204,6 +204,8 @@ export class ServerInstaller {
           ...(step.size === undefined ? {} : { size: step.size }),
           signal: ctx.signal,
           fetchImpl: this.options.fetchImpl,
+          // Une reprise après coupure, pas davantage (docs/services-tiers.md).
+          retries: 2,
           onProgress: (received, total) => {
             ctx.progress(
               'downloading',
@@ -339,6 +341,11 @@ export class ServerInstaller {
       size: file.size,
       signal: ctx.signal,
       fetchImpl: this.options.fetchImpl,
+      // Aucune relance automatique sur les CDN de mods (docs/services-tiers.md) : un échec arrête
+      // l'installation, l'interface le dit, et « Reprendre » garde les fichiers déjà bons.
+      retries: 1,
+    }).catch((error: unknown) => {
+      throw downloadFailure(error, file.path, file.url);
     });
     await rm(target, { force: true });
     await withFsErrors(target, () => rename(partPath, target));
@@ -483,4 +490,22 @@ async function sha1IfSize(file: string, size: number): Promise<string | undefine
   const hash = createHash('sha1');
   for await (const chunk of createReadStream(file)) hash.update(chunk as Buffer);
   return hash.digest('hex');
+}
+
+/**
+ * Un téléchargement raté dit QUEL fichier et QUEL service : l'interface affiche la variante
+ * `<code>_DOWNLOAD_FAILED` avec ces deux noms, au lieu d'un « erreur disque ou réseau ».
+ */
+function downloadFailure(error: unknown, file: string, url: string): unknown {
+  if (!(error instanceof ProtocolError) || error.code === 'E_CANCELLED') return error;
+  let host = url;
+  try {
+    host = new URL(url).host;
+  } catch {
+    // URL relative (relais du panel) : on garde le texte tel quel.
+  }
+  return new ProtocolError(error.code, error.message, {
+    retryable: error.retryable,
+    details: { ...error.details, reason: 'DOWNLOAD_FAILED', file, host },
+  });
 }

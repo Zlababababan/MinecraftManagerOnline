@@ -33,7 +33,7 @@ import {
 } from '@mmo/protocol/client';
 
 import { AppError } from '../../errors.js';
-import { PoliteFetchError, type PoliteFetcher } from '../../util/polite-fetch.js';
+import { PoliteFetchError, busyOrHttp, type PoliteFetcher } from '../../util/polite-fetch.js';
 import type { ModpackProvider, ModpackResolution } from './types.js';
 
 export interface FtbServiceDeps {
@@ -217,14 +217,14 @@ export class FtbService implements ModpackProvider {
     if (!res.ok) {
       throw new AppError('E_UNREACHABLE', 'the FTB catalog answered an error', {
         retryable: true,
-        details: { reason: 'CATALOG_HTTP', source: 'ftb', status: res.status },
+        details: { reason: busyOrHttp(res.status), source: 'ftb', status: res.status },
       });
     }
     try {
       return JSON.parse(res.text) as unknown;
     } catch {
       throw new AppError('E_UNREACHABLE', 'ftb: not_json', {
-        details: { reason: 'NOT_JSON', source: 'ftb' },
+        details: { reason: 'CATALOG_FORMAT', source: 'ftb', format: 'not_json' },
       });
     }
   }
@@ -235,7 +235,7 @@ export class FtbService implements ModpackProvider {
     } catch (error) {
       if (error instanceof CatalogFormatError) {
         throw new AppError('E_UNREACHABLE', `${error.source}: ${error.reason}`, {
-          details: { reason: error.reason.toUpperCase(), source: error.source },
+          details: { reason: 'CATALOG_FORMAT', source: error.source, format: error.reason },
         });
       }
       throw error;

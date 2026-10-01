@@ -45,7 +45,7 @@ import { INSTALL_RUN_TIMEOUT_DEFAULT_SEC, type InstallStep } from '@mmo/protocol
 import type { CatalogVersionDto, InstallLoader } from '@mmo/protocol/client';
 
 import { AppError } from '../errors.js';
-import { PoliteFetchError, type PoliteFetcher } from '../util/polite-fetch.js';
+import { PoliteFetchError, busyOrHttp, type PoliteFetcher } from '../util/polite-fetch.js';
 
 export interface InstallCatalogDeps {
   /** Seul point de sortie vers les fournisseurs (User-Agent, débit borné, 429, cache négatif). */
@@ -362,7 +362,7 @@ export class InstallCatalogService {
       return JSON.parse(text) as unknown;
     } catch {
       throw new AppError('E_UNREACHABLE', `${source}: not_json`, {
-        details: { reason: 'NOT_JSON', source },
+        details: { reason: 'CATALOG_FORMAT', source, format: 'not_json' },
       });
     }
   }
@@ -382,7 +382,7 @@ export class InstallCatalogService {
     if (!res.ok) {
       throw new AppError('E_UNREACHABLE', 'version catalog answered an error', {
         retryable: true,
-        details: { reason: 'CATALOG_HTTP', source, status: res.status },
+        details: { reason: busyOrHttp(res.status), source, status: res.status },
       });
     }
     return res;
@@ -397,7 +397,10 @@ export class InstallCatalogService {
         // `no_server_download` n'est pas une panne : c'est une version non installable.
         const code = error.reason === 'no_server_download' ? 'E_VALIDATION' : 'E_UNREACHABLE';
         throw new AppError(code, `${error.source}: ${error.reason}`, {
-          details: { reason: error.reason.toUpperCase(), source: error.source },
+          details:
+            code === 'E_VALIDATION'
+              ? { reason: error.reason.toUpperCase(), source: error.source }
+              : { reason: 'CATALOG_FORMAT', source: error.source, format: error.reason },
         });
       }
       throw error;

@@ -48,16 +48,23 @@ version de chaque appel :
 - **Cache** chez chaque appelant : listes de versions 1 h, détail d'une version publiée gardé pour
   toujours (il ne change plus), fiches FTB 1 h, listes de fichiers FTB (plusieurs Mio) : les 4
   dernières. Un pack FTB introuvable ou illisible n'est pas redemandé pendant l'heure qui suit.
-- **`429` et `503` respectés** : un `Retry-After` court (≤ 10 s) est attendu puis la requête est
-  refaite (2 fois au plus, recul 1 s puis 2 s sans en-tête) ; un `Retry-After` long met l'hôte au
-  repos pour la durée demandée.
+- **`429` et `503` respectés, sans relance automatique** (demande de Yassin, 01/10/2026 : « évite
+  les relances ») : l'hôte est mis au repos pour la durée demandée par `Retry-After` (1 min au
+  moins), et l'interface le dit (« le catalogue demande de ralentir… réessayez dans quelques
+  minutes »). Le navigateur ne relance pas non plus les requêtes de catalogue.
 - **Cache négatif** : un hôte en panne (réseau, 5xx) n'est plus sollicité pendant 1 min, doublée à
   chaque panne consécutive (plafond 15 min), remise à zéro au premier succès. Pendant ce temps, un
   clic reçoit `E_UNREACHABLE` avec `details.retryInMs` sans que rien ne sorte.
 - **Jamais une requête par frappe** : la recherche FTB de l'assistant part au bouton.
 - **Agent** : la résolution de profils Mojang s'arrête au premier `429`, `5xx` ou échec réseau au
   lieu d'enchaîner les lots suivants ; le téléchargement des fichiers d'un modpack est borné par
-  l'étape `fetchMany` (6 à la fois par défaut, 16 au plus).
+  l'étape `fetchMany` (6 à la fois par défaut, 16 au plus), **une seule tentative par source**
+  (l'adresse principale, puis son miroir) ; le jar d'un serveur ou d'un installeur a droit à une
+  reprise après coupure, pas davantage.
+- **Un échec se lit à l'écran** : la tâche d'installation nomme le fichier et le service
+  (« Le téléchargement de mods/x.jar depuis edge.forgecdn.net a échoué… ») et dit quoi faire ;
+  « Reprendre l'installation » garde les fichiers déjà bons. C'est une personne qui décide de
+  réessayer, jamais une boucle.
 
 **Ce qui manque encore** (à reprendre si l'usage le demande) : l'agent n'a pas de borne **par
 hôte** pour `fetchMany` (les 6 téléchargements se répartissent entre `files.feed-the-beast.com` et
@@ -118,8 +125,10 @@ la création (un autre fournisseur s'y branche de la même façon), `PoliteFetch
   personnalisé** (format libre) pour pouvoir remonter à l'outil en cas de problème ; FTB préfère
   qu'on passe par son application, puis CurseForge, puis les outils tiers. **Respecté** : bonne API,
   User-Agent qui nomme le produit et le dépôt. **Non dit par l'article** : limites de débit, outils
-  côté serveur, produits payants, téléchargement direct des fichiers. L'entrée reste `verified:
-  false` tant que l'usage dans un produit **vendu** n'est pas confirmé (documentation annoncée sur
+  côté serveur, produits payants, téléchargement direct des fichiers. **Décision (Yassin,
+  01/10/2026)** : « Le produit ne sera pas vendu. C'est une utilisation strictement personnelle » et
+  « FTB ne donne pas de limite mais on ne va pas exagérer » → l'entrée passe à `verified: true`. À
+  revoir si le produit devait un jour être vendu (documentation annoncée sur
   docs.feed-the-beast.com ; contact : page `/support` de FTB).
 
 Les autres services sont encore « à vérifier ».

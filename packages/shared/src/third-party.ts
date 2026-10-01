@@ -12,7 +12,7 @@
  */
 const SERVICES = [
   /** API des modpacks FTB (intégration retirable, réglage `modpacks.ftb.enabled`). */
-  { id: 'ftb', hosts: ['api.feed-the-beast.com', 'files.feed-the-beast.com'], verified: false },
+  { id: 'ftb', hosts: ['api.feed-the-beast.com', 'files.feed-the-beast.com'], verified: true },
   /** Fichiers de mods hébergés par CurseForge, téléchargés directement pour un pack FTB. */
   { id: 'curseforge', hosts: ['edge.forgecdn.net'], verified: false },
   /** Manifest des versions et jars serveur de Mojang ; recherche de profils (pseudo → UUID). */

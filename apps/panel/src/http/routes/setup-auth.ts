@@ -209,6 +209,7 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
             panelUpdate: z.object({ current: z.string(), latest: z.string() }).nullable(),
             privacy: z.object({ externalAvatars: z.boolean() }),
             features: z.object({ ftb: z.boolean() }),
+            uptimeMs: z.number(),
             grants: userGrantsDtoSchema.nullable(),
           }),
         },
@@ -234,6 +235,9 @@ export function registerSetupAndAuthRoutes(app: FastifyInstance, ctx: AppContext
         privacy: { externalAvatars: ctx.settings.getBool(SETTING_KEYS.externalAvatars) },
         // Intégrations optionnelles : l'assistant de création n'affiche FTB que si elle est activée.
         features: { ftb: ctx.settings.getBool(SETTING_KEYS.ftbEnabled) },
+        // Bandeau « le panel vient de démarrer » : le front compte à partir de cette durée (pas
+        // d'un instant absolu : l'horloge du navigateur n'est pas celle du panel).
+        uptimeMs: Math.max(0, ctx.now() - ctx.diagnostics.startedAt),
       };
     },
   );

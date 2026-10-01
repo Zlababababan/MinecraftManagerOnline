@@ -77,6 +77,34 @@ describe('i18n', () => {
     );
   });
 
+  it('un échec de catalogue ou de téléchargement dit quel service et quel fichier, dans les deux langues', () => {
+    for (const locale of ['fr', 'en'] as const) {
+      const i18n = createI18n(locale);
+      const generic = i18n.t('errors:E_UNREACHABLE');
+      for (const reason of [
+        'CATALOG_UNREACHABLE',
+        'CATALOG_HTTP',
+        'CATALOG_BUSY',
+        'CATALOG_FORMAT',
+      ]) {
+        const text = translateError(i18n, {
+          code: 'E_UNREACHABLE',
+          details: { reason, source: 'ftb', status: 429, format: 'not_json' },
+        });
+        expect(text, reason).toContain('ftb');
+        expect(text, reason).not.toBe(generic);
+      }
+      for (const code of ['E_UNREACHABLE', 'E_IO', 'E_NOT_FOUND', 'E_CHECKSUM_MISMATCH']) {
+        const text = translateError(i18n, {
+          code,
+          details: { reason: 'DOWNLOAD_FAILED', file: 'mods/a.jar', host: 'edge.forgecdn.net' },
+        });
+        expect(text, code).toContain('mods/a.jar');
+        expect(text, code).toContain('edge.forgecdn.net');
+      }
+    }
+  });
+
   it('traduit un indice de détection, et retombe sur le détail brut pour un code inconnu', () => {
     const en = createI18n('en');
     expect(translateEvidence(en, { code: 'neoforge_libraries', detail: '21.1.219' })).toBe(

@@ -8,6 +8,19 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### Waiting is visible, failures are explained (2026-10-01)
+
+- **A banner says when to wait.** When the panel has just started and an agent has not reconnected
+  yet, a yellow banner asks to wait before running an action or an install command; when the panel
+  stops answering, an orange one says so. Both go away on their own.
+- **No automatic retries against outside services.** A catalog that answers "slow down" or fails is
+  left alone and the page says it; a modpack file that cannot be downloaded stops the installation
+  instead of being requested again and again. Resuming is a click, and keeps what was downloaded.
+- **Download and catalog failures are explained**: which service, which file, and what to do —
+  instead of "disk or network error".
+- The FTB API is marked as checked (FTB allows third-party tools and asks for a custom User-Agent,
+  which the panel sends).
+
 ### FTB modpacks, and a panel that is polite to the services it uses (2026-09-28)
 
 - **Install an FTB modpack from the "Create a server" wizard.** Search the FTB catalog, pick a

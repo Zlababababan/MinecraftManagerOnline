@@ -42,6 +42,8 @@ describe('ServerInstaller (lot 5)', () => {
   let files: Map<string, Buffer>;
   /** Requêtes reçues par le faux fournisseur (chemin, User-Agent). */
   let hits: { url: string; ua: string | undefined }[];
+  /** Chemins auxquels le faux fournisseur répond 503 (service surchargé). */
+  let busy: Set<string>;
   let runner: TaskRunner;
   let installer: ServerInstaller;
   let events: { type: string; payload: unknown }[];
@@ -54,8 +56,13 @@ describe('ServerInstaller (lot 5)', () => {
     serverDir = path.join(stateDir, 'servers', 'new-one');
     files = new Map();
     hits = [];
+    busy = new Set();
     server = http.createServer((req, res) => {
       hits.push({ url: req.url ?? '', ua: req.headers['user-agent'] });
+      if (busy.has(req.url ?? '')) {
+        res.writeHead(503).end();
+        return;
+      }
       const data = files.get(req.url ?? '');
       if (!data) {
         res.writeHead(404).end();
@@ -405,6 +412,26 @@ describe('ServerInstaller (lot 5)', () => {
       );
       expect(record?.status).toBe('failed');
       expect(await exists(serverDir)).toBe(false);
+      // L'interface affichera la variante « DOWNLOAD_FAILED » avec ces deux noms.
+      expect(record?.error).toMatchObject({
+        code: 'E_CHECKSUM_MISMATCH',
+        details: { reason: 'DOWNLOAD_FAILED', file: 'mods/b.jar', host: new URL(origin).host },
+      });
+    });
+
+    it('un service qui refuse (503) n’est pas relancé : une requête par source, puis l’échec', async () => {
+      const a = serve('/mods/a.jar', 'mod a');
+      busy.add('/mods/a.jar');
+      busy.add('/mirror/a.jar');
+      const record = await run(
+        many([{ path: 'mods/a.jar', ...a, mirrors: [`${origin}/mirror/a.jar`] }]),
+      );
+      expect(record?.status).toBe('failed');
+      expect(hits.map((h) => h.url)).toEqual(['/mods/a.jar', '/mirror/a.jar']);
+      expect(record?.error?.details).toMatchObject({
+        reason: 'DOWNLOAD_FAILED',
+        file: 'mods/a.jar',
+      });
     });
 
     it('en réparation, les fichiers déjà bons ne sont pas retéléchargés', async () => {

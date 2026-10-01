@@ -1309,6 +1309,14 @@ export const webFr = {
     revoked: 'Appareil déconnecté.',
     revokedOthers: '{{count}} autre(s) appareil(s) déconnecté(s).',
   },
+  startupBanner: {
+    downTitle: 'Le panel ne répond pas',
+    downBody:
+      'Il est arrêté ou en train de démarrer. Attendez que ce bandeau disparaisse avant d’agir : rien de ce que vous faites maintenant ne lui parvient.',
+    startingTitle: 'Le panel vient de démarrer — patientez',
+    startingBody:
+      'Les agents se reconnectent ({{connected}}/{{total}} machine(s) en ligne). Attendez que ce bandeau disparaisse avant de lancer une action ou une commande d’installation.',
+  },
   updateBanner: {
     title: 'La version {{version}} est disponible',
     body: 'Vous êtes en {{current}}. Mise à jour : relancez la commande d’installation, ou voyez le guide §1.5.',

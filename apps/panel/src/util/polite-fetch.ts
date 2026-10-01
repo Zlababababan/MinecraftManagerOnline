@@ -10,8 +10,10 @@
  * - **concurrence bornée** (`maxPerHost`, 3 par défaut) : une recherche qui veut vingt fiches les
  *   obtient trois par trois, jamais en rafale ;
  * - **requêtes identiques en vol partagées** : dix onglets qui ouvrent la même liste = un appel ;
- * - **`429`/`503` respectés** : `Retry-After` attendu s'il est court, sinon l'hôte est mis au repos
- *   pour la durée demandée ; recul croissant à chaque échec consécutif ;
+ * - **`429`/`503` respectés, sans relance automatique** (demande de Yassin, 01/10 : « évite les
+ *   relances ») : l'hôte est mis au repos pour la durée demandée (`Retry-After`), l'appelant reçoit
+ *   la réponse et l'interface le dit ; `maxRetries` (0 par défaut) permettrait d'attendre un
+ *   `Retry-After` court ; recul croissant à chaque échec consécutif ;
  * - **cache négatif** : un hôte en panne (réseau, 5xx) n'est plus sollicité pendant `negativeTtlMs`
  *   (1 min, doublé à chaque échec suivant, plafonné à 15 min) — un clic ne relance pas un service
  *   tombé.
@@ -50,6 +52,14 @@ export class PoliteFetchError extends Error {
   }
 }
 
+/**
+ * Raison d'erreur à montrer pour une réponse en échec : « le service demande de ralentir » (429,
+ * 503) n'appelle pas le même message qu'une erreur quelconque.
+ */
+export function busyOrHttp(status: number): 'CATALOG_BUSY' | 'CATALOG_HTTP' {
+  return status === 429 || status === 503 ? 'CATALOG_BUSY' : 'CATALOG_HTTP';
+}
+
 export interface PoliteFetcherOptions {
   fetchImpl?: typeof fetch | undefined;
   now?: () => number;
@@ -82,7 +92,7 @@ const DEFAULTS = {
   negativeTtlMs: 60_000,
   maxCooldownMs: 15 * 60_000,
   maxRetryWaitMs: 10_000,
-  maxRetries: 2,
+  maxRetries: 0,
   timeoutMs: 15_000,
 };
 

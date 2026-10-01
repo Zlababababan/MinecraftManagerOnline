@@ -200,6 +200,22 @@ export const en = {
     E_PRECHECK_FAILED: 'Pre-checks on the target machine failed.',
     E_SIGNATURE_INVALID: 'Invalid bundle signature — update refused.',
     E_UNREACHABLE: 'No direct address reachable; relaying through the panel.',
+    E_UNREACHABLE_CATALOG_UNREACHABLE:
+      'The "{{source}}" catalog is not answering. The panel will not retry right away, so as not to burden it: try again in a few minutes.',
+    E_UNREACHABLE_CATALOG_HTTP:
+      'The "{{source}}" catalog answered with an error ({{status}}). Try again in a few minutes.',
+    E_UNREACHABLE_CATALOG_BUSY:
+      'The "{{source}}" catalog is asking to slow down ({{status}}). The panel waits before contacting it again: try again in a few minutes.',
+    E_UNREACHABLE_CATALOG_FORMAT:
+      'The answer of the "{{source}}" catalog does not have the expected shape ({{format}}): the service may have changed. Nothing was installed.',
+    E_UNREACHABLE_DOWNLOAD_FAILED:
+      'Download impossible: {{host}} is not answering (file {{file}}). Check the machine’s Internet connection, then resume the installation: files already downloaded are kept.',
+    E_IO_DOWNLOAD_FAILED:
+      'Downloading {{file}} from {{host}} failed (service overloaded or connection cut). Wait a few minutes, then resume the installation: files already downloaded are kept.',
+    E_NOT_FOUND_DOWNLOAD_FAILED:
+      'The file {{file}} is no longer available at {{host}}. This version cannot be installed as is: pick another one.',
+    E_CHECKSUM_MISMATCH_DOWNLOAD_FAILED:
+      'The file {{file}} received from {{host}} does not match its fingerprint (damaged download). Resume the installation.',
     E_TOO_LARGE: 'The file or transfer exceeds the allowed size.',
     E_INTERNAL: 'Internal error.',
     // Codes propres au panel (`@mmo/protocol/client`, phase 4)

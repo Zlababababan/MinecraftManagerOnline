@@ -1295,6 +1295,14 @@ export const webEn = {
     revoked: 'Device signed out.',
     revokedOthers: '{{count}} other device(s) signed out.',
   },
+  startupBanner: {
+    downTitle: 'The panel is not answering',
+    downBody:
+      'It is stopped or still starting. Wait for this banner to go away before doing anything: nothing you do now reaches it.',
+    startingTitle: 'The panel has just started — please wait',
+    startingBody:
+      'Agents are reconnecting ({{connected}}/{{total}} machine(s) online). Wait for this banner to go away before running an action or an install command.',
+  },
   updateBanner: {
     title: 'Version {{version}} is available',
     body: 'You are running {{current}}. Update: run the install command again, or see guide §1.5.',

@@ -225,6 +225,22 @@ export const fr = {
     E_PRECHECK_FAILED: 'Les vérifications préalables sur la machine cible ont échoué.',
     E_SIGNATURE_INVALID: 'La signature du bundle est invalide — mise à jour refusée.',
     E_UNREACHABLE: 'Aucune adresse directe joignable ; passage par le panel.',
+    E_UNREACHABLE_CATALOG_UNREACHABLE:
+      'Le catalogue « {{source}} » ne répond pas. Le panel ne le relance pas tout de suite, pour ne pas l’encombrer : réessayez dans quelques minutes.',
+    E_UNREACHABLE_CATALOG_HTTP:
+      'Le catalogue « {{source}} » a répondu par une erreur ({{status}}). Réessayez dans quelques minutes.',
+    E_UNREACHABLE_CATALOG_BUSY:
+      'Le catalogue « {{source}} » demande de ralentir ({{status}}). Le panel attend avant de le recontacter : réessayez dans quelques minutes.',
+    E_UNREACHABLE_CATALOG_FORMAT:
+      'La réponse du catalogue « {{source}} » n’a pas la forme attendue ({{format}}) : le service a peut-être changé. Rien n’a été installé.',
+    E_UNREACHABLE_DOWNLOAD_FAILED:
+      'Téléchargement impossible : {{host}} ne répond pas (fichier {{file}}). Vérifiez la connexion Internet de la machine, puis reprenez l’installation : les fichiers déjà téléchargés sont gardés.',
+    E_IO_DOWNLOAD_FAILED:
+      'Le téléchargement de {{file}} depuis {{host}} a échoué (service surchargé ou connexion coupée). Attendez quelques minutes, puis reprenez l’installation : les fichiers déjà téléchargés sont gardés.',
+    E_NOT_FOUND_DOWNLOAD_FAILED:
+      'Le fichier {{file}} n’est plus disponible chez {{host}}. Cette version ne peut pas être installée telle quelle : choisissez-en une autre.',
+    E_CHECKSUM_MISMATCH_DOWNLOAD_FAILED:
+      'Le fichier {{file}} reçu de {{host}} ne correspond pas à son empreinte (téléchargement abîmé). Reprenez l’installation.',
     E_TOO_LARGE: 'Le fichier ou le transfert dépasse la taille autorisée.',
     E_INTERNAL: 'Erreur interne.',
     // Codes propres au panel (`@mmo/protocol/client`, phase 4)

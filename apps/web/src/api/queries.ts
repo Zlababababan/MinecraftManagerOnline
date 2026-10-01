@@ -121,6 +121,8 @@ export const meQuery = queryOptions({
       privacy?: { externalAvatars: boolean };
       /** Intégrations optionnelles (FTB) : l'assistant de création ne les montre que si activées. */
       features?: { ftb: boolean };
+      /** Depuis combien de temps le panel tourne (bandeau de démarrage). */
+      uptimeMs?: number;
       /** Lot 8 : portées d'un compte limité (`null` = le rôle vaut partout). */
       grants?: UserGrantsDto | null;
     }>('/api/auth/me', signal),

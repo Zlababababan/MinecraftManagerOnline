@@ -8,7 +8,10 @@ interface Call {
 }
 
 /** Faux réseau : chaque réponse est décidée par `answer`, les appels sont comptés. */
-function harness(answer: (url: string, n: number) => Promise<Response> | Response) {
+function harness(
+  answer: (url: string, n: number) => Promise<Response> | Response,
+  options: { maxRetries?: number } = {},
+) {
   let clock = 1_000_000;
   const calls: Call[] = [];
   const sleeps: number[] = [];
@@ -19,6 +22,7 @@ function harness(answer: (url: string, n: number) => Promise<Response> | Respons
   }) as typeof fetch;
   const fetcher = new PoliteFetcher({
     fetchImpl,
+    ...options,
     now: () => clock,
     sleep: (ms) => {
       sleeps.push(ms);
@@ -106,9 +110,20 @@ describe('PoliteFetcher — appels aux services tiers', () => {
     expect(peak).toBeLessThanOrEqual(4); // 3 sur le premier hôte + 1 sur l'autre
   });
 
-  it('attend un Retry-After court puis réessaie', async () => {
-    const h = harness((_url, n) =>
-      n === 1 ? new Response('', { status: 429, headers: { 'retry-after': '2' } }) : ok('bon'),
+  it('par défaut, aucune relance : un 429 est rendu tel quel et l’hôte est mis au repos', async () => {
+    const h = harness(() => new Response('', { status: 429, headers: { 'retry-after': '2' } }));
+    const res = await h.fetcher.get('https://api.example.test/a');
+    expect(res.status).toBe(429);
+    expect(h.sleeps).toEqual([]);
+    expect(h.calls).toHaveLength(1);
+    expect(h.fetcher.restingFor('https://api.example.test/b')).toBeGreaterThan(0);
+  });
+
+  it('avec maxRetries, attend un Retry-After court puis réessaie', async () => {
+    const h = harness(
+      (_url, n) =>
+        n === 1 ? new Response('', { status: 429, headers: { 'retry-after': '2' } }) : ok('bon'),
+      { maxRetries: 2 },
     );
     const res = await h.fetcher.get('https://api.example.test/a');
     expect(res.text).toBe('bon');
@@ -132,7 +147,7 @@ describe('PoliteFetcher — appels aux services tiers', () => {
   });
 
   it('429 répétés : recul croissant, puis repos', async () => {
-    const h = harness(() => new Response('', { status: 429 }));
+    const h = harness(() => new Response('', { status: 429 }), { maxRetries: 2 });
     const res = await h.fetcher.get('https://api.example.test/a');
     expect(res.status).toBe(429);
     expect(h.sleeps).toEqual([1000, 2000]);
