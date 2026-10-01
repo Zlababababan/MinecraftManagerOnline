@@ -175,6 +175,28 @@ function installFetch(state: FakeApi): void {
             pid: 42,
             server: { ...server, runState: 'starting', desiredState: 'running' },
           });
+        case 'POST /api/machines': {
+          const created: MachineDto = {
+            ...machine,
+            id: 'm2',
+            name: 'Nouvelle',
+            status: 'pending',
+            connected: false,
+            watchedDirectories: [],
+          };
+          state.machines = [...state.machines, created];
+          return json(200, {
+            machine: created,
+            pairing: { machineId: 'm2', code: 'ABCD1234', expiresAt: 1 },
+          });
+        }
+        case 'POST /api/machines/m2/directories': {
+          const directory = { id: 'd2', path: 'E:\\srv', enabled: true, lastScanAt: null };
+          state.machines = state.machines.map((m) =>
+            m.id === 'm2' ? { ...m, watchedDirectories: [directory] } : m,
+          );
+          return json(200, { directory });
+        }
         case 'PATCH /api/auth/me':
           return json(200, { user: admin });
         default:
@@ -203,7 +225,7 @@ function renderApp(path: string) {
   const history = createMemoryHistory({ initialEntries: [path] });
   const queryClient = createQueryClient();
   render(<App queryClient={queryClient} history={history} pwa={false} />);
-  return { history };
+  return { history, queryClient };
 }
 
 describe('App', () => {
@@ -363,23 +385,27 @@ describe('App', () => {
     const user = userEvent.setup();
     state.session = true;
     state.servers = [server, crashed];
+    // Une ancienne mémoire « tableau », écrite sans avoir été choisie, ne compte plus.
+    localStorage.setItem('mmo-list-servers', JSON.stringify({ mode: 'table' }));
     renderApp('/servers');
-    expect(await screen.findByTestId('servers-table')).toBeInTheDocument();
-
-    await user.click(screen.getByLabelText('Cartes'));
+    // Les cartes d’abord : les actions sous la main, comme partout ailleurs.
     expect(await screen.findByTestId('servers-cards')).toBeInTheDocument();
     expect(screen.queryByTestId('servers-table')).not.toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('Tableau'));
+    expect(await screen.findByTestId('servers-table')).toBeInTheDocument();
+    expect(screen.queryByTestId('servers-cards')).not.toBeInTheDocument();
 
     // On quitte tout et on revient : le panel doit se souvenir de l’affichage choisi.
     cleanup();
     renderApp('/servers');
-    expect(await screen.findByTestId('servers-cards')).toBeInTheDocument();
+    expect(await screen.findByTestId('servers-table')).toBeInTheDocument();
   });
 
   it('vue de flotte : le tri mémorisé s’applique, l’URL garde le dernier mot', async () => {
     state.session = true;
     localStorage.setItem(
-      'mmo-list-servers',
+      'mmo-list-server-list',
       JSON.stringify({ mode: 'table', sort: 'state', desc: false }),
     );
     state.servers = [server, crashed];
@@ -451,24 +477,87 @@ describe('App', () => {
     await user.click(all);
     expect(await screen.findByTestId('servers-page')).toBeInTheDocument();
   });
-  it('page machine : recherche et affichage propres à la machine, mémorisés', async () => {
+  it('page machine : pas de liste de serveurs, un lien vers la liste filtrée sur la machine', async () => {
+    const user = userEvent.setup();
     state.session = true;
-    state.servers = [
-      server,
-      crashed,
-      { ...server, id: 's3', name: 'Aventure' },
-      { ...server, id: 's4', name: 'Bac à sable' },
-      { ...server, id: 's5', name: 'Créatif' },
-    ];
-    // La flotte et la machine ont chacune leur mémoire : régler l’une ne règle pas l’autre.
-    localStorage.setItem('mmo-list-machine-servers', JSON.stringify({ mode: 'table' }));
+    const other: MachineDto = { ...machine, id: 'm9', name: 'Grenier' };
+    state.machines = [machine, other];
+    state.servers = [server, crashed, { ...server, id: 's9', name: 'Ailleurs', machineId: 'm9' }];
     renderApp('/machines/m1');
-    expect(await screen.findByTestId('machine-servers-search')).toBeInTheDocument();
-    expect(await screen.findByTestId('servers-table')).toBeInTheDocument();
+    expect(await screen.findByTestId('machine-page')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('machine-servers-count')).toHaveTextContent('2 serveurs');
+    });
+    // Une fonction = un seul endroit : ni cartes, ni tableau, ni recherche ici.
+    expect(screen.queryByTestId('server-card')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('servers-table')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('machine-servers-search')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('machine-servers-link'));
+    expect(await screen.findByTestId('servers-page')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId('server-card').map((c) => c.getAttribute('data-server-id')),
+      ).toEqual(['s1', 's2']);
+    });
+    expect(screen.getByTestId('servers-count')).toHaveTextContent('2 sur 3');
+  });
+
+  it('page Serveurs : créer un serveur d’ici quand une machine est prête, sinon pas de bouton', async () => {
+    const user = userEvent.setup();
+    state.session = true;
+    // Aucun répertoire surveillé : nulle part où créer.
+    renderApp('/servers');
+    expect(await screen.findByTestId('servers-cards')).toBeInTheDocument();
+    expect(screen.queryByTestId('servers-create-server')).not.toBeInTheDocument();
+    expect(screen.getByTestId('servers-add-machine')).toHaveAttribute('href', '/machines?add=true');
 
     cleanup();
+    state.machines = [
+      {
+        ...machine,
+        watchedDirectories: [{ id: 'd1', path: 'E:\\srv', enabled: true, lastScanAt: 1 }],
+      },
+    ];
     renderApp('/servers');
-    expect(await screen.findByTestId('servers-table')).toBeInTheDocument();
-    expect(screen.getByTestId('servers-view')).toBeInTheDocument();
+    await user.click(await screen.findByTestId('servers-create-server'));
+    expect(await screen.findByTestId('install-loader')).toBeInTheDocument();
+  });
+
+  it('ajouter une machine : la fenêtre enchaîne sur le dossier puis sur « Créer un serveur »', async () => {
+    const user = userEvent.setup();
+    state.session = true;
+    const { queryClient } = renderApp('/machines?add=true');
+    await user.type(await screen.findByTestId('machine-name'), 'Nouvelle');
+    await user.click(screen.getByTestId('machine-create'));
+    expect(await screen.findByTestId('pairing-code')).toHaveTextContent('ABCD1234');
+    // L’agent n’est pas encore là : on attend, sans rien proposer d’autre.
+    const next = screen.getByTestId('after-pairing');
+    expect(next).toHaveAttribute('data-step', 'waiting');
+    expect(screen.queryByTestId('after-pairing-directory')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('after-pairing-create-server')).not.toBeInTheDocument();
+
+    // L’agent se connecte (en vrai : événement temps réel « agent.online »).
+    state.machines = state.machines.map((m) =>
+      m.id === 'm2' ? { ...m, status: 'online', connected: true } : m,
+    );
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: ['machines'] });
+    });
+    await waitFor(() => {
+      expect(next).toHaveAttribute('data-step', 'directory');
+    });
+    expect(screen.queryByTestId('after-pairing-create-server')).not.toBeInTheDocument();
+
+    await user.type(screen.getByTestId('after-pairing-directory'), 'E:\\srv');
+    await user.click(screen.getByTestId('after-pairing-directory-add'));
+    await waitFor(() => {
+      expect(next).toHaveAttribute('data-step', 'ready');
+    });
+    expect(state.calls).toContain('POST /api/machines/m2/directories');
+    expect(screen.queryByTestId('after-pairing-directory')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('after-pairing-create-server'));
+    expect(await screen.findByTestId('install-loader')).toBeInTheDocument();
   });
 });

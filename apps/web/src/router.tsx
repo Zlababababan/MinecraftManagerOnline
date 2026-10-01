@@ -153,11 +153,15 @@ const indexRoute = createRoute({
 });
 
 /**
- * Vue de la flotte : le tableau par défaut (il montre plus de serveurs à l'écran), les cartes
- * pour qui préfère les actions sous la main. Le choix est mémorisé par appareil.
+ * Vue de la flotte : les cartes par défaut (les actions sous la main — retour de Yassin, 01/10 :
+ * le tableau était « moins joli » que les cartes de la page machine), le tableau pour qui veut
+ * plus de serveurs à l'écran. Le choix est mémorisé par appareil.
+ *
+ * La clé a changé avec le défaut : l'ancienne (`servers`) enregistrait « tableau » dès qu'on
+ * touchait au tri ou à la recherche, sans que personne l'ait choisi.
  */
-const SERVERS_LIST_KEY = 'servers';
-const SERVERS_LIST_PREFS: ListPrefs = { mode: 'table', sort: 'name', desc: false };
+const SERVERS_LIST_KEY = 'server-list';
+const SERVERS_LIST_PREFS: ListPrefs = { mode: 'cards', sort: 'name', desc: false };
 
 const serversRoute = createRoute({
   getParentRoute: () => appRoute,

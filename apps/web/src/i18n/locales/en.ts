@@ -177,6 +177,7 @@ export const webEn = {
     scanning: 'Scanning…',
     scanResult: '{{count}} server(s) detected in {{paths}} path(s).',
     scanConflicts: '{{count}} marker conflict(s) to resolve.',
+    seeServers: 'See this machine’s servers',
     addServer: 'Add a server folder',
     addServerHint:
       'Any folder on the machine that contains a Minecraft server — it is scanned, then adopted.',
@@ -194,6 +195,14 @@ export const webEn = {
       name: 'Machine name',
       namePlaceholder: 'Tower, NAS, Raspberry…',
       submit: 'Create and get a pairing code',
+    },
+    next: {
+      title: 'What next?',
+      waiting:
+        'Waiting for the agent… Run the command above on the machine: this window will see it arrive on its own.',
+      connected: 'The machine is connected.',
+      directoryAsk: 'Which folder on this machine should hold your servers?',
+      ready: 'All set: you can create your first server on this machine.',
     },
     pairing: {
       title: 'Pair the agent',

@@ -1,5 +1,7 @@
 /**
  * Liste plate de TOUS les serveurs : recherche, filtres, tri, sélection et actions groupées.
+ * C'est LA liste des serveurs (passe UX du 01/10) : la page d'une machine y renvoie, filtrée, au
+ * lieu d'en tenir une copie, et « Créer un serveur » se fait d'ici.
  *
  * Le tableau de bord groupe les serveurs par machine, ce qui va très bien à trois serveurs et
  * beaucoup moins à cinquante : il fallait une vue où l'on cherche « atm10 » et où l'on démarre
@@ -12,6 +14,7 @@ import {
   IconListNumbers,
   IconPlayerPlay,
   IconPlayerStop,
+  IconPlus,
   IconRefresh,
 } from '@tabler/icons-react';
 import { useState } from 'react';
@@ -21,7 +24,9 @@ import type { BulkActionResult } from '@mmo/protocol/client';
 import { useGroups } from '../api/groups.js';
 import { useBulkAction, useMachines, useMe, useServers } from '../api/queries.js';
 import { GroupsModal } from '../components/groups/GroupsPanel.js';
+import { RouterButton } from '../components/links.js';
 import { ListToolbar } from '../components/ListToolbar.js';
+import { CreateServerButton } from '../components/machine/CreateServerButton.js';
 import { ServerCollection } from '../components/ServerCollection.js';
 import { useT } from '../i18n/hooks.js';
 import { hasRole } from '../lib/format.js';
@@ -55,6 +60,7 @@ export function ServersPage({
   const [groupsOpen, setGroupsOpen] = useState(false);
 
   const canOperate = me.data !== undefined && hasRole(me.data.user.role, 'operator');
+  const isAdmin = me.data !== undefined && hasRole(me.data.user.role, 'admin');
   const groupName = (id: string | null): string | undefined =>
     id === null ? undefined : groups.data?.groups.find((g) => g.id === id)?.name;
   const all = servers.data?.servers ?? [];
@@ -98,6 +104,19 @@ export function ServersPage({
           {t('web:servers.title')}
         </Title>
         <Group gap="xs">
+          <CreateServerButton testId="servers-create-server" size="xs" />
+          {isAdmin && (
+            <RouterButton
+              to="/machines"
+              search={{ add: true }}
+              size="xs"
+              variant="default"
+              leftSection={<IconPlus size={14} />}
+              data-testid="servers-add-machine"
+            >
+              {t('web:dashboard.addMachine')}
+            </RouterButton>
+          )}
           {canOperate && (
             <Button
               type="button"

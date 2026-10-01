@@ -63,6 +63,10 @@ test('wizard first-run, appairage et scan', async ({ page, request }) => {
   await expect(page.getByTestId('directories')).toContainText(info.serversRoot);
   await page.getByTestId('scan').click();
   await expect(page.getByTestId('scan-result')).toBeVisible({ timeout: 20_000 });
+  // La page machine ne liste plus les serveurs : elle renvoie à la page Serveurs, filtrée.
+  await expect(page.getByTestId('machine-servers-count')).toContainText('1');
+  await page.getByTestId('machine-servers-link').click();
+  await expect(page.getByTestId('servers-page')).toBeVisible();
   await expect(page.getByTestId('server-card')).toHaveCount(1);
   await expect(page.getByTestId('server-card')).toContainText('Vanilla');
   await expect(page.getByTestId('run-state')).toHaveAttribute('data-state', 'stopped');

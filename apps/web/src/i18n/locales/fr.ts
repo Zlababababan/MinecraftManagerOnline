@@ -175,6 +175,7 @@ export const webFr = {
     scanning: 'Scan en cours…',
     scanResult: '{{count}} serveur(s) détecté(s) dans {{paths}} chemin(s).',
     scanConflicts: '{{count}} conflit(s) de marqueur à résoudre.',
+    seeServers: 'Voir les serveurs de cette machine',
     addServer: 'Ajouter un dossier serveur',
     addServerHint:
       'N’importe quel dossier de la machine contenant un serveur Minecraft — il est scanné puis adopté.',
@@ -192,6 +193,14 @@ export const webFr = {
       name: 'Nom de la machine',
       namePlaceholder: 'Tour, NAS, Raspberry…',
       submit: 'Créer et obtenir un code d’appairage',
+    },
+    next: {
+      title: 'Et ensuite ?',
+      waiting:
+        'En attente de l’agent… Lancez la commande ci-dessus sur la machine : cette fenêtre le verra arriver toute seule.',
+      connected: 'La machine est connectée.',
+      directoryAsk: 'Dans quel dossier de cette machine ranger vos serveurs ?',
+      ready: 'Tout est prêt : vous pouvez créer votre premier serveur sur cette machine.',
     },
     pairing: {
       title: 'Appairer l’agent',

@@ -32,6 +32,7 @@ import {
 import { ConflictsPanel } from '../components/ConflictsPanel.js';
 import { ReleasesCard } from '../components/admin/ReleasesCard.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
+import { AfterPairing } from '../components/machine/AfterPairing.js';
 import { MachineHeader } from '../components/MachineHeader.js';
 import { PairingCodeCard } from '../components/PairingCodeCard.js';
 import { describeError } from '../lib/errors.js';
@@ -86,6 +87,7 @@ export function AddMachineModal({ opened, onClose }: { opened: boolean; onClose:
       ) : (
         <Stack gap="md">
           <PairingCodeCard pairing={pairing} />
+          {create.data !== undefined && <AfterPairing machineId={create.data.machine.id} />}
           <Group justify="flex-end">
             <Button onClick={close} data-testid="pairing-close">
               {t('web:common.close')}

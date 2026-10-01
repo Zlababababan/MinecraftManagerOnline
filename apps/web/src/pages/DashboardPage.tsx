@@ -6,27 +6,24 @@
  * serveurs utilisés ; la liste complète est à un clic (« Tous les serveurs »), et **créer un
  * serveur se fait d'ici**, sans passer par la page de la machine.
  */
-import { Button, Card, Group, Menu, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { IconList, IconPlus } from '@tabler/icons-react';
-import { useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
 
-import type { EventDto, MachineDto } from '@mmo/protocol/client';
+import type { EventDto } from '@mmo/protocol/client';
 
 import { useConflicts, useEvents, useMachines, useMe, useServers } from '../api/queries.js';
 import { ConflictsPanel } from '../components/ConflictsPanel.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { EventsList } from '../components/EventsList.js';
 import { RouterAnchor, RouterButton } from '../components/links.js';
-import { CreateServerModal } from '../components/machine/CreateServerModal.js';
+import { CreateServerButton } from '../components/machine/CreateServerButton.js';
 import { MachineHeader } from '../components/MachineHeader.js';
 import { OnboardingCard } from '../components/OnboardingCard.js';
 import { ServerCollection } from '../components/ServerCollection.js';
 import { useT } from '../i18n/hooks.js';
-import { creatableMachines, dashboardSections } from '../lib/dashboard.js';
+import { dashboardSections } from '../lib/dashboard.js';
 import { hasRole } from '../lib/format.js';
 import { useNow } from '../lib/hooks.js';
-import { canMachine } from '../lib/permissions.js';
 import { useRealtimeStore } from '../store/realtime.js';
 
 function Stat({ label, value, testId }: { label: string; value: string | number; testId: string }) {
@@ -44,22 +41,18 @@ function Stat({ label, value, testId }: { label: string; value: string | number;
 
 export function DashboardPage() {
   const { t } = useT();
-  const navigate = useNavigate();
   const me = useMe();
   const machines = useMachines();
   const servers = useServers();
   const conflicts = useConflicts();
   const events = useEvents({ limit: 15 });
   const liveEvents = useRealtimeStore((s) => s.recentEvents);
-  const [createOn, setCreateOn] = useState<MachineDto | undefined>(undefined);
   const now = useNow(10_000);
   const isAdmin = me.data !== undefined && hasRole(me.data.user.role, 'admin');
 
   const allMachines = machines.data?.machines ?? [];
   const allServers = servers.data?.servers ?? [];
   const sections = dashboardSections(allServers);
-  const creatable = creatableMachines(allMachines, (id) => canMachine(me.data, id, 'operator'));
-  const onlyCreatable = creatable.length === 1 ? creatable[0] : undefined;
   // Avec plusieurs machines, chaque carte dit où vit le serveur.
   const machineName =
     allMachines.length > 1
@@ -83,44 +76,7 @@ export function DashboardPage() {
           {t('web:dashboard.title')}
         </Title>
         <Group gap="xs">
-          {onlyCreatable !== undefined && (
-            <Button
-              size="sm"
-              leftSection={<IconPlus size={16} />}
-              data-testid="dashboard-create-server"
-              onClick={() => {
-                setCreateOn(onlyCreatable);
-              }}
-            >
-              {t('web:install.title')}
-            </Button>
-          )}
-          {creatable.length > 1 && (
-            <Menu position="bottom-end">
-              <Menu.Target>
-                <Button
-                  size="sm"
-                  leftSection={<IconPlus size={16} />}
-                  data-testid="dashboard-create-server"
-                >
-                  {t('web:install.title')}
-                </Button>
-              </Menu.Target>
-              <Menu.Dropdown>
-                <Menu.Label>{t('web:dashboard.createOn')}</Menu.Label>
-                {creatable.map((m) => (
-                  <Menu.Item
-                    key={m.id}
-                    onClick={() => {
-                      setCreateOn(m);
-                    }}
-                  >
-                    {m.name}
-                  </Menu.Item>
-                ))}
-              </Menu.Dropdown>
-            </Menu>
-          )}
+          <CreateServerButton testId="dashboard-create-server" />
           <RouterButton
             to="/servers"
             variant="default"
@@ -227,7 +183,6 @@ export function DashboardPage() {
 
       {allMachines.map((machine) => {
         const count = allServers.filter((s) => s.machineId === machine.id).length;
-        const canCreateHere = creatable.some((m) => m.id === machine.id);
         return (
           <Card
             key={machine.id}
@@ -244,47 +199,15 @@ export function DashboardPage() {
                   {t('web:dashboard.unreachable')}
                 </Text>
               )}
-              <Group justify="space-between">
-                <Text size="sm" c="dimmed">
-                  {count === 0
-                    ? `${t('web:dashboard.noServers')} ${t('web:dashboard.noServersHint')}`
-                    : t('web:servers.count', { count })}
-                </Text>
-                {canCreateHere && allMachines.length > 1 && (
-                  <Button
-                    size="xs"
-                    variant="default"
-                    leftSection={<IconPlus size={14} />}
-                    onClick={() => {
-                      setCreateOn(machine);
-                    }}
-                  >
-                    {t('web:install.title')}
-                  </Button>
-                )}
-              </Group>
+              <Text size="sm" c="dimmed">
+                {count === 0
+                  ? `${t('web:dashboard.noServers')} ${t('web:dashboard.noServersHint')}`
+                  : t('web:servers.count', { count })}
+              </Text>
             </Stack>
           </Card>
         );
       })}
-
-      {createOn !== undefined && (
-        <CreateServerModal
-          machine={createOn}
-          directories={createOn.watchedDirectories}
-          opened
-          onClose={() => {
-            setCreateOn(undefined);
-          }}
-          onCreated={(serverId) => {
-            void navigate({
-              to: '/servers/$serverId',
-              params: { serverId },
-              search: { tab: 'overview' },
-            });
-          }}
-        />
-      )}
     </Stack>
   );
 }

@@ -1,4 +1,8 @@
-/** Page machine : statut/heartbeat, répertoires surveillés, scan, ajout de dossier serveur, codes, secret, suppression. */
+/**
+ * Page machine : statut/heartbeat, répertoires surveillés, scan, ajout de dossier serveur, codes,
+ * secret, suppression. Elle ne liste PAS les serveurs (passe UX du 01/10 : une fonction = un seul
+ * endroit complet) : elle en donne le nombre et renvoie à la page Serveurs, filtrée sur la machine.
+ */
 import {
   ActionIcon,
   Button,
@@ -18,7 +22,14 @@ import {
 import { useForm } from '@mantine/form';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
-import { IconFolderPlus, IconKey, IconPlus, IconRadar, IconTrash } from '@tabler/icons-react';
+import {
+  IconFolderPlus,
+  IconKey,
+  IconList,
+  IconPlus,
+  IconRadar,
+  IconTrash,
+} from '@tabler/icons-react';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useT } from '../i18n/hooks.js';
@@ -49,22 +60,13 @@ import { AgentCard } from '../components/machine/AgentCard.js';
 import { JavaCard } from '../components/machine/JavaCard.js';
 import { MachineMetricsPanel } from '../components/metrics/MetricsPanel.js';
 import { PairingCodeCard } from '../components/PairingCodeCard.js';
-import { ListToolbar } from '../components/ListToolbar.js';
-import { ServerCollection } from '../components/ServerCollection.js';
+import { RouterButton } from '../components/links.js';
 import { describeError } from '../lib/errors.js';
 import { formatDateTime, hasRole } from '../lib/format.js';
 import { CreateServerModal } from '../components/machine/CreateServerModal.js';
 import { canMachine } from '../lib/permissions.js';
 import { useNow } from '../lib/hooks.js';
 import { TECHNICAL_INPUT_PROPS } from '../lib/inputs.js';
-import { LIST_TOOLBAR_MIN, useListPrefs, type ListPrefs } from '../lib/list-view.js';
-import { EMPTY_FILTER, filterServers, isServerSort } from '../lib/server-filter.js';
-
-/**
- * Les serveurs d'une machine s'affichent en CARTES par défaut : on vient ici pour agir sur
- * quelques serveurs, pas pour balayer une flotte. Le choix reste celui de l'appareil.
- */
-const MACHINE_LIST: ListPrefs = { mode: 'cards', sort: 'name', desc: false };
 
 export function MachinePage({ machineId }: { machineId: string }) {
   const { t, i18n } = useT();
@@ -98,9 +100,6 @@ export function MachinePage({ machineId }: { machineId: string }) {
   // Lot 2 : voie d'accès de la machine — le choix se présente au moment de générer un code.
   // Avant les early returns : c'est un hook.
   const access = useAccessStatus(isAdmin);
-  // Idem : la vue de la liste est un hook, elle ne peut pas attendre que la machine soit chargee.
-  const [listPrefs, setListPrefs] = useListPrefs('machine-servers', MACHINE_LIST, isServerSort);
-  const [serverQuery, setServerQuery] = useState('');
 
   if (machine.isPending) return <Loader />;
   if (machine.error) return <ErrorAlert error={machine.error} />;
@@ -110,12 +109,6 @@ export function MachinePage({ machineId }: { machineId: string }) {
   // repertoires surveilles) — c est la regle tranchee avec le 8e chantier du lot 8.
   const canCreate = canOperate;
   const mine = servers.data?.servers.filter((s) => s.machineId === m.id) ?? [];
-  const shownServers = filterServers(mine, {
-    ...EMPTY_FILTER,
-    q: serverQuery,
-    sort: isServerSort(listPrefs.sort) ? listPrefs.sort : 'name',
-    desc: listPrefs.desc,
-  });
   const myConflicts = conflicts.data?.conflicts.filter((c) => c.found.machineId === m.id) ?? [];
   const fail = (error: unknown): void => {
     notifications.show({ color: 'red', message: describeError(i18n, error) });
@@ -408,38 +401,23 @@ export function MachinePage({ machineId }: { machineId: string }) {
               )}
             </Group>
           </Group>
-          {mine.length > LIST_TOOLBAR_MIN && (
-            <ListToolbar
-              search={serverQuery}
-              onSearch={setServerQuery}
-              searchLabel={t('web:servers.search')}
-              searchPlaceholder={t('web:servers.searchPlaceholder')}
-              searchTestId="machine-servers-search"
-              sort={{
-                value: listPrefs.sort,
-                options: [
-                  { value: 'name', label: t('web:servers.sort.name') },
-                  { value: 'state', label: t('web:servers.sort.state') },
-                  { value: 'started', label: t('web:servers.sort.started') },
-                  { value: 'ram', label: t('web:servers.sort.ram') },
-                ],
-                onChange: (sort) => {
-                  setListPrefs({ sort });
-                },
-                testId: 'machine-servers-sort',
-              }}
-              mode={listPrefs.mode}
-              onModeChange={(mode) => {
-                setListPrefs({ mode });
-              }}
-              modeTestId="machine-servers-view"
-            />
-          )}
-          <ServerCollection
-            servers={shownServers}
-            mode={listPrefs.mode}
-            emptyLabel={mine.length === 0 ? t('web:dashboard.noServers') : t('web:servers.noMatch')}
-          />
+          <Group justify="space-between" wrap="wrap">
+            <Text size="sm" c="dimmed" data-testid="machine-servers-count">
+              {mine.length === 0
+                ? t('web:dashboard.noServers')
+                : t('web:servers.count', { count: mine.length })}
+            </Text>
+            <RouterButton
+              to="/servers"
+              search={{ machine: m.id }}
+              size="xs"
+              variant="default"
+              leftSection={<IconList size={14} />}
+              data-testid="machine-servers-link"
+            >
+              {t('web:machine.seeServers')}
+            </RouterButton>
+          </Group>
         </Stack>
       </Card>
 
