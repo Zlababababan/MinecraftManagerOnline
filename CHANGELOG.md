@@ -8,6 +8,8 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+## 1.0.11 — 2026-10-01
+
 ### Hosting without Tailscale (2026-10-01)
 
 - **New setting: Settings → Player access.** Choose whether new servers show a Tailscale address or
