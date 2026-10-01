@@ -683,6 +683,216 @@ describe('installation d’un serveur — routes et service du panel', () => {
     });
   });
 
+  describe('serveur depuis une archive (doc 06 §6sexies)', () => {
+    const CAPS = ['tasks', 'server-install', 'install-remove', 'install-extract'];
+    const ZIP = '/srv/minecraft/Pack-1.0.zip';
+    const SCRIPT =
+      'NEOFORGE_VERSION=21.1.209\n' +
+      'printf "allow-flight=true\\nmotd=Le pack\\nserver-port=1234" > server.properties\n';
+
+    interface Archived extends Machine {
+      inspected: string[];
+      listed: number;
+      texts: { name: string; content: string }[];
+      root: string;
+    }
+
+    async function withArchive(caps = CAPS, os: 'linux' | 'windows' = 'linux'): Promise<Archived> {
+      const m: Archived = {
+        ...(await online('Tour', caps, os)),
+        inspected: [],
+        listed: 0,
+        texts: [{ name: 'startserver.sh', content: SCRIPT }],
+        root: 'Pack-1.0',
+      };
+      m.agent.peer.handle('install.archives', () => {
+        m.listed++;
+        const one = { name: 'Pack-1.0.zip', path: ZIP, size: 900, modifiedAt: 1_790_000_000_000 };
+        return {
+          archives: [
+            { ...one, directoryId: m.dirId },
+            { ...one, directoryId: 'dir_inconnu', path: '/ailleurs/x.zip' },
+          ],
+        };
+      });
+      m.agent.peer.handle('install.archiveInspect', (req) => {
+        m.inspected.push(req.path);
+        return {
+          files: 12,
+          bytes: 5_000_000,
+          root: m.root,
+          topLevel: ['mods/', 'config/', 'startserver.sh'],
+          texts: m.texts,
+        };
+      });
+      return m;
+    }
+
+    const inspect = (m: Machine, archivePath: string) =>
+      api('POST', `/api/machines/${m.id}/install/archives/inspect`, { path: archivePath });
+
+    it('liste les zips des répertoires connus, et dit ce que le panel comprend de l’archive', async () => {
+      const m = await withArchive();
+      const list = await api('GET', `/api/machines/${m.id}/install/archives`);
+      expect(list.statusCode, list.body).toBe(200);
+      expect(list.json<{ archives: { path: string }[] }>().archives.map((a) => a.path)).toEqual([
+        ZIP,
+      ]);
+      const res = await inspect(m, ZIP);
+      expect(res.statusCode, res.body).toBe(200);
+      expect(res.json<{ inspection: unknown }>().inspection).toEqual({
+        path: ZIP,
+        files: 12,
+        bytes: 5_000_000,
+        root: 'Pack-1.0',
+        recognized: {
+          loader: 'neoforge',
+          mcVersion: '1.21.1',
+          loaderVersion: '21.1.209',
+          source: 'startserver.sh',
+        },
+        // Le port du script n'est jamais repris : c'est le panel qui l'attribue.
+        properties: { 'allow-flight': 'true', motd: 'Le pack' },
+        hasMods: true,
+      });
+    });
+
+    it('crée : archive dépliée AVANT l’installeur, chargeur imposé par l’archive, réglages du pack puis port du panel', async () => {
+      const m = await withArchive();
+      const res = await api(
+        'POST',
+        `/api/machines/${m.id}/install`,
+        body(m, { archive: { path: ZIP } }),
+      );
+      expect(res.statusCode, res.body).toBe(202);
+      await waitFor(() => m.installs.length === 1, 5_000);
+      const req = m.installs[0];
+      if (req === undefined) throw new Error('aucune installation reçue');
+      // Le formulaire disait vanilla 1.20.1 : l'archive fait autorité.
+      expect(req.loader).toBe('neoforge');
+      expect(req.mcVersion).toBe('1.21.1');
+      expect(req.loaderVersion).toBe('21.1.209');
+      expect(req.steps[0]).toEqual({
+        kind: 'extract',
+        archive: ZIP,
+        strip: 1,
+        size: 5_000_000,
+        label: 'Pack-1.0.zip',
+      });
+      const dl = req.steps[1];
+      if (dl?.kind !== 'download') throw new Error('plan inattendu');
+      expect(dl.url).toContain('/neoforge/21.1.209/');
+      const props = req.steps.filter((s) => s.kind === 'setProperties');
+      expect(props.map((p) => p.values)).toEqual([
+        { 'allow-flight': 'true', motd: 'Le pack' },
+        { 'server-port': '25565', 'query.port': '25565' },
+      ]);
+      // Le script de l'archive n'est jamais exécuté : aucun runJar ne le vise.
+      expect(JSON.stringify(req.steps)).not.toContain('startserver');
+      expect(panel.ctx.servers.list()[0]).toMatchObject({ loader: 'neoforge' });
+      // Le pré-contrôle compte la taille dépliée.
+      const pre = await api(
+        'POST',
+        `/api/machines/${m.id}/install/precheck`,
+        (({ acceptEula: _a, ...rest }) => rest)(
+          body(m, { folderName: 'autre', archive: { path: ZIP } }),
+        ),
+      );
+      expect(pre.statusCode, pre.body).toBe(200);
+      expect(m.prechecks.at(-1)?.requiredBytes).toBeGreaterThanOrEqual(
+        2 * 5_000_000 + 256 * 1024 * 1024,
+      );
+    });
+
+    it('archive qui ne dit rien : le chargeur du formulaire, sans dossier englobant à ignorer', async () => {
+      const m = await withArchive();
+      m.texts = [{ name: 'start.sh', content: 'java -jar server.jar nogui' }];
+      m.root = '';
+      const seen = await inspect(m, ZIP);
+      expect(seen.json<{ inspection: { recognized: unknown } }>().inspection.recognized).toBeNull();
+      const res = await api(
+        'POST',
+        `/api/machines/${m.id}/install`,
+        body(m, { archive: { path: ZIP } }),
+      );
+      expect(res.statusCode, res.body).toBe(202);
+      await waitFor(() => m.installs.length === 1, 5_000);
+      const req = m.installs[0];
+      expect(req?.loader).toBe('vanilla');
+      expect(req?.steps.map((s) => s.kind)).toEqual(['extract', 'download', 'setProperties']);
+      expect(req?.steps[0]).toMatchObject({ strip: 0 });
+    });
+
+    it('refuse une archive hors d’un répertoire surveillé, sans rien demander à l’agent', async () => {
+      const m = await withArchive();
+      for (const bad of [
+        '/etc/passwd',
+        '/srv/minecraft/sub/Pack.zip',
+        '/srv/minecraft/notes.txt',
+        '/srv/Pack.zip',
+        'Pack.zip',
+      ]) {
+        const res = await inspect(m, bad);
+        expect(res.statusCode, bad).toBe(400);
+        expect(res.json<{ details?: { reason?: string } }>().details?.reason).toBe(
+          'ARCHIVE_OUTSIDE',
+        );
+        const create = await api(
+          'POST',
+          `/api/machines/${m.id}/install`,
+          body(m, { archive: { path: bad } }),
+        );
+        expect(create.statusCode, bad).toBe(400);
+      }
+      expect(m.inspected).toHaveLength(0);
+      expect(m.installs).toHaveLength(0);
+      expect(panel.ctx.servers.list()).toHaveLength(0);
+    });
+
+    it('archive et modpack ensemble : refusé', async () => {
+      const m = await withArchive();
+      const res = await api(
+        'POST',
+        `/api/machines/${m.id}/install`,
+        body(m, {
+          archive: { path: ZIP },
+          modpack: { provider: 'ftb', packId: 125, versionId: 100487 },
+        }),
+      );
+      expect(res.statusCode, res.body).toBe(400);
+      expect(res.json<{ details?: { reason?: string } }>().details?.reason).toBe(
+        'ARCHIVE_AND_MODPACK',
+      );
+      expect(panel.ctx.servers.list()).toHaveLength(0);
+    });
+
+    it('un agent sans la capacité : AGENT_TOO_OLD partout, rien demandé, rien créé', async () => {
+      const m = await withArchive(['tasks', 'server-install', 'install-remove']);
+      const list = await api('GET', `/api/machines/${m.id}/install/archives`);
+      const seen = await inspect(m, ZIP);
+      const create = await api(
+        'POST',
+        `/api/machines/${m.id}/install`,
+        body(m, { archive: { path: ZIP } }),
+      );
+      for (const res of [list, seen, create]) {
+        expect(res.statusCode, res.body).toBe(501);
+        expect(res.json<{ details?: { reason?: string } }>().details?.reason).toBe('AGENT_TOO_OLD');
+      }
+      expect(m.listed).toBe(0);
+      expect(m.inspected).toHaveLength(0);
+      expect(panel.ctx.servers.list()).toHaveLength(0);
+    });
+
+    it('sur Windows : antislashs et casse du répertoire surveillé acceptés, un sous-dossier refusé', async () => {
+      const m = await withArchive(CAPS, 'windows');
+      const ok = await inspect(m, 'c:\\SRV\\minecraft\\Pack.zip');
+      expect(ok.statusCode, ok.body).toBe(200);
+      const deep = await inspect(m, 'C:\\srv\\minecraft\\sub\\Pack.zip');
+      expect(deep.statusCode).toBe(400);
+    });
+  });
+
   it('une version que Fabric ne supporte pas est refusée avant toute écriture', async () => {
     const m = await online('Tour');
     const res = await api(
@@ -882,6 +1092,16 @@ describe('installation d’un serveur — routes et service du panel', () => {
       const cookie = await limited('lea', { machines: [{ machineId: m.id, role: 'viewer' }] });
       const res = await api('POST', `/api/machines/${m.id}/install`, body(m), cookie);
       expect(res.statusCode).toBe(403);
+      // Ni la liste des archives, ni leur inspection (elles lisent le disque de la machine).
+      const list = await api('GET', `/api/machines/${m.id}/install/archives`, undefined, cookie);
+      expect(list.statusCode).toBe(403);
+      const seen = await api(
+        'POST',
+        `/api/machines/${m.id}/install/archives/inspect`,
+        { path: '/srv/minecraft/Pack.zip' },
+        cookie,
+      );
+      expect(seen.statusCode).toBe(403);
       expect(panel.ctx.servers.list()).toHaveLength(0);
     });
   });

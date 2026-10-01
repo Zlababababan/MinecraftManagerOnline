@@ -10,6 +10,7 @@ export * from './minecraft/version.js';
 export * from './minecraft/catalogs.js';
 // Intégration FTB, retirable en entier (docs/services-tiers.md).
 export * from './minecraft/ftb.js';
+export * from './minecraft/archive.js';
 export * from './minecraft/tps.js';
 export * from './minecraft/commands.js';
 export * from './java/index.js';

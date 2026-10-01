@@ -1030,6 +1030,12 @@ export const createInstallSchema = z.object({
    * `loader`/`mcVersion`/`loaderVersion` envoyés à côté sont ignorés (le pack fait autorité).
    */
   modpack: modpackRefSchema.optional(),
+  /**
+   * Créer le serveur depuis un zip posé sur la machine (doc 06 §6sexies) : le panel déplie
+   * l'archive puis installe le chargeur que ses scripts déclarent — `loader`/`mcVersion`/
+   * `loaderVersion` ne servent que si l'archive n'en dit rien. Incompatible avec `modpack`.
+   */
+  archive: z.object({ path: z.string().min(1).max(1024) }).optional(),
   maxRamMb: z.int().min(512).max(1_048_576),
   minRamMb: z.int().min(256).max(1_048_576).optional(),
   gamePort: z.int().min(1).max(65535).optional(),
@@ -1055,6 +1061,44 @@ export const installPrecheckDtoSchema = migrationPrecheckResponseSchema.extend({
   target: installTargetDtoSchema,
 });
 export type InstallPrecheckDto = z.infer<typeof installPrecheckDtoSchema>;
+
+/** Zip posé à la racine d'un répertoire surveillé de la machine. */
+export const installArchiveDtoSchema = z.object({
+  directoryId: z.string(),
+  name: z.string(),
+  path: z.string(),
+  size: z.int().nonnegative(),
+  modifiedAt: epochMsSchema,
+});
+export type InstallArchiveDto = z.infer<typeof installArchiveDtoSchema>;
+
+export const installArchiveInspectRequestSchema = z.object({
+  path: z.string().min(1).max(1024),
+});
+
+/** Ce que le panel a compris d'une archive, avant de s'engager. */
+export const installArchiveInspectionDtoSchema = z.object({
+  path: z.string(),
+  files: z.int().nonnegative(),
+  /** Taille une fois dépliée. */
+  bytes: z.int().nonnegative(),
+  /** Dossier englobant qui sera ignoré (`''` : l'archive s'ouvre sur son contenu). */
+  root: z.string(),
+  /** Chargeur déclaré par les scripts de l'archive ; `null` : à choisir à la main. */
+  recognized: z
+    .object({
+      loader: installLoaderSchema,
+      mcVersion: z.string(),
+      loaderVersion: z.string(),
+      /** Script où cela a été lu. */
+      source: z.string(),
+    })
+    .nullable(),
+  /** Réglages que le script de l'archive aurait écrits dans `server.properties`. */
+  properties: z.record(z.string(), z.string()),
+  hasMods: z.boolean(),
+});
+export type InstallArchiveInspectionDto = z.infer<typeof installArchiveInspectionDtoSchema>;
 
 /** Pré-contrôle : même corps que la création, sans l’acceptation de l’EULA. */
 export const installPrecheckRequestSchema = createInstallSchema.omit({ acceptEula: true });

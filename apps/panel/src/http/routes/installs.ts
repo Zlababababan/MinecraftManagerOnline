@@ -18,6 +18,7 @@ import { z } from 'zod';
 
 import {
   createInstallSchema,
+  installArchiveInspectRequestSchema,
   installLoaderSchema,
   installPrecheckRequestSchema,
 } from '@mmo/protocol/client';
@@ -54,6 +55,25 @@ export function registerInstallRoutes(app: FastifyInstance, ctx: AppContext): vo
     }),
   );
 
+  /** Zips que l'utilisateur a posés dans un répertoire surveillé de la machine. */
+  r.get(
+    '/api/machines/:id/install/archives',
+    { config: { role: 'operator' }, schema: { params: idParams } },
+    async (request) => ({ archives: await ctx.installs.archives(request.params.id) }),
+  );
+
+  /** Ce que contient une archive et ce que le panel en comprend — rien n'est déplié. */
+  r.post(
+    '/api/machines/:id/install/archives/inspect',
+    {
+      config: { role: 'operator' },
+      schema: { params: idParams, body: installArchiveInspectRequestSchema },
+    },
+    async (request) => ({
+      inspection: await ctx.installs.inspectArchive(request.params.id, request.body.path),
+    }),
+  );
+
   r.post(
     '/api/machines/:id/install',
     { config: { role: 'operator' }, schema: { params: idParams, body: createInstallSchema } },
@@ -76,6 +96,7 @@ export function registerInstallRoutes(app: FastifyInstance, ctx: AppContext): vo
           mcVersion: server.mcVersion,
           loaderVersion: server.loaderVersion,
           ...(request.body.modpack === undefined ? {} : { modpack: request.body.modpack }),
+          ...(request.body.archive === undefined ? {} : { archive: request.body.archive.path }),
           // Qui a accepté l'EULA, et quand : c'est le seul endroit où cela se lit après coup.
           eulaAcceptedBy: user.username,
           taskId,

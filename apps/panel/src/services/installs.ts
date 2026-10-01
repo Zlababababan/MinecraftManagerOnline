@@ -22,10 +22,13 @@
 import { ulid, type RequestPayload } from '@mmo/protocol';
 import type {
   CreateInstallInput,
+  InstallArchiveDto,
+  InstallArchiveInspectionDto,
   InstallPrecheckDto,
   InstallTargetDto,
   ServerDto,
 } from '@mmo/protocol/client';
+import { readArchiveHints, readArchiveProperties } from '@mmo/shared';
 import { eq } from 'drizzle-orm';
 
 import type { AgentRegistry } from '../agents/registry.js';
@@ -117,6 +120,14 @@ export class InstallsService {
    * version de jeu et le build, et ses fichiers sont posés AVANT l'installeur du chargeur.
    */
   private async buildPlan(input: InstallInput): Promise<InstallPlan> {
+    if (input.archive !== undefined) {
+      if (input.modpack !== undefined) {
+        throw new AppError('E_VALIDATION', 'an archive and a modpack cannot be combined', {
+          details: { reason: 'ARCHIVE_AND_MODPACK' },
+        });
+      }
+      return this.archivePlan(input, input.archive.path);
+    }
     if (input.modpack === undefined) {
       return this.deps.catalog.plan({
         loader: input.loader,
@@ -137,6 +148,92 @@ export class InstallsService {
       ...(pack.loaderVersion === undefined ? {} : { loaderVersion: pack.loaderVersion }),
     });
     return { ...plan, steps: [pack.files, ...plan.steps] };
+  }
+
+  /**
+   * Plan « depuis une archive » (doc 06 §6sexies) : déplier le zip, PUIS le plan ordinaire du
+   * chargeur que ses scripts déclarent (celui du formulaire si l'archive n'en dit rien), puis les
+   * réglages que son script aurait écrits. Le script lui-même n'est jamais exécuté.
+   */
+  private async archivePlan(input: InstallInput, archive: string): Promise<InstallPlan> {
+    const inspection = await this.inspectArchive(input.machineId, archive);
+    const declared = inspection.recognized;
+    const plan = await this.deps.catalog.plan(
+      declared === null
+        ? {
+            loader: input.loader,
+            mcVersion: input.mcVersion,
+            ...(input.loaderVersion === undefined ? {} : { loaderVersion: input.loaderVersion }),
+          }
+        : {
+            loader: declared.loader,
+            mcVersion: declared.mcVersion,
+            loaderVersion: declared.loaderVersion,
+          },
+    );
+    return {
+      ...plan,
+      steps: [
+        {
+          kind: 'extract',
+          archive,
+          strip: inspection.root === '' ? 0 : 1,
+          size: inspection.bytes,
+          label: (archive.split(/[\\/]/).pop() ?? 'archive').slice(0, 120),
+        },
+        ...plan.steps,
+        ...(Object.keys(inspection.properties).length === 0
+          ? []
+          : [
+              {
+                kind: 'setProperties' as const,
+                path: 'server.properties',
+                values: inspection.properties,
+              },
+            ]),
+      ],
+    };
+  }
+
+  /** Zips posés à la racine des répertoires surveillés de la machine. */
+  async archives(machineId: string): Promise<InstallArchiveDto[]> {
+    const machine = this.deps.machines.require(machineId);
+    const session = this.deps.registry.require(machine.id);
+    assertAgentSupports(session, 'install-extract');
+    const known = new Set(this.deps.machines.directories(machine.id).map((d) => d.id));
+    const { archives } = await session.peer.request('install.archives', {});
+    return archives.filter((a) => known.has(a.directoryId));
+  }
+
+  /** Lit l'archive sur la machine (rien n'est déplié) et dit ce que le panel en comprend. */
+  async inspectArchive(machineId: string, archive: string): Promise<InstallArchiveInspectionDto> {
+    const machine = this.deps.machines.require(machineId);
+    // Même règle que côté agent, donnée ici d'abord : un zip, à la racine d'un répertoire surveillé.
+    const fold = (p: string): string =>
+      machine.os === 'windows' ? p.replace(/\//g, '\\').toLowerCase() : p;
+    const cut = Math.max(archive.lastIndexOf('/'), archive.lastIndexOf('\\'));
+    const parent = fold(archive.slice(0, Math.max(cut, 0)));
+    const inWatched = this.deps.machines
+      .directories(machine.id)
+      .some((d) => fold(d.path.replace(/[\\/]+$/, '')) === parent);
+    if (!inWatched || !archive.toLowerCase().endsWith('.zip')) {
+      throw new AppError('E_VALIDATION', 'archive must sit in a watched directory', {
+        details: { reason: 'ARCHIVE_OUTSIDE', path: archive },
+      });
+    }
+    const session = this.deps.registry.require(machine.id);
+    assertAgentSupports(session, 'install-extract');
+    const raw = await session.peer.request('install.archiveInspect', { path: archive });
+    const hints = readArchiveHints(raw.texts);
+    return {
+      path: archive,
+      files: raw.files,
+      bytes: raw.bytes,
+      root: raw.root,
+      recognized: hints ?? null,
+      properties: readArchiveProperties(raw.texts),
+      hasMods: raw.topLevel.includes('mods/'),
+    };
   }
 
   /**
@@ -325,6 +422,8 @@ function estimateBytes(plan: InstallPlan): number {
   for (const step of plan.steps) {
     if (step.kind === 'download' && step.size !== undefined) known += step.size;
     if (step.kind === 'fetchMany') for (const f of step.files) known += f.size;
+    // Une archive est déjà sur la machine : c'est sa taille dépliée qui compte.
+    if (step.kind === 'extract') known += step.size ?? 0;
   }
   return known * 2 + 256 * 1024 * 1024;
 }
@@ -337,7 +436,15 @@ function estimateBytes(plan: InstallPlan): number {
 const STEP_CAPABILITIES: Readonly<Record<string, string>> = {
   remove: 'install-remove',
   fetchMany: 'install-fetch-many',
+  extract: 'install-extract',
 };
+
+function assertAgentSupports(session: AgentSession, capability: string): void {
+  if (session.supports(capability)) return;
+  throw new AppError('E_UNSUPPORTED_TYPE', 'this agent is too old for this installation', {
+    details: { reason: 'AGENT_TOO_OLD', capability },
+  });
+}
 
 function assertAgentCanRun(session: AgentSession, steps: readonly { kind: string }[]): void {
   for (const step of steps) {
