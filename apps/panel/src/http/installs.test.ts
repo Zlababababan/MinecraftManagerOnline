@@ -823,8 +823,32 @@ describe('installation d’un serveur — routes et service du panel', () => {
       expect(req?.steps[0]).toMatchObject({ strip: 0 });
     });
 
-    it('refuse une archive hors d’un répertoire surveillé, sans rien demander à l’agent', async () => {
-      const m = await withArchive();
+    /** Opérateur limité à la machine : il crée des serveurs, mais ne désigne pas un chemin libre. */
+    async function operatorOn(machineId: string): Promise<string> {
+      const created = await api('POST', '/api/users', {
+        username: 'paul',
+        password: 'Mot-de-passe-1234',
+        role: 'operator',
+        scoped: true,
+      });
+      const { user } = created.json<{ user: { id: string } }>();
+      await api('PUT', `/api/users/${user.id}/grants`, {
+        servers: [],
+        machines: [{ machineId, role: 'operator' }],
+      });
+      const login = await panel.app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        payload: { username: 'paul', password: 'Mot-de-passe-1234' },
+      });
+      return login.headers['set-cookie']?.toString() ?? '';
+    }
+    const reasonOf = (res: Awaited<ReturnType<typeof api>>) =>
+      res.json<{ details?: { reason?: string } }>().details?.reason;
+
+    it('opérateur : une archive hors d’un répertoire surveillé est refusée, sans rien demander à l’agent', async () => {
+      const m = await withArchive([...CAPS, 'install-archive-path']);
+      const cookie = await operatorOn(m.id);
       for (const bad of [
         '/etc/passwd',
         '/srv/minecraft/sub/Pack.zip',
@@ -832,21 +856,79 @@ describe('installation d’un serveur — routes et service du panel', () => {
         '/srv/Pack.zip',
         'Pack.zip',
       ]) {
-        const res = await inspect(m, bad);
-        expect(res.statusCode, bad).toBe(400);
-        expect(res.json<{ details?: { reason?: string } }>().details?.reason).toBe(
-          'ARCHIVE_OUTSIDE',
+        const res = await api(
+          'POST',
+          `/api/machines/${m.id}/install/archives/inspect`,
+          { path: bad },
+          cookie,
         );
+        expect(res.statusCode, bad).toBe(400);
+        expect(reasonOf(res), bad).toBe('ARCHIVE_OUTSIDE');
         const create = await api(
           'POST',
           `/api/machines/${m.id}/install`,
           body(m, { archive: { path: bad } }),
+          cookie,
         );
         expect(create.statusCode, bad).toBe(400);
       }
-      expect(m.inspected).toHaveLength(0);
+      // Dans un répertoire surveillé, l'opérateur garde tous ses droits.
+      const ok = await api(
+        'POST',
+        `/api/machines/${m.id}/install/archives/inspect`,
+        { path: ZIP },
+        cookie,
+      );
+      expect(ok.statusCode, ok.body).toBe(200);
+      expect(m.inspected).toEqual([ZIP]);
       expect(m.installs).toHaveLength(0);
       expect(panel.ctx.servers.list()).toHaveLength(0);
+    });
+
+    it('administrateur : le chemin d’un zip n’importe où sur la machine est accepté et installé', async () => {
+      const m = await withArchive([...CAPS, 'install-archive-path']);
+      const anywhere = '/home/yassin/Downloads/Pack.zip';
+      const res = await inspect(m, anywhere);
+      expect(res.statusCode, res.body).toBe(200);
+      expect(m.inspected).toEqual([anywhere]);
+      const create = await api(
+        'POST',
+        `/api/machines/${m.id}/install`,
+        body(m, { archive: { path: anywhere } }),
+      );
+      expect(create.statusCode, create.body).toBe(202);
+      expect(m.installs[0]?.steps[0]).toMatchObject({ kind: 'extract', archive: anywhere });
+    });
+
+    it('administrateur : ni un chemin relatif ni un fichier qui n’est pas un zip, et rien n’est demandé à l’agent', async () => {
+      const m = await withArchive([...CAPS, 'install-archive-path']);
+      for (const bad of [
+        'Pack.zip',
+        'Downloads/Pack.zip',
+        '/etc/passwd',
+        '/srv/minecraft/notes.txt',
+      ]) {
+        const res = await inspect(m, bad);
+        expect(res.statusCode, bad).toBe(400);
+        expect(reasonOf(res), bad).toBe('ARCHIVE_NOT_A_ZIP_PATH');
+      }
+      expect(m.inspected).toHaveLength(0);
+    });
+
+    it('administrateur, agent d’avant la 1.0.13 : chemin libre refusé avec « agent trop ancien », répertoire surveillé toujours permis', async () => {
+      const m = await withArchive();
+      const res = await inspect(m, '/home/yassin/Downloads/Pack.zip');
+      expect(res.statusCode).not.toBe(200);
+      expect(reasonOf(res)).toBe('AGENT_TOO_OLD');
+      expect(m.inspected).toHaveLength(0);
+      expect((await inspect(m, ZIP)).statusCode).toBe(200);
+    });
+
+    it('chemin Windows : lettre de lecteur et barres obliques inverses reconnues comme absolu', async () => {
+      const m = await withArchive([...CAPS, 'install-archive-path'], 'windows');
+      const res = await inspect(m, 'C:\\Users\\Yassin\\Downloads\\ATM10.zip');
+      expect(res.statusCode, res.body).toBe(200);
+      expect(m.inspected).toEqual(['C:\\Users\\Yassin\\Downloads\\ATM10.zip']);
     });
 
     it('archive et modpack ensemble : refusé', async () => {
@@ -884,12 +966,14 @@ describe('installation d’un serveur — routes et service du panel', () => {
       expect(panel.ctx.servers.list()).toHaveLength(0);
     });
 
-    it('sur Windows : antislashs et casse du répertoire surveillé acceptés, un sous-dossier refusé', async () => {
+    it('sur Windows : antislashs et casse du répertoire surveillé acceptés, un sous-dossier n’est pas la racine', async () => {
       const m = await withArchive(CAPS, 'windows');
       const ok = await inspect(m, 'c:\\SRV\\minecraft\\Pack.zip');
       expect(ok.statusCode, ok.body).toBe(200);
       const deep = await inspect(m, 'C:\\srv\\minecraft\\sub\\Pack.zip');
-      expect(deep.statusCode).toBe(400);
+      // Hors racine = règle du chemin libre : permise à l'administrateur, mais cet agent est trop ancien.
+      expect(deep.statusCode).not.toBe(200);
+      expect(deep.json<{ details?: { reason?: string } }>().details?.reason).toBe('AGENT_TOO_OLD');
     });
   });
 

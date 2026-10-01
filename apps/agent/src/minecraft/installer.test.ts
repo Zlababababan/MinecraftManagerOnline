@@ -546,21 +546,21 @@ describe('ServerInstaller (lot 5)', () => {
       expect(await exists(path.join(serverDir, 'mods', 'a.jar'))).toBe(true);
     });
 
-    it('refuse une archive hors d’un répertoire surveillé, absente, ou qui n’est pas un zip', async () => {
+    it('accepte un zip désigné par son chemin absolu, où qu’il soit ; refuse un chemin relatif, un non-zip, un absent', async () => {
+      // Hors de tout répertoire surveillé (ex. le dossier Téléchargements) : lu quand même.
       const outside = path.join(stateDir, 'elsewhere.zip');
       await writeFile(outside, buildZip([{ name: 'a.txt', data: Buffer.from('a') }]));
       const step = (file: string) => base({ steps: [{ kind: 'extract', archive: file }] });
-      await expect(installer.precheck(step(outside))).rejects.toMatchObject({
-        details: { reason: 'ARCHIVE_OUTSIDE' },
-      });
-      await expect(installer.inspectArchive(outside)).rejects.toMatchObject({
-        details: { reason: 'ARCHIVE_OUTSIDE' },
-      });
-      // Un sous-dossier d'un répertoire surveillé n'est pas sa racine.
+      await expect(installer.inspectArchive(outside)).resolves.toMatchObject({ files: 1 });
       await mkdir(path.join(stateDir, 'servers', 'sub'), { recursive: true });
       const deep = path.join(stateDir, 'servers', 'sub', 'deep.zip');
-      await writeFile(deep, 'x');
-      await expect(installer.precheck(step(deep))).rejects.toMatchObject({
+      await writeFile(deep, buildZip([{ name: 'b.txt', data: Buffer.from('b') }]));
+      await expect(installer.inspectArchive(deep)).resolves.toMatchObject({ files: 1 });
+      // Un chemin relatif dépendrait du dossier courant de l'agent : jamais.
+      await expect(installer.inspectArchive('elsewhere.zip')).rejects.toMatchObject({
+        details: { reason: 'ARCHIVE_OUTSIDE' },
+      });
+      await expect(installer.precheck(step('elsewhere.zip'))).rejects.toMatchObject({
         details: { reason: 'ARCHIVE_OUTSIDE' },
       });
       const txt = path.join(stateDir, 'servers', 'notes.txt');

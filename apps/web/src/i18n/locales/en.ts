@@ -1122,8 +1122,13 @@ export const webEn = {
     loaderFtb: 'FTB modpack',
     loaderArchive: 'Archive (.zip)',
     archive: {
-      where:
-        'Download the modpack’s “server files” zip with your browser, then drop it as is (do not unzip it) into one of these folders on the machine:',
+      path: 'Path of the zip on the machine',
+      pathHint:
+        'Paste the path of the “server files” zip as it is, without unzipping or moving it (in Windows Explorer: right-click the file → “Copy as path”).',
+      pathPlaceholder: 'C:\\Users\\you\\Downloads\\ServerFiles.zip',
+      pathUse: 'Use this zip',
+      selectOr: 'Or pick a zip already dropped in a watched folder',
+      where: 'Watched folders on this machine: {{list}}',
       select: 'Archive to use',
       none: 'No zip in these folders',
       refresh: 'Refresh',

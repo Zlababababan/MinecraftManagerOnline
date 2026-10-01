@@ -162,6 +162,10 @@ export const en = {
     E_NOT_FOUND_PATHS_NOT_IN_ARCHIVE: 'Not in this archive: {{list}}. Nothing was changed.',
     E_INVALID_PAYLOAD_RESERVED_PATH:
       'This path is managed by the agent and is never restored: {{path}}.',
+    E_VALIDATION_ARCHIVE_NOT_A_ZIP_PATH:
+      'Give the full path of a .zip file on the machine, for example C:\\Users\\you\\Downloads\\pack.zip.',
+    E_UNSUPPORTED_TYPE_AGENT_TOO_OLD:
+      'The agent on this machine is too old for this operation: update it (banner on the dashboard), then try again.',
     E_VALIDATION_ARCHIVE_OUTSIDE:
       'The archive must be a .zip file dropped directly into a watched directory of the machine.',
     E_INVALID_PAYLOAD_ARCHIVE_OUTSIDE:

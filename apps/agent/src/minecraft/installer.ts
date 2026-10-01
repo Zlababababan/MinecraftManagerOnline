@@ -203,15 +203,15 @@ export class ServerInstaller {
     };
   }
 
-  /** Un zip, un vrai fichier, posé à la racine d'un répertoire surveillé — rien d'autre. */
+  /**
+   * Un zip, un vrai fichier, désigné par un chemin ABSOLU — rien d'autre. Depuis la 1.0.13 il
+   * n'a plus à être à la racine d'un répertoire surveillé (retour de Yassin, 02/10 : devoir
+   * déplacer le zip puis le retrouver dans une liste était un détour) : c'est le panel qui décide
+   * qui a le droit de désigner un chemin libre (administrateur), l'agent ne lit de toute façon
+   * que le sommaire du zip et les petits scripts de sa racine.
+   */
   private async assertArchive(archive: string): Promise<void> {
-    const fold = (p: string): string => {
-      const n = path.resolve(p);
-      return process.platform === 'win32' ? n.toLowerCase() : n;
-    };
-    const parent = fold(path.dirname(archive));
-    const allowed = (this.options.archiveRoots?.() ?? []).some((r) => fold(r.path) === parent);
-    if (!allowed || !archive.toLowerCase().endsWith('.zip')) {
+    if (!path.isAbsolute(archive) || !archive.toLowerCase().endsWith('.zip')) {
       throw new ProtocolError('E_INVALID_PAYLOAD', 'archive must sit in a watched directory', {
         details: { reason: 'ARCHIVE_OUTSIDE', path: archive },
       });

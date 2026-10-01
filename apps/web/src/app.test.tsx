@@ -864,9 +864,7 @@ describe('App', () => {
     // Port inhabituel : mis en avant ; port par défaut : l'affichage discret, sans pastille.
     const card = (id: string) =>
       within(
-        screen
-          .getAllByTestId('server-card')
-          .find((c) => c.getAttribute('data-server-id') === id)!,
+        screen.getAllByTestId('server-card').find((c) => c.getAttribute('data-server-id') === id)!,
       );
     expect(card('s1').getByTestId('card-port')).toHaveTextContent('Port 25570');
     expect(card('a').queryByTestId('card-port')).not.toBeInTheDocument();

@@ -187,6 +187,10 @@ export const fr = {
     E_NOT_FOUND_PATHS_NOT_IN_ARCHIVE: 'Absent de cette archive : {{list}}. Rien n’a été modifié.',
     E_INVALID_PAYLOAD_RESERVED_PATH:
       'Ce chemin est géré par l’agent et n’est jamais restauré : {{path}}.',
+    E_VALIDATION_ARCHIVE_NOT_A_ZIP_PATH:
+      'Donnez le chemin complet d’un fichier .zip sur la machine, par exemple C:\\Users\\vous\\Downloads\\pack.zip.',
+    E_UNSUPPORTED_TYPE_AGENT_TOO_OLD:
+      'L’agent de cette machine est trop ancien pour cette opération : mettez-le à jour (bandeau du tableau de bord), puis réessayez.',
     E_VALIDATION_ARCHIVE_OUTSIDE:
       'L’archive doit être un fichier .zip posé directement dans un répertoire surveillé de la machine.',
     E_INVALID_PAYLOAD_ARCHIVE_OUTSIDE:

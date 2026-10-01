@@ -486,6 +486,45 @@ describe('CreateServerModal — serveur depuis une archive', () => {
     });
   });
 
+  it('coller le chemin d’un zip : guillemets retirés, archive lue puis envoyée telle quelle à la création', async () => {
+    const { calls, created } = renderModal({ archives: [] });
+    await toArchiveMode();
+    const field = await screen.findByTestId('archive-path');
+    // Bouton inerte tant qu'il n'y a rien à lire.
+    expect(screen.getByTestId('archive-path-use')).toBeDisabled();
+    // « Copier en tant que chemin » de Windows entoure le chemin de guillemets.
+    fireEvent.change(field, {
+      target: { value: '  "C:\\Users\\Yassin\\Downloads\\ATM10-server.zip" ' },
+    });
+    fireEvent.click(screen.getByTestId('archive-path-use'));
+    expect(await screen.findByTestId('archive-recognized')).toBeInTheDocument();
+    const inspect = calls.find((c) => c.path.endsWith('/install/archives/inspect'));
+    expect(inspect?.body).toEqual({ path: 'C:\\Users\\Yassin\\Downloads\\ATM10-server.zip' });
+    expect(screen.getByTestId('archive-summary')).toHaveTextContent('ATM10-server.zip');
+
+    fireEvent.click(screen.getByTestId('install-next'));
+    expect(await screen.findByTestId('install-folder')).toHaveValue('ATM10');
+    fireEvent.click(screen.getByTestId('install-next'));
+    fireEvent.click(await screen.findByTestId('install-eula'));
+    fireEvent.click(screen.getByTestId('install-submit'));
+    await waitFor(() => {
+      expect(created).toEqual(['srv-new']);
+    });
+    const post = calls.find((c) => c.method === 'POST' && c.path === '/api/machines/m1/install');
+    expect(post?.body).toMatchObject({
+      archive: { path: 'C:\\Users\\Yassin\\Downloads\\ATM10-server.zip' },
+    });
+  });
+
+  it('coller un chemin est réservé à l’administrateur : un opérateur ne voit que la liste', async () => {
+    renderModal({ archives: ['ATM10AERO-0.7.1-server.zip'], role: 'operator' });
+    const select = await toArchiveMode();
+    await waitFor(() => {
+      expect(select.querySelectorAll('option').length).toBe(2);
+    });
+    expect(screen.queryByTestId('archive-path')).not.toBeInTheDocument();
+  });
+
   it('choisir un zip : chargeur lu affiché, mémoire proposée, archive envoyée à la création', async () => {
     const { calls, created } = renderModal({ archives: ['ATM10AERO-0.7.1-server.zip'] });
     const select = await toArchiveMode();

@@ -65,7 +65,11 @@ export interface InstallsDeps {
  * Ce que le service reçoit : le corps de la requête, plus la machine — qui vient de l'URL
  * (`/api/machines/:id/install`) et non du corps, pour qu'il n'y ait qu'une seule autorité.
  */
-export type InstallInput = Omit<CreateInstallInput, 'acceptEula'> & { machineId: string };
+export type InstallInput = Omit<CreateInstallInput, 'acceptEula'> & {
+  machineId: string;
+  /** L'appelant (administrateur) peut désigner un zip hors des répertoires surveillés. */
+  archiveAnywhere?: boolean | undefined;
+};
 
 export interface PreparedInstall {
   target: InstallTargetDto;
@@ -156,7 +160,11 @@ export class InstallsService {
    * réglages que son script aurait écrits. Le script lui-même n'est jamais exécuté.
    */
   private async archivePlan(input: InstallInput, archive: string): Promise<InstallPlan> {
-    const inspection = await this.inspectArchive(input.machineId, archive);
+    const inspection = await this.inspectArchive(
+      input.machineId,
+      archive,
+      input.archiveAnywhere === true,
+    );
     const declared = inspection.recognized;
     const plan = await this.deps.catalog.plan(
       declared === null
@@ -206,9 +214,15 @@ export class InstallsService {
   }
 
   /** Lit l'archive sur la machine (rien n'est déplié) et dit ce que le panel en comprend. */
-  async inspectArchive(machineId: string, archive: string): Promise<InstallArchiveInspectionDto> {
+  async inspectArchive(
+    machineId: string,
+    archive: string,
+    /** Administrateur : n'importe quel zip de la machine, par son chemin absolu. */
+    anywhere = false,
+  ): Promise<InstallArchiveInspectionDto> {
     const machine = this.deps.machines.require(machineId);
-    // Même règle que côté agent, donnée ici d'abord : un zip, à la racine d'un répertoire surveillé.
+    // La règle se donne ici d'abord : un zip, à la racine d'un répertoire surveillé — ou, pour un
+    // administrateur, n'importe où sur la machine (chemin absolu, agent assez récent).
     const fold = (p: string): string =>
       machine.os === 'windows' ? p.replace(/\//g, '\\').toLowerCase() : p;
     const cut = Math.max(archive.lastIndexOf('/'), archive.lastIndexOf('\\'));
@@ -216,13 +230,20 @@ export class InstallsService {
     const inWatched = this.deps.machines
       .directories(machine.id)
       .some((d) => fold(d.path.replace(/[\\/]+$/, '')) === parent);
-    if (!inWatched || !archive.toLowerCase().endsWith('.zip')) {
+    const isZip = archive.toLowerCase().endsWith('.zip');
+    const absolute = /^([A-Za-z]:[\\/]|[\\/])/.test(archive);
+    if (!isZip || (!inWatched && !(anywhere && absolute))) {
       throw new AppError('E_VALIDATION', 'archive must sit in a watched directory', {
-        details: { reason: 'ARCHIVE_OUTSIDE', path: archive },
+        details: {
+          reason: anywhere ? 'ARCHIVE_NOT_A_ZIP_PATH' : 'ARCHIVE_OUTSIDE',
+          path: archive,
+        },
       });
     }
     const session = this.deps.registry.require(machine.id);
     assertAgentSupports(session, 'install-extract');
+    // Un agent d'avant la 1.0.13 refuserait ce chemin : mieux vaut dire « mettez l'agent à jour ».
+    if (!inWatched) assertAgentSupports(session, 'install-archive-path');
     const raw = await session.peer.request('install.archiveInspect', { path: archive });
     const hints = readArchiveHints(raw.texts);
     return {

@@ -70,6 +70,7 @@ export const AGENT_CAPABILITIES = [
   'install-remove',
   'install-fetch-many',
   'install-extract',
+  'install-archive-path',
 ];
 
 export function currentOs(): Os {

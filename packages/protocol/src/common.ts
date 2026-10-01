@@ -82,6 +82,8 @@ export const KNOWN_CAPABILITIES = [
   'install-fetch-many',
   /** Lot 5 : étape `extract` + `install.archives`/`install.archiveInspect` (serveur depuis un zip, doc 06 §6sexies). */
   'install-extract',
+  /** 1.0.13 : l'archive d'un `extract` peut être n'importe quel zip de la machine (chemin absolu), plus seulement à la racine d'un répertoire surveillé. */
+  'install-archive-path',
 ] as const;
 export const capabilitySchema = z.string().min(1);
 

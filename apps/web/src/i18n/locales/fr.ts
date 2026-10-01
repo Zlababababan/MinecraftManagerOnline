@@ -1133,8 +1133,13 @@ export const webFr = {
     loaderFtb: 'Modpack FTB',
     loaderArchive: 'Archive (.zip)',
     archive: {
-      where:
-        'Téléchargez le zip « server files » du modpack avec votre navigateur, puis posez-le tel quel (sans le décompresser) dans l’un de ces dossiers de la machine :',
+      path: 'Chemin du zip sur la machine',
+      pathHint:
+        'Collez le chemin du zip « server files » tel qu’il est, sans le décompresser ni le déplacer (dans l’Explorateur Windows : clic droit sur le fichier → « Copier en tant que chemin »).',
+      pathPlaceholder: 'C:\\Users\\vous\\Downloads\\ServerFiles.zip',
+      pathUse: 'Utiliser ce zip',
+      selectOr: 'Ou choisissez un zip déjà posé dans un dossier surveillé',
+      where: 'Dossiers surveillés de cette machine : {{list}}',
       select: 'Archive à utiliser',
       none: 'Aucun zip dans ces dossiers',
       refresh: 'Actualiser',

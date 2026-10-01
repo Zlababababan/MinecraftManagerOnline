@@ -24,6 +24,7 @@ import {
 } from '@mmo/protocol/client';
 
 import type { AppContext } from '../../context.js';
+import { hasRole } from '../../services/users.js';
 import { requireUser } from '../auth.js';
 import { auditMeta } from './setup-auth.js';
 
@@ -32,6 +33,12 @@ const catalogQuery = z.object({ loader: installLoaderSchema });
 
 export function registerInstallRoutes(app: FastifyInstance, ctx: AppContext): void {
   const r = app.withTypeProvider<ZodTypeProvider>();
+  /**
+   * Désigner un zip par un chemin LIBRE sur la machine est un geste d'administrateur (comme
+   * `POST /api/servers`) : un opérateur reste borné aux répertoires surveillés.
+   */
+  const archiveAnywhere = (request: Parameters<typeof requireUser>[0]): boolean =>
+    hasRole(requireUser(request).role, 'admin');
 
   /** Versions installables, telles que les fournisseurs les publient (cache côté panel). */
   r.get(
@@ -51,7 +58,11 @@ export function registerInstallRoutes(app: FastifyInstance, ctx: AppContext): vo
       schema: { params: idParams, body: installPrecheckRequestSchema },
     },
     async (request) => ({
-      precheck: await ctx.installs.precheck({ ...request.body, machineId: request.params.id }),
+      precheck: await ctx.installs.precheck({
+        ...request.body,
+        machineId: request.params.id,
+        archiveAnywhere: archiveAnywhere(request),
+      }),
     }),
   );
 
@@ -70,7 +81,11 @@ export function registerInstallRoutes(app: FastifyInstance, ctx: AppContext): vo
       schema: { params: idParams, body: installArchiveInspectRequestSchema },
     },
     async (request) => ({
-      inspection: await ctx.installs.inspectArchive(request.params.id, request.body.path),
+      inspection: await ctx.installs.inspectArchive(
+        request.params.id,
+        request.body.path,
+        archiveAnywhere(request),
+      ),
     }),
   );
 
@@ -80,7 +95,11 @@ export function registerInstallRoutes(app: FastifyInstance, ctx: AppContext): vo
     async (request, reply) => {
       const user = requireUser(request);
       const { server, taskId } = await ctx.installs.create(
-        { ...request.body, machineId: request.params.id },
+        {
+          ...request.body,
+          machineId: request.params.id,
+          archiveAnywhere: hasRole(user.role, 'admin'),
+        },
         user.id,
       );
       ctx.audit.record({
