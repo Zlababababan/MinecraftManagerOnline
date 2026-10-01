@@ -149,6 +149,15 @@ export function registerMiscRoutes(app: FastifyInstance, ctx: AppContext): void 
           ctx.settings.set(key, String(days));
           continue;
         }
+        if (key === 'servers.defaultExposeMode') {
+          if (value !== 'tailnet' && value !== 'direct') {
+            throw new AppError('E_VALIDATION', `${key} must be 'tailnet' or 'direct'`, {
+              details: { key },
+            });
+          }
+          ctx.settings.set(key, value);
+          continue;
+        }
         if (key.startsWith('privacy.') || key === 'modpacks.ftb.enabled') {
           // Booléens stricts : `getBool` lirait « yes » comme faux, en silence.
           if (value !== 'true' && value !== 'false') {

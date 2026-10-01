@@ -29,6 +29,7 @@ import { ApiKeysCard } from '../components/admin/ApiKeysCard.js';
 import { AuditCard } from '../components/admin/AuditCard.js';
 import { DistributionCard } from '../components/admin/DistributionCard.js';
 import { PanelBackupsCard } from '../components/admin/PanelBackupsCard.js';
+import { PlayerExposureCard } from '../components/admin/PlayerExposureCard.js';
 import { ThirdPartyCard } from '../components/admin/ThirdPartyCard.js';
 import { UsersCard } from '../components/admin/UsersCard.js';
 import { WebhooksCard } from '../components/admin/WebhooksCard.js';
@@ -345,6 +346,7 @@ export function SettingsPage() {
       {settings.data !== undefined && <GeneralCard settings={settings.data.settings} />}
       {settings.data !== undefined && <PrivacyCard settings={settings.data.settings} />}
       {settings.data !== undefined && <ThirdPartyCard settings={settings.data.settings} />}
+      {settings.data !== undefined && <PlayerExposureCard settings={settings.data.settings} />}
       <UsersCard />
       <ApiKeysCard all />
       <AccessCard />

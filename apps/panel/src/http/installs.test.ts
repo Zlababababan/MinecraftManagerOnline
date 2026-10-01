@@ -893,6 +893,42 @@ describe('installation d’un serveur — routes et service du panel', () => {
     });
   });
 
+  it('exposition par défaut : réglage strict, appliqué aux serveurs qui naissent, et « tous d’un coup »', async () => {
+    const m = await online('Tour');
+    const expose = () => panel.ctx.servers.list().map((s) => s.exposeMode);
+    // Sans réglage : tailnet, comme avant.
+    const first = await api('POST', `/api/machines/${m.id}/install`, body(m));
+    expect(first.statusCode, first.body).toBe(202);
+    expect(expose()).toEqual(['tailnet']);
+
+    const bad = await api('PATCH', '/api/settings', { 'servers.defaultExposeMode': 'public' });
+    expect(bad.statusCode).toBe(400);
+    const ok = await api('PATCH', '/api/settings', { 'servers.defaultExposeMode': 'direct' });
+    expect(ok.statusCode, ok.body).toBe(200);
+    // Changer le défaut ne touche pas aux serveurs existants…
+    expect(expose()).toEqual(['tailnet']);
+    // … mais le suivant naît en direct.
+    const second = await api(
+      'POST',
+      `/api/machines/${m.id}/install`,
+      body(m, { folderName: 'second' }),
+    );
+    expect(second.statusCode, second.body).toBe(202);
+    expect(expose().sort()).toEqual(['direct', 'tailnet']);
+
+    const wrong = await api('POST', '/api/servers/expose-mode', { mode: 'public' });
+    expect(wrong.statusCode).toBe(400);
+    const all = await api('POST', '/api/servers/expose-mode', { mode: 'direct' });
+    expect(all.statusCode, all.body).toBe(200);
+    // Un seul serveur a changé : celui qui était déjà en direct n'est pas compté.
+    expect(all.json()).toEqual({ updated: 1 });
+    expect(expose()).toEqual(['direct', 'direct']);
+    const again = await api('POST', '/api/servers/expose-mode', { mode: 'direct' });
+    expect(again.json()).toEqual({ updated: 0 });
+    const back = await api('POST', '/api/servers/expose-mode', { mode: 'tailnet' });
+    expect(back.json()).toEqual({ updated: 2 });
+  });
+
   it('une version que Fabric ne supporte pas est refusée avant toute écriture', async () => {
     const m = await online('Tour');
     const res = await api(
@@ -1082,6 +1118,10 @@ describe('installation d’un serveur — routes et service du panel', () => {
       });
       const ok = await api('POST', `/api/machines/${m.id}/install`, body(m), cookie);
       expect(ok.statusCode, ok.body).toBe(202);
+      // Changer l'exposition de TOUS les serveurs est un geste d'administrateur.
+      const all = await api('POST', '/api/servers/expose-mode', { mode: 'direct' }, cookie);
+      expect(all.statusCode).toBe(403);
+      expect(panel.ctx.servers.list().map((s) => s.exposeMode)).toEqual(['tailnet']);
       // Une machine hors de sa portée n'existe pas : 404, jamais 403 (pas d'énumération).
       const nope = await api('POST', `/api/machines/${other.id}/install`, body(other), cookie);
       expect(nope.statusCode).toBe(404);

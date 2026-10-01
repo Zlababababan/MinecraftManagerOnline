@@ -8,6 +8,13 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### Hosting without Tailscale (2026-10-01)
+
+- **New setting: Settings → Player access.** Choose whether new servers show a Tailscale address or
+  the machine's direct address as "the address to give your friends", and apply the choice to all
+  existing servers in one click. This only changes what the panel displays: the Minecraft servers
+  listen the same way either way.
+
 ## 1.0.10 — 2026-10-01
 
 Versions 1.0.8 and 1.0.9 were never published: the number jumps from 1.0.7 to 1.0.10.

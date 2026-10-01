@@ -198,6 +198,19 @@ export function useMarkNotificationsSeen() {
 
 // --- Accès et réglages -----------------------------------------------------------------------------
 
+/** Passe tous les serveurs à la même exposition (adresse affichée aux joueurs). */
+export function useSetExposeModeAll() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (mode: 'tailnet' | 'direct') =>
+      api.post<{ updated: number }>('/api/servers/expose-mode', { mode }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: keys.servers });
+      void queryClient.invalidateQueries({ queryKey: phase10Keys.firewall });
+    },
+  });
+}
+
 export function useUpdateSettings() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -26,7 +26,7 @@ Dépannage : `tailscale status` sur l'hôte ; `tailscale serve status` doit list
 
 1. Un domaine : gratuit avec **DuckDNS** (`votre-nom.duckdns.org`) ou un domaine chez Cloudflare ; ou tout fournisseur en mode **manuel** (vous posez les enregistrements vous-même).
 2. Réglages → Accès distant, mode **Direct** : domaine, fournisseur DNS, jeton (DuckDNS : jeton du site ; Cloudflare : API token `Zone:DNS:Edit`), e-mail ACME. **Enregistrer** puis **Demander un certificat** : le panel pose le TXT `_acme-challenge` (ou vous l'affiche en mode manuel), attend la propagation, obtient un certificat Let's Encrypt et ouvre un listener HTTPS sur votre IPv6 globale, port 443.
-3. **DNS dynamique** : interrupteur « Mettre à jour l'AAAA automatiquement » — le panel met à jour l'AAAA toutes les 10 min (DuckDNS/Cloudflare/URL générique). En mode manuel, pointez vous-même l'AAAA sur l'IPv6 affichée.
+3. **DNS dynamique** : interrupteur « Mettre à jour l'AAAA automatiquement » — le panel met à jour l'AAAA dès que l'adresse change, et le rafraîchit une fois par jour (DuckDNS/Cloudflare/URL générique). En mode manuel, pointez vous-même l'AAAA sur l'IPv6 affichée.
 4. **Box / pare-feu** : sur la box, créez un _pinhole_ IPv6 (Freebox : « Ouvrir un port IPv6 » ; Livebox : « Pare-feu IPv6 ») vers l'adresse de l'hôte, port 443 TCP. Sur l'hôte, ajoutez la règle affichée dans Réglages → Accès distant → **Règles pare-feu** (PowerShell `New-NetFirewallRule` / `ufw allow`). Les adresses IPv6 _temporaires_ (privacy extensions) changent : le panel choisit l'adresse stable vue au tick précédent ; en cas de doute, fixez-la dans « Adresse IPv6 publique ».
 5. URL publique : `https://votre-nom.duckdns.org` (Réglages → Général), puis lancez le **Test de joignabilité**.
 
@@ -76,6 +76,12 @@ Par défaut le panel n'expose **rien** : il n'écoute que sur `127.0.0.1`. En mo
 - La **Security List** du VCN se règle dans la console web d'Oracle, pas sur la VM : ajoutez-y aussi une règle entrante TCP 443 (Networking → Virtual cloud networks → votre VCN → Security Lists).
 
 Avec Tailscale, rien de tout cela n'est nécessaire — ni iptables, ni Security List : c'est tout l'intérêt du mode par défaut.
+
+## Vos amis se connectent déjà en direct ?
+
+Le panel n'ajoute aucune contrainte aux joueurs. Le réglage **Exposition** d'un serveur (Tailnet / Direct) ne change que l'adresse que le panel **affiche** « à donner aux amis » : le serveur Minecraft écoute de la même façon dans les deux cas, et une connexion directe en IPv6 qui marchait avant marche toujours. Si vous n'utilisez pas Tailscale pour jouer : Réglages → **Accès des joueurs** → « Direct » pour les nouveaux serveurs, puis « Appliquer à tous les serveurs existants ».
+
+Tailscale n'est pas non plus nécessaire entre le panel et un agent installé **sur la même machine** : installez l'agent avec `-Panel http://127.0.0.1:3000` et il joint le panel sans passer par le réseau.
 
 ## Une voie par machine
 

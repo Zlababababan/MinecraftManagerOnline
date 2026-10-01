@@ -1246,6 +1246,8 @@ export const EDITABLE_SETTINGS = [
   'privacy.externalAvatars',
   /** Modpacks FTB dans l'assistant de création (intégration retirable, docs/services-tiers.md). */
   'modpacks.ftb.enabled',
+  /** Exposition des nouveaux serveurs : `tailnet` ou `direct` (adresse affichée aux joueurs). */
+  'servers.defaultExposeMode',
   'agents.restoreOnBoot',
   'metrics.intervalSec',
   /** Fuseau dans lequel toutes les planifications sont lues (nom IANA, ex. `Europe/Paris`). */

@@ -1680,6 +1680,15 @@ export const webEn = {
       firewallNone: 'No server exposed directly.',
     },
   },
+  playerExposure: {
+    title: 'Player access',
+    hint: 'Which address the panel shows as “give this to your friends”. It changes nothing on the servers themselves: they listen the same way, and your friends can always connect directly over IPv6. “Tailnet” is only useful if your friends use Tailscale.',
+    default: 'For new servers',
+    applyAll: 'Apply to all existing servers',
+    applyAllHint: 'Each server keeps its own setting, editable on its page.',
+    applied_one: '{{count}} server changed.',
+    applied_other: '{{count}} servers changed.',
+  },
   playerAccess: {
     title: 'Player access',
     hint: 'The address to give to your friends depends on how this server is exposed.',

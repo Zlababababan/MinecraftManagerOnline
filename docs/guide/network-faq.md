@@ -26,7 +26,7 @@ Troubleshooting: `tailscale status` on the host; `tailscale serve status` must l
 
 1. A domain: free with **DuckDNS** (`your-name.duckdns.org`) or a domain on Cloudflare; or any provider in **manual** mode (you create the records yourself).
 2. Settings → Remote access, **Direct** mode: domain, DNS provider, token (DuckDNS: the site's token; Cloudflare: an API token with `Zone:DNS:Edit`), ACME e-mail. **Save** then **Request a certificate**: the panel creates the `_acme-challenge` TXT record (or shows it to you in manual mode), waits for propagation, obtains a Let's Encrypt certificate and opens an HTTPS listener on your global IPv6 address, port 443.
-3. **Dynamic DNS**: the "Update the AAAA record automatically" switch — the panel updates the AAAA record every 10 min (DuckDNS/Cloudflare/generic URL). In manual mode, point the AAAA record at the displayed IPv6 yourself.
+3. **Dynamic DNS**: the "Update the AAAA record automatically" switch — the panel updates the AAAA record as soon as the address changes, and refreshes it once a day (DuckDNS/Cloudflare/generic URL). In manual mode, point the AAAA record at the displayed IPv6 yourself.
 4. **Box / firewall**: on the box, create an IPv6 _pinhole_ (Freebox: "Ouvrir un port IPv6"; Livebox: "Pare-feu IPv6") to the host's address, port 443 TCP. On the host, add the rule shown in Settings → Remote access → **Firewall rules** (PowerShell `New-NetFirewallRule` / `ufw allow`). _Temporary_ IPv6 addresses (privacy extensions) change over time: the panel picks the stable address seen at the previous tick; when in doubt, pin it in "Public IPv6 address".
 5. Public URL: `https://your-name.duckdns.org` (Settings → General), then run the **Reachability test**.
 
@@ -76,6 +76,12 @@ By default the panel exposes **nothing**: it listens on `127.0.0.1` only. In **T
 - The **Security List** of the VCN is configured in the Oracle web console, not on the VM: add an ingress rule for TCP 443 there as well (Networking → Virtual cloud networks → your VCN → Security Lists).
 
 With Tailscale, none of this is needed — no iptables, no Security List: that is much of the point of the default mode.
+
+## Friends already connect directly?
+
+The panel adds no constraint for players. A server's **Exposure** setting (Tailnet / Direct) only changes the address the panel **shows** as "give this to your friends": the Minecraft server listens the same way either way, and a direct IPv6 connection that worked before still works. If you do not use Tailscale to play: Settings → **Player access** → "Direct" for new servers, then "Apply to all existing servers".
+
+Tailscale is not needed either between the panel and an agent installed **on the same machine**: install the agent with `-Panel http://127.0.0.1:3000` and it reaches the panel without going over the network.
 
 ## One route per machine
 

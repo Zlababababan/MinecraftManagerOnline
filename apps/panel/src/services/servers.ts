@@ -399,7 +399,7 @@ export class ServersService {
       rconPort: d.rconPort ?? null,
       rconPasswordEnc: null,
       eulaAccepted: d.eulaAccepted ? 1 : 0,
-      exposeMode: 'tailnet',
+      exposeMode: this.defaultExposeMode(),
       provisioning: d.needsInstall === true ? 'installing' : 'ready',
       runState: 'stopped',
       desiredState: 'stopped',
@@ -575,6 +575,21 @@ export class ServersService {
 
   // --- Phase 9 : migration ---------------------------------------------------------------------
 
+  /** Exposition d'un serveur qui naît (adopté ou créé) : le réglage du panel, `tailnet` à défaut. */
+  private defaultExposeMode(): 'tailnet' | 'direct' {
+    return this.deps.settings.get(SETTING_KEYS.defaultExposeMode) === 'direct'
+      ? 'direct'
+      : 'tailnet';
+  }
+
+  /** Passe TOUS les serveurs à cette exposition ; rend ceux qui ont changé. */
+  setExposeModeAll(mode: 'tailnet' | 'direct'): ServerRow[] {
+    const changed = this.list().filter((row) => row.exposeMode !== mode);
+    if (changed.length === 0) return [];
+    this.db.update(servers).set({ exposeMode: mode, updatedAt: this.now() }).run();
+    return changed.map((row) => this.require(row.id));
+  }
+
   setProvisioning(id: string, provisioning: ServerRow['provisioning']): void {
     this.db
       .update(servers)
@@ -723,7 +738,7 @@ export class ServersService {
       rconPasswordEnc: null,
       // L'EULA est acceptée dans l'assistant et écrite par l'agent à la fin de l'installation.
       eulaAccepted: 1,
-      exposeMode: 'tailnet',
+      exposeMode: this.defaultExposeMode(),
       provisioning: 'installing',
       runState: 'stopped',
       desiredState: 'stopped',

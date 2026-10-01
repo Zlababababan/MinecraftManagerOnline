@@ -1703,6 +1703,15 @@ export const webFr = {
       firewallNone: 'Aucun serveur exposé en direct.',
     },
   },
+  playerExposure: {
+    title: 'Accès des joueurs',
+    hint: 'Quelle adresse le panel affiche « à donner aux amis ». Cela ne change rien aux serveurs eux-mêmes : ils écoutent de la même façon, et vos amis peuvent toujours se connecter directement en IPv6. « Tailnet » sert seulement si vos amis utilisent Tailscale.',
+    default: 'Pour les nouveaux serveurs',
+    applyAll: 'Appliquer à tous les serveurs existants',
+    applyAllHint: 'Chaque serveur garde son propre réglage, modifiable sur sa page.',
+    applied_one: '{{count}} serveur modifié.',
+    applied_other: '{{count}} serveurs modifiés.',
+  },
   playerAccess: {
     title: 'Accès des joueurs',
     hint: 'L’adresse à donner à vos amis dépend du mode d’exposition de ce serveur.',

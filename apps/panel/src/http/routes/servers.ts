@@ -228,6 +228,29 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
    * par l'agent. Inutile donc d'attendre l'état `running`, ce qui rendrait la route bloquante
    * pendant des minutes.
    */
+  /**
+   * Passe tous les serveurs à la même exposition (Réglages → Accès des joueurs). Ne touche à aucun
+   * serveur Minecraft : seule l'adresse affichée « à donner aux amis » change.
+   */
+  r.post(
+    '/api/servers/expose-mode',
+    {
+      config: { role: 'admin' },
+      schema: { body: z.object({ mode: z.enum(['tailnet', 'direct']) }) },
+    },
+    (request) => {
+      const changed = ctx.servers.setExposeModeAll(request.body.mode);
+      for (const row of changed) broadcast(row);
+      ctx.audit.record({
+        ...auditMeta(request),
+        action: 'servers.exposeModeAll',
+        targetType: 'server',
+        details: { mode: request.body.mode, updated: changed.length },
+      });
+      return { updated: changed.length };
+    },
+  );
+
   r.post(
     '/api/servers/bulk-action',
     { config: { role: 'operator' }, schema: { body: bulkActionSchema } },

@@ -44,6 +44,12 @@ export const SETTING_KEYS = {
    * panel ne contacte plus du tout l'API FTB (docs/services-tiers.md).
    */
   ftbEnabled: 'modpacks.ftb.enabled',
+  /**
+   * Exposition donnée aux serveurs nouvellement adoptés ou créés (`tailnet` | `direct`). Elle ne
+   * règle que l'adresse AFFICHÉE « à donner aux amis » : le serveur Minecraft écoute de la même
+   * façon dans les deux cas (retour de Yassin, 01/10 : il joue en IPv6 directe, sans Tailscale).
+   */
+  defaultExposeMode: 'servers.defaultExposeMode',
   restoreOnBoot: 'agents.restoreOnBoot',
   metricsIntervalSec: 'metrics.intervalSec',
   /** Phase 9 : mise à jour automatique des agents à la connexion. */
@@ -93,6 +99,7 @@ const DEFAULTS: Readonly<Record<string, string>> = {
   [SETTING_KEYS.mojangLookup]: 'true',
   [SETTING_KEYS.externalAvatars]: 'true',
   [SETTING_KEYS.ftbEnabled]: 'true',
+  [SETTING_KEYS.defaultExposeMode]: 'tailnet',
   [SETTING_KEYS.restoreOnBoot]: 'true',
   [SETTING_KEYS.metricsIntervalSec]: '15',
   [SETTING_KEYS.accessHttpsPort]: '443',
