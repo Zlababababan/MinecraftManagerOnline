@@ -144,3 +144,30 @@ describe('aller-retour avec l’URL', () => {
     expect(searchToFilter({ desc: true }).desc).toBe(true);
   });
 });
+
+describe('favoris', () => {
+  const names = (list: readonly ServerDto[]) => list.map((s) => s.name);
+  const fleet = [
+    srv({ name: 'Alpha' }),
+    srv({ name: 'Zoulou', favorite: true }),
+    srv({ name: 'Mike', favorite: true }),
+    srv({ name: 'Bravo' }),
+  ];
+
+  it('passent en tête, puis le tri choisi s’applique dans chaque groupe', () => {
+    expect(names(filterServers(fleet, EMPTY_FILTER))).toEqual(['Mike', 'Zoulou', 'Alpha', 'Bravo']);
+  });
+
+  it('restent en tête quand le sens du tri s’inverse', () => {
+    expect(names(filterServers(fleet, { ...EMPTY_FILTER, desc: true }))).toEqual([
+      'Zoulou',
+      'Mike',
+      'Bravo',
+      'Alpha',
+    ]);
+  });
+
+  it('n’échappent pas aux filtres : un favori qui ne correspond pas disparaît', () => {
+    expect(names(filterServers(fleet, { ...EMPTY_FILTER, q: 'brav' }))).toEqual(['Bravo']);
+  });
+});

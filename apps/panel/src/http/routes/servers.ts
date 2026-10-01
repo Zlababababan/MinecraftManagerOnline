@@ -16,6 +16,7 @@ import {
   playerActionRequestSchema,
   playerResolveRequestSchema,
   resolveConflictSchema,
+  setFavoriteSchema,
   stopServerSchema,
   updateServerSchema,
   type BulkActionResult,
@@ -157,6 +158,17 @@ export function registerServerRoutes(app: FastifyInstance, ctx: AppContext): voi
         details: request.body,
       });
       await ctx.registry.get(row.machineId)?.pushConfig();
+      broadcast(row);
+      return { server: dto(row) };
+    },
+  );
+
+  // Favori : un geste d'affichage (opérateur), sans audit ni `pushConfig` — l'agent n'en sait rien.
+  r.put(
+    '/api/servers/:id/favorite',
+    { config: { role: 'operator' }, schema: { params: idParams, body: setFavoriteSchema } },
+    (request) => {
+      const row = ctx.servers.setFavorite(request.params.id, request.body.favorite);
       broadcast(row);
       return { server: dto(row) };
     },

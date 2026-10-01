@@ -341,6 +341,8 @@ export const serverDtoSchema = z.object({
   /** Groupe de démarrage et rang dans le groupe (démarrage croissant, arrêt décroissant). */
   groupId: z.string().nullable().default(null),
   groupPosition: z.int().default(0),
+  /** Favori : épinglé en tête du tableau de bord et de la liste (absent = non, panel N-1). */
+  favorite: z.boolean().optional(),
   /** Dernière détection (confiance, evidence, template de lancement). */
   detection: detectedServerSchema.optional(),
 });
@@ -370,6 +372,8 @@ export const updateServerSchema = z.object({
   groupId: z.string().min(1).nullable().optional(),
   groupPosition: z.int().min(0).max(9999).optional(),
 });
+/** Épingler / désépingler un serveur : pur affichage, rien ne part vers l'agent. */
+export const setFavoriteSchema = z.object({ favorite: z.boolean() });
 export const stopServerSchema = z.object({
   timeoutSec: z.int().positive().optional(),
   announce: z.string().optional(),

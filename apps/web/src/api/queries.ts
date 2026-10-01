@@ -531,6 +531,23 @@ export function useServerAction(serverId: string) {
   });
 }
 
+/** Épingler / désépingler : la liste et la fiche sont recollées avec le serveur renvoyé. */
+export function useSetFavorite(serverId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (favorite: boolean) =>
+      api.put<{ server: ServerDto }>(`/api/servers/${serverId}/favorite`, { favorite }),
+    onSuccess: (data) => {
+      qc.setQueryData(keys.server(serverId), { server: data.server });
+      qc.setQueryData(serversQuery.queryKey, (old) =>
+        old === undefined
+          ? old
+          : { servers: old.servers.map((s) => (s.id === data.server.id ? data.server : s)) },
+      );
+    },
+  });
+}
+
 /**
  * Action groupée. Le panel exécute SÉQUENTIELLEMENT et s'arrête au premier refus : la réponse
  * dit ce qui a été fait, ce qui a échoué et ce qui n'a pas été tenté. On invalide la liste plutôt

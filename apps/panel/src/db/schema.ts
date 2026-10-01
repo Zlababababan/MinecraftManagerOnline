@@ -348,6 +348,8 @@ export const servers = sqliteTable(
     /** Groupe de démarrage (lot 7) et rang dans le groupe (démarrage croissant, arrêt décroissant). */
     groupId: text('group_id').references(() => serverGroups.id, { onDelete: 'set null' }),
     groupPosition: integer('group_position').notNull().default(0),
+    /** Favori (passe UX du 01/10) : épinglé en tête du tableau de bord et de la liste, pour tous. */
+    favorite: integer('favorite').notNull().default(0),
   },
   (t) => [
     unique('uq_servers_path').on(t.machineId, t.path),

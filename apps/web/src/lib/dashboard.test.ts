@@ -68,7 +68,13 @@ describe('dashboardSections', () => {
       server('range', { provisioning: 'archived' }),
       server('range-2', { provisioning: 'archived', runState: 'crashed' }),
     ]);
-    expect(sections).toEqual({ active: [], attention: [], recent: [] });
+    expect(sections).toEqual({
+      favorites: [],
+      runningCount: 0,
+      active: [],
+      attention: [],
+      recent: [],
+    });
   });
 });
 
@@ -88,5 +94,31 @@ describe('creatableMachines', () => {
       machine('interdit', true, 2),
     ];
     expect(creatableMachines(machines, (id) => id !== 'interdit').map((m) => m.id)).toEqual(['ok']);
+  });
+});
+
+describe('favoris du tableau de bord', () => {
+  it('sont en tête, quel que soit leur état, et ne sont répétés nulle part', () => {
+    const sections = dashboardSections([
+      server('fav-arret', { favorite: true }),
+      server('fav-marche', { favorite: true, runState: 'running' }),
+      server('fav-plante', { favorite: true, runState: 'crashed' }),
+      server('marche', { runState: 'running' }),
+      server('plante', { runState: 'crashed' }),
+      server('repos'),
+    ]);
+    expect(ids(sections.favorites)).toEqual(['fav-arret', 'fav-marche', 'fav-plante']);
+    expect(ids(sections.active)).toEqual(['marche']);
+    expect(ids(sections.attention)).toEqual(['plante']);
+    expect(ids(sections.recent)).toEqual(['repos']);
+    // La tuile « en marche » compte aussi les favoris qui tournent.
+    expect(sections.runningCount).toBe(2);
+  });
+
+  it('un favori archivé est rangé comme les autres ; sans favori, la section est vide', () => {
+    expect(
+      dashboardSections([server('vieux', { favorite: true, provisioning: 'archived' })]).favorites,
+    ).toEqual([]);
+    expect(dashboardSections([server('a'), server('b')]).favorites).toEqual([]);
   });
 });

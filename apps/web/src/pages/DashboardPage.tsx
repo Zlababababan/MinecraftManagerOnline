@@ -114,12 +114,28 @@ export function DashboardPage() {
         />
         <Stat
           label={t('web:dashboard.running')}
-          value={servers.data === undefined ? '…' : sections.active.length}
+          value={servers.data === undefined ? '…' : sections.runningCount}
           testId="stat-running"
         />
       </SimpleGrid>
       {conflicts.data !== undefined && <ConflictsPanel conflicts={conflicts.data.conflicts} />}
       <OnboardingCard />
+
+      {sections.favorites.length > 0 && (
+        <Card withBorder radius="md" padding="md" data-testid="dashboard-favorites">
+          <Stack gap="sm">
+            <Title order={2} size="h4">
+              {t('web:dashboard.favorites')}
+            </Title>
+            <ServerCollection
+              servers={sections.favorites}
+              mode="cards"
+              emptyLabel=""
+              {...(machineName === undefined ? {} : { machineName })}
+            />
+          </Stack>
+        </Card>
+      )}
 
       {sections.attention.length > 0 && (
         <Card withBorder radius="md" padding="md" data-testid="dashboard-attention">

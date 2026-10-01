@@ -16,7 +16,7 @@ import { formatMb } from '../lib/format.js';
 import type { ListMode } from '../lib/list-view.js';
 import { RunStateBadge } from './badges.js';
 import { RouterAnchor } from './links.js';
-import { ServerCard, serverSubtitle } from './ServerCard.js';
+import { FavoriteStar, ServerCard, serverSubtitle } from './ServerCard.js';
 
 export interface ServerSelection {
   selected: Set<string>;
@@ -134,6 +134,7 @@ export function ServerCollection({
                       {s.name}
                     </RouterAnchor>
                     <GroupBadge server={s} groupName={groupName} />
+                    <FavoriteStar server={s} />
                   </Group>
                   <Text size="xs" c="dimmed" truncate="end">
                     {serverSubtitle(s, t(`common:loader.${s.loader}`))}

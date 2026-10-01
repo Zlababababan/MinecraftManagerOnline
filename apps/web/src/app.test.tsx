@@ -108,6 +108,7 @@ interface FakeApi {
   machines: MachineDto[];
   servers: ServerDto[];
   access: AccessStatusDto | null;
+  address: string | null;
 }
 
 function json(status: number, body: unknown): Response {
@@ -175,6 +176,26 @@ function installFetch(state: FakeApi): void {
             pid: 42,
             server: { ...server, runState: 'starting', desiredState: 'running' },
           });
+        case 'PUT /api/servers/s1/favorite': {
+          const body = JSON.parse(typeof init?.body === 'string' ? init.body : '{}') as {
+            favorite: boolean;
+          };
+          state.servers = state.servers.map((x) =>
+            x.id === 's1' ? { ...x, favorite: body.favorite } : x,
+          );
+          return json(200, { server: state.servers.find((x) => x.id === 's1') });
+        }
+        case 'GET /api/servers/s1/address':
+          return json(200, {
+            address: {
+              exposeMode: 'direct',
+              address: state.address,
+              host: state.address === null ? null : '2001:db8::1',
+              port: 25565,
+              source: state.address === null ? 'none' : 'detected',
+              alternatives: [],
+            },
+          });
         case 'POST /api/machines': {
           const created: MachineDto = {
             ...machine,
@@ -238,6 +259,7 @@ describe('App', () => {
       machines: [machine],
       servers: [server],
       access: null,
+      address: '[2001:db8::1]:25565',
     };
     installFetch(state);
     vi.stubGlobal('WebSocket', FakeWebSocket);
@@ -477,6 +499,55 @@ describe('App', () => {
     await user.click(all);
     expect(await screen.findByTestId('servers-page')).toBeInTheDocument();
   });
+  it('carte serveur : étoile, console et adresse à donner aux amis', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn(() => Promise.resolve());
+    state.session = true;
+    state.servers = [{ ...server, id: 's0', name: 'Aaa' }, server];
+    renderApp('/servers');
+    const cardIds = () =>
+      screen.getAllByTestId('server-card').map((c) => c.getAttribute('data-server-id'));
+    await waitFor(() => {
+      expect(cardIds()).toEqual(['s0', 's1']);
+    });
+    // userEvent installe son propre presse-papiers : on l’espionne après coup.
+    vi.spyOn(navigator.clipboard, 'writeText').mockImplementation(writeText);
+    const card = within(screen.getAllByTestId('server-card')[1] as HTMLElement);
+
+    // Épingler : le serveur passe en tête de la liste.
+    const star = card.getByTestId('favorite-s1');
+    expect(star).toHaveAttribute('aria-pressed', 'false');
+    await user.click(star);
+    await waitFor(() => {
+      expect(cardIds()).toEqual(['s1', 's0']);
+    });
+    expect(state.calls).toContain('PUT /api/servers/s1/favorite');
+    expect(screen.getByTestId('favorite-s1')).toHaveAttribute('aria-pressed', 'true');
+
+    // La console est à un clic, l’adresse aussi — demandée au panel seulement au clic.
+    const pinned = within(screen.getAllByTestId('server-card')[0] as HTMLElement);
+    expect(pinned.getByTestId('card-console')).toHaveAttribute('href', '/servers/s1?tab=console');
+    expect(state.calls).not.toContain('GET /api/servers/s1/address');
+    await user.click(pinned.getByTestId('card-copy-address'));
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith('[2001:db8::1]:25565');
+    });
+    expect(await screen.findByText('Adresse copiée : [2001:db8::1]:25565')).toBeInTheDocument();
+  });
+
+  it('carte serveur : sans adresse connue, on le dit au lieu de copier du vide', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn(() => Promise.resolve());
+    state.session = true;
+    state.address = null;
+    renderApp('/servers');
+    const button = await screen.findByTestId('card-copy-address');
+    vi.spyOn(navigator.clipboard, 'writeText').mockImplementation(writeText);
+    await user.click(button);
+    expect(await screen.findByText(/Aucune adresse connue pour ce serveur/)).toBeInTheDocument();
+    expect(writeText).not.toHaveBeenCalled();
+  });
+
   it('page machine : pas de liste de serveurs, un lien vers la liste filtrée sur la machine', async () => {
     const user = userEvent.setup();
     state.session = true;

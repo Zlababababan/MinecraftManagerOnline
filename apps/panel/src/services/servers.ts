@@ -186,6 +186,7 @@ export class ServersService {
       reachable,
       groupId: row.groupId,
       groupPosition: row.groupPosition,
+      favorite: row.favorite === 1,
       ...(detection === undefined ? {} : { detection }),
     };
   }
@@ -416,6 +417,7 @@ export class ServersService {
       updatedAt: t,
       groupId: null,
       groupPosition: 0,
+      favorite: 0,
     };
     this.db.insert(servers).values(row).run();
     // Sauvegarde « prête à l'emploi » : chaque nouveau serveur reçoit la politique par défaut
@@ -556,6 +558,17 @@ export class ServersService {
     return this.require(id);
   }
 
+  /** Favori : pur affichage — `updatedAt` ne bouge pas, rien n'est poussé à l'agent. */
+  setFavorite(id: string, favorite: boolean): ServerRow {
+    this.require(id);
+    this.db
+      .update(servers)
+      .set({ favorite: favorite ? 1 : 0 })
+      .where(eq(servers.id, id))
+      .run();
+    return this.require(id);
+  }
+
   setDesiredState(id: string, desired: 'running' | 'stopped'): ServerRow {
     this.db
       .update(servers)
@@ -676,6 +689,7 @@ export class ServersService {
       // Le clone ne rejoint pas le groupe de la source (les rangs y entreraient en collision).
       groupId: null,
       groupPosition: 0,
+      favorite: 0,
       provisioning: 'migrating',
       runState: 'stopped',
       desiredState: 'stopped',
@@ -755,6 +769,7 @@ export class ServersService {
       updatedAt: t,
       groupId: null,
       groupPosition: 0,
+      favorite: 0,
     };
     this.db.insert(servers).values(row).run();
     try {

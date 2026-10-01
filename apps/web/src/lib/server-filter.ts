@@ -80,6 +80,9 @@ export function filterServers(servers: readonly ServerDto[], f: ServerFilter): S
     }
   };
   kept.sort((a, b) => {
+    // Les favoris d'abord, quel que soit le tri ou son sens : c'est ce que veut dire épingler.
+    const pinned = Number(b.favorite === true) - Number(a.favorite === true);
+    if (pinned !== 0) return pinned;
     const primary = compare(a, b);
     // Départage stable et lisible : à égalité, l'ordre alphabétique.
     return primary !== 0

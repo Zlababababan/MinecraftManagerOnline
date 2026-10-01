@@ -9,6 +9,10 @@ import type { MachineDto, ServerDto } from '@mmo/protocol/client';
 export const DASHBOARD_RECENT_MAX = 6;
 
 export interface DashboardSections {
+  /** Épinglés par une étoile : toujours en tête, quel que soit leur état, et nulle part ailleurs. */
+  favorites: ServerDto[];
+  /** Nombre de serveurs qui tournent, favoris compris (la tuile du haut). */
+  runningCount: number;
   /** En marche, en train de démarrer ou de s'arrêter : ce sur quoi on agit maintenant. */
   active: ServerDto[];
   /** Ce qui demande un geste : installation en cours ou ratée, serveur planté. */
@@ -27,7 +31,13 @@ export function lastUsedAt(server: ServerDto): number {
 
 export function dashboardSections(all: readonly ServerDto[]): DashboardSections {
   // Un serveur archivé est rangé : il n'a rien à faire sur la page « maintenant ».
-  const servers = all.filter((s) => s.provisioning !== 'archived');
+  const shown = all.filter((s) => s.provisioning !== 'archived');
+  const favorites = shown.filter((s) => s.favorite === true).sort(byName);
+  // Une carte ne se montre qu'une fois : un favori n'est pas répété dans les autres sections.
+  const servers = shown.filter((s) => s.favorite !== true);
+  const runningCount = shown.filter(
+    (s) => s.provisioning === 'ready' && s.runState !== 'stopped' && s.runState !== 'crashed',
+  ).length;
   const attention = servers
     .filter((s) => s.provisioning !== 'ready' || s.runState === 'crashed')
     .sort(byName);
@@ -37,7 +47,7 @@ export function dashboardSections(all: readonly ServerDto[]): DashboardSections 
     .filter((s) => !flagged.has(s.id) && s.runState === 'stopped')
     .sort((a, b) => lastUsedAt(b) - lastUsedAt(a) || byName(a, b))
     .slice(0, DASHBOARD_RECENT_MAX);
-  return { active, attention, recent };
+  return { favorites, runningCount, active, attention, recent };
 }
 
 /** Machines où l'on peut créer un serveur maintenant : agent en ligne et un répertoire surveillé. */
