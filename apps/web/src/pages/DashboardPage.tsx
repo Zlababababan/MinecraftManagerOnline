@@ -1,24 +1,32 @@
-/** Dashboard : compteurs, machines (statut/heartbeat) + cartes serveurs groupées par machine, événements. */
-import { Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
-import { IconPlus } from '@tabler/icons-react';
+/**
+ * Tableau de bord : « qu'est-ce qui se passe maintenant, et que puis-je faire tout de suite ? ».
+ *
+ * Il ne liste plus tous les serveurs (retour de Yassin, 01/10 : c'était une copie de la page
+ * machine, les actions en moins). Il montre ce qui tourne, ce qui demande un geste et les derniers
+ * serveurs utilisés ; la liste complète est à un clic (« Tous les serveurs »), et **créer un
+ * serveur se fait d'ici**, sans passer par la page de la machine.
+ */
+import { Button, Card, Group, Menu, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { IconList, IconPlus } from '@tabler/icons-react';
+import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { RouterButton } from '../components/links.js';
-import { useT } from '../i18n/hooks.js';
 
-import type { EventDto } from '@mmo/protocol/client';
+import type { EventDto, MachineDto } from '@mmo/protocol/client';
 
 import { useConflicts, useEvents, useMachines, useMe, useServers } from '../api/queries.js';
 import { ConflictsPanel } from '../components/ConflictsPanel.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { EventsList } from '../components/EventsList.js';
+import { RouterAnchor, RouterButton } from '../components/links.js';
+import { CreateServerModal } from '../components/machine/CreateServerModal.js';
 import { MachineHeader } from '../components/MachineHeader.js';
 import { OnboardingCard } from '../components/OnboardingCard.js';
-import { ListToolbar } from '../components/ListToolbar.js';
 import { ServerCollection } from '../components/ServerCollection.js';
-import { useNow } from '../lib/hooks.js';
+import { useT } from '../i18n/hooks.js';
+import { creatableMachines, dashboardSections } from '../lib/dashboard.js';
 import { hasRole } from '../lib/format.js';
-import { LIST_TOOLBAR_MIN, useListPrefs, type ListPrefs } from '../lib/list-view.js';
-import { EMPTY_FILTER, filterServers, isServerSort } from '../lib/server-filter.js';
+import { useNow } from '../lib/hooks.js';
+import { canMachine } from '../lib/permissions.js';
 import { useRealtimeStore } from '../store/realtime.js';
 
 function Stat({ label, value, testId }: { label: string; value: string | number; testId: string }) {
@@ -34,27 +42,29 @@ function Stat({ label, value, testId }: { label: string; value: string | number;
   );
 }
 
-/**
- * Le tableau de bord montre les serveurs groupés par machine : les cartes par défaut, et pas de
- * tri propre (l'ordre des machines fait déjà la structure de la page).
- */
-const DASHBOARD_LIST: ListPrefs = { mode: 'cards', sort: 'name', desc: false };
-
 export function DashboardPage() {
   const { t } = useT();
+  const navigate = useNavigate();
   const me = useMe();
   const machines = useMachines();
   const servers = useServers();
   const conflicts = useConflicts();
   const events = useEvents({ limit: 15 });
   const liveEvents = useRealtimeStore((s) => s.recentEvents);
-  const [listPrefs, setListPrefs] = useListPrefs('dashboard-servers', DASHBOARD_LIST, isServerSort);
-  const [serverQuery, setServerQuery] = useState('');
+  const [createOn, setCreateOn] = useState<MachineDto | undefined>(undefined);
   const now = useNow(10_000);
   const isAdmin = me.data !== undefined && hasRole(me.data.user.role, 'admin');
 
+  const allMachines = machines.data?.machines ?? [];
   const allServers = servers.data?.servers ?? [];
-  const running = allServers.filter((s) => s.runState === 'running').length;
+  const sections = dashboardSections(allServers);
+  const creatable = creatableMachines(allMachines, (id) => canMachine(me.data, id, 'operator'));
+  const onlyCreatable = creatable.length === 1 ? creatable[0] : undefined;
+  // Avec plusieurs machines, chaque carte dit où vit le serveur.
+  const machineName =
+    allMachines.length > 1
+      ? (id: string) => allMachines.find((m) => m.id === id)?.name ?? id
+      : undefined;
   const merged: EventDto[] = [...liveEvents, ...(events.data?.events ?? [])]
     .filter((e, i, arr) => arr.findIndex((x) => x.id === e.id) === i)
     .sort((a, b) => b.id - a.id)
@@ -63,7 +73,7 @@ export function DashboardPage() {
     e.serverId !== null
       ? allServers.find((s) => s.id === e.serverId)?.name
       : e.machineId !== null
-        ? machines.data?.machines.find((m) => m.id === e.machineId)?.name
+        ? allMachines.find((m) => m.id === e.machineId)?.name
         : undefined;
 
   return (
@@ -72,17 +82,67 @@ export function DashboardPage() {
         <Title order={1} size="h2">
           {t('web:dashboard.title')}
         </Title>
-        {isAdmin && (
+        <Group gap="xs">
+          {onlyCreatable !== undefined && (
+            <Button
+              size="sm"
+              leftSection={<IconPlus size={16} />}
+              data-testid="dashboard-create-server"
+              onClick={() => {
+                setCreateOn(onlyCreatable);
+              }}
+            >
+              {t('web:install.title')}
+            </Button>
+          )}
+          {creatable.length > 1 && (
+            <Menu position="bottom-end">
+              <Menu.Target>
+                <Button
+                  size="sm"
+                  leftSection={<IconPlus size={16} />}
+                  data-testid="dashboard-create-server"
+                >
+                  {t('web:install.title')}
+                </Button>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Label>{t('web:dashboard.createOn')}</Menu.Label>
+                {creatable.map((m) => (
+                  <Menu.Item
+                    key={m.id}
+                    onClick={() => {
+                      setCreateOn(m);
+                    }}
+                  >
+                    {m.name}
+                  </Menu.Item>
+                ))}
+              </Menu.Dropdown>
+            </Menu>
+          )}
           <RouterButton
-            to="/machines"
-            search={{ add: true }}
-            leftSection={<IconPlus size={16} />}
+            to="/servers"
+            variant="default"
             size="sm"
-            data-testid="dashboard-add-machine"
+            leftSection={<IconList size={16} />}
+            data-testid="dashboard-all-servers"
           >
-            {t('web:dashboard.addMachine')}
+            {t('web:dashboard.allServers', { count: allServers.length })}
           </RouterButton>
-        )}
+          {isAdmin && (
+            <RouterButton
+              to="/machines"
+              search={{ add: true }}
+              variant="subtle"
+              leftSection={<IconPlus size={16} />}
+              size="sm"
+              data-testid="dashboard-add-machine"
+            >
+              {t('web:dashboard.addMachine')}
+            </RouterButton>
+          )}
+        </Group>
       </Group>
       <ErrorAlert error={machines.error ?? servers.error} />
       <SimpleGrid cols={{ base: 2, sm: 3 }} spacing="sm">
@@ -98,32 +158,76 @@ export function DashboardPage() {
         />
         <Stat
           label={t('web:dashboard.running')}
-          value={servers.data === undefined ? '…' : running}
+          value={servers.data === undefined ? '…' : sections.active.length}
           testId="stat-running"
         />
       </SimpleGrid>
       {conflicts.data !== undefined && <ConflictsPanel conflicts={conflicts.data.conflicts} />}
       <OnboardingCard />
-      {allServers.length > LIST_TOOLBAR_MIN && (
-        <ListToolbar
-          search={serverQuery}
-          onSearch={setServerQuery}
-          searchLabel={t('web:servers.search')}
-          searchPlaceholder={t('web:servers.searchPlaceholder')}
-          searchTestId="dashboard-servers-search"
-          mode={listPrefs.mode}
-          onModeChange={(mode) => {
-            setListPrefs({ mode });
-          }}
-          modeTestId="dashboard-servers-view"
-        />
+
+      {sections.attention.length > 0 && (
+        <Card withBorder radius="md" padding="md" data-testid="dashboard-attention">
+          <Stack gap="sm">
+            <Title order={2} size="h4">
+              {t('web:dashboard.attention')}
+            </Title>
+            <ServerCollection
+              servers={sections.attention}
+              mode="cards"
+              emptyLabel=""
+              {...(machineName === undefined ? {} : { machineName })}
+            />
+          </Stack>
+        </Card>
       )}
-      {machines.data?.machines.map((machine) => {
-        const mine = allServers.filter((s) => s.machineId === machine.id);
-        const shown = filterServers(mine, { ...EMPTY_FILTER, q: serverQuery });
-        // Une recherche qui ne trouve rien sur une machine efface sa carte : c’est ce qu’on
-        // attend d’une recherche. Sans recherche, toutes les machines restent visibles.
-        if (serverQuery !== '' && shown.length === 0) return null;
+
+      <Card withBorder radius="md" padding="md" data-testid="dashboard-active">
+        <Stack gap="sm">
+          <Title order={2} size="h4">
+            {t('web:dashboard.running')}
+          </Title>
+          <ServerCollection
+            servers={sections.active}
+            mode="cards"
+            emptyLabel={t('web:dashboard.noneRunning')}
+            {...(machineName === undefined ? {} : { machineName })}
+          />
+        </Stack>
+      </Card>
+
+      {sections.recent.length > 0 && (
+        <Card withBorder radius="md" padding="md" data-testid="dashboard-recent">
+          <Stack gap="sm">
+            <Group justify="space-between">
+              <Title order={2} size="h4">
+                {t('web:dashboard.recent')}
+              </Title>
+              <RouterAnchor to="/servers" size="sm" data-testid="dashboard-recent-all">
+                {t('web:dashboard.allServers', { count: allServers.length })}
+              </RouterAnchor>
+            </Group>
+            <ServerCollection
+              servers={sections.recent}
+              mode="cards"
+              emptyLabel=""
+              {...(machineName === undefined ? {} : { machineName })}
+            />
+          </Stack>
+        </Card>
+      )}
+
+      <Card withBorder radius="md" padding="md">
+        <Stack gap="sm">
+          <Title order={2} size="h4">
+            {t('web:dashboard.recentEvents')}
+          </Title>
+          <EventsList events={merged} resolveName={nameOf} compact />
+        </Stack>
+      </Card>
+
+      {allMachines.map((machine) => {
+        const count = allServers.filter((s) => s.machineId === machine.id).length;
+        const canCreateHere = creatable.some((m) => m.id === machine.id);
         return (
           <Card
             key={machine.id}
@@ -133,36 +237,54 @@ export function DashboardPage() {
             data-testid="machine-group"
             data-machine-id={machine.id}
           >
-            <Stack gap="md">
+            <Stack gap="sm">
               <MachineHeader machine={machine} now={now} />
-              {!machine.connected && machine.status !== 'pending' && mine.length > 0 && (
+              {!machine.connected && machine.status !== 'pending' && count > 0 && (
                 <Text size="sm" className="mmo-warn-text">
                   {t('web:dashboard.unreachable')}
                 </Text>
               )}
-              {mine.length === 0 ? (
+              <Group justify="space-between">
                 <Text size="sm" c="dimmed">
-                  {t('web:dashboard.noServers')} {t('web:dashboard.noServersHint')}
+                  {count === 0
+                    ? `${t('web:dashboard.noServers')} ${t('web:dashboard.noServersHint')}`
+                    : t('web:servers.count', { count })}
                 </Text>
-              ) : (
-                <ServerCollection
-                  servers={shown}
-                  mode={listPrefs.mode}
-                  emptyLabel={t('web:servers.noMatch')}
-                />
-              )}
+                {canCreateHere && allMachines.length > 1 && (
+                  <Button
+                    size="xs"
+                    variant="default"
+                    leftSection={<IconPlus size={14} />}
+                    onClick={() => {
+                      setCreateOn(machine);
+                    }}
+                  >
+                    {t('web:install.title')}
+                  </Button>
+                )}
+              </Group>
             </Stack>
           </Card>
         );
       })}
-      <Card withBorder radius="md" padding="md">
-        <Stack gap="sm">
-          <Title order={2} size="h4">
-            {t('web:dashboard.recentEvents')}
-          </Title>
-          <EventsList events={merged} resolveName={nameOf} compact />
-        </Stack>
-      </Card>
+
+      {createOn !== undefined && (
+        <CreateServerModal
+          machine={createOn}
+          directories={createOn.watchedDirectories}
+          opened
+          onClose={() => {
+            setCreateOn(undefined);
+          }}
+          onCreated={(serverId) => {
+            void navigate({
+              to: '/servers/$serverId',
+              params: { serverId },
+              search: { tab: 'overview' },
+            });
+          }}
+        />
+      )}
     </Stack>
   );
 }

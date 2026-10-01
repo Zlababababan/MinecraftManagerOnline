@@ -124,6 +124,11 @@ export const webFr = {
     noServersHint: 'Ajoutez un répertoire surveillé et lancez un scan depuis la page machine.',
     unreachable: 'Agent hors ligne — les serveurs ne peuvent pas être pilotés.',
     recentEvents: 'Événements récents',
+    allServers: 'Tous les serveurs ({{count}})',
+    attention: 'À regarder',
+    noneRunning: 'Aucun serveur en marche.',
+    recent: 'Derniers utilisés',
+    createOn: 'Sur quelle machine ?',
     noEvents: 'Aucun événement pour l’instant.',
     onboarding: {
       title: 'Premiers pas',

@@ -180,14 +180,13 @@ The hours are the **panel's**, shown under the setting: the same ones your sched
 
 ## 18. Creating a server from the panel
 
-Until now MMO adopted servers you had already installed. It can now create one: **machine page → Create a server**. You need a watched directory on that machine — the panel builds the path itself, from that directory and a folder name, and shows it in full before anything is written.
+Until now MMO adopted servers you had already installed. It can now create one: **dashboard or machine page → Create a server**. You need a watched directory on that machine — the panel builds the path itself, from that directory and a folder name, and shows it in full before anything is written.
 
-Four screens:
+Three screens:
 
-1. **Location** — the watched directory, and the name of the folder to create. The full path appears underneath; nothing else can be typed there.
-2. **Version** — Vanilla or Fabric, then the Minecraft version. Versions come from Mojang; for Fabric, only the versions Fabric actually supports are offered, and the loader version is chosen for you (the latest stable one).
-3. **Resources** — maximum memory, and the welcome message. 2 to 4 GiB is plenty for a vanilla server.
-4. **Review** — the final path, the port picked for you (the first free one), and what the machine thinks: is the folder empty, is the port free, is there a suitable Java, is there room on the disk. Then the **Minecraft EULA**, never pre-ticked: the panel records who accepted it, and when, in the audit log.
+1. **What to install** — Vanilla, Fabric, Forge, NeoForge, an FTB modpack, or an **archive (.zip)** you downloaded and dropped into a watched directory. For a loader, the Minecraft version (the latest stable one is already picked); for an archive, the panel reads the zip and says what it will install.
+2. **Settings** — the watched directory and the folder name, **already suggested** from what you install (you can change it); the full path appears underneath. Then the maximum memory, also suggested, and the welcome message.
+3. **Review** — the final path, the port picked for you (the first free one), and what the machine thinks: is the folder empty, is the port free, is there a suitable Java, is there room on the disk. Then the **Minecraft EULA**, never pre-ticked: the panel records who accepted it, and when, in the audit log.
 
 Installation runs as a task, with progress. What actually happens: for Vanilla, the server jar is downloaded from Mojang and its fingerprint checked. For Fabric, the launcher is downloaded and run once — it fetches the vanilla server and the libraries by itself, then stops, because the EULA is not there yet. That order matters: the EULA is written **after** the installer has finished, otherwise the server would start in the middle of its own installation.
 

@@ -180,14 +180,13 @@ Les heures sont celles **du panel**, affichées sous le réglage : les mêmes qu
 
 ## 18. Créer un serveur depuis le panel
 
-Jusqu'ici MMO adoptait des serveurs déjà installés. Il peut maintenant en créer un : **page de la machine → Créer un serveur**. Il faut un répertoire surveillé sur cette machine — le panel compose le chemin lui-même, à partir de ce répertoire et d'un nom de dossier, et vous le montre en entier avant d'écrire quoi que ce soit.
+Jusqu'ici MMO adoptait des serveurs déjà installés. Il peut maintenant en créer un : **tableau de bord ou page de la machine → Créer un serveur**. Il faut un répertoire surveillé sur cette machine — le panel compose le chemin lui-même, à partir de ce répertoire et d'un nom de dossier, et vous le montre en entier avant d'écrire quoi que ce soit.
 
-Quatre écrans :
+Trois écrans :
 
-1. **Emplacement** — le répertoire surveillé, et le nom du dossier à créer. Le chemin complet s'affiche en dessous ; rien d'autre ne peut être saisi.
-2. **Version** — Vanilla ou Fabric, puis la version de Minecraft. Les versions viennent de Mojang ; pour Fabric, seules celles que Fabric supporte réellement sont proposées, et la version du chargeur est choisie pour vous (la dernière stable).
-3. **Ressources** — la mémoire maximale et le message d'accueil. 2 à 4 Gio suffisent largement à un serveur vanilla.
-4. **Vérification** — le chemin final, le port retenu (le premier libre), et l'avis de la machine : le dossier est-il vide, le port est-il libre, y a-t-il un Java adapté, reste-t-il de la place. Puis l'**EULA de Minecraft**, jamais pré-cochée : le panel note qui l'a acceptée, et quand, dans le journal d'audit.
+1. **Quoi installer** — Vanilla, Fabric, Forge, NeoForge, un modpack FTB, ou une **archive (.zip)** que vous avez téléchargée et posée dans un répertoire surveillé. Pour un chargeur, la version de Minecraft (la dernière stable est déjà choisie) ; pour une archive, le panel lit le zip et dit ce qu'il va installer.
+2. **Réglages** — le répertoire surveillé et le nom du dossier, **déjà proposé** d'après ce que vous installez (modifiable) ; le chemin complet s'affiche en dessous. Puis la mémoire maximale, elle aussi proposée, et le message d'accueil.
+3. **Vérification** — le chemin final, le port retenu (le premier libre), et l'avis de la machine : le dossier est-il vide, le port est-il libre, y a-t-il un Java adapté, reste-t-il de la place. Puis l'**EULA de Minecraft**, jamais pré-cochée : le panel note qui l'a acceptée, et quand, dans le journal d'audit.
 
 L'installation se déroule comme une tâche, avec sa progression. Ce qui se passe vraiment : pour Vanilla, le jar du serveur est téléchargé chez Mojang et son empreinte vérifiée. Pour Fabric, le lanceur est téléchargé puis exécuté une fois — il va chercher lui-même le serveur vanilla et les bibliothèques, puis s'arrête, parce que l'EULA n'est pas encore là. Cet ordre compte : l'EULA est écrite **après** l'installeur, sinon le serveur démarrerait au milieu de sa propre installation.
 

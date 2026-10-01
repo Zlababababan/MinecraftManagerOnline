@@ -126,6 +126,11 @@ export const webEn = {
     noServersHint: 'Add a watched directory and run a scan from the machine page.',
     unreachable: 'Agent offline — servers cannot be controlled.',
     recentEvents: 'Recent events',
+    allServers: 'All servers ({{count}})',
+    attention: 'Needs attention',
+    noneRunning: 'No server is running.',
+    recent: 'Recently used',
+    createOn: 'On which machine?',
     noEvents: 'No event yet.',
     onboarding: {
       title: 'First steps',

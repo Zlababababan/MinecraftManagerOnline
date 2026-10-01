@@ -3,7 +3,7 @@
  * first-run → wizard ; sans session → login ; login → dashboard (machine, carte serveur, start).
  */
 import { createMemoryHistory } from '@tanstack/react-router';
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -263,6 +263,8 @@ describe('App', () => {
     expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
     expect(screen.getByTestId('stat-machines')).toHaveTextContent('1');
     expect(screen.getByTestId('machine-link')).toHaveTextContent('Tour');
+    // Sans répertoire surveillé sur la machine, il n'y a nulle part où créer : pas de bouton.
+    expect(screen.queryByTestId('dashboard-create-server')).not.toBeInTheDocument();
     // Fraîcheur du heartbeat affichée (ts=1 → ancien, donc « il y a … »).
     expect(screen.getByTestId('machine-updated')).toHaveTextContent(/^Mis à jour il y a /);
     const card = screen.getByTestId('server-card');
@@ -396,37 +398,58 @@ describe('App', () => {
       screen.getAllByTestId(/^servers-row-/).map((r) => r.getAttribute('data-testid')),
     ).toEqual(['servers-row-s1', 'servers-row-s2']);
   });
-  it('tableau de bord : la recherche n’apparaît qu’au-delà de quelques serveurs, et efface les machines sans résultat', async () => {
+  it('tableau de bord : ce qui se passe maintenant, créer un serveur, et la liste complète à un clic', async () => {
     const user = userEvent.setup();
     state.session = true;
-    // Un seul serveur : la barre serait du bruit, on voit déjà tout.
-    renderApp('/');
-    expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
-    // On attend la liste : sans elle, « pas de barre » ne prouverait que la lenteur du chargement.
-    expect(await screen.findByTestId('server-card')).toBeInTheDocument();
-    expect(screen.queryByTestId('dashboard-servers-search')).not.toBeInTheDocument();
-
-    cleanup();
+    state.machines = [
+      {
+        ...machine,
+        watchedDirectories: [{ id: 'd1', path: 'E:\\srv', enabled: true, lastScanAt: 1 }],
+      },
+    ];
     state.servers = [
-      server,
+      { ...server, id: 's-run', name: 'En jeu', runState: 'running' },
       crashed,
-      { ...server, id: 's3', name: 'Aventure' },
-      { ...server, id: 's4', name: 'Bac à sable' },
-      { ...server, id: 's5', name: 'Créatif' },
+      { ...server, id: 's3', name: 'Aventure', stoppedAt: 50 },
+      { ...server, id: 's4', name: 'Bac à sable', stoppedAt: 90 },
+      { ...server, id: 's5', name: 'Créatif', provisioning: 'install_failed' },
+      ...Array.from({ length: 8 }, (_, i) => ({
+        ...server,
+        id: `old-${String(i)}`,
+        name: `Ancien ${String(i)}`,
+        stoppedAt: 10 + i,
+      })),
     ];
     renderApp('/');
-    const search = await screen.findByTestId('dashboard-servers-search');
-    await user.type(search, 'Zombie');
+    expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
+    const names = (testId: string) =>
+      within(screen.getByTestId(testId))
+        .getAllByTestId('server-card')
+        .map((card) => card.getAttribute('data-server-id'));
     await waitFor(() => {
-      expect(screen.getAllByTestId('server-card')).toHaveLength(1);
+      expect(names('dashboard-active')).toEqual(['s-run']);
     });
+    // Planté ou installation ratée : à regarder, et nulle part ailleurs.
+    expect(names('dashboard-attention')).toEqual(expect.arrayContaining([crashed.id, 's5']));
+    expect(names('dashboard-attention')).toHaveLength(2);
+    // Les derniers utilisés d'abord, six au plus — plus jamais la liste entière.
+    expect(names('dashboard-recent')).toHaveLength(6);
+    expect(names('dashboard-recent').slice(0, 2)).toEqual(['s4', 's3']);
+    expect(screen.getAllByTestId('server-card')).toHaveLength(9);
+    expect(screen.queryByTestId('dashboard-servers-search')).not.toBeInTheDocument();
+    // La machine reste là, résumée.
+    expect(screen.getAllByTestId('machine-group')).toHaveLength(1);
 
-    // Plus rien ne correspond : la carte de la machine s’efface aussi.
-    await user.clear(search);
-    await user.type(search, 'zzz');
-    await waitFor(() => {
-      expect(screen.queryAllByTestId('machine-group')).toHaveLength(0);
-    });
+    // Créer un serveur d'ici, sans passer par la page de la machine.
+    await user.click(screen.getByTestId('dashboard-create-server'));
+    expect(await screen.findByTestId('install-loader')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+
+    // La liste complète est à un clic.
+    const all = screen.getByTestId('dashboard-all-servers');
+    expect(all).toHaveTextContent('Tous les serveurs (13)');
+    await user.click(all);
+    expect(await screen.findByTestId('servers-page')).toBeInTheDocument();
   });
   it('page machine : recherche et affichage propres à la machine, mémorisés', async () => {
     state.session = true;

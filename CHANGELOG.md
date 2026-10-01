@@ -8,6 +8,16 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+### A dashboard you can act from, a shorter wizard (2026-10-01)
+
+- **The dashboard no longer repeats the machine page.** It shows what is running, what needs
+  attention (an install in progress or failed, a crashed server) and the servers used most recently,
+  with a "Create a server" button and a direct link to the full list.
+- **Creating a server starts with what to install.** Pick a version, a modpack or an archive first;
+  the folder name and the memory are then suggested, so there is nothing to type to get going. The
+  wizard is three screens instead of four.
+- Reinstalling the agent at the same version number now really replaces its code.
+
 ### Create a server from a zip (2026-10-01)
 
 - **Modpacks shipped as "server files" archives can be installed** (All the Mods and the like).
