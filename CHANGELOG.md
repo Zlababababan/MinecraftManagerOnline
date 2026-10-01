@@ -8,6 +8,29 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+## 1.0.13 — 2026-10-02
+
+### No more detours (2026-10-02)
+
+What you need to finish an action is now where the action is.
+
+- **Create a server from a zip by pasting its path.** In the wizard, paste the path of the
+  "server files" zip wherever it is on the machine (your Downloads folder, for instance) — no need
+  to move it into a watched folder first. Windows' "Copy as path" quotes are removed for you.
+  Administrators only; needs agent 1.0.13.
+- **"Refresh" on the Servers page** looks for servers added or removed on disk. "Add a server
+  folder" is there too. Both used to live on the machine's page.
+- **"Create a server" no longer disappears.** With no watched folder yet, it asks for the folder
+  right there, then opens the wizard. With the agent offline, it stays visible and says why.
+- **A refused start offers its fix.** EULA not accepted: accept it in the same window and the
+  server starts. Java missing: one button installs it. Port taken or not enough memory: a button
+  opens the server's settings.
+- **Agent updates show on the dashboard**, with the button to apply them.
+- **"Can I join yet?"** A starting server shows how long it has been starting; once the world is
+  loaded the card says it is ready and writes the address to type, port included.
+- **Unusual ports stand out.** A server that does not use 25565 shows its port as a badge, since
+  players have to type it.
+
 ## 1.0.12 — 2026-10-01
 
 ### One place for each thing (2026-10-01)

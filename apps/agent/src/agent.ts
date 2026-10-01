@@ -54,7 +54,7 @@ import { TaskJournal } from './tasks/journal.js';
 import { TaskRunner } from './tasks/runner.js';
 import { AgentTransfers } from './transfer/transfers.js';
 
-export const AGENT_VERSION = '1.0.12';
+export const AGENT_VERSION = '1.0.13';
 export const AGENT_CAPABILITIES = [
   'rcon',
   'tasks',

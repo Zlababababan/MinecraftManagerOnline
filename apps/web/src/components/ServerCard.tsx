@@ -196,7 +196,7 @@ export function ServerCard({
         <Group gap="md" align="center">
           {server.gamePort !== null && server.gamePort !== DEFAULT_GAME_PORT ? (
             // Port inhabituel : il faut le taper dans Minecraft, donc il se voit, serveur arrêté ou non.
-            <Badge color="orange" variant="light" size="sm" data-testid="card-port">
+            <Badge variant="default" size="sm" className="mmo-warn-text" data-testid="card-port">
               {t('web:servers.card.port', { port: server.gamePort })}
             </Badge>
           ) : (

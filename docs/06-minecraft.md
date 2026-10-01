@@ -351,6 +351,8 @@ téléchargeant depuis l'URL publiée plutôt qu'en redistribuant. L'installeur 
 
 ## 6sexies. Créer un serveur depuis une archive — mesures et plan (2026-10-01)
 
+> **Amendement (2026-10-02, 1.0.13) — le zip se désigne par son chemin.** La règle « un zip posé à la racine d'un répertoire surveillé » obligeait à déplacer le fichier puis à le retrouver dans une liste (retour de Yassin : un détour). Désormais : (a) **l'agent** accepte tout **chemin absolu** terminé par `.zip` qui désigne un vrai fichier (capacité `install-archive-path`) ; il ne lit toujours que le sommaire du zip et les petits scripts de sa racine. (b) **Le panel décide qui** : un **administrateur** peut donner un chemin libre (comme `POST /api/servers`), un **opérateur** reste borné aux répertoires surveillés (`ARCHIVE_OUTSIDE`). Un chemin relatif ou un fichier qui n'est pas un zip est refusé avant tout appel à l'agent (`ARCHIVE_NOT_A_ZIP_PATH`) ; un agent d'avant la 1.0.13 est annoncé « trop ancien » (`AGENT_TOO_OLD`) au lieu d'un refus obscur. (c) **L'assistant** met le champ « Chemin du zip » en premier (guillemets de « Copier en tant que chemin » retirés), la liste des zips des répertoires surveillés reste en dessous. L'envoi du zip depuis le navigateur n'est PAS fait : `fs.upload.start` exige un `serverId`, il faudrait l'étendre à un répertoire surveillé.
+
 Demande : installer les modpacks **All the Mods** sans que le panel contacte CurseForge. ATM ne publie
 ses « Server Files » que là : c'est donc **l'utilisateur qui télécharge le zip** dans son navigateur
 et le pose dans un répertoire surveillé ; le panel fait le reste. Générique : tout « server pack »
