@@ -19,7 +19,7 @@ import { AGENT_CAPABILITIES } from '../agent.js';
 import { ForbiddenRoots } from '../files/forbidden.js';
 import { Logger } from '../log.js';
 import { TaskJournal, TaskRunner } from '../tasks/runner.js';
-import { freePort, tmpDir } from '../test/helpers.js';
+import { buildZip, freePort, tmpDir } from '../test/helpers.js';
 import { AGENT_USER_AGENT } from '../util/user-agent.js';
 import { ServerInstaller, type ServerInstallRequest } from './installer.js';
 
@@ -99,6 +99,7 @@ describe('ServerInstaller (lot 5)', () => {
       forbidden: new ForbiddenRoots([path.join(stateDir, 'agent-home')]),
       os: process.platform === 'win32' ? 'windows' : 'linux',
       panelOrigin: () => origin,
+      archiveRoots: () => [{ id: 'dir_1', path: path.join(stateDir, 'servers') }],
       // `java -jar <jar> <args>` devient `node <script> <jar> <args>` : même mécanique de processus.
       spawnImpl: ((_cmd: string, args: readonly string[], opts: object) =>
         spawn(process.execPath, [fakeInstaller, ...args.slice(1)], opts)) as typeof spawn,
@@ -450,6 +451,141 @@ describe('ServerInstaller (lot 5)', () => {
       expect(record?.status).toBe('done');
       expect(hits.map((h) => h.url)).toEqual(['/mods/b.jar']);
       expect(await readFile(path.join(serverDir, 'mods', 'b.jar'), 'utf8')).toBe('mod b');
+    });
+  });
+
+  describe('extract (serveur depuis une archive)', () => {
+    const SCRIPT = '#!/bin/sh\nNEOFORGE_VERSION=21.1.250\n';
+
+    /** Pose un zip à la racine du répertoire surveillé ; `prefix` = dossier englobant. */
+    async function archive(name: string, prefix = '', extra: string[] = []): Promise<string> {
+      const zip = buildZip([
+        { name: `${prefix}mods/a.jar`, data: Buffer.from('jar-a'), deflate: true },
+        { name: `${prefix}config/x.toml`, data: Buffer.from('k = 1') },
+        { name: `${prefix}startserver.sh`, data: Buffer.from(SCRIPT), deflate: true },
+        { name: `${prefix}.mmo-server.json`, data: Buffer.from('{"serverId":"srv_other"}') },
+        ...extra.map((n) => ({ name: n, data: Buffer.from('x') })),
+      ]);
+      await mkdir(path.join(stateDir, 'servers'), { recursive: true });
+      const file = path.join(stateDir, 'servers', name);
+      await writeFile(file, zip);
+      return file;
+    }
+
+    it('liste les zips de la racine du répertoire surveillé, et rien de plus profond', async () => {
+      const file = await archive('Pack.zip');
+      await mkdir(path.join(stateDir, 'servers', 'sub'), { recursive: true });
+      await writeFile(path.join(stateDir, 'servers', 'sub', 'deep.zip'), 'x');
+      await writeFile(path.join(stateDir, 'servers', 'notes.txt'), 'x');
+      const list = await installer.listArchives();
+      expect(list.map((a) => a.name)).toEqual(['Pack.zip']);
+      expect(list[0]).toMatchObject({ directoryId: 'dir_1', path: file });
+    });
+
+    it('inspecte sans rien déplier : scripts lus, dossier englobant reconnu', async () => {
+      const flat = await installer.inspectArchive(await archive('flat.zip'));
+      expect(flat.root).toBe('');
+      expect(flat.files).toBe(4);
+      expect(flat.topLevel).toEqual(expect.arrayContaining(['mods/', 'config/', 'startserver.sh']));
+      expect(flat.texts).toEqual([{ name: 'startserver.sh', content: SCRIPT }]);
+      const nested = await installer.inspectArchive(await archive('nested.zip', 'Pack-1.0/'));
+      expect(nested.root).toBe('Pack-1.0');
+      expect(nested.topLevel).toContain('mods/');
+      expect(nested.texts[0]?.name).toBe('startserver.sh');
+      // Rien n'a été écrit à côté de l'archive.
+      expect((await readdir(path.join(stateDir, 'servers'))).sort()).toEqual([
+        'flat.zip',
+        'nested.zip',
+      ]);
+    });
+
+    it('déplie dans le dossier du serveur, sans le marqueur de l’archive, et garde le zip', async () => {
+      const file = await archive('nested.zip', 'Pack-1.0/');
+      const record = await run(
+        base({ loader: 'neoforge', steps: [{ kind: 'extract', archive: file, strip: 1 }] }),
+      );
+      expect(record?.status).toBe('done');
+      expect(await readFile(path.join(serverDir, 'mods', 'a.jar'), 'utf8')).toBe('jar-a');
+      expect(await readFile(path.join(serverDir, 'startserver.sh'), 'utf8')).toBe(SCRIPT);
+      expect(await exists(path.join(serverDir, 'Pack-1.0'))).toBe(false);
+      const marker: unknown = JSON.parse(
+        await readFile(path.join(serverDir, '.mmo-server.json'), 'utf8'),
+      );
+      expect(marker).toMatchObject({ serverId: 'srv_new' });
+      expect(await exists(file)).toBe(true);
+      const phases = events
+        .filter((e) => e.type === 'task.progress')
+        .map((e) => (e.payload as { phase: string }).phase);
+      expect(phases).toContain('extracting');
+    });
+
+    it('le marqueur d’une archive n’est jamais posé, même le temps de l’installation', async () => {
+      // Réparation + étape suivante en échec : le dossier reste tel que l'extraction l'a laissé.
+      const file = await archive('flat.zip');
+      await mkdir(serverDir, { recursive: true });
+      const record = await run(
+        base({
+          repair: true,
+          steps: [
+            { kind: 'extract', archive: file },
+            { kind: 'runJar', jar: 'absent.jar' },
+          ],
+        }),
+      );
+      expect(record?.status).toBe('failed');
+      expect(await exists(path.join(serverDir, 'mods', 'a.jar'))).toBe(true);
+      expect(await exists(path.join(serverDir, '.mmo-server.json'))).toBe(false);
+    });
+
+    it('une entrée qui sort du dossier (zip-slip) n’est jamais écrite', async () => {
+      const file = await archive('slip.zip', '', ['../evil.txt', '/abs.txt']);
+      const record = await run(base({ steps: [{ kind: 'extract', archive: file }] }));
+      expect(record?.status).toBe('done');
+      expect(await exists(path.join(stateDir, 'servers', 'evil.txt'))).toBe(false);
+      expect(await exists(path.join(serverDir, 'evil.txt'))).toBe(false);
+      expect(await exists(path.join(serverDir, 'mods', 'a.jar'))).toBe(true);
+    });
+
+    it('refuse une archive hors d’un répertoire surveillé, absente, ou qui n’est pas un zip', async () => {
+      const outside = path.join(stateDir, 'elsewhere.zip');
+      await writeFile(outside, buildZip([{ name: 'a.txt', data: Buffer.from('a') }]));
+      const step = (file: string) => base({ steps: [{ kind: 'extract', archive: file }] });
+      await expect(installer.precheck(step(outside))).rejects.toMatchObject({
+        details: { reason: 'ARCHIVE_OUTSIDE' },
+      });
+      await expect(installer.inspectArchive(outside)).rejects.toMatchObject({
+        details: { reason: 'ARCHIVE_OUTSIDE' },
+      });
+      // Un sous-dossier d'un répertoire surveillé n'est pas sa racine.
+      await mkdir(path.join(stateDir, 'servers', 'sub'), { recursive: true });
+      const deep = path.join(stateDir, 'servers', 'sub', 'deep.zip');
+      await writeFile(deep, 'x');
+      await expect(installer.precheck(step(deep))).rejects.toMatchObject({
+        details: { reason: 'ARCHIVE_OUTSIDE' },
+      });
+      const txt = path.join(stateDir, 'servers', 'notes.txt');
+      await writeFile(txt, 'x');
+      await expect(installer.precheck(step(txt))).rejects.toMatchObject({
+        details: { reason: 'ARCHIVE_OUTSIDE' },
+      });
+      await expect(
+        installer.precheck(step(path.join(stateDir, 'servers', 'ghost.zip'))),
+      ).rejects.toMatchObject({ details: { reason: 'ARCHIVE_MISSING' } });
+      const fake = path.join(stateDir, 'servers', 'fake.zip');
+      await writeFile(fake, Buffer.alloc(4096, 7));
+      await expect(installer.inspectArchive(fake)).rejects.toMatchObject({
+        details: { reason: 'ARCHIVE_UNREADABLE' },
+      });
+      const record = await run(step(fake));
+      expect(record?.status).toBe('failed');
+      expect(record?.error).toMatchObject({ details: { reason: 'ARCHIVE_UNREADABLE' } });
+      // Le dossier créé pour l'installation est défait ; l'archive, elle, reste.
+      expect(await exists(serverDir)).toBe(false);
+      expect(await exists(fake)).toBe(true);
+    });
+
+    it('l’agent annonce la capacité', () => {
+      expect(AGENT_CAPABILITIES).toContain('install-extract');
     });
   });
 

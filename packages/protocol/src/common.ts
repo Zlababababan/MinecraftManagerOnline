@@ -80,6 +80,8 @@ export const KNOWN_CAPABILITIES = [
   'install-remove',
   /** Lot 5 : étape `fetchMany` (fichiers d'un modpack, doc 06 §6quinquies). */
   'install-fetch-many',
+  /** Lot 5 : étape `extract` + `install.archives`/`install.archiveInspect` (serveur depuis un zip, doc 06 §6sexies). */
+  'install-extract',
 ] as const;
 export const capabilitySchema = z.string().min(1);
 

@@ -16,7 +16,7 @@
  */
 import { z } from 'zod';
 
-import { loaderSchema, serverIdSchema } from '../common.js';
+import { epochMsSchema, loaderSchema, serverIdSchema } from '../common.js';
 import { relativePathSchema } from './fs.js';
 import { detectedServerSchema } from './server.js';
 import { taskIdSchema } from './tasks.js';
@@ -123,6 +123,21 @@ export const installStepSchema = z.discriminatedUnion('kind', [
       .default(FETCH_MANY_CONCURRENCY_DEFAULT),
     label: z.string().max(120).optional(),
   }),
+  /**
+   * Déplie une archive zip **déjà présente sur la machine** (posée par l'utilisateur à la racine
+   * d'un répertoire surveillé) dans le dossier du serveur : chemins jailés, plafonds d'octets et
+   * d'entrées, `strip` pour ignorer un dossier englobant. Le marqueur `.mmo-server.json` d'une
+   * archive n'est jamais posé. L'archive n'est ni modifiée ni supprimée. Capacité `install-extract`.
+   */
+  z.object({
+    kind: z.literal('extract'),
+    /** Chemin absolu du zip : l'agent refuse tout ce qui n'est pas à la racine d'un répertoire surveillé. */
+    archive: z.string().min(1),
+    strip: z.int().min(0).max(1).default(0),
+    /** Taille dépliée annoncée par l'inspection (garde d'espace et progression ; jamais une preuve). */
+    size: z.int().nonnegative().optional(),
+    label: z.string().max(120).optional(),
+  }),
   z.object({
     kind: z.literal('remove'),
     path: relativePathSchema.refine((p) => p !== '', { message: 'path expected' }),
@@ -163,8 +178,48 @@ export type ServerInstallResult = z.infer<typeof serverInstallResultSchema>;
 export const INSTALL_PHASES = [
   'preparing',
   'downloading',
+  'extracting',
   'running',
   'writing',
   'detecting',
   'done',
 ] as const;
+
+// --- Serveur depuis une archive (doc 06 §6sexies) -------------------------------------------------
+
+/** Fichiers texte de la racine d'une archive rendus par l'inspection (scripts de démarrage). */
+export const ARCHIVE_TEXT_MAX_FILES = 12;
+export const ARCHIVE_TEXT_MAX_BYTES = 64 * 1024;
+
+export const installArchiveSchema = z.object({
+  /** Répertoire surveillé où l'archive a été posée. */
+  directoryId: z.string(),
+  name: z.string(),
+  /** Chemin absolu, à renvoyer tel quel à `install.archiveInspect` et à l'étape `extract`. */
+  path: z.string(),
+  size: z.int().nonnegative(),
+  modifiedAt: epochMsSchema,
+});
+export type InstallArchive = z.infer<typeof installArchiveSchema>;
+
+/** Zips posés à la racine des répertoires surveillés actifs (jamais plus profond). */
+export const installArchivesResponseSchema = z.object({ archives: z.array(installArchiveSchema) });
+
+export const installArchiveInspectSchema = z.object({ path: z.string().min(1) });
+
+/**
+ * Ce que l'agent a LU dans l'archive, sans rien déplier ni interpréter : c'est le panel qui en
+ * déduit le chargeur (le plan reste décidé par lui).
+ */
+export const installArchiveInspectResponseSchema = z.object({
+  files: z.int().nonnegative(),
+  /** Taille dépliée annoncée par le répertoire central. */
+  bytes: z.int().nonnegative(),
+  /** Dossier englobant (toutes les entrées dessous), ou `''` si l'archive s'ouvre sur son contenu. */
+  root: z.string(),
+  /** Noms de premier niveau, dossier englobant retiré ; un dossier finit par `/`. */
+  topLevel: z.array(z.string()).max(200),
+  /** Petits fichiers texte de premier niveau (`.sh`, `.bat`, `.txt`, `.yaml`, `.properties`…). */
+  texts: z.array(z.object({ name: z.string(), content: z.string() })).max(ARCHIVE_TEXT_MAX_FILES),
+});
+export type InstallArchiveInspection = z.infer<typeof installArchiveInspectResponseSchema>;

@@ -405,6 +405,39 @@
       }
     },
     {
+      "type": "install.archives",
+      "request": {},
+      "response": {
+        "archives": [
+          {
+            "directoryId": "dir_01",
+            "name": "ATM10AERO-0.7.1-server.zip",
+            "path": "E:\\Minecraft\\Server\\ATM10AERO-0.7.1-server.zip",
+            "size": 903000000,
+            "modifiedAt": 1790000000000
+          }
+        ]
+      }
+    },
+    {
+      "type": "install.archiveInspect",
+      "request": {
+        "path": "E:\\Minecraft\\Server\\ATM10AERO-0.7.1-server.zip"
+      },
+      "response": {
+        "files": 1941,
+        "bytes": 1041326457,
+        "root": "",
+        "topLevel": ["mods/", "config/", "startserver.sh"],
+        "texts": [
+          {
+            "name": "startserver.sh",
+            "content": "NEOFORGE_VERSION=21.1.250"
+          }
+        ]
+      }
+    },
+    {
       "type": "player.list",
       "request": {
         "serverId": "srv_01"

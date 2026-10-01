@@ -69,6 +69,7 @@ export const AGENT_CAPABILITIES = [
   'server-install',
   'install-remove',
   'install-fetch-many',
+  'install-extract',
 ];
 
 export function currentOs(): Os {
@@ -356,6 +357,11 @@ export class Agent {
       os: currentOs(),
       panelOrigin,
       fetchImpl: options.fetchImpl,
+      archiveRoots: () =>
+        this.store
+          .get()
+          .watchedDirectories.filter((d) => d.enabled)
+          .map((d) => ({ id: d.id, path: d.path })),
     });
     this.migration = new AgentMigration({
       stateDir: options.stateDir,
@@ -713,6 +719,10 @@ export class Agent {
         );
         return { taskId };
       })
+      .handle('install.archives', async () => ({
+        archives: await this.serverInstaller.listArchives(),
+      }))
+      .handle('install.archiveInspect', (req) => this.serverInstaller.inspectArchive(req.path))
       .handle('java.remove', async ({ path: javaPath }) => {
         const removed = await this.javaInstaller.remove(javaPath);
         this.javaSnapshot = await this.java.list(true).catch(() => this.javaSnapshot);

@@ -9,7 +9,7 @@ import { mkdir, open, type FileHandle } from 'node:fs/promises';
 import path from 'node:path';
 import { Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import { createInflateRaw } from 'node:zlib';
+import { createInflateRaw, inflateRawSync } from 'node:zlib';
 
 import {
   DEFAULT_EXTRACT_MAX_BYTES,
@@ -110,6 +110,8 @@ export async function extractZip(
     /** Phase 12 (doc 03 §6) : plafond d'octets réellement inflatés (défaut 64 Gio). */
     maxBytes?: number;
     maxEntries?: number;
+    /** Entrées à ne pas poser (chemin relatif après `stripComponents`) ; absentes du décompte. */
+    filter?: (relativePath: string) => boolean;
   } = {},
 ): Promise<ZipExtractResult> {
   const strip = options.stripComponents ?? 0;
@@ -134,6 +136,7 @@ export async function extractZip(
         skipped.push(e.name);
         continue;
       }
+      if (options.filter?.(rel) === false) continue;
       seen++;
       assertExtractBudget(bytes + e.uncompressedSize, seen, maxBytes, maxEntries);
       const abs = path.join(dest, ...rel.split('/'));
@@ -196,4 +199,47 @@ export async function extractZip(
     await fh.close();
   }
   return { files, bytes, skipped };
+}
+
+export interface ZipListing {
+  name: string;
+  size: number;
+  isDir: boolean;
+}
+
+/** Répertoire central seul : noms et tailles dépliées annoncées, sans rien lire du contenu. */
+export async function listZip(zipPath: string): Promise<ZipListing[]> {
+  const fh = await open(zipPath, 'r');
+  try {
+    return (await readCentralDirectory(fh)).map((e) => ({
+      name: e.name,
+      size: e.uncompressedSize,
+      isDir: e.isDir,
+    }));
+  } finally {
+    await fh.close();
+  }
+}
+
+/** Contenu d'une entrée, en mémoire : pour un petit fichier texte, borné par `maxBytes`. */
+export async function readZipEntry(
+  zipPath: string,
+  name: string,
+  maxBytes: number,
+): Promise<Buffer | undefined> {
+  const fh = await open(zipPath, 'r');
+  try {
+    const e = (await readCentralDirectory(fh)).find((x) => x.name === name);
+    if (e === undefined || e.isDir || e.uncompressedSize > maxBytes) return undefined;
+    if (e.method !== 0 && e.method !== 8) return undefined;
+    const local = await readAt(fh, e.localHeaderOffset, 30);
+    if (local.length < 30 || local.readUInt32LE(0) !== LOC_SIG) return undefined;
+    const dataStart = e.localHeaderOffset + 30 + local.readUInt16LE(26) + local.readUInt16LE(28);
+    const raw = await readAt(fh, dataStart, e.compressedSize);
+    if (e.method === 0) return raw;
+    // Borné sur le flux réel : la taille annoncée peut mentir.
+    return inflateRawSync(raw, { maxOutputLength: maxBytes });
+  } finally {
+    await fh.close();
+  }
 }
