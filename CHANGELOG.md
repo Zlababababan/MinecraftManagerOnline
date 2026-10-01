@@ -8,6 +8,25 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+## 1.0.12 — 2026-10-01
+
+### One place for each thing (2026-10-01)
+
+- **One server list.** The Servers page now opens as cards, with "Create a server" and "Add a
+  machine" right there. A machine's page no longer repeats the list: it shows how many servers it
+  has and links to the Servers page, filtered on that machine.
+- **Favourites.** A star on each server pins it to the top of the list and of the dashboard. It is
+  stored by the panel, so it follows you from one device to another.
+- **Everyday actions on the card.** Next to Start/Stop: open the console, and copy the address to
+  give your friends (it also works when the panel is opened over plain HTTP).
+- **Add a machine → create a server → start it, in one go.** After the pairing code, the window
+  waits for the agent, asks which folder should hold your servers, then offers "Create a server".
+- **With a single machine, "Machines" leaves the menu.** Its page lives in Settings → Machine, and
+  the menu entry comes back as soon as there is a second machine.
+- **Settings sorted by need**: Players and network, Machine, Backups, Accounts, Advanced.
+- **A server's page shows five tabs** (Overview, Console, Players, Configuration, Backups); the
+  other six are under "More". Nothing was removed, and links to a tab keep working.
+
 ## 1.0.11 — 2026-10-01
 
 ### Hosting without Tailscale (2026-10-01)
