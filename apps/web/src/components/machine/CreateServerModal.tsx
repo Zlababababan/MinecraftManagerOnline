@@ -1,8 +1,10 @@
 /**
- * Lot 5 — assistant de création d'un serveur, en quatre écrans : emplacement, version, ressources,
- * EULA. Le récapitulatif tient dans le dernier écran, avec le pré-contrôle de la machine (dossier
- * vide, port libre, JRE, place) : c'est le seul moment où l'on peut encore reculer sans rien avoir
- * écrit sur le disque.
+ * Lot 5 — assistant de création d'un serveur, en trois écrans : **quoi installer** (une version,
+ * un modpack ou une archive), **réglages** (dossier et mémoire, tous deux proposés), **vérification**
+ * (EULA). On choisit d'abord QUOI : le nom du dossier s'en déduit, et personne n'a à inventer un nom
+ * avant de savoir ce qu'il installe (retour de Yassin, 01/10). Le récapitulatif tient dans le
+ * dernier écran, avec le pré-contrôle de la machine (dossier vide, port libre, JRE, place) : c'est
+ * le seul moment où l'on peut encore reculer sans rien avoir écrit sur le disque.
  *
  * L'EULA n'est **jamais** pré-cochée. C'est un engagement pris par une personne — le panel écrit
  * son nom dans le journal d'audit — et le schéma la refuse tant qu'elle n'est pas cochée.
@@ -99,6 +101,30 @@ export const DEFAULT_RAM_MB: Record<InstallLoader, number> = {
 /** Un « server pack » moddé livré en zip (ATM10 : 418 mods) ne démarre pas dans 6 Gio. */
 export const ARCHIVE_MODDED_RAM_MB = 8192;
 
+/**
+ * Nom de dossier proposé d'après ce qu'on installe (« ATM10AERO-0.7.1-server.zip » →
+ * « ATM10AERO-0.7.1 ») : seulement les caractères qu'accepte `INSTALL_FOLDER_RE`, et jamais un nom
+ * déjà pris sous le répertoire choisi (« -2 », « -3 »…).
+ */
+export function suggestFolderName(
+  raw: string,
+  taken: ReadonlySet<string>,
+  caseSensitive: boolean,
+): string {
+  const base =
+    raw
+      .replace(/\.zip$/i, '')
+      .replace(/[-_ .]*server([-_ ]?files?)?$/i, '')
+      .replace(/[^A-Za-z0-9._-]+/g, '-')
+      .replace(/^[^A-Za-z0-9]+/, '')
+      .slice(0, 56)
+      .replace(/[._-]+$/, '') || 'serveur';
+  const isTaken = (name: string): boolean => taken.has(caseSensitive ? name : name.toLowerCase());
+  let name = base;
+  for (let i = 2; isTaken(name); i++) name = `${base}-${String(i)}`;
+  return name;
+}
+
 export interface VersionGroup {
   /** Série (`1.21`, `26`) ; `undefined` pour le groupe des versions de test. */
   series: string | undefined;
@@ -157,6 +183,8 @@ export function CreateServerModal({
   const [ftbError, setFtbError] = useState<string | undefined>(undefined);
   // Dernière mémoire proposée par l'assistant : tant que le champ la porte, on peut la remplacer.
   const suggestedRam = useRef<number>(DEFAULT_RAM_MB.vanilla);
+  // Même règle pour le nom du dossier : proposé, et remplacé tant qu'on ne l'a pas retouché.
+  const suggestedFolder = useRef<string>('');
   const form = useForm<FormValues>({
     initialValues: {
       directoryId: directories[0]?.id ?? '',
@@ -241,6 +269,7 @@ export function CreateServerModal({
     setArchivePick(undefined);
     setArchiveError(undefined);
     suggestedRam.current = DEFAULT_RAM_MB.vanilla;
+    suggestedFolder.current = '';
     form.reset();
     create.reset();
     runPrecheck.reset();
@@ -285,31 +314,50 @@ export function CreateServerModal({
   const wasRunning = useRef(false);
   // `check` lit le formulaire du rendu courant : un événement d'effet, pas une dépendance.
   const recheck = useEffectEvent(() => {
-    if (step === 3) check();
+    if (step === 2) check();
   });
   useEffect(() => {
     if (wasRunning.current && !javaRunning) recheck();
     wasRunning.current = javaRunning;
   }, [javaRunning]);
 
+  /** Ce qu'on installe, en un nom : la base du dossier proposé. */
+  const sourceName = (): string => {
+    if (mode === 'archive' && archivePick !== undefined) return archivePick.archive.name;
+    if (mode === 'ftb' && ftbPick !== undefined) {
+      return `${ftbPick.pack.name}-${ftbPick.version.name}`;
+    }
+    return `${form.values.loader}-${form.values.mcVersion}`;
+  };
+
   const next = () => {
-    if (step === 0 && form.validateField('directoryId').hasError) return;
-    if (step === 0 && form.validateField('folderName').hasError) return;
-    if (step === 0 && folderTaken) return;
-    if (step === 1 && mode === 'ftb' && ftbPick === undefined) {
+    if (step === 1 && form.validateField('directoryId').hasError) return;
+    if (step === 1 && form.validateField('folderName').hasError) return;
+    if (step === 1 && folderTaken) return;
+    if (step === 0 && mode === 'ftb' && ftbPick === undefined) {
       setFtbError(t('web:install.ftb.required'));
       return;
     }
     // Une archive dont le panel n'a pas reconnu le chargeur n'avance pas : il ne devine pas.
-    if (step === 1 && mode === 'archive' && (archivePick?.inspection.recognized ?? null) === null) {
+    if (step === 0 && mode === 'archive' && (archivePick?.inspection.recognized ?? null) === null) {
       setArchiveError(t('web:install.archive.required'));
       return;
     }
-    if (step === 1 && mode === 'plain' && form.validateField('mcVersion').hasError) return;
+    if (step === 0 && mode === 'plain' && form.validateField('mcVersion').hasError) return;
+    if (step === 0) {
+      // Le dossier se propose d'après ce qu'on vient de choisir, tant qu'on n'y a pas touché.
+      if (form.values.folderName === suggestedFolder.current) {
+        const proposal = suggestFolderName(sourceName(), takenFolders, caseSensitive);
+        suggestedFolder.current = proposal;
+        form.setFieldValue('folderName', proposal);
+      }
+      setStep(1);
+      return;
+    }
     // Dernier pas avant l'engagement : on demande à la machine ce qu'elle en pense.
-    if (step === 2) {
+    if (step === 1) {
       check(() => {
-        setStep(3);
+        setStep(2);
       });
       return;
     }
@@ -401,13 +449,12 @@ export function CreateServerModal({
     <Modal opened={opened} onClose={close} title={t('web:install.title')} size="lg">
       <Stack gap="md">
         <Stepper active={step} size="sm" allowNextStepsSelect={false}>
-          <Stepper.Step label={t('web:install.stepPlace')} />
           <Stepper.Step label={t('web:install.stepVersion')} />
-          <Stepper.Step label={t('web:install.stepResources')} />
+          <Stepper.Step label={t('web:install.stepPlace')} />
           <Stepper.Step label={t('web:install.stepConfirm')} />
         </Stepper>
 
-        {step === 0 && (
+        {step === 1 && (
           <Stack gap="sm">
             <NativeSelect
               label={t('web:install.directory')}
@@ -437,10 +484,20 @@ export function CreateServerModal({
                 {fullPath}
               </Text>
             </Card>
+            <NumberInput
+              label={t('web:install.maxRam')}
+              description={t('web:install.maxRamHint')}
+              min={512}
+              max={131072}
+              step={512}
+              data-testid="install-ram"
+              {...form.getInputProps('maxRamMb')}
+            />
+            <TextInput label={t('web:install.motd')} {...form.getInputProps('motd')} />
           </Stack>
         )}
 
-        {step === 1 && (
+        {step === 0 && (
           <Stack gap="sm">
             <SegmentedControl
               fullWidth
@@ -521,21 +578,6 @@ export function CreateServerModal({
         )}
 
         {step === 2 && (
-          <Stack gap="sm">
-            <NumberInput
-              label={t('web:install.maxRam')}
-              description={t('web:install.maxRamHint')}
-              min={512}
-              max={131072}
-              step={512}
-              data-testid="install-ram"
-              {...form.getInputProps('maxRamMb')}
-            />
-            <TextInput label={t('web:install.motd')} {...form.getInputProps('motd')} />
-          </Stack>
-        )}
-
-        {step === 3 && (
           <Stack gap="sm">
             <Card withBorder radius="sm" padding="sm">
               <Stack gap={4}>
@@ -645,7 +687,7 @@ export function CreateServerModal({
           >
             {t('web:common.back')}
           </Button>
-          {step < 3 ? (
+          {step < 2 ? (
             <Button onClick={next} loading={runPrecheck.isPending} data-testid="install-next">
               {t('web:common.next')}
             </Button>

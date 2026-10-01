@@ -1046,15 +1046,15 @@ export const webFr = {
   install: {
     title: 'Créer un serveur',
     create: 'Créer le serveur',
-    stepPlace: 'Emplacement',
-    stepVersion: 'Version',
+    stepPlace: 'Réglages',
+    stepVersion: 'Quoi installer',
     stepResources: 'Ressources',
     stepConfirm: 'Vérification',
     directory: 'Répertoire surveillé',
     directoryRequired: 'Choisissez un répertoire surveillé.',
     folderName: 'Nom du dossier',
     folderHint:
-      'Lettres, chiffres, espaces, point, tiret et souligné. C’est le nom du dossier sur la machine.',
+      'Proposé d’après ce que vous installez ; modifiable. Lettres, chiffres, points, tirets.',
     folderInvalid: 'Nom de dossier invalide (ni accent, ni séparateur).',
     folderTaken: 'Ce nom de dossier est déjà celui d’un serveur enregistré ici.',
     displayName: 'Nom affiché (facultatif)',

@@ -1035,15 +1035,15 @@ export const webEn = {
   install: {
     title: 'Create a server',
     create: 'Create the server',
-    stepPlace: 'Location',
-    stepVersion: 'Version',
+    stepPlace: 'Settings',
+    stepVersion: 'What to install',
     stepResources: 'Resources',
     stepConfirm: 'Review',
     directory: 'Watched directory',
     directoryRequired: 'Pick a watched directory.',
     folderName: 'Folder name',
     folderHint:
-      'Letters, digits, spaces, dot, dash and underscore. This is the folder name on the machine.',
+      'Suggested from what you install; you can change it. Letters, digits, dots, dashes.',
     folderInvalid: 'Invalid folder name (no accents, no separators).',
     folderTaken: 'A registered server already uses this folder name here.',
     displayName: 'Display name (optional)',

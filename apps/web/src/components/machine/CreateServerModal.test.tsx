@@ -11,7 +11,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MachineDto } from '@mmo/protocol/client';
 
 import { i18n } from '../../i18n/index.js';
-import { CreateServerModal, DEFAULT_RAM_MB, groupVersions } from './CreateServerModal.js';
+import {
+  CreateServerModal,
+  DEFAULT_RAM_MB,
+  groupVersions,
+  suggestFolderName,
+} from './CreateServerModal.js';
 
 const machine = { id: 'm1', name: 'Tour', os: 'linux' } as MachineDto;
 const directories = [
@@ -189,17 +194,22 @@ function renderModal(options: FetchOptions = {}): { calls: Call[]; created: stri
   return { calls, created };
 }
 
-/** Remplit le premier écran et avance jusqu'au récapitulatif. */
-async function walkToReview(): Promise<void> {
-  fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'survie' } });
-  fireEvent.click(screen.getByTestId('install-next'));
+/** Premier écran (quoi installer) : vanilla 1.20.1, puis l'écran des réglages. */
+async function toSettings(): Promise<HTMLElement> {
   const version = await screen.findByTestId('install-version');
   await waitFor(() => {
     expect(version.querySelectorAll('option').length).toBeGreaterThan(1);
   });
   fireEvent.change(version, { target: { value: '1.20.1' } });
   fireEvent.click(screen.getByTestId('install-next'));
-  fireEvent.click(await screen.findByTestId('install-next'));
+  return screen.findByTestId('install-folder');
+}
+
+/** Choisit la version, nomme le dossier et avance jusqu'au récapitulatif. */
+async function walkToReview(): Promise<void> {
+  const folder = await toSettings();
+  fireEvent.change(folder, { target: { value: 'survie' } });
+  fireEvent.click(screen.getByTestId('install-next'));
 }
 
 describe('CreateServerModal', () => {
@@ -212,7 +222,11 @@ describe('CreateServerModal', () => {
 
   it('montre le chemin final, composé du répertoire choisi et du nom de dossier', async () => {
     renderModal();
-    fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'survie' } });
+    const folder = await toSettings();
+    // Le nom est proposé d'après ce qu'on installe : rien à inventer pour avancer.
+    expect(folder).toHaveValue('vanilla-1.20.1');
+    expect(screen.getByTestId('install-path')).toHaveTextContent('/srv/minecraft/vanilla-1.20.1');
+    fireEvent.change(folder, { target: { value: 'survie' } });
     expect(screen.getByTestId('install-path')).toHaveTextContent('/srv/minecraft/survie');
     fireEvent.change(screen.getByTestId('install-directory'), { target: { value: 'dir2' } });
     await waitFor(() => {
@@ -222,6 +236,7 @@ describe('CreateServerModal', () => {
 
   it('un nom de dossier déjà pris sur cette machine est dit tout de suite, et n’avance pas', async () => {
     renderModal();
+    await toSettings();
     fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'creatif' } });
     expect(
       await screen.findByText('Ce nom de dossier est déjà celui d’un serveur enregistré ici.'),
@@ -245,12 +260,32 @@ describe('CreateServerModal', () => {
     });
   });
 
-  it('un nom de dossier impossible n’avance pas d’un écran', () => {
-    renderModal();
+  it('un nom de dossier impossible n’avance pas d’un écran', async () => {
+    const { calls } = renderModal();
+    await toSettings();
     fireEvent.change(screen.getByTestId('install-folder'), { target: { value: '../ailleurs' } });
     fireEvent.click(screen.getByTestId('install-next'));
-    // Toujours le premier écran : le chemin final est encore là.
+    // La demande à la machine partirait de façon asynchrone : laisser passer un instant avant de constater.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    // Toujours l'écran des réglages : le chemin final est encore là, rien n'est demandé à la machine.
     expect(screen.getByTestId('install-path')).toBeInTheDocument();
+    expect(calls.some((c) => c.path.endsWith('/install/precheck'))).toBe(false);
+  });
+
+  it('le nom proposé suit ce qu’on installe tant qu’on n’y a pas touché, et jamais après', async () => {
+    renderModal();
+    const folder = await toSettings();
+    expect(folder).toHaveValue('vanilla-1.20.1');
+    fireEvent.click(screen.getByText('Retour'));
+    fireEvent.change(await screen.findByTestId('install-version'), { target: { value: '1.19.4' } });
+    fireEvent.click(screen.getByTestId('install-next'));
+    expect(await screen.findByTestId('install-folder')).toHaveValue('vanilla-1.19.4');
+    // Un nom choisi à la main n'est plus jamais remplacé.
+    fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'mon-monde' } });
+    fireEvent.click(screen.getByText('Retour'));
+    fireEvent.change(await screen.findByTestId('install-version'), { target: { value: '1.20.1' } });
+    fireEvent.click(screen.getByTestId('install-next'));
+    expect(await screen.findByTestId('install-folder')).toHaveValue('mon-monde');
   });
 
   it('le récapitulatif dit ce que la machine refuse, sans empêcher de continuer', async () => {
@@ -283,8 +318,6 @@ describe('CreateServerModal', () => {
 
   it('changer de chargeur relit le catalogue et oublie la version choisie', async () => {
     const { calls } = renderModal();
-    fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'survie' } });
-    fireEvent.click(screen.getByTestId('install-next'));
     const version = await screen.findByTestId('install-version');
     await waitFor(() => {
       expect(version.querySelectorAll('option').length).toBeGreaterThan(1);
@@ -304,8 +337,6 @@ describe('CreateServerModal', () => {
 
   it('la dernière stable est présélectionnée, les versions de test masquées sauf demande', async () => {
     renderModal();
-    fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'survie' } });
-    fireEvent.click(screen.getByTestId('install-next'));
     const version = await screen.findByTestId('install-version');
     // Une pré-version arrive en tête du catalogue : elle n'est ni choisie ni proposée.
     await waitFor(() => {
@@ -322,8 +353,6 @@ describe('CreateServerModal', () => {
 
   it('la mémoire proposée suit le chargeur tant qu’on n’y a pas touché', async () => {
     renderModal();
-    fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'survie' } });
-    fireEvent.click(screen.getByTestId('install-next'));
     await screen.findByTestId('install-version');
     fireEvent.click(screen.getByLabelText('NeoForge'));
     // Le catalogue NeoForge arrive et sa dernière stable est reprise avant d'avancer.
@@ -369,8 +398,6 @@ describe('CreateServerModal — modpacks FTB et services tiers', () => {
   });
 
   const toLoaderStep = async () => {
-    fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'evolution' } });
-    fireEvent.click(screen.getByTestId('install-next'));
     await screen.findByTestId('install-loader');
   };
 
@@ -407,7 +434,9 @@ describe('CreateServerModal — modpacks FTB et services tiers', () => {
     expect(versionSelect.querySelector('option[value="7"]')).toBeDisabled();
     fireEvent.change(versionSelect, { target: { value: '100487' } });
     fireEvent.click(screen.getByTestId('install-next'));
-    fireEvent.click(await screen.findByTestId('install-next'));
+    // Le dossier porte le nom du pack et de sa version : rien à saisir.
+    expect(await screen.findByTestId('install-folder')).toHaveValue('FTB-Evolution-1.43.1');
+    fireEvent.click(screen.getByTestId('install-next'));
     fireEvent.click(await screen.findByTestId('install-eula'));
     fireEvent.click(screen.getByTestId('install-submit'));
     await waitFor(() => {
@@ -415,7 +444,7 @@ describe('CreateServerModal — modpacks FTB et services tiers', () => {
     });
     const post = calls.find((c) => c.method === 'POST' && c.path === '/api/machines/m1/install');
     expect(post?.body).toMatchObject({
-      folderName: 'evolution',
+      folderName: 'FTB-Evolution-1.43.1',
       modpack: { provider: 'ftb', packId: 125, versionId: 100487 },
     });
   });
@@ -430,8 +459,6 @@ describe('CreateServerModal — serveur depuis une archive', () => {
   });
 
   const toArchiveMode = async () => {
-    fireEvent.change(screen.getByTestId('install-folder'), { target: { value: 'atm10' } });
-    fireEvent.click(screen.getByTestId('install-next'));
     await screen.findByTestId('install-loader');
     fireEvent.click(await screen.findByLabelText('Archive (.zip)'));
     return screen.findByTestId('archive-select');
@@ -477,6 +504,8 @@ describe('CreateServerModal — serveur depuis une archive', () => {
     expect(calls.filter((c) => c.path.includes('catalog?loader=neoforge'))).toHaveLength(0);
     fireEvent.click(screen.getByTestId('install-next'));
     expect(await screen.findByTestId('install-ram')).toHaveValue('8192');
+    // Le zip choisi d'abord : le dossier en reprend le nom, sans « -server » ni « .zip ».
+    expect(screen.getByTestId('install-folder')).toHaveValue('ATM10AERO-0.7.1');
     fireEvent.click(screen.getByTestId('install-next'));
     fireEvent.click(await screen.findByTestId('install-eula'));
     expect(screen.getByText(/ATM10AERO-0\.7\.1-server\.zip — NeoForge 1\.21\.1/)).toBeVisible();
@@ -488,7 +517,7 @@ describe('CreateServerModal — serveur depuis une archive', () => {
     const post = calls.find((c) => c.method === 'POST' && c.path === '/api/machines/m1/install');
     for (const call of [pre, post]) {
       expect(call?.body).toMatchObject({
-        folderName: 'atm10',
+        folderName: 'ATM10AERO-0.7.1',
         loader: 'neoforge',
         mcVersion: '1.21.1',
         maxRamMb: 8192,
@@ -531,6 +560,22 @@ describe('CreateServerModal — serveur depuis une archive', () => {
     const pre = calls.find((c) => c.path.endsWith('/install/precheck'));
     expect(pre?.body).toMatchObject({ loader: 'vanilla', mcVersion: '1.20.1' });
     expect(pre?.body).not.toHaveProperty('archive');
+  });
+});
+
+describe('suggestFolderName', () => {
+  it('nettoie le nom, et ne propose jamais un dossier déjà pris', () => {
+    const none = new Set<string>();
+    expect(suggestFolderName('ATM10AERO-0.7.1-server.zip', none, false)).toBe('ATM10AERO-0.7.1');
+    expect(suggestFolderName('Server-Files-4.10.zip', none, false)).toBe('Server-Files-4.10');
+    expect(suggestFolderName('ATM9 Server Files.zip', none, false)).toBe('ATM9');
+    expect(suggestFolderName('FTB Évolution: 1.43/1', none, false)).toBe('FTB-volution-1.43-1');
+    expect(suggestFolderName('...zip', none, false)).toBe('serveur');
+    expect(suggestFolderName('x'.repeat(90), none, false)).toHaveLength(56);
+    // Déjà pris (casse ignorée hors Linux) : suffixe, jusqu'à trouver un nom libre.
+    const taken = new Set(['vanilla-1.21.4', 'vanilla-1.21.4-2']);
+    expect(suggestFolderName('Vanilla-1.21.4', taken, false)).toBe('Vanilla-1.21.4-3');
+    expect(suggestFolderName('Vanilla-1.21.4', taken, true)).toBe('Vanilla-1.21.4');
   });
 });
 
