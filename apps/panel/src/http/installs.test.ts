@@ -96,6 +96,26 @@ const FTB_VERSION = {
       clientonly: false,
     },
     {
+      // Publié chez CurseForge, avec une copie chez FTB : la copie FTB doit passer devant.
+      path: './mods',
+      name: 'cf.jar',
+      url: 'https://edge.forgecdn.net/cf.jar',
+      mirrors: ['https://files.feed-the-beast.com/cf.jar'],
+      sha1: 'c'.repeat(40),
+      size: 7,
+      clientonly: false,
+    },
+    {
+      // Publié chez CurseForge seulement : gardé tel quel (sinon le pack serait impossible).
+      path: './mods',
+      name: 'only-cf.jar',
+      url: 'https://edge.forgecdn.net/only.jar',
+      mirrors: [],
+      sha1: 'd'.repeat(40),
+      size: 3,
+      clientonly: false,
+    },
+    {
       path: './mods',
       name: 'shader.jar',
       url: 'https://files.feed-the-beast.com/s.jar',
@@ -625,6 +645,19 @@ describe('installation d’un serveur — routes et service du panel', () => {
           mirrors: ['https://edge.forgecdn.net/a.jar'],
           sha1: 'a'.repeat(40),
           size: 10,
+        },
+        {
+          path: 'mods/cf.jar',
+          url: 'https://files.feed-the-beast.com/cf.jar',
+          mirrors: ['https://edge.forgecdn.net/cf.jar'],
+          sha1: 'c'.repeat(40),
+          size: 7,
+        },
+        {
+          path: 'mods/only-cf.jar',
+          url: 'https://edge.forgecdn.net/only.jar',
+          sha1: 'd'.repeat(40),
+          size: 3,
         },
       ]);
       expect(dl.url).toContain('/neoforge/21.1.209/');

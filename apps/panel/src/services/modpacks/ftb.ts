@@ -156,13 +156,16 @@ export class FtbService implements ModpackProvider {
         kind: 'fetchMany',
         label,
         concurrency: FETCH_MANY_CONCURRENCY_DEFAULT,
-        files: version.files.map((f) => ({
-          path: f.path,
-          url: f.url,
-          ...(f.mirrors.length === 0 ? {} : { mirrors: f.mirrors }),
-          sha1: f.sha1,
-          size: f.size,
-        })),
+        files: version.files.map((f) => {
+          const [url, ...mirrors] = ftbFirst([f.url, ...f.mirrors]);
+          return {
+            path: f.path,
+            url: url ?? f.url,
+            ...(mirrors.length === 0 ? {} : { mirrors }),
+            sha1: f.sha1,
+            size: f.size,
+          };
+        }),
       },
     };
   }
@@ -241,4 +244,20 @@ export class FtbService implements ModpackProvider {
       throw error;
     }
   }
+}
+
+/**
+ * Ordre des sources d'un fichier : la copie hébergée par FTB d'abord, CurseForge seulement en
+ * repli (décision de Yassin, 01/10/2026 : se passer de CurseForge autant que possible sans rendre
+ * de pack impossible à installer). L'ordre relatif des autres sources est conservé.
+ */
+export function ftbFirst(urls: readonly string[]): string[] {
+  const isFtb = (url: string): boolean => {
+    try {
+      return new URL(url).hostname.endsWith('.feed-the-beast.com');
+    } catch {
+      return false;
+    }
+  };
+  return [...urls.filter(isFtb), ...urls.filter((u) => !isFtb(u))];
 }

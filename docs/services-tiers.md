@@ -53,6 +53,10 @@ version de chaque appel :
 - **Cache négatif** : un hôte en panne (réseau, 5xx) n'est plus sollicité pendant 1 min, doublée à
   chaque panne consécutive (plafond 15 min), remise à zéro au premier succès. Pendant ce temps, un
   clic reçoit `E_UNREACHABLE` avec `details.retryInMs` sans que rien ne sorte.
+- **CurseForge en dernier recours** (décision de Yassin, 01/10/2026) : pour un fichier de pack FTB
+  publié chez CurseForge, la copie hébergée par FTB est demandée d'abord ; `edge.forgecdn.net`
+  n'est contacté que si elle manque ou échoue (sur FTB Evolution : 27 fichiers sur 7 124 n'ont pas
+  de copie FTB). Le panel, lui, ne parle jamais à CurseForge.
 - **Jamais une requête par frappe** : la recherche FTB de l'assistant part au bouton.
 - **Agent** : la résolution de profils Mojang s'arrête au premier `429`, `5xx` ou échec réseau au
   lieu d'enchaîner les lots suivants ; le téléchargement des fichiers d'un modpack est borné par
