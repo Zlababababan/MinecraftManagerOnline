@@ -136,7 +136,13 @@ describe('ui-events', () => {
     });
 
     // Lecture refusée et lot de parcours UI invalide : rien de plus dans l'audit.
-    await panel.app.inject({ method: 'GET', url: '/api/ui-events', headers: { cookie: viewer } });
+    // (une route de lecture réservée aux administrateurs, autre que celle du parcours UI)
+    const read = await panel.app.inject({
+      method: 'GET',
+      url: '/api/settings',
+      headers: { cookie: viewer },
+    });
+    expect(read.statusCode).toBe(403);
     await panel.app.inject({
       method: 'POST',
       url: '/api/ui-events',
