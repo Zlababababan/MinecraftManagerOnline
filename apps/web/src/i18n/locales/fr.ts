@@ -150,6 +150,13 @@ export const webFr = {
     },
   },
   machine: {
+    offline: {
+      waiting:
+        'Hors ligne depuis {{elapsed}} : l’agent se reconnecte tout seul (il réessaie chaque seconde, puis de plus en plus lentement, jusqu’à une fois par minute).',
+      stuck:
+        'Hors ligne depuis {{elapsed}} : l’agent ne revient pas tout seul. Vérifiez que la machine est allumée et que l’agent y tourne.',
+      windows: 'Pour le relancer, dans un PowerShell administrateur sur cette machine :',
+    },
     title: 'Machines',
     one: 'Machine',
     status: {

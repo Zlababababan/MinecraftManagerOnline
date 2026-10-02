@@ -8,6 +8,7 @@ import type { MachineDto } from '@mmo/protocol/client';
 
 import { ago, formatDuration, formatGb, formatMb, formatPct } from '../lib/format.js';
 import { MachineStatusBadge } from './badges.js';
+import { OfflineNotice } from './machine/OfflineNotice.js';
 
 function Gauge({ label, value, text }: { label: string; value: number | undefined; text: string }) {
   return (
@@ -87,6 +88,7 @@ export function MachineHeader({
             </>
           )}
         </Text>
+        <OfflineNotice machine={machine} />
       </Stack>
       {hb !== undefined && machine.connected && (
         <Stack gap={4} align="flex-end">

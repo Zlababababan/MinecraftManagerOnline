@@ -152,6 +152,13 @@ export const webEn = {
     },
   },
   machine: {
+    offline: {
+      waiting:
+        'Offline for {{elapsed}}: the agent reconnects by itself (it retries every second, then more and more slowly, up to once a minute).',
+      stuck:
+        'Offline for {{elapsed}}: the agent is not coming back by itself. Check that the machine is on and that the agent is running on it.',
+      windows: 'To start it again, in an administrator PowerShell on that machine:',
+    },
     title: 'Machines',
     one: 'Machine',
     status: {
