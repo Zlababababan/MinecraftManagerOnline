@@ -12,6 +12,7 @@ import { useAudit } from '../../api/admin.js';
 import { useT } from '../../i18n/hooks.js';
 import { formatDateTime } from '../../lib/format.js';
 import { ErrorAlert } from '../ErrorAlert.js';
+import { Sensitive } from '../Sensitive.js';
 
 function AuditRow({ entry }: { entry: AuditDto }) {
   const { t, i18n } = useT();
@@ -36,7 +37,7 @@ function AuditRow({ entry }: { entry: AuditDto }) {
         <Table.Td>{entry.targetLabel ?? entry.targetId ?? '—'}</Table.Td>
         <Table.Td visibleFrom="sm">
           <Text size="xs" c="dimmed">
-            {entry.ip ?? '—'}
+            {entry.ip === null ? '—' : <Sensitive>{entry.ip}</Sensitive>}
           </Text>
         </Table.Td>
       </Table.Tr>

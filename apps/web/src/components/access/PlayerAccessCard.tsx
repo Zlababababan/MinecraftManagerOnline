@@ -27,6 +27,7 @@ import { useT } from '../../i18n/hooks.js';
 import { tDynamic } from '../../i18n/index.js';
 import { describeError } from '../../lib/errors.js';
 import { canServer } from '../../lib/permissions.js';
+import { Sensitive } from '../Sensitive.js';
 
 export function PlayerAccessCard({ server }: { server: ServerDto }) {
   const { t, i18n } = useT();
@@ -87,7 +88,7 @@ export function PlayerAccessCard({ server }: { server: ServerDto }) {
                 tabIndex={0}
                 style={{ fontSize: 'var(--mantine-font-size-md)' }}
               >
-                {a.address}
+                <Sensitive>{a.address}</Sensitive>
               </Code>
               <CopyButton value={a.address}>
                 {({ copied, copy }) => (

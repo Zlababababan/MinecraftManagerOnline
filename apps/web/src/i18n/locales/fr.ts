@@ -27,6 +27,11 @@ export const webFr = {
   },
   theme: { label: 'Thème', light: 'Clair', dark: 'Sombre', auto: 'Système' },
   lang: { label: 'Langue', fr: 'Français', en: 'English' },
+  sensitive: {
+    reveal: 'Donnée masquée — cliquer pour l’afficher',
+    showAll: 'Afficher les données sensibles (IP, adresses)',
+    hideAll: 'Flouter les données sensibles (IP, adresses)',
+  },
   role: { admin: 'Administrateur', operator: 'Opérateur', viewer: 'Lecture seule' },
   common: {
     save: 'Enregistrer',

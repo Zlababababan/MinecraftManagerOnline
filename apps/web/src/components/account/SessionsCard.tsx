@@ -16,6 +16,7 @@ import { formatDateTime } from '../../lib/format.js';
 import { summarizeUserAgent } from '../../lib/user-agent.js';
 import { ErrorAlert } from '../ErrorAlert.js';
 import { HelpLink } from '../HelpLink.js';
+import { Sensitive } from '../Sensitive.js';
 
 export function SessionsCard({
   reload = () => {
@@ -113,7 +114,9 @@ export function SessionsCard({
                         )}
                       </Group>
                     </Table.Td>
-                    <Table.Td>{session.ip ?? '—'}</Table.Td>
+                    <Table.Td>
+                      {session.ip === null ? '—' : <Sensitive>{session.ip}</Sensitive>}
+                    </Table.Td>
                     <Table.Td>
                       {session.lastSeenAt === null
                         ? '—'

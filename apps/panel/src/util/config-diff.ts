@@ -67,7 +67,7 @@ export function diffKeyValues(
 /** Un élément de liste, réduit à ce qui le nomme (un joueur = son pseudo). */
 const label = (item: unknown): string => {
   if (typeof item === 'object' && item !== null && 'name' in item) {
-    const name = (item as { name: unknown }).name;
+    const { name } = item;
     if (typeof name === 'string') return name;
   }
   return clip(typeof item === 'string' ? item : JSON.stringify(item));

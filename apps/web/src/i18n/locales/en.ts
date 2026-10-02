@@ -29,6 +29,11 @@ export const webEn = {
   },
   theme: { label: 'Theme', light: 'Light', dark: 'Dark', auto: 'System' },
   lang: { label: 'Language', fr: 'Français', en: 'English' },
+  sensitive: {
+    reveal: 'Hidden value — click to show it',
+    showAll: 'Show sensitive data (IPs, addresses)',
+    hideAll: 'Blur sensitive data (IPs, addresses)',
+  },
   role: { admin: 'Administrator', operator: 'Operator', viewer: 'Viewer' },
   common: {
     save: 'Save',

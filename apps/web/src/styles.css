@@ -92,3 +92,17 @@ body {
     animation: none;
   }
 }
+
+/* Donnée sensible (IP, adresse) floutée par défaut : voir components/Sensitive.tsx. */
+.mmo-sensitive-hidden {
+  filter: blur(5px);
+  cursor: pointer;
+  user-select: none;
+  border-radius: 3px;
+}
+.mmo-sensitive-hidden:hover,
+.mmo-sensitive-hidden:focus-visible {
+  filter: blur(3px);
+  outline: 1px dashed var(--mantine-color-dimmed);
+  outline-offset: 2px;
+}

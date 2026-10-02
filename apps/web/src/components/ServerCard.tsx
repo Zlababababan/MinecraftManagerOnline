@@ -32,6 +32,7 @@ import { RunStateBadge } from './badges.js';
 import { JoinStatus } from './JoinStatus.js';
 import { RouterAnchor, RouterButton } from './links.js';
 import { ServerActions } from './ServerActions.js';
+import { SensitiveSentence } from './Sensitive.js';
 
 /** Le port que Minecraft essaie quand on tape une adresse sans port. */
 export const DEFAULT_GAME_PORT = 25565;
@@ -108,9 +109,17 @@ function CopyAddressButton({ server }: { server: ServerDto }) {
       const copied = await copyText(address.address);
       notifications.show({
         color: copied ? 'teal' : 'blue',
-        message: copied
-          ? t('web:servers.card.addressCopied', { address: address.address })
-          : t('web:servers.card.addressShown', { address: address.address }),
+        // L'adresse reste floutée dans la notification : elle est déjà dans le presse-papiers.
+        message: (
+          <SensitiveSentence
+            value={address.address}
+            render={(v) =>
+              copied
+                ? t('web:servers.card.addressCopied', { address: v })
+                : t('web:servers.card.addressShown', { address: v })
+            }
+          />
+        ),
       });
     } catch (error) {
       notifications.show({ color: 'red', message: describeError(i18n, error) });

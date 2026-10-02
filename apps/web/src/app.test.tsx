@@ -630,7 +630,10 @@ describe('App', () => {
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith('[2001:db8::1]:25565');
     });
-    expect(await screen.findByText('Adresse copiée : [2001:db8::1]:25565')).toBeInTheDocument();
+    // La vraie adresse part dans le presse-papiers ; à l'écran elle reste floutée (02/10).
+    const shown = await screen.findByText('[2001:db8::1]:25565');
+    expect(shown).toHaveAttribute('data-sensitive', 'hidden');
+    expect(shown.parentElement).toHaveTextContent('Adresse copiée : [2001:db8::1]:25565');
   });
 
   it('carte serveur : sans adresse connue, on le dit au lieu de copier du vide', async () => {

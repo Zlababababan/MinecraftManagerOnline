@@ -12,6 +12,7 @@ import { useMe, useUpdateMachine } from '../../api/queries.js';
 import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
 import { hasRole } from '../../lib/format.js';
+import { SensitiveSentence } from '../Sensitive.js';
 
 export function MachineHostsCard({ machine }: { machine: MachineDto }) {
   const { t, i18n } = useT();
@@ -55,9 +56,12 @@ export function MachineHostsCard({ machine }: { machine: MachineDto }) {
             <TextInput
               label={t('web:playerAccess.tailnetHost')}
               description={
-                detectedTailnet.length > 0
-                  ? t('web:playerAccess.detected', { list: detectedTailnet.join(', ') })
-                  : undefined
+                detectedTailnet.length > 0 ? (
+                  <SensitiveSentence
+                    value={detectedTailnet.join(', ')}
+                    render={(v) => t('web:playerAccess.detected', { list: v })}
+                  />
+                ) : undefined
               }
               disabled={!isAdmin}
               {...form.getInputProps('tailnetHost')}
@@ -66,9 +70,12 @@ export function MachineHostsCard({ machine }: { machine: MachineDto }) {
             <TextInput
               label={t('web:playerAccess.publicHost')}
               description={
-                detectedGlobal.length > 0
-                  ? t('web:playerAccess.detected', { list: detectedGlobal.join(', ') })
-                  : undefined
+                detectedGlobal.length > 0 ? (
+                  <SensitiveSentence
+                    value={detectedGlobal.join(', ')}
+                    render={(v) => t('web:playerAccess.detected', { list: v })}
+                  />
+                ) : undefined
               }
               disabled={!isAdmin}
               {...form.getInputProps('publicHost')}

@@ -59,6 +59,7 @@ import { PlayerStatsView } from './PlayerStatsView.js';
 import { WhitelistRequestsCard } from './WhitelistRequestsCard.js';
 import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 import { matchesQuery } from '../../lib/list-view.js';
+import { Sensitive } from '../Sensitive.js';
 
 export const PLAYER_VIEWS = ['online', 'whitelist', 'ops', 'bans', 'history', 'stats'] as const;
 export type PlayerView = (typeof PLAYER_VIEWS)[number];
@@ -699,7 +700,7 @@ function BansView({
                 <Table.Tr key={e.ip} data-testid={`bans-ip-${e.ip}`}>
                   <Table.Td>
                     <Text size="sm" ff="monospace">
-                      {e.ip}
+                      <Sensitive>{e.ip}</Sensitive>
                     </Text>
                   </Table.Td>
                   <Table.Td>{e.reason ?? '—'}</Table.Td>

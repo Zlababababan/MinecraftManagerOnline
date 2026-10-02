@@ -47,6 +47,7 @@ import { hasRole } from '../lib/format.js';
 import { resyncPush } from '../lib/push.js';
 import { eventLabel } from './EventsList.js';
 import { NotificationCenter } from './notifications/NotificationCenter.js';
+import { SensitiveToggle } from './Sensitive.js';
 import { RouterNavLink, RouterUnstyledButton as RouterButton } from './links.js';
 import { TasksIndicator } from './tasks/TaskProgress.js';
 import { setLocale } from '../i18n/index.js';
@@ -474,6 +475,7 @@ export function Shell({ user }: { user: UserDto }) {
             <AccessIndicator isAdmin={isAdmin} />
             <RealtimeIndicator />
             <NotificationCenter />
+            <SensitiveToggle />
             <ThemeMenu
               onChange={(theme) => {
                 updateMe.mutate({ theme });

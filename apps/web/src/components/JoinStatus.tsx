@@ -18,6 +18,7 @@ import type { ServerDto } from '@mmo/protocol/client';
 import { useServerAddress } from '../api/phase10.js';
 import { useT } from '../i18n/hooks.js';
 import { useNow } from '../lib/hooks.js';
+import { SensitiveSentence } from './Sensitive.js';
 
 /** `45 s`, `2 min 05` : à la seconde, parce qu'on regarde ce compteur en attendant. */
 export function formatElapsed(ms: number): string {
@@ -52,7 +53,14 @@ function Ready({ serverId }: { serverId: string }) {
       <IconCircleCheck size={14} color="var(--mantine-color-green-5)" style={{ flexShrink: 0 }} />
       <Text size="xs" c="green.5" style={{ wordBreak: 'break-all' }}>
         {/* Adresse inconnue (ou pas encore reçue) : on dit « prêt » sans rien inventer. */}
-        {address === null ? t('web:server.join.ready') : t('web:server.join.readyAt', { address })}
+        {address === null ? (
+          t('web:server.join.ready')
+        ) : (
+          <SensitiveSentence
+            value={address}
+            render={(v) => t('web:server.join.readyAt', { address: v })}
+          />
+        )}
       </Text>
     </Group>
   );
