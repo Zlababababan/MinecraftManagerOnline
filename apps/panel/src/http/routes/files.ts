@@ -19,6 +19,7 @@ import {
 } from '@mmo/protocol/client';
 
 import type { AppContext } from '../../context.js';
+import { configChanges, parseKeyValues, textChanges } from '../../util/config-diff.js';
 import { requireUser } from '../auth.js';
 import { auditMeta } from './setup-auth.js';
 
@@ -29,6 +30,22 @@ export function registerFileRoutes(app: FastifyInstance, ctx: AppContext): void 
   const session = (serverId: string) => {
     const row = ctx.servers.require(serverId);
     return { row, peer: ctx.registry.require(row.machineId).peer };
+  };
+
+  /**
+   * Le port affiché (aperçu, carte, adresse des joueurs) est une copie tenue par le panel. Elle
+   * suit le fichier dès qu'on l'enregistre — mais seulement serveur arrêté : en marche, Minecraft
+   * écoute encore sur l'ancien port jusqu'au redémarrage, et c'est l'agent qui annonce alors le
+   * nouveau (rapport d'état au démarrage).
+   */
+  const refreshGamePort = async (
+    row: ReturnType<typeof session>['row'],
+    value: unknown,
+  ): Promise<void> => {
+    const port = typeof value === 'string' || typeof value === 'number' ? Number(value) : NaN;
+    if (!Number.isInteger(port) || port < 1 || port > 65_535) return;
+    if (row.runState !== 'stopped' || row.gamePort === port) return;
+    await ctx.servers.update(row.id, { gamePort: port });
   };
 
   // --- Configuration typée ----------------------------------------------------------------------
@@ -52,6 +69,11 @@ export function registerFileRoutes(app: FastifyInstance, ctx: AppContext): void 
       const user = requireUser(request);
       const { row, peer } = session(request.params.id);
       const { file } = request.params;
+      // Lu AVANT d'écrire : l'audit dit quelle clé a changé, de quelle valeur à quelle valeur.
+      const before = await peer
+        .request('config.get', { serverId: row.id, file })
+        .then((r) => r.data)
+        .catch(() => undefined);
       const res = await peer.request(
         'config.set',
         {
@@ -70,8 +92,18 @@ export function registerFileRoutes(app: FastifyInstance, ctx: AppContext): void 
         targetType: 'server',
         targetId: row.id,
         targetLabel: row.name,
-        details: { file, applied: res.applied, commands: res.commands, warnings: res.warnings },
+        details: {
+          file,
+          applied: res.applied,
+          commands: res.commands,
+          warnings: res.warnings,
+          changes: configChanges(before, request.body.data),
+        },
       });
+      if (file === 'server.properties') {
+        const patch = request.body.data as Record<string, unknown> | null;
+        await refreshGamePort(row, patch?.['server-port']);
+      }
       ctx.events.publish({
         type: 'server.configChanged',
         machineId: row.machineId,
@@ -223,15 +255,34 @@ export function registerFileRoutes(app: FastifyInstance, ctx: AppContext): void 
   r.put(
     '/api/servers/:id/files/write',
     { config: { role: 'operator' }, schema: { params: idParams, body: fsWriteBodySchema } },
-    (request) =>
-      mutation(
+    async (request) => {
+      const { row, peer } = session(request.params.id);
+      const { path, content } = request.body;
+      // Lu AVANT d'écrire, pour dire dans l'audit ce qui a changé. Fichier absent ou trop gros
+      // pour être lu en entier : on note seulement l'écriture.
+      const before = await peer
+        .request('fs.read', { serverId: row.id, path })
+        .then((r) => (r.truncated ? null : r.content))
+        .catch((error: unknown) =>
+          (error as { code?: unknown } | null)?.code === 'E_NOT_FOUND' ? undefined : null,
+        );
+      const res = await mutation(
         'write',
         'server.fileWritten',
-        (serverId, peer) => peer.request('fs.write', { serverId, ...request.body }),
-        { path: request.body.path, bytes: Buffer.byteLength(request.body.content, 'utf8') },
+        (serverId, p) => p.request('fs.write', { serverId, ...request.body }),
+        {
+          path,
+          bytes: Buffer.byteLength(content, 'utf8'),
+          ...(before === null ? {} : { changes: textChanges(path, before, content) }),
+        },
         request,
         request.params.id,
-      ),
+      );
+      if (path === 'server.properties') {
+        await refreshGamePort(row, parseKeyValues(content)['server-port']);
+      }
+      return res;
+    },
   );
 
   // --- Journaux -----------------------------------------------------------------------------------

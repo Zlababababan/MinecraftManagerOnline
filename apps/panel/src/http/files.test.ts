@@ -207,9 +207,36 @@ describe('API phase 6 — config / fichiers / logs / joueurs relayés à l’age
       'server.configChanged',
     );
     const audit = await get('/api/audit');
+    // L'audit dit QUI a été ajouté et retiré (le faux agent avait « Bob » avant l'écriture).
     expect(audit.json<{ audit: { action: string }[] }>().audit[0]).toMatchObject({
       action: 'server.configChanged',
+      details: { file: 'whitelist.json', changes: { added: ['Carol'], removed: ['Bob'] } },
     });
+  });
+
+  it('config.set server.properties : l’audit note chaque clé (avant → après), jamais un secret ; le port affiché suit', async () => {
+    agent.peer.handle('config.get', () => ({
+      file: 'server.properties' as const,
+      data: { 'server-port': '25565', 'query.port': '25565', 'rcon.password': 'ancien', motd: 'Hi' },
+      sha256: 'a'.repeat(64),
+      source: 'file' as const,
+    }));
+    const res = await send('PUT', `/api/servers/${serverId}/config/server.properties`, {
+      data: { 'server-port': '25570', 'rcon.password': 'nouveau', motd: 'Hi' },
+    });
+    expect(res.statusCode).toBe(200);
+    const audit = await get('/api/audit');
+    const entry = audit.json<{ audit: { details: { changes: unknown } }[] }>().audit[0];
+    expect(entry?.details.changes).toEqual({
+      keys: {
+        'server-port': { from: '25565', to: '25570' },
+        'rcon.password': { from: '•••', to: '•••' },
+      },
+    });
+    expect(JSON.stringify(entry)).not.toContain('nouveau');
+    // Serveur arrêté : le port de l'aperçu suit le fichier sans attendre un scan.
+    const server = await get(`/api/servers/${serverId}`);
+    expect(server.json<{ server: { gamePort: number } }>().server.gamePort).toBe(25570);
   });
 
   it('fs.* : liste, lecture, écriture, mkdir, rename, corbeille ; chemins jailés refusés par le schéma', async () => {
@@ -251,12 +278,23 @@ describe('API phase 6 — config / fichiers / logs / joueurs relayés à l’age
       'fs.list',
       'fs.list',
       'fs.read',
+      // Relu juste avant l'écriture : c'est ce qui permet à l'audit de dire ce qui a changé.
+      'fs.read',
       'fs.write',
       'fs.mkdir',
       'fs.rename',
       'fs.delete',
     ]);
     const audit = await get('/api/audit');
+    expect(
+      audit
+        .json<{ audit: { action: string; details: unknown }[] }>()
+        .audit.find((e) => e.action === 'server.fileWritten')?.details,
+    ).toEqual({
+      path: 'server.properties',
+      bytes: 9,
+      changes: { keys: { motd: { from: 'Hi', to: 'Bye' } } },
+    });
     expect(
       audit
         .json<{ audit: { action: string }[] }>()
