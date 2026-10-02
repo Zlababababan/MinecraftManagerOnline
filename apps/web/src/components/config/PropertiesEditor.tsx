@@ -44,6 +44,7 @@ import {
   type PropertySpec,
 } from '../../lib/properties-catalog.js';
 import { ErrorAlert } from '../ErrorAlert.js';
+import { FocusTarget } from '../FocusTarget.js';
 import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 
 const KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -178,8 +179,26 @@ function Field({
   }
 }
 
-export function PropertiesEditor({ server }: { server: ServerDto }) {
+/** Rubrique de l'accordéon qui contient une clé (les clés hors catalogue sont dans « unknown »). */
+const categoryOf = (key: string): string => PROPERTY_BY_KEY.get(key)?.category ?? 'unknown';
+
+export function PropertiesEditor({
+  server,
+  focusKey,
+}: {
+  server: ServerDto;
+  /** Clé à mettre en avant à l'arrivée (lien de l'aperçu : `?tab=config&focus=server-port`). */
+  focusKey?: string | undefined;
+}) {
   const { t, i18n } = useT();
+  const [focus, setFocus] = useState(focusKey);
+  const [open, setOpen] = useState<string[]>(() => [
+    ...new Set(['general', 'players', ...(focusKey === undefined ? [] : [categoryOf(focusKey)])]),
+  ]);
+  const show = (key: string): void => {
+    setOpen((o) => [...new Set([...o, categoryOf(key)])]);
+    setFocus(key);
+  };
   const me = useMe();
   const query = useConfigFile(server.id, 'server.properties');
   const save = useSetConfig(server.id, 'server.properties');
@@ -272,7 +291,27 @@ export function PropertiesEditor({ server }: { server: ServerDto }) {
           </Group>
         </Alert>
       )}
-      <Accordion multiple defaultValue={['general', 'players']} variant="separated">
+      {/* Le piège de Minecraft (vécu le 02/10) : deux lignes « port », une seule compte pour rejoindre. */}
+      {'query.port' in patch && !('server-port' in patch) && (
+        <Alert color="yellow" variant="light" data-testid="properties-query-port-only">
+          <Group justify="space-between" wrap="wrap">
+            <Text size="sm" style={{ flex: 1, minWidth: 220 }}>
+              {t('web:properties.queryPortOnly')}
+            </Text>
+            <Button
+              size="xs"
+              variant="light"
+              data-testid="properties-show-server-port"
+              onClick={() => {
+                show('server-port');
+              }}
+            >
+              {t('web:properties.queryPortGo')}
+            </Button>
+          </Group>
+        </Alert>
+      )}
+      <Accordion multiple value={open} onChange={setOpen} variant="separated">
         {categories.map(({ category, specs }) => (
           <Accordion.Item key={category} value={category}>
             <Accordion.Control data-testid={`properties-cat-${category}`}>
@@ -281,16 +320,17 @@ export function PropertiesEditor({ server }: { server: ServerDto }) {
             <Accordion.Panel>
               <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                 {specs.map((spec) => (
-                  <Field
-                    key={spec.key}
-                    spec={spec}
-                    value={current[spec.key] ?? ''}
-                    present={spec.key in current}
-                    readOnly={!canEdit}
-                    onChange={(v) => {
-                      set(spec.key, v);
-                    }}
-                  />
+                  <FocusTarget key={spec.key} name={spec.key} focus={focus}>
+                    <Field
+                      spec={spec}
+                      value={current[spec.key] ?? ''}
+                      present={spec.key in current}
+                      readOnly={!canEdit}
+                      onChange={(v) => {
+                        set(spec.key, v);
+                      }}
+                    />
+                  </FocusTarget>
                 ))}
               </SimpleGrid>
             </Accordion.Panel>

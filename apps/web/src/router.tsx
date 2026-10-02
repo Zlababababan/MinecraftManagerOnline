@@ -199,14 +199,19 @@ const serversRoute = createRoute({
 const serverRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/servers/$serverId',
-  validateSearch: (search: Record<string, unknown>): { tab?: ServerTab } =>
-    typeof search.tab === 'string' && (SERVER_TABS as readonly string[]).includes(search.tab)
+  // `focus` : l'élément à mettre en avant à l'arrivée (lien de l'aperçu → champ de l'onglet).
+  validateSearch: (search: Record<string, unknown>): { tab?: ServerTab; focus?: string } => ({
+    ...(typeof search.tab === 'string' && (SERVER_TABS as readonly string[]).includes(search.tab)
       ? { tab: search.tab as ServerTab }
-      : {},
+      : {}),
+    ...(typeof search.focus === 'string' && /^[A-Za-z0-9._-]{1,64}$/.test(search.focus)
+      ? { focus: search.focus }
+      : {}),
+  }),
   component: function ServerRoute() {
     const { serverId } = serverRoute.useParams();
-    const { tab } = serverRoute.useSearch();
-    return <ServerPage serverId={serverId} tab={tab ?? 'overview'} />;
+    const { tab, focus } = serverRoute.useSearch();
+    return <ServerPage serverId={serverId} tab={tab ?? 'overview'} focus={focus} />;
   },
 });
 

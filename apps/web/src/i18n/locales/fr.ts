@@ -373,6 +373,7 @@ export const webFr = {
       autoRestart: 'Redémarrage auto',
       desiredState: 'État souhaité',
       detection: 'Détection',
+      editIn: 'Modifier dans « {{tab}} »',
       evidence: 'Indices',
       confidence: 'Confiance',
     },
@@ -593,6 +594,9 @@ export const webFr = {
       'Chaque réglage expliqué. Les modifications sont écrites dans le fichier et prises en compte au prochain démarrage (sauf la whitelist, appliquée à chaud).',
     noFile: 'Pas encore de server.properties — il est créé au premier démarrage.',
     saved: 'Configuration enregistrée.',
+    queryPortOnly:
+      'Vous modifiez « Port de requête » (query.port). Ce n’est pas le port que les joueurs tapent pour rejoindre : celui-là est « Port de jeu » (server-port).',
+    queryPortGo: 'Voir « Port de jeu »',
     restartRequired: 'Le serveur tourne : redémarrez-le pour appliquer les changements.',
     restartNow: 'Redémarrer maintenant',
     changes: '{{count}} changement(s) en attente',

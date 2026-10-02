@@ -114,7 +114,10 @@ export const propertiesEn = {
     label: 'GameSpy query',
     help: 'Expose the UDP query protocol used by some monitoring tools.',
   },
-  query_port: { label: 'Query port', help: 'UDP port for the query protocol.' },
+  query_port: {
+    label: 'Query port',
+    help: 'UDP port for the query protocol (monitoring tools), only useful when "GameSpy query" is on. This is not the port players type: that one is "Game port" (server-port).',
+  },
   'network-compression-threshold': {
     label: 'Compression threshold',
     help: 'Packets bigger than this (bytes) are compressed. -1 disables, 0 compresses everything.',

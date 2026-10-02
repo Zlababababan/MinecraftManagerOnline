@@ -132,7 +132,10 @@ export const propertiesFr = {
     label: 'Requêtes GameSpy',
     help: 'Expose le protocole UDP de requête utilisé par certains outils de supervision.',
   },
-  query_port: { label: 'Port de requête', help: 'Port UDP du protocole de requête.' },
+  query_port: {
+    label: 'Port de requête',
+    help: 'Port UDP du protocole de requête (outils de supervision), utile seulement si « Requêtes GameSpy » est activé. Ce n’est pas le port que les joueurs tapent : celui-là est « Port de jeu » (server-port).',
+  },
   'network-compression-threshold': {
     label: 'Seuil de compression',
     help: 'Les paquets plus gros que cette taille (octets) sont compressés. -1 désactive, 0 compresse tout.',

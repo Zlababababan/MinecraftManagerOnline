@@ -50,6 +50,7 @@ import {
 
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { EventsList } from '../components/EventsList.js';
+import { FocusTarget } from '../components/FocusTarget.js';
 import { ScrollableTabsList } from '../components/ScrollableTabsList.js';
 import { RunStateBadge } from '../components/badges.js';
 import { EulaCard } from '../components/config/EulaCard.js';
@@ -120,14 +121,39 @@ export const MORE_TABS: readonly ServerTab[] = SERVER_TABS.filter(
   (name) => !PRIMARY_TABS.includes(name),
 );
 
-function Field({ label, value }: { label: string; value: ReactNode }) {
+/**
+ * `edit` : la valeur devient un lien vers l'endroit où elle se règle (onglet + champ mis en avant
+ * à l'arrivée). On ne cherche plus où se change ce qu'on vient de lire (retour du 02/10).
+ */
+function Field({
+  label,
+  value,
+  edit,
+}: {
+  label: string;
+  value: ReactNode;
+  edit?: { serverId: string; tab: ServerTab; focus: string; testId: string };
+}) {
+  const { t } = useT();
   return (
     <Stack gap={0}>
       <Text size="xs" c="dimmed">
         {label}
       </Text>
       <Text size="sm" style={{ wordBreak: 'break-all' }}>
-        {value}
+        {edit === undefined ? (
+          value
+        ) : (
+          <RouterAnchor
+            to="/servers/$serverId"
+            params={{ serverId: edit.serverId }}
+            search={{ tab: edit.tab, focus: edit.focus }}
+            title={t('web:server.fields.editIn', { tab: t(`web:server.tabs.${edit.tab}`) })}
+            data-testid={edit.testId}
+          >
+            {value}
+          </RouterAnchor>
+        )}
       </Text>
     </Stack>
   );
@@ -165,8 +191,18 @@ function Overview({ server }: { server: ServerDto }) {
         <Field
           label={t('web:server.fields.ram')}
           value={`${formatMb(server.minRamMb)} → ${formatMb(server.maxRamMb)}`}
+          edit={{ serverId: server.id, tab: 'settings', focus: 'ram', testId: 'field-ram' }}
         />
-        <Field label={t('web:server.fields.gamePort')} value={server.gamePort ?? '—'} />
+        <Field
+          label={t('web:server.fields.gamePort')}
+          value={server.gamePort ?? '—'}
+          edit={{
+            serverId: server.id,
+            tab: 'config',
+            focus: 'server-port',
+            testId: 'field-game-port',
+          }}
+        />
         <Field
           label={t('web:server.fields.rcon')}
           value={
@@ -174,6 +210,7 @@ function Overview({ server }: { server: ServerDto }) {
               ? `${t('web:common.yes')} (${String(server.rconPort ?? '?')})`
               : t('web:common.no')
           }
+          edit={{ serverId: server.id, tab: 'config', focus: 'enable-rcon', testId: 'field-rcon' }}
         />
         <Field
           label={t('web:server.fields.eula')}
@@ -203,6 +240,12 @@ function Overview({ server }: { server: ServerDto }) {
         <Field
           label={t('web:server.fields.autoRestart')}
           value={server.autoRestart ? t('web:common.yes') : t('web:common.no')}
+          edit={{
+            serverId: server.id,
+            tab: 'settings',
+            focus: 'auto-restart',
+            testId: 'field-auto-restart',
+          }}
         />
         <Field
           label={t('web:server.fields.desiredState')}
@@ -237,7 +280,7 @@ function Overview({ server }: { server: ServerDto }) {
 }
 
 /** Exporté pour le test : monté seul, sans routeur ni onglets. */
-export function Settings({ server }: { server: ServerDto }) {
+export function Settings({ server, focus }: { server: ServerDto; focus?: string | undefined }) {
   const { t, i18n } = useT();
   const me = useMe();
   const update = useUpdateServer(server.id);
@@ -296,18 +339,22 @@ export function Settings({ server }: { server: ServerDto }) {
     <form onSubmit={submit}>
       <Stack gap="sm" maw={480}>
         <TextInput label={t('web:server.settings.name')} {...form.getInputProps('name')} />
-        <NumberInput
-          label={t('web:server.settings.minRam')}
-          min={256}
-          step={256}
-          {...form.getInputProps('minRamMb')}
-        />
-        <NumberInput
-          label={t('web:server.settings.maxRam')}
-          min={256}
-          step={256}
-          {...form.getInputProps('maxRamMb')}
-        />
+        <FocusTarget name="ram" focus={focus}>
+          <Stack gap="sm">
+            <NumberInput
+              label={t('web:server.settings.minRam')}
+              min={256}
+              step={256}
+              {...form.getInputProps('minRamMb')}
+            />
+            <NumberInput
+              label={t('web:server.settings.maxRam')}
+              min={256}
+              step={256}
+              {...form.getInputProps('maxRamMb')}
+            />
+          </Stack>
+        </FocusTarget>
         <Input.Wrapper
           label={t('web:server.settings.cpuPriority')}
           description={t('web:server.settings.cpuPriorityHint')}
@@ -329,10 +376,12 @@ export function Settings({ server }: { server: ServerDto }) {
         <Text size="xs" c="dimmed" mt={-6}>
           {t('web:server.settings.cpuPriorityApplies')}
         </Text>
-        <Switch
-          label={t('web:server.settings.autoRestart')}
-          {...form.getInputProps('autoRestart', { type: 'checkbox' })}
-        />
+        <FocusTarget name="auto-restart" focus={focus}>
+          <Switch
+            label={t('web:server.settings.autoRestart')}
+            {...form.getInputProps('autoRestart', { type: 'checkbox' })}
+          />
+        </FocusTarget>
         <Group justify="space-between" mt="sm">
           <Button
             type="button"
@@ -352,7 +401,15 @@ export function Settings({ server }: { server: ServerDto }) {
   );
 }
 
-export function ServerPage({ serverId, tab }: { serverId: string; tab: ServerTab }) {
+export function ServerPage({
+  serverId,
+  tab,
+  focus,
+}: {
+  serverId: string;
+  tab: ServerTab;
+  focus?: string | undefined;
+}) {
   const { t } = useT();
   const navigate = useNavigate();
   const server = useServer(serverId);
@@ -474,7 +531,7 @@ export function ServerPage({ serverId, tab }: { serverId: string; tab: ServerTab
         </Tabs.Panel>
         <Tabs.Panel value="config" pt="md">
           <Suspense fallback={<Loader size="sm" />}>
-            <PropertiesEditor server={s} />
+            <PropertiesEditor server={s} focusKey={focus} />
           </Suspense>
         </Tabs.Panel>
         <Tabs.Panel value="files" pt="md">
@@ -505,7 +562,7 @@ export function ServerPage({ serverId, tab }: { serverId: string; tab: ServerTab
           )}
         </Tabs.Panel>
         <Tabs.Panel value="settings" pt="md">
-          <Settings key={s.updatedAt} server={s} />
+          <Settings key={s.updatedAt} server={s} focus={focus} />
         </Tabs.Panel>
       </Tabs>
     </Stack>

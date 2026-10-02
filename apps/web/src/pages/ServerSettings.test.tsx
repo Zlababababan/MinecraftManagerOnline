@@ -88,7 +88,7 @@ interface Call {
   body: unknown;
 }
 
-function renderSettings(dto: ServerDto): Call[] {
+function renderSettings(dto: ServerDto, focus?: string): Call[] {
   const calls: Call[] = [];
   vi.stubGlobal(
     'fetch',
@@ -113,7 +113,7 @@ function renderSettings(dto: ServerDto): Call[] {
       <Notifications />
       <ModalsProvider>
         <QueryClientProvider client={qc}>
-          <Settings server={dto} />
+          <Settings server={dto} focus={focus} />
         </QueryClientProvider>
       </ModalsProvider>
     </MantineProvider>,
@@ -150,6 +150,21 @@ describe('réglages serveur — priorité CPU', () => {
     });
     const patch = calls.find((c) => c.method === 'PATCH');
     expect(patch?.body).toMatchObject({ cpuPriority: 'below_normal' });
+  });
+
+  it('?focus=ram (lien « Mémoire » de l’aperçu) met la mémoire en avant, et rien sans focus', async () => {
+    renderSettings(server(), 'ram');
+    await screen.findByLabelText('Normale');
+    expect(document.querySelector('[data-focus-target="ram"]')).toHaveClass('mmo-focus');
+    expect(document.querySelector('[data-focus-target="auto-restart"]')).not.toHaveClass(
+      'mmo-focus',
+    );
+  });
+
+  it('sans focus, aucun réglage n’est mis en avant', async () => {
+    renderSettings(server());
+    await screen.findByLabelText('Normale');
+    expect(document.querySelector('.mmo-focus')).toBeNull();
   });
 
   it('dit quand le réglage prend effet', async () => {

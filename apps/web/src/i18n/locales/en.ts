@@ -373,6 +373,7 @@ export const webEn = {
       autoRestart: 'Auto-restart',
       desiredState: 'Desired state',
       detection: 'Detection',
+      editIn: 'Change it in "{{tab}}"',
       evidence: 'Evidence',
       confidence: 'Confidence',
     },
@@ -586,6 +587,9 @@ export const webEn = {
       'Every setting explained. Changes are saved to the file and taken into account at the next start (except the whitelist toggle, applied live).',
     noFile: 'No server.properties yet — it is created at the first start.',
     saved: 'Configuration saved.',
+    queryPortOnly:
+      'You are changing "Query port" (query.port). This is not the port players type to join: that one is "Game port" (server-port).',
+    queryPortGo: 'Show "Game port"',
     restartRequired: 'The server is running: restart it to apply the changes.',
     restartNow: 'Restart now',
     changes: '{{count}} change(s) pending',

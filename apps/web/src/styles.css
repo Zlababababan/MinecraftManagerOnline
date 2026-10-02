@@ -70,3 +70,25 @@ body {
 .mmo-skip-link:focus {
   top: 8px;
 }
+
+/* Cible d'un lien « va à cet élément » (FocusTarget) : encadrée tant qu'on reste sur la page,
+   avec une pulsation à l'arrivée pour que l'œil la trouve. */
+.mmo-focus {
+  border-radius: var(--mantine-radius-sm);
+  outline: 2px solid var(--mantine-color-teal-5);
+  outline-offset: 6px;
+  animation: mmo-focus-pulse 1.2s ease-out 2;
+}
+@keyframes mmo-focus-pulse {
+  from {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--mantine-color-teal-5) 45%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 18px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mmo-focus {
+    animation: none;
+  }
+}
