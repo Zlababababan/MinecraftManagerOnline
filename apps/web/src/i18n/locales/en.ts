@@ -599,9 +599,23 @@ export const webEn = {
       'Every setting explained. Changes are saved to the file and taken into account at the next start (except the whitelist toggle, applied live).',
     noFile: 'No server.properties yet — it is created at the first start.',
     saved: 'Configuration saved.',
-    queryPortOnly:
-      'You are changing "Query port" (query.port). This is not the port players type to join: that one is "Game port" (server-port).',
-    queryPortGo: 'Show "Game port"',
+    warnings: {
+      show: 'Show "{{label}}"',
+      queryPortOnly:
+        'You are changing "Query port" (query.port). This is not the port players type to join: that one is "Game port" (server-port).',
+      portTaken:
+        'Port {{port}} is already used by "{{name}}", on the same machine: the two servers cannot run at the same time (the second one will refuse to start).',
+      onlineModeOff:
+        'Online mode off: the server no longer checks Minecraft accounts. Anyone can join under any name, including an operator’s. Keep this for a private network, with a whitelist.',
+      serverIp:
+        'With a bind address, the server only listens on it: if it is not exactly one of the machine’s addresses, nobody will be able to join. When in doubt, leave this field empty.',
+      levelName:
+        'Changing the world name does not rename the world "{{name}}": at the next start the server creates a NEW, empty one. The old one stays intact in its folder but is no longer loaded.',
+      levelSeed:
+        'The seed is only used when a world is created: it changes nothing in a world that already exists.',
+      gamemode:
+        'The default game mode only applies to new players: those who already joined keep theirs, unless "Force game mode" is on.',
+    },
     restartRequired: 'The server is running: restart it to apply the changes.',
     restartNow: 'Restart now',
     changes: '{{count}} change(s) pending',

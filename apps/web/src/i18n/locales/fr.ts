@@ -606,9 +606,23 @@ export const webFr = {
       'Chaque réglage expliqué. Les modifications sont écrites dans le fichier et prises en compte au prochain démarrage (sauf la whitelist, appliquée à chaud).',
     noFile: 'Pas encore de server.properties — il est créé au premier démarrage.',
     saved: 'Configuration enregistrée.',
-    queryPortOnly:
-      'Vous modifiez « Port de requête » (query.port). Ce n’est pas le port que les joueurs tapent pour rejoindre : celui-là est « Port de jeu » (server-port).',
-    queryPortGo: 'Voir « Port de jeu »',
+    warnings: {
+      show: 'Voir « {{label}} »',
+      queryPortOnly:
+        'Vous modifiez « Port de requête » (query.port). Ce n’est pas le port que les joueurs tapent pour rejoindre : celui-là est « Port de jeu » (server-port).',
+      portTaken:
+        'Le port {{port}} est déjà celui de « {{name}} », sur la même machine : les deux serveurs ne pourront pas tourner en même temps (le second refusera de démarrer).',
+      onlineModeOff:
+        'Mode en ligne coupé : le serveur ne vérifie plus les comptes Minecraft. N’importe qui peut entrer sous n’importe quel pseudo, y compris celui d’un opérateur. À réserver à un réseau privé, avec une whitelist.',
+      serverIp:
+        'Avec une adresse d’écoute, le serveur n’écoute plus que sur elle : si elle n’est pas exactement l’une des adresses de la machine, personne ne pourra rejoindre. Dans le doute, laissez ce champ vide.',
+      levelName:
+        'Changer le nom du monde ne renomme pas le monde « {{name}} » : au prochain démarrage, le serveur en crée un NOUVEAU, vide. L’ancien reste intact dans son dossier, mais ne sera plus chargé.',
+      levelSeed:
+        'La graine ne sert qu’à la création d’un monde : elle ne change rien à un monde qui existe déjà.',
+      gamemode:
+        'Le mode de jeu par défaut ne s’applique qu’aux nouveaux joueurs : ceux qui sont déjà venus gardent le leur, sauf si « Forcer le mode de jeu » est activé.',
+    },
     restartRequired: 'Le serveur tourne : redémarrez-le pour appliquer les changements.',
     restartNow: 'Redémarrer maintenant',
     changes: '{{count}} changement(s) en attente',

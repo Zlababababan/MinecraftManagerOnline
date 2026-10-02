@@ -30,16 +30,16 @@ test('aperçu → champ mis en avant, deux ports, port affiché, audit précis, 
   await expect(page.getByTestId('prop-server-port')).toHaveValue(before);
 
   // 2. Le piège : changer query.port seul prévient ; le bouton ramène au port de jeu.
-  await expect(page.getByTestId('properties-query-port-only')).toHaveCount(0);
+  await expect(page.getByTestId('properties-warning-queryPortOnly')).toHaveCount(0);
   await page.getByTestId('prop-query.port').fill('25571');
-  await expect(page.getByTestId('properties-query-port-only')).toBeVisible();
-  await page.getByTestId('properties-show-server-port').click();
+  await expect(page.getByTestId('properties-warning-queryPortOnly')).toBeVisible();
+  await page.getByTestId('properties-warning-queryPortOnly-show').click();
   await expect(target).toHaveClass(/mmo-focus/);
 
   // 3. Changer aussi le port de jeu : plus d'avertissement ; enregistré, l'aperçu suit sans scan.
   const next = String(Number(before) + 1);
   await page.getByTestId('prop-server-port').fill(next);
-  await expect(page.getByTestId('properties-query-port-only')).toHaveCount(0);
+  await expect(page.getByTestId('properties-warning-queryPortOnly')).toHaveCount(0);
   await page.getByTestId('properties-save').click();
   await expect(page.getByTestId('properties-changes')).toContainText('0');
   await page.getByTestId('tab-overview').click();

@@ -107,21 +107,21 @@ describe('éditeur de configuration — arriver sur un champ, les deux ports', (
     const user = userEvent.setup();
     renderEditor('query.port');
     const query = await screen.findByTestId('prop-query.port');
-    expect(screen.queryByTestId('properties-query-port-only')).toBeNull();
+    expect(screen.queryByTestId('properties-warning-queryPortOnly')).toBeNull();
 
     await user.clear(query);
     await user.type(query, '25570');
-    expect(await screen.findByTestId('properties-query-port-only')).toHaveTextContent(
+    expect(await screen.findByTestId('properties-warning-queryPortOnly')).toHaveTextContent(
       /pas le port que les joueurs tapent/,
     );
 
-    await user.click(screen.getByTestId('properties-show-server-port'));
+    await user.click(screen.getByTestId('properties-warning-queryPortOnly-show'));
     expect(target('server-port')).toHaveClass('mmo-focus');
     expect(target('query.port')).not.toHaveClass('mmo-focus');
 
     const port = screen.getByTestId('prop-server-port');
     await user.clear(port);
     await user.type(port, '25570');
-    expect(screen.queryByTestId('properties-query-port-only')).toBeNull();
+    expect(screen.queryByTestId('properties-warning-queryPortOnly')).toBeNull();
   });
 });

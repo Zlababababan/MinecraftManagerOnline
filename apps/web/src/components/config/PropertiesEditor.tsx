@@ -29,7 +29,14 @@ import { useMemo, useState } from 'react';
 
 import type { ServerDto } from '@mmo/protocol/client';
 
-import { useConfigFile, useMe, useServerAction, useSetConfig } from '../../api/queries.js';
+import {
+  useConfigFile,
+  useMe,
+  useServerAction,
+  useServers,
+  useSetConfig,
+} from '../../api/queries.js';
+import { propertyWarnings } from '../../lib/properties-warnings.js';
 import { tDynamic } from '../../i18n/index.js';
 import { useT } from '../../i18n/hooks.js';
 import { describeError } from '../../lib/errors.js';
@@ -203,6 +210,7 @@ export function PropertiesEditor({
   const query = useConfigFile(server.id, 'server.properties');
   const save = useSetConfig(server.id, 'server.properties');
   const restart = useServerAction(server.id);
+  const servers = useServers();
   const canEdit = canServer(me.data, server, 'operator') && server.reachable;
   const [edits, setEdits] = useState<Record<string, string | null>>({});
   const [newKey, setNewKey] = useState('');
@@ -217,6 +225,19 @@ export function PropertiesEditor({
   }, [original, edits]);
   const patch = useMemo(() => diffProperties(original, current), [original, current]);
   const changes = Object.keys(patch).length;
+  const warnings = useMemo(() => {
+    const otherPorts = new Map<number, string>();
+    for (const other of servers.data?.servers ?? []) {
+      if (
+        other.id !== server.id &&
+        other.machineId === server.machineId &&
+        other.gamePort !== null
+      ) {
+        otherPorts.set(other.gamePort, other.name);
+      }
+    }
+    return propertyWarnings(original, current, patch, { otherPorts });
+  }, [original, current, patch, servers.data, server.id, server.machineId]);
   const invalid = Object.entries(current).some(([k, v]) => {
     const spec = PROPERTY_BY_KEY.get(k);
     return spec !== undefined && validateValue(spec, v) !== undefined;
@@ -291,26 +312,38 @@ export function PropertiesEditor({
           </Group>
         </Alert>
       )}
-      {/* Le piège de Minecraft (vécu le 02/10) : deux lignes « port », une seule compte pour rejoindre. */}
-      {'query.port' in patch && !('server-port' in patch) && (
-        <Alert color="yellow" variant="light" data-testid="properties-query-port-only">
-          <Group justify="space-between" wrap="wrap">
-            <Text size="sm" style={{ flex: 1, minWidth: 220 }}>
-              {t('web:properties.queryPortOnly')}
-            </Text>
-            <Button
-              size="xs"
-              variant="light"
-              data-testid="properties-show-server-port"
-              onClick={() => {
-                show('server-port');
-              }}
-            >
-              {t('web:properties.queryPortGo')}
-            </Button>
-          </Group>
-        </Alert>
-      )}
+      {/* Les pièges de Minecraft, signalés au moment où on tombe dedans (lib/properties-warnings). */}
+      {warnings.map((w) => {
+        const focusKey = w.focus;
+        return (
+          <Alert
+            key={w.id}
+            color="yellow"
+            variant="light"
+            data-testid={`properties-warning-${w.id}`}
+          >
+            <Group justify="space-between" wrap="wrap">
+              <Text size="sm" style={{ flex: 1, minWidth: 220 }}>
+                {tDynamic(i18n, `web:properties.warnings.${w.id}`, w.params)}
+              </Text>
+              {focusKey !== undefined && (
+                <Button
+                  size="xs"
+                  variant="light"
+                  data-testid={`properties-warning-${w.id}-show`}
+                  onClick={() => {
+                    show(focusKey);
+                  }}
+                >
+                  {t('web:properties.warnings.show', {
+                    label: tDynamic(i18n, `web:properties.keys.${propertyI18nKey(focusKey)}.label`),
+                  })}
+                </Button>
+              )}
+            </Group>
+          </Alert>
+        );
+      })}
       <Accordion multiple value={open} onChange={setOpen} variant="separated">
         {categories.map(({ category, specs }) => (
           <Accordion.Item key={category} value={category}>
