@@ -42,7 +42,7 @@ export default defineConfig({
     {
       name: 'desktop-fr',
       testMatch:
-        /flow\.spec\.ts|whitelist\.spec\.ts|metrics\.spec\.ts|backups\.spec\.ts|pwa\.spec\.ts|settings.spec.ts|a11y.spec.ts/,
+        /flow\.spec\.ts|whitelist\.spec\.ts|metrics\.spec\.ts|backups\.spec\.ts|pwa\.spec\.ts|settings.spec.ts|a11y.spec.ts|precision\.spec\.ts/,
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'], locale: 'fr-FR' },
     },

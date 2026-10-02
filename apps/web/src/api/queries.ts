@@ -687,7 +687,15 @@ export function useSetConfig<F extends ConfigFile>(serverId: string, file: F) {
   return useMutation({
     mutationFn: (body: { data: ConfigSetData<F>; expectedSha256?: string | undefined }) =>
       api.put<ConfigSetResult>(`/api/servers/${serverId}/config/${file}`, body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.config(serverId, file) }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: keys.config(serverId, file) });
+      // `server.properties` porte le port de jeu, que le panel recopie sur le serveur : l'aperçu
+      // et les cartes doivent le relire (trouvé par le parcours en vrai navigateur, 02/10).
+      if (file === 'server.properties') {
+        await qc.invalidateQueries({ queryKey: keys.server(serverId), exact: true });
+        await qc.invalidateQueries({ queryKey: keys.servers, exact: true });
+      }
+    },
   });
 }
 

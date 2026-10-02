@@ -8,6 +8,21 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+- **The audit log says exactly what changed.** A configuration change now records each modified
+  line with its value before and after (`server-port: 25565 → 25570`), a whitelist change records
+  who was added and removed, and a file saved from the file explorer records its changed lines.
+  Passwords are never written: the log only says they changed.
+- **Click a value on the overview to go where it is set.** Game port, RCON, memory and automatic
+  restart are links: they open the right tab and highlight the field.
+- **Minecraft's two "port" lines no longer trap you.** Changing only `query.port` shows a warning
+  that this is not the port players type, with a button to the real one. Nothing is merged or
+  hidden: every line of `server.properties` stays editable.
+- **The port shown follows the file.** Saving a new `server-port` on a stopped server updates the
+  overview, the card and the address at once, without a scan.
+- **IPs and server addresses are blurred by default**, so they do not end up in a shared screenshot
+  by accident. Click one to reveal it, or use the eye in the header to show everything on this
+  browser. "Copy" buttons still copy the real value.
+
 ## 1.0.13 — 2026-10-02
 
 ### No more detours (2026-10-02)
