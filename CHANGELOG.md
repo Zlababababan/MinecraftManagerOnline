@@ -8,6 +8,10 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 
 ## Unreleased
 
+## 1.0.14 — 2026-10-02
+
+### Know exactly what happened (2026-10-02)
+
 - **The audit log says exactly what changed.** A configuration change now records each modified
   line with its value before and after (`server-port: 25565 → 25570`), a whitelist change records
   who was added and removed, and a file saved from the file explorer records its changed lines.
