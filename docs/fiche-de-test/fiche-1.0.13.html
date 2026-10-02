@@ -74,6 +74,9 @@
   .item.current .body > p:first-child { font-size: 16px; }
   .cur-flag { display: none; grid-column: 1 / -1; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--accent-ink); background: var(--accent); border-radius: 4px; padding: 2px 8px; justify-self: start; }
   .item.current .cur-flag { display: inline-block; }
+  .cur-flag .keys { font-weight: 400; text-transform: none; letter-spacing: 0; opacity: .85; margin-left: 10px; }
+  @media (hover: none) { .cur-flag .keys { display: none; } }
+  select.ghost { cursor: pointer; }
   .item .id { color: var(--accent); font-size: 12px; font-weight: 600; margin-right: 6px; }
   .item p { margin: 0; }
   .item .expect { margin-top: 6px; }
@@ -112,7 +115,7 @@
   <button type="button" class="cur-chip" id="cur"></button>
   <button type="button" class="ghost" id="next"></button>
   <button type="button" class="ghost" id="opt-toggle" hidden></button>
-  <button type="button" class="ghost" id="lang"></button>
+  <select class="ghost" id="lang" aria-label="Language"></select>
   <button type="button" class="primary" id="copy"></button>
 </header>
 <div class="layout">
@@ -125,7 +128,8 @@
     <p id="modal-hint"></p>
     <textarea id="modal-text" readonly></textarea>
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button type="button" class="ghost" id="modal-reset"></button>
+      <button type="button" class="ghost" id="modal-reset" style="margin-right:auto"></button>
+      <button type="button" class="ghost" id="modal-download"></button>
       <button type="button" class="primary" id="modal-close"></button>
     </div>
   </div>
@@ -140,21 +144,27 @@
   const DATA = JSON.parse(document.getElementById('fiche-data').textContent);
   // Les textes de l'INTERFACE (boutons, bilan). Les étapes, elles, restent dans la langue où elles
   // ont été écrites : changer de langue ne les traduit pas.
+  //
+  // AJOUTER UNE LANGUE : copier le bloc « en », changer son code (es, de…) et traduire chaque
+  // valeur. Rien d'autre à toucher : la liste déroulante de la page se remplit toute seule, et une
+  // clé oubliée retombe sur l'anglais.
   const LANGS = {
-    fr: { ok: 'OK', ko: 'KO', skip: 'Passé', note: 'Note', expect: 'Attendu', copy: 'Copier le bilan', next: 'Étape suivante',
+    fr: { name: 'Français', sep: ' : ', download: 'Enregistrer en fichier', file: 'bilan',
+          keys: '1 OK · 2 KO · 3 Passé · N note · ↑ ↓ changer d’étape',
+          ok: 'OK', ko: 'KO', skip: 'Passé', note: 'Note', expect: 'Attendu', copy: 'Copier le bilan', next: 'Étape suivante',
           notePh: 'Ce que vous avez vu, l’écart, l’heure…', done: 'faites', remaining: 'restantes', optional: 'optionnel',
           optBand: 'Optionnel — peut être sauté', optShort: 'opt.', hideOpt: 'Masquer les optionnelles', showOpt: 'Afficher les optionnelles',
-          current: 'En cours', currentBand: '▶ Étape en cours', other: 'English', otherTitle: 'Switch the interface to English',
-          report: 'Bilan', copied: 'Bilan copié — collez-le tel quel dans la conversation', close: 'Fermer', reset: 'Tout remettre à zéro',
+          current: 'En cours', currentBand: '▶ Étape en cours',          report: 'Bilan', copied: 'Bilan copié — collez-le tel quel dans la conversation', close: 'Fermer', reset: 'Tout remettre à zéro',
           reportHint: 'Ce texte se colle tel quel dans la conversation avec l’assistant : rien à reformuler.',
           resetAsk: 'Effacer toutes les coches et toutes les notes de cette fiche ?', env: ['Quoi', 'Où'],
           failed: 'KO', skipped: 'Passées', notes: 'Notes sur des étapes OK', todo: 'Pas encore faites', todoOpt: 'Optionnelles pas faites', none: 'aucune',
           allDone: 'Toutes les étapes sont tranchées.', copyCode: 'Copier', copiedCode: 'Copié', noteLabel: 'Note', at: 'à' },
-    en: { ok: 'Pass', ko: 'Fail', skip: 'Skip', note: 'Note', expect: 'Expected', copy: 'Copy the report', next: 'Next step',
+    en: { name: 'English', sep: ': ', download: 'Save as a file', file: 'report',
+          keys: '1 Pass · 2 Fail · 3 Skip · N note · ↑ ↓ change step',
+          ok: 'Pass', ko: 'Fail', skip: 'Skip', note: 'Note', expect: 'Expected', copy: 'Copy the report', next: 'Next step',
           notePh: 'What you saw, the gap, the time…', done: 'done', remaining: 'left', optional: 'optional',
           optBand: 'Optional — can be skipped', optShort: 'opt.', hideOpt: 'Hide optional steps', showOpt: 'Show optional steps',
-          current: 'Current', currentBand: '▶ Current step', other: 'Français', otherTitle: 'Passer l’interface en français',
-          report: 'Report', copied: 'Report copied — paste it as is into the conversation', close: 'Close', reset: 'Reset everything',
+          current: 'Current', currentBand: '▶ Current step',          report: 'Report', copied: 'Report copied — paste it as is into the conversation', close: 'Close', reset: 'Reset everything',
           reportHint: 'Paste this text as is into the conversation with the assistant: nothing to rephrase.',
           resetAsk: 'Erase every mark and every note of this sheet?', env: ['What', 'Where'],
           failed: 'Failed', skipped: 'Skipped', notes: 'Notes on passed steps', todo: 'Not done yet', todoOpt: 'Optional steps not done', none: 'none',
@@ -175,11 +185,14 @@
     if (st && (st.rev || 0) !== (e.revision || 0)) state[e.id] = { note: st.note || '', rev: e.revision || 0 };
   }
   const hasOpt = steps.some((e) => e.optionnel);
-  let lang = get('fiche-de-test:lang') || (DATA.langue === 'en' ? 'en' : 'fr');
-  if (!LANGS[lang]) lang = 'fr';
+  // Langue : le choix du testeur, sinon celle de la fiche, sinon celle du navigateur, sinon l'anglais.
+  const texts = (code) => ({ ...LANGS.en, ...LANGS[code] });
+  let lang = [get('fiche-de-test:lang'), DATA.langue, (navigator.language || '').slice(0, 2), 'en'].find((c) => c && LANGS[c]);
   let hideOpt = get(KEY + ':hide-opt') === '1';
   let current = get(KEY + ':current');
-  let L = LANGS[lang];
+  let L = texts(lang);
+  for (const [code, t] of Object.entries(LANGS)) { const o = el0('option', t.name); o.value = code; document.getElementById('lang').append(o); }
+  function el0(tag, txt) { const n = document.createElement(tag); n.textContent = txt; return n; }
 
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   // Mise en forme minimale : `code`, **gras**, *italique*. Rien d'autre n'est interprété.
@@ -203,14 +216,15 @@
   }
 
   function render() {
-    L = LANGS[lang];
+    L = texts(lang);
     document.documentElement.lang = lang;
+    $('lang').value = lang;
+    $('modal-download').textContent = L.download;
     document.title = DATA.titre;
     $('brand').textContent = DATA.titre;
     $('sub').textContent = DATA.sousTitre || '';
     $('copy').textContent = L.copy;
     $('next').textContent = L.next;
-    $('lang').textContent = L.other; $('lang').title = L.otherTitle;
     $('modal-close').textContent = L.close;
     $('modal-reset').textContent = L.reset;
     $('modal-hint').textContent = L.reportHint;
@@ -234,7 +248,7 @@
       for (const raw of s.etapes) {
         const e = steps.find((x) => x.id === raw.id);
         const li = el('li', 'item'); li.id = 'e-' + e.id;
-        const flag = el('span', 'cur-flag', L.currentBand);
+        const flag = el('span', 'cur-flag', `${esc(L.currentBand)} <span class="keys">${esc(L.keys)}</span>`);
         const band = e.optionnel ? el('span', 'opt-band', L.optBand) : null;
         const body = el('div', 'body',
           `<p><span class="id">${esc(e.id)}</span>${e.marque ? `<span class="tag">${esc(e.marque)}</span>` : ''}${rich(e.action)}</p>` +
@@ -277,7 +291,7 @@
     }
     const e = steps.find((x) => x.id === current);
     for (const a of side.querySelectorAll('a')) a.classList.toggle('here', !!e && a.dataset.sec === e.sec);
-    $('cur').textContent = current ? `${L.current}${lang === 'fr' ? ' : ' : ': '}${current}` : L.allDone;
+    $('cur').textContent = current ? `${L.current}${L.sep}${current}` : L.allDone;
     if (scroll && current) items.get(current).li.scrollIntoView({ block: 'center' });
   }
   function setStatus(e, s) {
@@ -330,9 +344,12 @@
 
   function report() {
     const hour = (iso) => { try { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
-    const line = (e) => `- ${e.id}${e.optionnel ? ` (${L.optional})` : ''} — ${e.action.replace(/\s+/g, ' ').slice(0, 140)}` +
+    const flat = (t) => t.replace(/\s+/g, ' ');
+    // Un KO porte l'action et l'attendu en entier : le bilan se comprend sans la fiche sous les yeux.
+    const line = (e) => { const ko = state[e.id]?.status === 'ko'; return `- ${e.id}${e.optionnel ? ` (${L.optional})` : ''} — ${ko ? flat(e.action) : flat(e.action).slice(0, 140)}` +
       (state[e.id]?.at ? ` [${L.at} ${hour(state[e.id].at)}]` : '') +
-      (state[e.id]?.note ? `\n    ${L.noteLabel} : ${state[e.id].note.replace(/\n/g, '\n    ')}` : '');
+      (ko ? `\n    ${L.expect}${L.sep}${flat(e.attendu)}` : '') +
+      (state[e.id]?.note ? `\n    ${L.noteLabel}${L.sep}${state[e.id].note.replace(/\n/g, '\n    ')}` : ''); };
     const by = (s) => steps.filter((e) => state[e.id]?.status === s);
     const block = (title, list) => `\n## ${title} (${list.length})\n` + (list.length ? list.map(line).join('\n') : `- ${L.none}`);
     const ids = (title, list) => `\n\n## ${title} (${list.length})\n` + (list.length ? list.map((e) => e.id).join(', ') : `- ${L.none}`);
@@ -362,9 +379,29 @@
     setCurrent(id, true);
   });
   $('cur').addEventListener('click', () => { setCurrent(current || nextUntouched(null), true); });
-  $('lang').addEventListener('click', () => {
-    lang = lang === 'fr' ? 'en' : 'fr'; put('fiche-de-test:lang', lang);
+  $('lang').addEventListener('change', () => {
+    lang = $('lang').value; put('fiche-de-test:lang', lang);
     render(); setCurrent(current, false);
+  });
+  // Le bilan en fichier : pour l'envoyer, le garder, ou quand le presse-papiers est refusé.
+  $('modal-download').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([$('modal-text').value], { type: 'text/markdown;charset=utf-8' }));
+    a.download = `${L.file}-${String(DATA.cle || 'fiche').replace(/[^\w.-]+/g, '-')}-${new Date().toISOString().slice(0, 10)}.md`;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => { URL.revokeObjectURL(a.href); }, 1000);
+  });
+  // Raccourcis sur l'étape en cours : 1 2 3 = verdict, N = note, flèches = changer d'étape.
+  document.addEventListener('keydown', (ev) => {
+    if (ev.ctrlKey || ev.metaKey || ev.altKey || !modal.hidden) return;
+    if (ev.target.closest('textarea, input, select')) { if (ev.key === 'Escape') ev.target.blur(); return; }
+    const shown = steps.filter(visible); const i = shown.findIndex((e) => e.id === current);
+    const e = shown[i]; const verdict = { 1: 'ok', 2: 'ko', 3: 'skip' }[ev.key];
+    if (verdict && e) setStatus(e, verdict);
+    else if (ev.key.toLowerCase() === 'n' && e) { const ta = items.get(e.id).ta; ta.hidden = false; ta.focus(); }
+    else if (ev.key === 'ArrowDown' && shown[i + 1]) setCurrent(shown[i + 1].id, true);
+    else if (ev.key === 'ArrowUp' && i > 0) setCurrent(shown[i - 1].id, true);
+    else return;
+    ev.preventDefault();
   });
   $('opt-toggle').addEventListener('click', () => {
     hideOpt = !hideOpt; put(KEY + ':hide-opt', hideOpt ? '1' : null); applyOpt();
