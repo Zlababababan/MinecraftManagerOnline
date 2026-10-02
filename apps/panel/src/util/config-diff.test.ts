@@ -4,9 +4,9 @@ import { configChanges, diffKeyValues, parseKeyValues, textChanges } from './con
 
 describe('config-diff : ce que l’audit retient d’une modification', () => {
   it('parseKeyValues ignore commentaires et lignes vides, garde les « = » de la valeur', () => {
-    expect(parseKeyValues('#Minecraft\n\nserver-port=25565\r\nmotd=a=b\n! note\nsans-egal\n')).toEqual(
-      { 'server-port': '25565', motd: 'a=b' },
-    );
+    expect(
+      parseKeyValues('#Minecraft\n\nserver-port=25565\r\nmotd=a=b\n! note\nsans-egal\n'),
+    ).toEqual({ 'server-port': '25565', motd: 'a=b' });
   });
 
   it('diffKeyValues : clé changée, ajoutée, retirée ; une clé identique est tue', () => {
@@ -30,9 +30,9 @@ describe('config-diff : ce que l’audit retient d’une modification', () => {
   });
 
   it('configChanges : une liste JSON donne les noms ajoutés et retirés', () => {
-    expect(configChanges([{ name: 'Bob' }, { name: 'Al' }], [{ name: 'Al' }, { name: 'Eve' }])).toEqual(
-      { added: ['Eve'], removed: ['Bob'] },
-    );
+    expect(
+      configChanges([{ name: 'Bob' }, { name: 'Al' }], [{ name: 'Al' }, { name: 'Eve' }]),
+    ).toEqual({ added: ['Eve'], removed: ['Bob'] });
   });
 
   it('textChanges : fichier créé, fichier clé=valeur, texte libre', () => {

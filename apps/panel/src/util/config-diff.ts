@@ -74,9 +74,7 @@ const label = (item: unknown): string => {
 };
 
 export type ConfigChanges =
-  | { keys: Record<string, KeyChange> }
-  | { added: string[]; removed: string[] }
-  | undefined;
+  { keys: Record<string, KeyChange> } | { added: string[]; removed: string[] } | undefined;
 
 /**
  * `config.set` : `before` est le contenu lu juste avant, `data` ce qu'on envoie — un patch pour un

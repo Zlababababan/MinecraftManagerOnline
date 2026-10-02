@@ -22,6 +22,26 @@ only; 1.0.2 and 1.0.3 are marked as pre-releases because their Linux panel archi
 - **IPs and server addresses are blurred by default**, so they do not end up in a shared screenshot
   by accident. Click one to reveal it, or use the eye in the header to show everything on this
   browser. "Copy" buttons still copy the real value.
+- **Refused actions are in the audit log too** (`request.refused`): a start refused because the
+  port is taken, a forbidden change, an invalid value — with the error code and its details.
+- **The interface journal records everything you do**, to replay exactly what happened before a
+  problem: clicks (including clicks on nothing, with their position), page and tab changes, mouse
+  position and scrolling (once a second at most), keys pressed outside fields, fields you changed,
+  messages shown, JavaScript errors. It stays on your panel, is readable by administrators only and
+  is purged after 14 days (Settings → retention). The content of a password, token or pairing-code
+  field is never recorded — only that it changed.
+- **An offline machine says what is going on.** "Offline for 12 s: the agent reconnects by
+  itself", with a running counter; after two minutes, what to check and the command to start the
+  agent again.
+- **Install commands work without Tailscale.** When you browse the panel through another address
+  than the saved one, the command through that address is offered as well. And if the panel is
+  still set up for Tailscale while you no longer use it, one button brings the three related
+  settings in line (access mode, public URL, address given to players) — after showing what
+  will change.
+- **Six more warnings at the moment of the trap** in the configuration editor: a port already used
+  by another server of the machine, online mode turned off, a bind address, a renamed world (a new
+  empty one would be created), a seed changed on an existing world, a game mode that will not
+  apply to players who already joined.
 
 ## 1.0.13 — 2026-10-02
 

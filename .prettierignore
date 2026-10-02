@@ -21,3 +21,5 @@ apps/web/dev-dist/**
 THIRD-PARTY-NOTICES.md
 # Copies de travail des sessions Claude Code (worktrees git) : ce ne sont pas nos fichiers
 .claude/worktrees/**
+# Page générée par le skill fiche-de-test : la mise en forme vient du générateur
+docs/fiche-de-test/*.html

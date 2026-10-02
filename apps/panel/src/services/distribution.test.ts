@@ -108,8 +108,12 @@ describe('distribution (phase 11)', () => {
       available: false,
       version: null,
       platforms: {},
-      install: null,
     });
+    // Aucune adresse enregistrée : la commande passe par l'adresse consultée (02/10), que le
+    // script servi reprend de lui-même — pas besoin de `-Panel` explicite, ni de doublon « ici ».
+    const dist = res.json<{ install: { unix: string } | null; installHere?: unknown }>();
+    expect(dist.install?.unix).toMatch(/^curl -fsSL http:\/\/[^ ]+\/install\.sh \| sh$/);
+    expect(dist.installHere).toBeUndefined();
     res = await panel.app.inject({ method: 'GET', url: '/api/dist/linux-x64' });
     expect(res.statusCode).toBe(404);
     res = await panel.app.inject({ method: 'GET', url: '/dist/mmo-agent-1.0.0-linux-x64.tar.gz' });

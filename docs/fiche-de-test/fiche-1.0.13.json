@@ -9,10 +9,22 @@
   ],
   "regle": "**Vos vrais serveurs ne servent qu'à regarder.** Tout ce qui démarre, modifie un fichier ou supprime se fait sur le serveur `test-1013` créé à l'étape 4.1, et il est retiré à la fin (bloc 7).",
   "environnement": [
-    { "quoi": "Panel", "ou": "`http://127.0.0.1:3000` — dossier `E:\\mmo-panel\\mmo-panel-1.0.13`, lancé par l'icône près de l'horloge (sans fenêtre)" },
-    { "quoi": "Agent", "ou": "sur cette même machine ; encore en **1.0.11** tant que l'étape 1.3 n'est pas faite" },
-    { "quoi": "Compte", "ou": "votre compte administrateur (le zip par chemin est réservé à l'administrateur)" },
-    { "quoi": "Un zip « server files »", "ou": "celui d'un modpack, là où il est déjà (Téléchargements, par exemple) : ne le déplacez pas" }
+    {
+      "quoi": "Panel",
+      "ou": "`http://127.0.0.1:3000` — dossier `E:\\mmo-panel\\mmo-panel-1.0.13`, lancé par l'icône près de l'horloge (sans fenêtre)"
+    },
+    {
+      "quoi": "Agent",
+      "ou": "sur cette même machine ; encore en **1.0.11** tant que l'étape 1.3 n'est pas faite"
+    },
+    {
+      "quoi": "Compte",
+      "ou": "votre compte administrateur (le zip par chemin est réservé à l'administrateur)"
+    },
+    {
+      "quoi": "Un zip « server files »",
+      "ou": "celui d'un modpack, là où il est déjà (Téléchargements, par exemple) : ne le déplacez pas"
+    }
   ],
   "sections": [
     {

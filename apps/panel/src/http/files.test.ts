@@ -217,7 +217,12 @@ describe('API phase 6 — config / fichiers / logs / joueurs relayés à l’age
   it('config.set server.properties : l’audit note chaque clé (avant → après), jamais un secret ; le port affiché suit', async () => {
     agent.peer.handle('config.get', () => ({
       file: 'server.properties' as const,
-      data: { 'server-port': '25565', 'query.port': '25565', 'rcon.password': 'ancien', motd: 'Hi' },
+      data: {
+        'server-port': '25565',
+        'query.port': '25565',
+        'rcon.password': 'ancien',
+        motd: 'Hi',
+      },
       sha256: 'a'.repeat(64),
       source: 'file' as const,
     }));
@@ -299,8 +304,10 @@ describe('API phase 6 — config / fichiers / logs / joueurs relayés à l’age
       audit
         .json<{ audit: { action: string }[] }>()
         .audit.map((e) => e.action)
-        .slice(0, 4),
+        .slice(0, 5),
     ).toEqual([
+      // La suppression tentée par le lecteur est refusée ET tracée (02/10).
+      'request.refused',
       'server.fileDeleted',
       'server.fileRename',
       'server.fileMkdir',
@@ -350,9 +357,13 @@ describe('API phase 6 — config / fichiers / logs / joueurs relayés à l’age
     });
     expect(res.statusCode).toBe(400);
     const audit = await get('/api/audit');
-    expect(audit.json<{ audit: { action: string }[] }>().audit[0]).toMatchObject({
-      action: 'player.kick',
-    });
+    // L'action invalide (« nuke ») est tracée comme refus ; l'exclusion réussie la précède.
+    expect(
+      audit
+        .json<{ audit: { action: string }[] }>()
+        .audit.map((e) => e.action)
+        .slice(0, 2),
+    ).toEqual(['request.refused', 'player.kick']);
 
     // Historique : join/leave via événements agent, clôture sur arrêt.
     const ts = panel.clock.now();

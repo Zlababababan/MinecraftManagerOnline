@@ -13,8 +13,8 @@ function html(markup: string): HTMLElement {
   document.body.append(root);
   return root;
 }
-const q = <T extends Element>(root: HTMLElement, selector: string): T => {
-  const node = root.querySelector<T>(selector);
+const q = (root: HTMLElement, selector: string): HTMLElement => {
+  const node = root.querySelector<HTMLElement>(selector);
   if (node === null) throw new Error(selector);
   return node;
 };
@@ -50,10 +50,10 @@ describe('parcours UI — ce qui est enregistré', () => {
     const root = html(
       '<input data-testid="prop-query.port" value="25570"><input type="checkbox" id="c" checked>',
     );
-    expect(inputData(q<HTMLInputElement>(root, '[data-testid="prop-query.port"]'))).toEqual({
+    expect(inputData(q(root, '[data-testid="prop-query.port"]') as HTMLInputElement)).toEqual({
       value: '25570',
     });
-    expect(inputData(q<HTMLInputElement>(root, '#c'))).toEqual({ checked: true });
+    expect(inputData(q(root, '#c') as HTMLInputElement)).toEqual({ checked: true });
   });
 
   it('champ secret : jamais la valeur, seulement sa longueur', () => {
@@ -66,7 +66,7 @@ describe('parcours UI — ce qui est enregistré', () => {
       ].join(''),
     );
     for (const id of ['a', 'b', 'c', 'd']) {
-      const field = q<HTMLInputElement>(root, `#${id}`);
+      const field = q(root, `#${id}`) as HTMLInputElement;
       expect(isSecretField(field)).toBe(true);
       expect(inputData(field)).toEqual({ secret: true, length: 7 });
       expect(JSON.stringify(inputData(field))).not.toContain('hunter2');
@@ -75,7 +75,7 @@ describe('parcours UI — ce qui est enregistré', () => {
 
   it('une valeur longue est coupée', () => {
     const root = html('<textarea id="t"></textarea>');
-    const field = q<HTMLTextAreaElement>(root, '#t');
+    const field = q(root, '#t') as HTMLTextAreaElement;
     field.value = 'x'.repeat(400);
     expect(String(inputData(field).value)).toHaveLength(201);
   });
