@@ -13,13 +13,24 @@
     --sans: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
     --mono: Consolas, "SF Mono", Menlo, monospace;
   }
+  /* Thème : celui du système par défaut ; la liste « Thème » de la page pose data-theme="light"
+     ou "dark" sur <html> pour le forcer. Les deux blocs sombres ci-dessous doivent rester identiques. */
+  :root { color-scheme: light; }
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
       --bg: #141715; --surface: #1c201e; --surface-2: #232826; --text: #e6e9e5; --muted: #9aa39d;
       --border: #2e3431; --accent: #5fc4a4; --accent-ink: #0f1a16; --cur-bg: #17302a;
       --ok: #62c28b; --ko: #e86e5e; --skip: #dca648; --opt: #a3aef2;
       --ok-bg: #1b2f24; --ko-bg: #35201d; --skip-bg: #332a18; --opt-bg: #22263d; --code-bg: #262b28;
     }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #141715; --surface: #1c201e; --surface-2: #232826; --text: #e6e9e5; --muted: #9aa39d;
+    --border: #2e3431; --accent: #5fc4a4; --accent-ink: #0f1a16; --cur-bg: #17302a;
+    --ok: #62c28b; --ko: #e86e5e; --skip: #dca648; --opt: #a3aef2;
+    --ok-bg: #1b2f24; --ko-bg: #35201d; --skip-bg: #332a18; --opt-bg: #22263d; --code-bg: #262b28;
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
@@ -118,6 +129,7 @@
   <button type="button" class="cur-chip" id="cur"></button>
   <button type="button" class="ghost" id="next"></button>
   <button type="button" class="ghost" id="opt-toggle" hidden></button>
+  <select class="ghost" id="theme"><option value="auto"></option><option value="light"></option><option value="dark"></option></select>
   <select class="ghost" id="lang" aria-label="Language"></select>
   <button type="button" class="primary" id="copy"></button>
 </header>
@@ -166,6 +178,7 @@
           carryOther: 'Ce fichier vient d’une autre fiche',
           carryDone: 'Progression reprise.',
           keys: '1 OK · 2 KO · 3 Passé · N note · ↑ ↓ changer d’étape',
+          theme: 'Thème', themes: { auto: 'Thème : système', light: 'Thème : clair', dark: 'Thème : sombre' },
           ok: 'OK', ko: 'KO', skip: 'Passé', note: 'Note', expect: 'Attendu', copy: 'Copier le bilan', next: 'Étape suivante',
           notePh: 'Ce que vous avez vu, l’écart, l’heure…', done: 'faites', remaining: 'restantes', optional: 'optionnel',
           optBand: 'Optionnel — peut être sauté', optShort: 'opt.', hideOpt: 'Masquer les optionnelles', showOpt: 'Afficher les optionnelles',
@@ -181,14 +194,15 @@
           carryBad: 'This file is not a test sheet progress file.',
           carryOther: 'This file comes from another sheet',
           carryDone: 'Progress loaded.',
-          keys: '1 Pass · 2 Fail · 3 Skip · N note · ↑ ↓ change step',
-          ok: 'Pass', ko: 'Fail', skip: 'Skip', note: 'Note', expect: 'Expected', copy: 'Copy the report', next: 'Next step',
+          keys: '1 OK · 2 KO · 3 Skip · N note · ↑ ↓ change step',
+          theme: 'Theme', themes: { auto: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' },
+          ok: 'OK', ko: 'KO', skip: 'Skip', note: 'Note', expect: 'Expected', copy: 'Copy the report', next: 'Next step',
           notePh: 'What you saw, the gap, the time…', done: 'done', remaining: 'left', optional: 'optional',
           optBand: 'Optional — can be skipped', optShort: 'opt.', hideOpt: 'Hide optional steps', showOpt: 'Show optional steps',
           current: 'Current', currentBand: '▶ Current step',          report: 'Report', copied: 'Report copied — paste it as is into the conversation', close: 'Close', reset: 'Reset everything',
           reportHint: 'Paste this text as is into the conversation with the assistant: nothing to rephrase.',
           resetAsk: 'Erase every mark and every note of this sheet?', env: ['What', 'Where'],
-          failed: 'Failed', skipped: 'Skipped', notes: 'Notes on passed steps', todo: 'Not done yet', todoOpt: 'Optional steps not done', none: 'none',
+          failed: 'KO', skipped: 'Skipped', notes: 'Notes on OK steps', todo: 'Not done yet', todoOpt: 'Optional steps not done', none: 'none',
           allDone: 'Every step has a verdict.', copyCode: 'Copy', copiedCode: 'Copied', noteLabel: 'Note', at: 'at' },
   };
 
@@ -214,6 +228,10 @@
   let lang = [get('fiche-de-test:lang'), DATA.langue, (navigator.language || '').slice(0, 2), 'en'].find((c) => c && LANGS[c]);
   let hideOpt = get(KEY + ':hide-opt') === '1';
   let current = get(KEY + ':current');
+  // Thème : « auto » suit le système ; « light » / « dark » le forcent (voir le CSS).
+  let theme = ['light', 'dark'].includes(get('fiche-de-test:theme')) ? get('fiche-de-test:theme') : 'auto';
+  function applyTheme() { if (theme === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme; }
+  applyTheme();
   let L = texts(lang);
   for (const [code, t] of Object.entries(LANGS)) { const o = el0('option', t.name); o.value = code; document.getElementById('lang').append(o); }
   function el0(tag, txt) { const n = document.createElement(tag); n.textContent = txt; return n; }
@@ -244,6 +262,9 @@
     document.documentElement.lang = lang;
     $('lang').value = lang;
     $('modal-download').textContent = L.download;
+    $('theme').setAttribute('aria-label', L.theme);
+    for (const o of $('theme').options) o.textContent = L.themes[o.value];
+    $('theme').value = theme;
     $('carry-hint').textContent = L.carryHint;
     $('carry-save').textContent = L.carrySave;
     $('carry-load').textContent = L.carryLoad;
@@ -406,6 +427,7 @@
     setCurrent(id, true);
   });
   $('cur').addEventListener('click', () => { setCurrent(current || nextUntouched(null), true); });
+  $('theme').addEventListener('change', () => { theme = $('theme').value; put('fiche-de-test:theme', theme === 'auto' ? null : theme); applyTheme(); });
   $('lang').addEventListener('change', () => {
     lang = $('lang').value; put('fiche-de-test:lang', lang);
     render(); setCurrent(current, false);
