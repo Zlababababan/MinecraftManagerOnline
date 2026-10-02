@@ -7,18 +7,18 @@
 <style>
   :root {
     --bg: #f4f4ef; --surface: #fff; --surface-2: #eceee8; --text: #1b201d; --muted: #5f6964;
-    --border: #d6dad3; --accent: #1f6f5f; --accent-ink: #fff;
-    --ok: #2f8f5b; --ko: #c2402f; --skip: #9a6412;
-    --ok-bg: #e4f3ea; --ko-bg: #fae6e2; --skip-bg: #f9ecd3; --code-bg: #eef0ea;
+    --border: #d6dad3; --accent: #1f6f5f; --accent-ink: #fff; --cur-bg: #e2f2ed;
+    --ok: #2f8f5b; --ko: #c2402f; --skip: #9a6412; --opt: #4f5fb5;
+    --ok-bg: #e4f3ea; --ko-bg: #fae6e2; --skip-bg: #f9ecd3; --opt-bg: #e9ecfa; --code-bg: #eef0ea;
     --sans: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
     --mono: Consolas, "SF Mono", Menlo, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #141715; --surface: #1c201e; --surface-2: #232826; --text: #e6e9e5; --muted: #9aa39d;
-      --border: #2e3431; --accent: #5fc4a4; --accent-ink: #0f1a16;
-      --ok: #62c28b; --ko: #e86e5e; --skip: #dca648;
-      --ok-bg: #1b2f24; --ko-bg: #35201d; --skip-bg: #332a18; --code-bg: #262b28;
+      --border: #2e3431; --accent: #5fc4a4; --accent-ink: #0f1a16; --cur-bg: #17302a;
+      --ok: #62c28b; --ko: #e86e5e; --skip: #dca648; --opt: #a3aef2;
+      --ok-bg: #1b2f24; --ko-bg: #35201d; --skip-bg: #332a18; --opt-bg: #22263d; --code-bg: #262b28;
     }
   }
   * { box-sizing: border-box; }
@@ -26,24 +26,27 @@
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 var(--sans); }
   code, pre, .id, .count { font-family: var(--mono); font-variant-numeric: tabular-nums; }
   code { background: var(--code-bg); border-radius: 4px; padding: .05em .35em; font-size: .88em; word-break: break-word; }
-  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; overflow-x: auto; font-size: .85em; margin: 8px 0; }
+  pre { position: relative; background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 76px 10px 12px; overflow-x: auto; font-size: .85em; margin: 8px 0; }
   pre code { background: none; padding: 0; }
+  pre .copy-code { position: absolute; top: 6px; right: 6px; font: 11px var(--sans); padding: 3px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--muted); }
   button { font: inherit; cursor: pointer; }
-  .top { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .top { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .brand { font-weight: 600; }
   .brand small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
-  .progress { flex: 1 1 240px; display: flex; align-items: center; gap: 10px; min-width: 200px; }
+  .progress { flex: 1 1 220px; display: flex; align-items: center; gap: 10px; min-width: 180px; }
   .bar { flex: 1; height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; display: flex; }
   .bar span { height: 100%; width: 0; transition: width .2s; }
   .b-ok { background: var(--ok); } .b-ko { background: var(--ko); } .b-skip { background: var(--skip); }
   .count { font-size: 12px; color: var(--muted); white-space: nowrap; }
   .primary { font-size: 13px; font-weight: 600; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 6px; padding: 7px 12px; }
   .ghost { font-size: 13px; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; }
+  .cur-chip { font-size: 13px; font-weight: 600; background: var(--cur-bg); color: var(--accent); border: 2px solid var(--accent); border-radius: 6px; padding: 5px 10px; }
   .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 26px; max-width: 1150px; margin: 0 auto; padding: 18px 16px 80px; }
   .side { position: sticky; top: 70px; align-self: start; max-height: calc(100vh - 86px); overflow-y: auto; font-size: 13px; }
   .side a { display: flex; justify-content: space-between; gap: 8px; color: var(--text); text-decoration: none; padding: 5px 8px; border-radius: 5px; border-left: 3px solid transparent; }
   .side a:hover { background: var(--surface-2); }
   .side a.done { border-left-color: var(--ok); } .side a.has-ko { border-left-color: var(--ko); }
+  .side a.here { background: var(--cur-bg); font-weight: 600; }
   .side .mini, h2 .mini { color: var(--muted); font-size: 11px; font-weight: 400; white-space: nowrap; }
   main { min-width: 0; }
   h1 { font-size: 24px; margin: 0 0 8px; }
@@ -55,27 +58,40 @@
   th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
   th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; }
   ol.items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-  .item { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 6px; padding: 10px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; align-items: start; scroll-margin-top: 80px; }
+  .item { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 6px; padding: 10px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; align-items: start; scroll-margin-top: 90px; cursor: pointer; }
   .item.s-ok { border-left-color: var(--ok); }
   .item.s-ko { border-left-color: var(--ko); background: var(--ko-bg); }
   .item.s-skip { border-left-color: var(--skip); }
+  /* Étape optionnelle : cadre en pointillés, fond teinté, étiquette pleine largeur. */
+  .item.opt { border-style: dashed; border-color: var(--opt); background: var(--opt-bg); }
+  .item.opt.s-ok { border-left-style: solid; border-left-color: var(--ok); }
+  .item.opt.s-ko { border-left-style: solid; border-left-color: var(--ko); }
+  .item.opt.s-skip { border-left-style: solid; border-left-color: var(--skip); }
+  .opt-band { grid-column: 1 / -1; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--opt); }
+  .hide-opt .item.opt { display: none; }
+  /* Étape en cours : on ne doit pas pouvoir la rater. */
+  .item.current { border-color: var(--accent); border-style: solid; background: var(--cur-bg); box-shadow: 0 0 0 3px var(--accent), 0 6px 18px rgba(0, 0, 0, .18); padding: 14px 14px; margin: 6px 0; }
+  .item.current .body > p:first-child { font-size: 16px; }
+  .cur-flag { display: none; grid-column: 1 / -1; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--accent-ink); background: var(--accent); border-radius: 4px; padding: 2px 8px; justify-self: start; }
+  .item.current .cur-flag { display: inline-block; }
   .item .id { color: var(--accent); font-size: 12px; font-weight: 600; margin-right: 6px; }
   .item p { margin: 0; }
   .item .expect { margin-top: 6px; }
   .item .expect b { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; margin-right: 4px; }
   .tag { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 999px; padding: 1px 8px; margin-right: 6px; background: var(--skip-bg); color: var(--skip); border: 1px solid var(--skip); }
-  .tag.opt { background: var(--surface-2); color: var(--muted); border-color: var(--border); }
   .ctl { display: flex; gap: 4px; }
   .ctl button { font-size: 12px; font-weight: 600; padding: 5px 9px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); border-radius: 5px; }
+  .item.current .ctl button { font-size: 14px; padding: 8px 14px; color: var(--text); }
   .ctl button:hover { color: var(--text); background: var(--surface-2); }
   button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .ctl .on-ok { background: var(--ok-bg); color: var(--ok); border-color: var(--ok); }
   .ctl .on-ko { background: var(--ko-bg); color: var(--ko); border-color: var(--ko); }
   .ctl .on-skip { background: var(--skip-bg); color: var(--skip); border-color: var(--skip); }
   .ctl .has-note { color: var(--accent); border-color: var(--accent); }
-  .note { grid-column: 1 / -1; width: 100%; font: 13px var(--sans); min-height: 64px; resize: vertical; border: 1px solid var(--border); border-radius: 5px; padding: 8px; background: var(--surface-2); color: var(--text); }
+  .note { grid-column: 1 / -1; width: 100%; font: 13px var(--sans); min-height: 64px; resize: vertical; border: 1px solid var(--border); border-radius: 5px; padding: 8px; background: var(--surface-2); color: var(--text); cursor: text; }
   .modal { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 10; }
   .modal .box { background: var(--surface); border-radius: 8px; padding: 16px; width: min(720px, 100%); display: flex; flex-direction: column; gap: 10px; }
+  .modal p { margin: 0; color: var(--muted); font-size: 13px; }
   .modal textarea { width: 100%; height: 50vh; font: 13px var(--mono); background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 5px; padding: 8px; }
   [hidden] { display: none !important; }
   @media (max-width: 860px) {
@@ -93,7 +109,10 @@
     <div class="bar" role="img" aria-label="progression"><span class="b-ok" id="b-ok"></span><span class="b-ko" id="b-ko"></span><span class="b-skip" id="b-skip"></span></div>
     <div class="count" id="count"></div>
   </div>
+  <button type="button" class="cur-chip" id="cur"></button>
   <button type="button" class="ghost" id="next"></button>
+  <button type="button" class="ghost" id="opt-toggle" hidden></button>
+  <button type="button" class="ghost" id="lang"></button>
   <button type="button" class="primary" id="copy"></button>
 </header>
 <div class="layout">
@@ -103,6 +122,7 @@
 <div class="modal" id="modal" hidden>
   <div class="box">
     <strong id="modal-title"></strong>
+    <p id="modal-hint"></p>
     <textarea id="modal-text" readonly></textarea>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button type="button" class="ghost" id="modal-reset"></button>
@@ -118,33 +138,48 @@
 <script>
 (() => {
   const DATA = JSON.parse(document.getElementById('fiche-data').textContent);
-  const L = {
+  // Les textes de l'INTERFACE (boutons, bilan). Les étapes, elles, restent dans la langue où elles
+  // ont été écrites : changer de langue ne les traduit pas.
+  const LANGS = {
     fr: { ok: 'OK', ko: 'KO', skip: 'Passé', note: 'Note', expect: 'Attendu', copy: 'Copier le bilan', next: 'Étape suivante',
           notePh: 'Ce que vous avez vu, l’écart, l’heure…', done: 'faites', remaining: 'restantes', optional: 'optionnel',
-          report: 'Bilan', copied: 'Bilan copié', close: 'Fermer', reset: 'Tout remettre à zéro',
+          optBand: 'Optionnel — peut être sauté', optShort: 'opt.', hideOpt: 'Masquer les optionnelles', showOpt: 'Afficher les optionnelles',
+          current: 'En cours', currentBand: '▶ Étape en cours', other: 'English', otherTitle: 'Switch the interface to English',
+          report: 'Bilan', copied: 'Bilan copié — collez-le tel quel dans la conversation', close: 'Fermer', reset: 'Tout remettre à zéro',
+          reportHint: 'Ce texte se colle tel quel dans la conversation avec l’assistant : rien à reformuler.',
           resetAsk: 'Effacer toutes les coches et toutes les notes de cette fiche ?', env: ['Quoi', 'Où'],
-          failed: 'KO', skipped: 'Passées', notes: 'Notes sur des étapes OK', todo: 'Pas encore faites', none: 'aucune',
-          allDone: 'Toutes les étapes sont tranchées.' },
-    en: { ok: 'OK', ko: 'Fail', skip: 'Skipped', note: 'Note', expect: 'Expected', copy: 'Copy the report', next: 'Next step',
+          failed: 'KO', skipped: 'Passées', notes: 'Notes sur des étapes OK', todo: 'Pas encore faites', todoOpt: 'Optionnelles pas faites', none: 'aucune',
+          allDone: 'Toutes les étapes sont tranchées.', copyCode: 'Copier', copiedCode: 'Copié', noteLabel: 'Note', at: 'à' },
+    en: { ok: 'Pass', ko: 'Fail', skip: 'Skip', note: 'Note', expect: 'Expected', copy: 'Copy the report', next: 'Next step',
           notePh: 'What you saw, the gap, the time…', done: 'done', remaining: 'left', optional: 'optional',
-          report: 'Report', copied: 'Report copied', close: 'Close', reset: 'Reset everything',
+          optBand: 'Optional — can be skipped', optShort: 'opt.', hideOpt: 'Hide optional steps', showOpt: 'Show optional steps',
+          current: 'Current', currentBand: '▶ Current step', other: 'Français', otherTitle: 'Passer l’interface en français',
+          report: 'Report', copied: 'Report copied — paste it as is into the conversation', close: 'Close', reset: 'Reset everything',
+          reportHint: 'Paste this text as is into the conversation with the assistant: nothing to rephrase.',
           resetAsk: 'Erase every mark and every note of this sheet?', env: ['What', 'Where'],
-          failed: 'Failed', skipped: 'Skipped', notes: 'Notes on passed steps', todo: 'Not done yet', none: 'none',
-          allDone: 'Every step has a verdict.' },
-  }[DATA.langue === 'en' ? 'en' : 'fr'];
-  document.documentElement.lang = DATA.langue === 'en' ? 'en' : 'fr';
+          failed: 'Failed', skipped: 'Skipped', notes: 'Notes on passed steps', todo: 'Not done yet', todoOpt: 'Optional steps not done', none: 'none',
+          allDone: 'Every step has a verdict.', copyCode: 'Copy', copiedCode: 'Copied', noteLabel: 'Note', at: 'at' },
+  };
 
-  // --- État : une entrée par étape, gardée dans ce navigateur. Une étape dont la révision a changé
-  // --- (elle a été corrigée ou réécrite) perd son verdict : elle est à rejouer.
+  // --- Ce qui est gardé dans ce navigateur : verdicts et notes, étape en cours, préférences.
   const KEY = 'fiche-de-test:' + (DATA.cle || DATA.titre || 'fiche');
+  const get = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+  const put = (k, v) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* navigation privée */ } };
   let state = {};
-  try { state = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { state = {}; }
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* navigation privée */ } };
-  const steps = DATA.sections.flatMap((s) => s.etapes.map((e) => ({ ...e, section: s })));
+  try { state = JSON.parse(get(KEY) || '{}') || {}; } catch { state = {}; }
+  const save = () => { put(KEY, JSON.stringify(state)); };
+  const steps = DATA.sections.flatMap((s, i) => s.etapes.map((e) => ({ ...e, sec: 's' + i })));
+  // Une étape dont la révision a changé (corrigée ou réécrite) perd son verdict : elle est à rejouer.
   for (const e of steps) {
     const st = state[e.id];
     if (st && (st.rev || 0) !== (e.revision || 0)) state[e.id] = { note: st.note || '', rev: e.revision || 0 };
   }
+  const hasOpt = steps.some((e) => e.optionnel);
+  let lang = get('fiche-de-test:lang') || (DATA.langue === 'en' ? 'en' : 'fr');
+  if (!LANGS[lang]) lang = 'fr';
+  let hideOpt = get(KEY + ':hide-opt') === '1';
+  let current = get(KEY + ':current');
+  let L = LANGS[lang];
 
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   // Mise en forme minimale : `code`, **gras**, *italique*. Rien d'autre n'est interprété.
@@ -153,65 +188,112 @@
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/(^|[\s(])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>');
   const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html !== undefined) n.innerHTML = html; return n; };
+  const $ = (id) => document.getElementById(id);
+  const main = $('main');
+  const side = $('side');
+  const modal = $('modal');
+  const items = new Map();
+  const visible = (e) => !(hideOpt && e.optionnel);
+  const untouched = (e) => !state[e.id]?.status && visible(e);
 
-  document.title = DATA.titre;
-  document.getElementById('brand').textContent = DATA.titre;
-  document.getElementById('sub').textContent = DATA.sousTitre || '';
-  document.getElementById('copy').textContent = L.copy;
-  document.getElementById('next').textContent = L.next;
-
-  const main = document.getElementById('main');
-  const side = document.getElementById('side');
-  main.append(el('h1', '', esc(DATA.titre)));
-  for (const p of DATA.intro || []) main.append(el('p', '', rich(p)));
-  if (DATA.regle) main.append(el('div', 'rule', rich(DATA.regle)));
-  if ((DATA.environnement || []).length > 0) {
-    const rows = DATA.environnement.map((r) => `<tr><td>${rich(r.quoi)}</td><td>${rich(r.ou)}</td></tr>`).join('');
-    main.append(el('div', 'tablewrap', `<table><thead><tr><th>${L.env[0]}</th><th>${L.env[1]}</th></tr></thead><tbody>${rows}</tbody></table>`));
+  // Première étape non tranchée APRÈS `fromId` (en reprenant du début s'il le faut).
+  function nextUntouched(fromId) {
+    const i = steps.findIndex((e) => e.id === fromId);
+    return [...steps.slice(i + 1), ...steps.slice(0, i + 1)].find(untouched)?.id ?? null;
   }
 
-  const items = new Map();
-  DATA.sections.forEach((s, i) => {
-    const sid = 's' + i;
-    const link = el('a', '', `<span>${rich(s.titre)}</span><span class="mini"></span>`);
-    link.href = '#' + sid; link.dataset.sec = sid; side.append(link);
-    const h2 = el('h2', '', `${rich(s.titre)}<span class="mini" data-sec="${sid}"></span>`); h2.id = sid; main.append(h2);
-    if (s.contexte) main.append(el('p', '', rich(s.contexte)));
-    const ol = el('ol', 'items'); main.append(ol);
-    for (const e of s.etapes) {
-      const li = el('li', 'item'); li.id = 'e-' + e.id; li.dataset.sec = sid;
-      const tags = (e.marque ? `<span class="tag">${esc(e.marque)}</span>` : '') + (e.optionnel ? `<span class="tag opt">${L.optional}</span>` : '');
-      const body = el('div', 'body',
-        `<p><span class="id">${esc(e.id)}</span>${tags}${rich(e.action)}</p>` +
-        (e.code ? `<pre><code>${esc(e.code)}</code></pre>` : '') +
-        `<p class="expect"><b>${L.expect}</b>${rich(e.attendu)}</p>`);
-      const ctl = el('div', 'ctl'); ctl.setAttribute('role', 'group'); ctl.setAttribute('aria-label', e.id);
-      for (const s2 of ['ok', 'ko', 'skip']) {
-        const b = el('button', '', L[s2]); b.type = 'button'; b.dataset.s = s2;
-        b.addEventListener('click', () => { setStatus(e, s2); });
-        ctl.append(b);
-      }
-      const nb = el('button', 'note-btn', L.note); nb.type = 'button';
-      const ta = el('textarea', 'note'); ta.placeholder = L.notePh; ta.setAttribute('aria-label', L.note + ' ' + e.id); ta.hidden = true;
-      nb.addEventListener('click', () => { ta.hidden = !ta.hidden; if (!ta.hidden) ta.focus(); });
-      ta.addEventListener('input', () => { cell(e).note = ta.value; save(); paint(e); });
-      ctl.append(nb); li.append(body, ctl, ta); ol.append(li);
-      items.set(e.id, { li, ctl, ta, nb });
+  function render() {
+    L = LANGS[lang];
+    document.documentElement.lang = lang;
+    document.title = DATA.titre;
+    $('brand').textContent = DATA.titre;
+    $('sub').textContent = DATA.sousTitre || '';
+    $('copy').textContent = L.copy;
+    $('next').textContent = L.next;
+    $('lang').textContent = L.other; $('lang').title = L.otherTitle;
+    $('modal-close').textContent = L.close;
+    $('modal-reset').textContent = L.reset;
+    $('modal-hint').textContent = L.reportHint;
+    main.replaceChildren(); side.replaceChildren(); items.clear();
+
+    main.append(el('h1', '', esc(DATA.titre)));
+    for (const p of DATA.intro || []) main.append(el('p', '', rich(p)));
+    if (DATA.regle) main.append(el('div', 'rule', rich(DATA.regle)));
+    if ((DATA.environnement || []).length > 0) {
+      const rows = DATA.environnement.map((r) => `<tr><td>${rich(r.quoi)}</td><td>${rich(r.ou)}</td></tr>`).join('');
+      main.append(el('div', 'tablewrap', `<table><thead><tr><th>${L.env[0]}</th><th>${L.env[1]}</th></tr></thead><tbody>${rows}</tbody></table>`));
     }
-  });
+
+    DATA.sections.forEach((s, i) => {
+      const sid = 's' + i;
+      const link = el('a', '', `<span>${rich(s.titre)}</span><span class="mini"></span>`);
+      link.href = '#' + sid; link.dataset.sec = sid; side.append(link);
+      const h2 = el('h2', '', `${rich(s.titre)}<span class="mini" data-sec="${sid}"></span>`); h2.id = sid; main.append(h2);
+      if (s.contexte) main.append(el('p', '', rich(s.contexte)));
+      const ol = el('ol', 'items'); main.append(ol);
+      for (const raw of s.etapes) {
+        const e = steps.find((x) => x.id === raw.id);
+        const li = el('li', 'item'); li.id = 'e-' + e.id;
+        const flag = el('span', 'cur-flag', L.currentBand);
+        const band = e.optionnel ? el('span', 'opt-band', L.optBand) : null;
+        const body = el('div', 'body',
+          `<p><span class="id">${esc(e.id)}</span>${e.marque ? `<span class="tag">${esc(e.marque)}</span>` : ''}${rich(e.action)}</p>` +
+          (e.code ? `<pre><code>${esc(e.code)}</code></pre>` : '') +
+          `<p class="expect"><b>${L.expect}</b>${rich(e.attendu)}</p>`);
+        if (e.code) {
+          const cb = el('button', 'copy-code', L.copyCode); cb.type = 'button';
+          cb.addEventListener('click', async () => {
+            try { await navigator.clipboard.writeText(e.code); cb.textContent = L.copiedCode; setTimeout(() => { cb.textContent = L.copyCode; }, 1500); } catch { /* sélection à la main */ }
+          });
+          body.querySelector('pre').append(cb);
+        }
+        const ctl = el('div', 'ctl'); ctl.setAttribute('role', 'group'); ctl.setAttribute('aria-label', e.id);
+        for (const s2 of ['ok', 'ko', 'skip']) {
+          const b = el('button', '', L[s2]); b.type = 'button'; b.dataset.s = s2;
+          b.addEventListener('click', () => { setStatus(e, s2); });
+          ctl.append(b);
+        }
+        const nb = el('button', 'note-btn', L.note); nb.type = 'button';
+        const ta = el('textarea', 'note'); ta.placeholder = L.notePh; ta.setAttribute('aria-label', L.note + ' ' + e.id); ta.hidden = true;
+        nb.addEventListener('click', () => { ta.hidden = !ta.hidden; if (!ta.hidden) ta.focus(); });
+        ta.addEventListener('input', () => { cell(e).note = ta.value; save(); paint(e); });
+        // Cliquer une étape (hors boutons et note) en fait l'étape en cours.
+        li.addEventListener('click', (ev) => { if (!ev.target.closest('button, textarea, a')) setCurrent(e.id, false); });
+        ctl.append(nb); li.append(flag, ...(band ? [band] : []), body, ctl, ta); ol.append(li);
+        items.set(e.id, { li, ctl, ta, nb });
+      }
+    });
+    for (const e of steps) paint(e);
+    applyOpt(); totals();
+  }
 
   function cell(e) { return (state[e.id] ||= { rev: e.revision || 0, note: '' }); }
+  function setCurrent(id, scroll) {
+    current = id && items.has(id) ? id : null;
+    put(KEY + ':current', current);
+    for (const [k, it] of items) {
+      it.li.classList.toggle('current', k === current);
+      if (k === current) it.li.setAttribute('aria-current', 'step'); else it.li.removeAttribute('aria-current');
+    }
+    const e = steps.find((x) => x.id === current);
+    for (const a of side.querySelectorAll('a')) a.classList.toggle('here', !!e && a.dataset.sec === e.sec);
+    $('cur').textContent = current ? `${L.current}${lang === 'fr' ? ' : ' : ': '}${current}` : L.allDone;
+    if (scroll && current) items.get(current).li.scrollIntoView({ block: 'center' });
+  }
   function setStatus(e, s) {
     const c = cell(e);
     c.status = c.status === s ? undefined : s; // re-cliquer annule
     c.at = c.status ? new Date().toISOString() : undefined;
-    // Un KO sans explication ne sert à rien à celui qui corrige : on ouvre la note.
-    if (c.status === 'ko') { const it = items.get(e.id); it.ta.hidden = false; it.ta.focus(); }
     save(); paint(e); totals();
+    const it = items.get(e.id);
+    // Un KO sans explication ne sert à rien à celui qui corrige : on reste dessus et on ouvre la note.
+    if (c.status === 'ko') { setCurrent(e.id, false); it.ta.hidden = false; it.ta.focus(); return; }
+    // OK ou Passé : l'étape en cours devient la suivante à faire.
+    if (c.status) setCurrent(nextUntouched(e.id), true);
   }
   function paint(e) {
     const it = items.get(e.id); const c = state[e.id] || {};
-    it.li.className = 'item' + (c.status ? ' s-' + c.status : '');
+    it.li.className = 'item' + (e.optionnel ? ' opt' : '') + (c.status ? ' s-' + c.status : '') + (e.id === current ? ' current' : '');
     it.li.dataset.status = c.status || '';
     for (const b of it.ctl.querySelectorAll('button[data-s]')) {
       const on = b.dataset.s === c.status; b.className = on ? 'on-' + b.dataset.s : ''; b.setAttribute('aria-pressed', String(on));
@@ -220,57 +302,80 @@
     if (c.note) it.ta.hidden = false;
     it.nb.className = 'note-btn' + (c.note ? ' has-note' : '');
   }
+  function applyOpt() {
+    document.body.classList.toggle('hide-opt', hideOpt);
+    const n = steps.filter((e) => e.optionnel).length;
+    $('opt-toggle').hidden = !hasOpt;
+    $('opt-toggle').textContent = `${hideOpt ? L.showOpt : L.hideOpt} (${n})`;
+    $('opt-toggle').setAttribute('aria-pressed', String(hideOpt));
+  }
   function totals() {
     const n = { ok: 0, ko: 0, skip: 0 };
     for (const e of steps) { const s = state[e.id]?.status; if (s) n[s]++; }
     const total = steps.length || 1;
-    for (const k of ['ok', 'ko', 'skip']) document.getElementById('b-' + k).style.width = (100 * n[k] / total) + '%';
-    const done = n.ok + n.ko + n.skip;
-    document.getElementById('count').textContent = `${done}/${steps.length} ${L.done} · ${n.ko} ${L.ko}`;
+    for (const k of ['ok', 'ko', 'skip']) $('b-' + k).style.width = (100 * n[k] / total) + '%';
+    // Les étapes optionnelles sont comptées à part : ne pas les faire n'empêche pas d'avoir fini.
+    const req = steps.filter((e) => !e.optionnel); const opt = steps.filter((e) => e.optionnel);
+    const d = (list) => list.filter((e) => state[e.id]?.status).length;
+    $('count').textContent = `${d(req)}/${req.length} ${L.done}` + (opt.length ? ` · ${L.optShort} ${d(opt)}/${opt.length}` : '') + ` · ${n.ko} ${L.ko}`;
     DATA.sections.forEach((s, i) => {
       const sid = 's' + i; const st = s.etapes.map((e) => state[e.id]?.status);
-      const d = st.filter(Boolean).length; const txt = `${d}/${s.etapes.length}`;
+      const dn = st.filter(Boolean).length; const txt = `${dn}/${s.etapes.length}`;
       for (const m of document.querySelectorAll(`.mini[data-sec="${sid}"], a[data-sec="${sid}"] .mini`)) m.textContent = txt;
       const a = side.querySelector(`a[data-sec="${sid}"]`);
-      a.className = (st.includes('ko') ? 'has-ko' : '') + (d === s.etapes.length && s.etapes.length > 0 ? ' done' : '');
+      a.classList.toggle('has-ko', st.includes('ko'));
+      a.classList.toggle('done', dn === s.etapes.length && s.etapes.length > 0);
     });
   }
 
   function report() {
-    const line = (e) => `- ${e.id} — ${e.action.replace(/\s+/g, ' ').slice(0, 140)}` + (state[e.id]?.note ? `\n    Note : ${state[e.id].note.replace(/\n/g, '\n    ')}` : '');
+    const hour = (iso) => { try { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
+    const line = (e) => `- ${e.id}${e.optionnel ? ` (${L.optional})` : ''} — ${e.action.replace(/\s+/g, ' ').slice(0, 140)}` +
+      (state[e.id]?.at ? ` [${L.at} ${hour(state[e.id].at)}]` : '') +
+      (state[e.id]?.note ? `\n    ${L.noteLabel} : ${state[e.id].note.replace(/\n/g, '\n    ')}` : '');
     const by = (s) => steps.filter((e) => state[e.id]?.status === s);
     const block = (title, list) => `\n## ${title} (${list.length})\n` + (list.length ? list.map(line).join('\n') : `- ${L.none}`);
+    const ids = (title, list) => `\n\n## ${title} (${list.length})\n` + (list.length ? list.map((e) => e.id).join(', ') : `- ${L.none}`);
     const ok = by('ok'); const ko = by('ko'); const skip = by('skip');
     const todo = steps.filter((e) => !state[e.id]?.status);
     return `# ${L.report} — ${DATA.titre}\n${DATA.sousTitre ? DATA.sousTitre + '\n' : ''}${new Date().toLocaleString()}\n` +
       `${ok.length} ${L.ok} · ${ko.length} ${L.ko} · ${skip.length} ${L.skip} · ${todo.length} ${L.remaining} / ${steps.length}\n` +
       block(L.failed, ko) + '\n' + block(L.skipped, skip) + '\n' + block(L.notes, ok.filter((e) => state[e.id]?.note)) +
-      `\n\n## ${L.todo} (${todo.length})\n` + (todo.length ? todo.map((e) => e.id).join(', ') : `- ${L.none}`) + '\n';
+      ids(L.todo, todo.filter((e) => !e.optionnel)) + (hasOpt ? ids(L.todoOpt, todo.filter((e) => e.optionnel)) : '') + '\n';
   }
 
-  const modal = document.getElementById('modal');
-  document.getElementById('modal-close').textContent = L.close;
-  document.getElementById('modal-reset').textContent = L.reset;
-  document.getElementById('copy').addEventListener('click', async () => {
+  $('copy').addEventListener('click', async () => {
     const text = report();
     let copied = false;
     try { await navigator.clipboard.writeText(text); copied = true; } catch { /* page locale ou http : on montre le texte */ }
-    document.getElementById('modal-title').textContent = copied ? L.copied : L.report;
-    const ta = document.getElementById('modal-text'); ta.value = text; modal.hidden = false; ta.focus(); ta.select();
+    $('modal-title').textContent = copied ? L.copied : L.report;
+    const ta = $('modal-text'); ta.value = text; modal.hidden = false; ta.focus(); ta.select();
   });
-  document.getElementById('modal-close').addEventListener('click', () => { modal.hidden = true; });
-  document.getElementById('modal-reset').addEventListener('click', () => {
+  $('modal-close').addEventListener('click', () => { modal.hidden = true; });
+  $('modal-reset').addEventListener('click', () => {
     if (!confirm(L.resetAsk)) return;
-    state = {}; save(); for (const e of steps) paint(e); totals(); modal.hidden = true;
+    state = {}; save(); for (const e of steps) paint(e); totals(); modal.hidden = true; setCurrent(nextUntouched(null), true);
   });
-  document.getElementById('next').addEventListener('click', () => {
-    const e = steps.find((x) => !state[x.id]?.status);
-    if (!e) { alert(L.allDone); return; }
-    const li = items.get(e.id).li; li.scrollIntoView({ block: 'center' }); li.querySelector('button').focus({ preventScroll: true });
+  $('next').addEventListener('click', () => {
+    const id = nextUntouched(current);
+    if (!id) { alert(L.allDone); return; }
+    setCurrent(id, true);
+  });
+  $('cur').addEventListener('click', () => { setCurrent(current || nextUntouched(null), true); });
+  $('lang').addEventListener('click', () => {
+    lang = lang === 'fr' ? 'en' : 'fr'; put('fiche-de-test:lang', lang);
+    render(); setCurrent(current, false);
+  });
+  $('opt-toggle').addEventListener('click', () => {
+    hideOpt = !hideOpt; put(KEY + ':hide-opt', hideOpt ? '1' : null); applyOpt();
+    const e = steps.find((x) => x.id === current);
+    if (e && !visible(e)) setCurrent(nextUntouched(current), false);
   });
   document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') modal.hidden = true; });
 
-  save(); for (const e of steps) paint(e); totals();
+  save(); render();
+  const cur = steps.find((x) => x.id === current);
+  setCurrent(cur && untouched(cur) ? current : nextUntouched(null), false);
 })();
 </script>
 </body>
