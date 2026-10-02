@@ -11,6 +11,7 @@ import { ulid } from '@mmo/protocol';
 
 import { defaultConfig, type PanelConfig } from './config.js';
 import { registerAccessLog } from './http/access-log.js';
+import { registerRefusalAudit } from './http/refusal-audit.js';
 import { createContext, type AppContext, type ContextOptions } from './context.js';
 import { registerAuth } from './http/auth.js';
 import { registerErrorHandler } from './http/errors.js';
@@ -101,6 +102,7 @@ export async function buildApp(options: AppOptions = {}): Promise<PanelApp> {
   registerSecurityHeaders(app, ctx);
   registerAuth(app, ctx);
   registerAccessLog(app, options.accessLog ?? {});
+  registerRefusalAudit(app, ctx);
   registerMiscRoutes(app, ctx);
   registerSetupAndAuthRoutes(app, ctx);
   registerUserRoutes(app, ctx);

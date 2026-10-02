@@ -1203,19 +1203,46 @@ export const eventsQuerySchema = z.object({
 
 // --- Parcours UI (maintenance) ---------------------------------------------------------------------
 
-/** Interaction d'interface capturée côté client (clic, navigation), envoyée par lots. */
+/**
+ * Ce que le navigateur rapporte (demande de Yassin, 02/10 : « tout enregistrer tant que c'est
+ * possible ») : `click` (y compris dans le vide), `nav`, `move` (position de la souris,
+ * échantillonnée), `scroll`, `key` (touche hors champ de saisie), `input` (champ modifié),
+ * `toast` (message affiché), `error` (erreur JavaScript), `view` (onglet du navigateur masqué ou
+ * revenu, fenêtre redimensionnée).
+ */
+export const UI_EVENT_KINDS = [
+  'click',
+  'nav',
+  'move',
+  'scroll',
+  'key',
+  'input',
+  'toast',
+  'error',
+  'view',
+] as const;
+
+/** Interaction d'interface capturée côté client, envoyée par lots. */
 export const uiEventInputSchema = z.object({
   ts: epochMsSchema,
-  kind: z.enum(['click', 'nav']),
-  /** Chemin de la page (`location.pathname`), jamais de query string (données sensibles). */
+  kind: z.enum(UI_EVENT_KINDS),
+  /** Chemin de la page (`location.pathname`) ; la partie `?…` va dans `data.search`. */
   page: z.string().max(200),
-  /** Identifiant de l'élément cliqué : `data-testid`, `aria-label` ou texte du bouton. */
+  /** Identifiant de l'élément visé : `data-testid`, `aria-label`, texte du bouton ou balise. */
   target: z.string().max(200).optional(),
+  /**
+   * Le détail, selon `kind` : coordonnées, taille de la fenêtre, valeur saisie, texte du message…
+   * Petites valeurs seulement ; jamais le contenu d'un champ secret (mot de passe, jeton).
+   */
+  data: z
+    .record(z.string().max(40), z.union([z.string().max(500), z.number(), z.boolean()]))
+    .refine((d) => Object.keys(d).length <= 12)
+    .optional(),
 });
 export type UiEventInput = z.infer<typeof uiEventInputSchema>;
 
 export const uiEventsPostSchema = z.object({
-  events: z.array(uiEventInputSchema).min(1).max(100),
+  events: z.array(uiEventInputSchema).min(1).max(300),
 });
 
 export const uiEventDtoSchema = uiEventInputSchema.extend({

@@ -1,0 +1,1 @@
+ALTER TABLE `ui_events` ADD `data` text;

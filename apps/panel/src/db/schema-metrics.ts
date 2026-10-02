@@ -15,10 +15,12 @@ export const uiEvents = sqliteTable(
     ts: integer('ts').notNull(),
     userId: text('user_id'),
     username: text('username'),
-    /** `click` ou `nav`. */
+    /** Voir `UI_EVENT_KINDS` (protocole) : click, nav, move, scroll, key, input, toast, error, view. */
     kind: text('kind').notNull(),
     page: text('page').notNull(),
     target: text('target'),
+    /** Détail JSON selon `kind` (coordonnées, valeur saisie, texte du message…). */
+    data: text('data'),
   },
   (t) => [index('ui_events_ts').on(t.ts)],
 );

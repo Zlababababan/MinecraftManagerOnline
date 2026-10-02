@@ -7,11 +7,11 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { installUiTelemetry } from './ui-telemetry.js';
 
 function lastBatch(fetchMock: ReturnType<typeof vi.fn>): {
-  events: { kind: string; page: string; target?: string }[];
+  events: { kind: string; page: string; target?: string; data?: Record<string, unknown> }[];
 } {
   const call = fetchMock.mock.calls.at(-1) as [string, RequestInit];
   return JSON.parse(call[1].body as string) as {
-    events: { kind: string; page: string; target?: string }[];
+    events: { kind: string; page: string; target?: string; data?: Record<string, unknown> }[];
   };
 }
 
@@ -50,18 +50,50 @@ describe('installUiTelemetry', () => {
     vi.advanceTimersByTime(5000);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const { events } = lastBatch(fetchMock);
-    // Le div sans rôle interactif n'est pas capturé.
-    expect(events.map((e) => e.target)).toEqual(['action-start', 'Fermer']);
+    // Depuis le 02/10, le div sans rôle interactif est capturé aussi, comme « clic dans le vide ».
+    expect(events.map((e) => e.target)).toEqual(['action-start', 'Fermer', undefined]);
     expect(events[0]).toMatchObject({ kind: 'click', page: '/' });
+    expect(events[0]?.data).not.toHaveProperty('void');
+    expect(events[2]).toMatchObject({ kind: 'click', data: { void: true, tag: 'div' } });
   });
 
-  it('capture les navigations pushState et popstate', () => {
+  it('capture les navigations pushState et popstate, onglet (?tab=) compris', () => {
     history.pushState({}, '', '/servers/s1');
-    history.pushState({}, '', '/servers/s1'); // même chemin : ignoré
+    history.pushState({}, '', '/servers/s1'); // même adresse : ignoré
+    history.pushState({}, '', '/servers/s1?tab=config&focus=server-port');
     vi.advanceTimersByTime(5000);
     const { events } = lastBatch(fetchMock);
-    expect(events).toHaveLength(1);
+    expect(events).toHaveLength(2);
     expect(events[0]).toMatchObject({ kind: 'nav', page: '/servers/s1' });
+    expect(events[0]).not.toHaveProperty('data');
+    expect(events[1]).toMatchObject({
+      kind: 'nav',
+      page: '/servers/s1',
+      data: { search: '?tab=config&focus=server-port' },
+    });
+  });
+
+  it('champ modifié, touche hors saisie, message affiché ; une frappe dans un champ n’est pas une touche', async () => {
+    document.body.innerHTML =
+      '<input data-testid="prop-query.port" value="25570"><input type="password" id="pw" value="hunter2">';
+    const field = document.querySelector<HTMLInputElement>('[data-testid="prop-query.port"]');
+    field?.dispatchEvent(new Event('change', { bubbles: true }));
+    document.getElementById('pw')?.dispatchEvent(new Event('change', { bubbles: true }));
+    field?.dispatchEvent(new KeyboardEvent('keydown', { key: '7', bubbles: true }));
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    const toast = document.createElement('div');
+    toast.className = 'mantine-Notification-root';
+    toast.textContent = 'Le port 25565 est déjà utilisé.';
+    document.body.append(toast);
+    await Promise.resolve(); // l'observateur de mutations rend la main en micro-tâche
+    vi.advanceTimersByTime(5000);
+    const { events } = lastBatch(fetchMock);
+    expect(events.map((e) => e.kind)).toEqual(['input', 'input', 'key', 'toast']);
+    expect(events[0]).toMatchObject({ target: 'prop-query.port', data: { value: '25570' } });
+    expect(events[1]?.data).toEqual({ secret: true, length: 7 });
+    expect(events[2]?.data).toEqual({ key: 'Escape' });
+    expect(events[3]?.data).toEqual({ text: 'Le port 25565 est déjà utilisé.' });
+    expect(JSON.stringify(events)).not.toContain('hunter2');
   });
 
   // Lot 8 : une page de statut publique est visitée par des inconnus, sans compte — rien de leur

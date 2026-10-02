@@ -19,12 +19,20 @@ export class UiEventsService {
 
   constructor(private readonly sqlite: SqliteHandle) {
     this.insert = sqlite.prepare(
-      `INSERT INTO ui_events (ts, user_id, username, kind, page, target)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO ui_events (ts, user_id, username, kind, page, target, data)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     );
     this.insertBatch = sqlite.transaction((user: UiEventUser, events: UiEventInput[]) => {
       for (const e of events) {
-        this.insert.run(e.ts, user.userId, user.username, e.kind, e.page, e.target ?? null);
+        this.insert.run(
+          e.ts,
+          user.userId,
+          user.username,
+          e.kind,
+          e.page,
+          e.target ?? null,
+          e.data === undefined ? null : JSON.stringify(e.data),
+        );
       }
     });
   }
@@ -36,7 +44,7 @@ export class UiEventsService {
   list(limit = 200): UiEventDto[] {
     const rows = this.sqlite
       .prepare(
-        `SELECT id, ts, user_id, username, kind, page, target
+        `SELECT id, ts, user_id, username, kind, page, target, data
          FROM ui_events ORDER BY id DESC LIMIT ?`,
       )
       .all(limit) as {
@@ -47,6 +55,7 @@ export class UiEventsService {
       kind: string;
       page: string;
       target: string | null;
+      data: string | null;
     }[];
     return rows.map((r) => ({
       id: r.id,
@@ -56,6 +65,7 @@ export class UiEventsService {
       kind: r.kind as UiEventDto['kind'],
       page: r.page,
       ...(r.target === null ? {} : { target: r.target }),
+      ...(r.data === null ? {} : { data: JSON.parse(r.data) as NonNullable<UiEventDto['data']> }),
     }));
   }
 
