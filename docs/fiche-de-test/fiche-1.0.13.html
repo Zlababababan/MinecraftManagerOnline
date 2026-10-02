@@ -77,6 +77,9 @@
   .cur-flag .keys { font-weight: 400; text-transform: none; letter-spacing: 0; opacity: .85; margin-left: 10px; }
   @media (hover: none) { .cur-flag .keys { display: none; } }
   select.ghost { cursor: pointer; }
+  .modal textarea { height: 42vh; }
+  .carry { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border: 1px dashed var(--border); border-radius: 6px; font-size: 13px; color: var(--muted); }
+  .carry span { flex: 1 1 220px; }
   .item .id { color: var(--accent); font-size: 12px; font-weight: 600; margin-right: 6px; }
   .item p { margin: 0; }
   .item .expect { margin-top: 6px; }
@@ -127,6 +130,12 @@
     <strong id="modal-title"></strong>
     <p id="modal-hint"></p>
     <textarea id="modal-text" readonly></textarea>
+    <div class="carry">
+      <span id="carry-hint"></span>
+      <button type="button" class="ghost" id="carry-save"></button>
+      <button type="button" class="ghost" id="carry-load"></button>
+      <input type="file" id="carry-file" accept=".json,application/json" hidden>
+    </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button type="button" class="ghost" id="modal-reset" style="margin-right:auto"></button>
       <button type="button" class="ghost" id="modal-download"></button>
@@ -150,6 +159,12 @@
   // clé oubliée retombe sur l'anglais.
   const LANGS = {
     fr: { name: 'Français', sep: ' : ', download: 'Enregistrer en fichier', file: 'bilan',
+          carryHint: 'Continuer sur un autre appareil ou passer la fiche à quelqu’un : enregistrez la progression ici, rechargez-la là-bas.',
+          carrySave: 'Enregistrer la progression', carryLoad: 'Reprendre une progression', carryFile: 'progression',
+          carryAsk: 'Remplacer les coches et les notes de cette page par celles du fichier ?',
+          carryBad: 'Ce fichier n’est pas une progression de fiche de test.',
+          carryOther: 'Ce fichier vient d’une autre fiche',
+          carryDone: 'Progression reprise.',
           keys: '1 OK · 2 KO · 3 Passé · N note · ↑ ↓ changer d’étape',
           ok: 'OK', ko: 'KO', skip: 'Passé', note: 'Note', expect: 'Attendu', copy: 'Copier le bilan', next: 'Étape suivante',
           notePh: 'Ce que vous avez vu, l’écart, l’heure…', done: 'faites', remaining: 'restantes', optional: 'optionnel',
@@ -160,6 +175,12 @@
           failed: 'KO', skipped: 'Passées', notes: 'Notes sur des étapes OK', todo: 'Pas encore faites', todoOpt: 'Optionnelles pas faites', none: 'aucune',
           allDone: 'Toutes les étapes sont tranchées.', copyCode: 'Copier', copiedCode: 'Copié', noteLabel: 'Note', at: 'à' },
     en: { name: 'English', sep: ': ', download: 'Save as a file', file: 'report',
+          carryHint: 'To continue on another device or hand the sheet to someone: save your progress here, load it there.',
+          carrySave: 'Save progress', carryLoad: 'Load progress', carryFile: 'progress',
+          carryAsk: 'Replace the marks and notes on this page with those from the file?',
+          carryBad: 'This file is not a test sheet progress file.',
+          carryOther: 'This file comes from another sheet',
+          carryDone: 'Progress loaded.',
           keys: '1 Pass · 2 Fail · 3 Skip · N note · ↑ ↓ change step',
           ok: 'Pass', ko: 'Fail', skip: 'Skip', note: 'Note', expect: 'Expected', copy: 'Copy the report', next: 'Next step',
           notePh: 'What you saw, the gap, the time…', done: 'done', remaining: 'left', optional: 'optional',
@@ -180,10 +201,13 @@
   const save = () => { put(KEY, JSON.stringify(state)); };
   const steps = DATA.sections.flatMap((s, i) => s.etapes.map((e) => ({ ...e, sec: 's' + i })));
   // Une étape dont la révision a changé (corrigée ou réécrite) perd son verdict : elle est à rejouer.
-  for (const e of steps) {
-    const st = state[e.id];
-    if (st && (st.rev || 0) !== (e.revision || 0)) state[e.id] = { note: st.note || '', rev: e.revision || 0 };
+  function dropStale() {
+    for (const e of steps) {
+      const st = state[e.id];
+      if (st && (st.rev || 0) !== (e.revision || 0)) state[e.id] = { note: st.note || '', rev: e.revision || 0 };
+    }
   }
+  dropStale();
   const hasOpt = steps.some((e) => e.optionnel);
   // Langue : le choix du testeur, sinon celle de la fiche, sinon celle du navigateur, sinon l'anglais.
   const texts = (code) => ({ ...LANGS.en, ...LANGS[code] });
@@ -220,6 +244,9 @@
     document.documentElement.lang = lang;
     $('lang').value = lang;
     $('modal-download').textContent = L.download;
+    $('carry-hint').textContent = L.carryHint;
+    $('carry-save').textContent = L.carrySave;
+    $('carry-load').textContent = L.carryLoad;
     document.title = DATA.titre;
     $('brand').textContent = DATA.titre;
     $('sub').textContent = DATA.sousTitre || '';
@@ -383,12 +410,35 @@
     lang = $('lang').value; put('fiche-de-test:lang', lang);
     render(); setCurrent(current, false);
   });
-  // Le bilan en fichier : pour l'envoyer, le garder, ou quand le presse-papiers est refusé.
-  $('modal-download').addEventListener('click', () => {
+  function download(text, type, prefix, ext) {
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([$('modal-text').value], { type: 'text/markdown;charset=utf-8' }));
-    a.download = `${L.file}-${String(DATA.cle || 'fiche').replace(/[^\w.-]+/g, '-')}-${new Date().toISOString().slice(0, 10)}.md`;
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = `${prefix}-${String(DATA.cle || 'fiche').replace(/[^\w.-]+/g, '-')}-${new Date().toISOString().slice(0, 10)}.${ext}`;
     document.body.append(a); a.click(); a.remove(); setTimeout(() => { URL.revokeObjectURL(a.href); }, 1000);
+  }
+  // Le bilan en fichier : pour l'envoyer, le garder, ou quand le presse-papiers est refusé.
+  $('modal-download').addEventListener('click', () => { download($('modal-text').value, 'text/markdown;charset=utf-8', L.file, 'md'); });
+  // Reprendre ailleurs : les coches ne vivent que dans ce navigateur, ce fichier les emporte.
+  $('carry-save').addEventListener('click', () => {
+    download(JSON.stringify({ type: 'fiche-de-test', cle: DATA.cle || '', titre: DATA.titre, saved: new Date().toISOString(), current, state }, null, 1), 'application/json', L.carryFile, 'json');
+  });
+  $('carry-load').addEventListener('click', () => { $('carry-file').click(); });
+  $('carry-file').addEventListener('change', async () => {
+    const file = $('carry-file').files[0]; $('carry-file').value = '';
+    if (!file) return;
+    let d = null;
+    try { d = JSON.parse(await file.text()); } catch { /* traité juste dessous */ }
+    if (!d || d.type !== 'fiche-de-test' || typeof d.state !== 'object' || d.state === null) { alert(L.carryBad); return; }
+    if ((d.cle || '') !== (DATA.cle || '')) { alert(`${L.carryOther}${L.sep}${d.titre || d.cle || '?'}`); return; }
+    if (!confirm(L.carryAsk)) return;
+    // On ne garde que les étapes connues de cette fiche ; une étape révisée depuis est à rejouer.
+    state = Object.fromEntries(steps.filter((e) => d.state[e.id] && typeof d.state[e.id] === 'object').map((e) => [e.id, d.state[e.id]]));
+    dropStale(); save();
+    for (const e of steps) { items.get(e.id).ta.hidden = true; paint(e); }
+    totals(); modal.hidden = true;
+    const c = steps.find((x) => x.id === d.current);
+    setCurrent(c && untouched(c) ? c.id : nextUntouched(null), true);
+    alert(L.carryDone);
   });
   // Raccourcis sur l'étape en cours : 1 2 3 = verdict, N = note, flèches = changer d'étape.
   document.addEventListener('keydown', (ev) => {
