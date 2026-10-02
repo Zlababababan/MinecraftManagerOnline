@@ -130,7 +130,6 @@
   <button type="button" class="ghost" id="next"></button>
   <button type="button" class="ghost" id="opt-toggle" hidden></button>
   <select class="ghost" id="theme"><option value="auto"></option><option value="light"></option><option value="dark"></option></select>
-  <select class="ghost" id="lang" aria-label="Language"></select>
   <button type="button" class="primary" id="copy"></button>
 </header>
 <div class="layout">
@@ -163,12 +162,12 @@
 <script>
 (() => {
   const DATA = JSON.parse(document.getElementById('fiche-data').textContent);
-  // Les textes de l'INTERFACE (boutons, bilan). Les étapes, elles, restent dans la langue où elles
-  // ont été écrites : changer de langue ne les traduit pas.
+  // Les textes de l'INTERFACE (boutons, bilan). Une fiche est écrite dans UNE langue : la page
+  // prend celle de la fiche (« langue »), pour que les boutons et les étapes parlent la même.
+  // Une fiche dans une autre langue = un autre fichier, traduit (voir SKILL.md).
   //
   // AJOUTER UNE LANGUE : copier le bloc « en », changer son code (es, de…) et traduire chaque
-  // valeur. Rien d'autre à toucher : la liste déroulante de la page se remplit toute seule, et une
-  // clé oubliée retombe sur l'anglais.
+  // valeur. Rien d'autre à toucher ; une clé oubliée retombe sur l'anglais.
   const LANGS = {
     fr: { name: 'Français', sep: ' : ', download: 'Enregistrer en fichier', file: 'bilan',
           carryHint: 'Continuer sur un autre appareil ou passer la fiche à quelqu’un : enregistrez la progression ici, rechargez-la là-bas.',
@@ -223,9 +222,9 @@
   }
   dropStale();
   const hasOpt = steps.some((e) => e.optionnel);
-  // Langue : le choix du testeur, sinon celle de la fiche, sinon celle du navigateur, sinon l'anglais.
+  // Langue : celle de la fiche ; si la page ne la connaît pas, celle du navigateur, sinon l'anglais.
   const texts = (code) => ({ ...LANGS.en, ...LANGS[code] });
-  let lang = [get('fiche-de-test:lang'), DATA.langue, (navigator.language || '').slice(0, 2), 'en'].find((c) => c && LANGS[c]);
+  const lang = [DATA.langue, (navigator.language || '').slice(0, 2), 'en'].find((c) => c && LANGS[c]);
   let hideOpt = get(KEY + ':hide-opt') === '1';
   let current = get(KEY + ':current');
   // Thème : « auto » suit le système ; « light » / « dark » le forcent (voir le CSS).
@@ -233,8 +232,6 @@
   function applyTheme() { if (theme === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme; }
   applyTheme();
   let L = texts(lang);
-  for (const [code, t] of Object.entries(LANGS)) { const o = el0('option', t.name); o.value = code; document.getElementById('lang').append(o); }
-  function el0(tag, txt) { const n = document.createElement(tag); n.textContent = txt; return n; }
 
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   // Mise en forme minimale : `code`, **gras**, *italique*. Rien d'autre n'est interprété.
@@ -260,7 +257,6 @@
   function render() {
     L = texts(lang);
     document.documentElement.lang = lang;
-    $('lang').value = lang;
     $('modal-download').textContent = L.download;
     $('theme').setAttribute('aria-label', L.theme);
     for (const o of $('theme').options) o.textContent = L.themes[o.value];
@@ -428,10 +424,6 @@
   });
   $('cur').addEventListener('click', () => { setCurrent(current || nextUntouched(null), true); });
   $('theme').addEventListener('change', () => { theme = $('theme').value; put('fiche-de-test:theme', theme === 'auto' ? null : theme); applyTheme(); });
-  $('lang').addEventListener('change', () => {
-    lang = $('lang').value; put('fiche-de-test:lang', lang);
-    render(); setCurrent(current, false);
-  });
   function download(text, type, prefix, ext) {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([text], { type }));
