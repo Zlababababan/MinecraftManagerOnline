@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fiche de test — MMO 1.0.13 « pas de détour »</title>
+<style>
+  :root {
+    --bg: #f4f4ef; --surface: #fff; --surface-2: #eceee8; --text: #1b201d; --muted: #5f6964;
+    --border: #d6dad3; --accent: #1f6f5f; --accent-ink: #fff;
+    --ok: #2f8f5b; --ko: #c2402f; --skip: #9a6412;
+    --ok-bg: #e4f3ea; --ko-bg: #fae6e2; --skip-bg: #f9ecd3; --code-bg: #eef0ea;
+    --sans: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    --mono: Consolas, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141715; --surface: #1c201e; --surface-2: #232826; --text: #e6e9e5; --muted: #9aa39d;
+      --border: #2e3431; --accent: #5fc4a4; --accent-ink: #0f1a16;
+      --ok: #62c28b; --ko: #e86e5e; --skip: #dca648;
+      --ok-bg: #1b2f24; --ko-bg: #35201d; --skip-bg: #332a18; --code-bg: #262b28;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 var(--sans); }
+  code, pre, .id, .count { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  code { background: var(--code-bg); border-radius: 4px; padding: .05em .35em; font-size: .88em; word-break: break-word; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; overflow-x: auto; font-size: .85em; margin: 8px 0; }
+  pre code { background: none; padding: 0; }
+  button { font: inherit; cursor: pointer; }
+  .top { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .brand { font-weight: 600; }
+  .brand small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+  .progress { flex: 1 1 240px; display: flex; align-items: center; gap: 10px; min-width: 200px; }
+  .bar { flex: 1; height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; display: flex; }
+  .bar span { height: 100%; width: 0; transition: width .2s; }
+  .b-ok { background: var(--ok); } .b-ko { background: var(--ko); } .b-skip { background: var(--skip); }
+  .count { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .primary { font-size: 13px; font-weight: 600; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 6px; padding: 7px 12px; }
+  .ghost { font-size: 13px; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; }
+  .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 26px; max-width: 1150px; margin: 0 auto; padding: 18px 16px 80px; }
+  .side { position: sticky; top: 70px; align-self: start; max-height: calc(100vh - 86px); overflow-y: auto; font-size: 13px; }
+  .side a { display: flex; justify-content: space-between; gap: 8px; color: var(--text); text-decoration: none; padding: 5px 8px; border-radius: 5px; border-left: 3px solid transparent; }
+  .side a:hover { background: var(--surface-2); }
+  .side a.done { border-left-color: var(--ok); } .side a.has-ko { border-left-color: var(--ko); }
+  .side .mini, h2 .mini { color: var(--muted); font-size: 11px; font-weight: 400; white-space: nowrap; }
+  main { min-width: 0; }
+  h1 { font-size: 24px; margin: 0 0 8px; }
+  h2 { font-size: 18px; margin: 34px 0 10px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; align-items: baseline; gap: 12px; scroll-margin-top: 72px; }
+  p { margin: 0 0 10px; max-width: 76ch; }
+  .rule { margin: 14px 0; padding: 10px 14px; border: 1px solid var(--ko); background: var(--ko-bg); border-radius: 6px; max-width: 76ch; }
+  .tablewrap { overflow-x: auto; margin: 12px 0; }
+  table { border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; }
+  ol.items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .item { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 6px; padding: 10px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; align-items: start; scroll-margin-top: 80px; }
+  .item.s-ok { border-left-color: var(--ok); }
+  .item.s-ko { border-left-color: var(--ko); background: var(--ko-bg); }
+  .item.s-skip { border-left-color: var(--skip); }
+  .item .id { color: var(--accent); font-size: 12px; font-weight: 600; margin-right: 6px; }
+  .item p { margin: 0; }
+  .item .expect { margin-top: 6px; }
+  .item .expect b { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; margin-right: 4px; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 999px; padding: 1px 8px; margin-right: 6px; background: var(--skip-bg); color: var(--skip); border: 1px solid var(--skip); }
+  .tag.opt { background: var(--surface-2); color: var(--muted); border-color: var(--border); }
+  .ctl { display: flex; gap: 4px; }
+  .ctl button { font-size: 12px; font-weight: 600; padding: 5px 9px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); border-radius: 5px; }
+  .ctl button:hover { color: var(--text); background: var(--surface-2); }
+  button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ctl .on-ok { background: var(--ok-bg); color: var(--ok); border-color: var(--ok); }
+  .ctl .on-ko { background: var(--ko-bg); color: var(--ko); border-color: var(--ko); }
+  .ctl .on-skip { background: var(--skip-bg); color: var(--skip); border-color: var(--skip); }
+  .ctl .has-note { color: var(--accent); border-color: var(--accent); }
+  .note { grid-column: 1 / -1; width: 100%; font: 13px var(--sans); min-height: 64px; resize: vertical; border: 1px solid var(--border); border-radius: 5px; padding: 8px; background: var(--surface-2); color: var(--text); }
+  .modal { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 10; }
+  .modal .box { background: var(--surface); border-radius: 8px; padding: 16px; width: min(720px, 100%); display: flex; flex-direction: column; gap: 10px; }
+  .modal textarea { width: 100%; height: 50vh; font: 13px var(--mono); background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 5px; padding: 8px; }
+  [hidden] { display: none !important; }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    .side { position: static; max-height: none; display: flex; flex-wrap: wrap; gap: 4px; }
+    .side a { border: 1px solid var(--border); }
+    .item { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span id="brand"></span><small id="sub"></small></div>
+  <div class="progress" aria-live="polite">
+    <div class="bar" role="img" aria-label="progression"><span class="b-ok" id="b-ok"></span><span class="b-ko" id="b-ko"></span><span class="b-skip" id="b-skip"></span></div>
+    <div class="count" id="count"></div>
+  </div>
+  <button type="button" class="ghost" id="next"></button>
+  <button type="button" class="primary" id="copy"></button>
+</header>
+<div class="layout">
+  <nav class="side" id="side" aria-label="Sections"></nav>
+  <main id="main"></main>
+</div>
+<div class="modal" id="modal" hidden>
+  <div class="box">
+    <strong id="modal-title"></strong>
+    <textarea id="modal-text" readonly></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button type="button" class="ghost" id="modal-reset"></button>
+      <button type="button" class="primary" id="modal-close"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Les étapes de la fiche. La commande de construction remplace le contenu de cette balise ;
+     on peut aussi le remplacer à la main par le contenu de fiche.json. -->
+<script type="application/json" id="fiche-data">{"cle":"mmo-1.0.13","titre":"Fiche de test — MMO 1.0.13 « pas de détour »","sousTitre":"Version 1.0.13 · 36 étapes (dont 8 optionnelles) · écrite le 2 octobre 2026","langue":"fr","intro":["Cette fiche ne couvre que **ce que la 1.0.13 apporte** : le zip par son chemin, « Actualiser » sur la page Serveurs, les remèdes aux refus de démarrage, la mise à jour de l'agent depuis le tableau de bord, « prêt à rejoindre » et la pastille de port. Le reste de l'application n'y est pas.","Comptez **20 à 30 minutes** sans les étapes *optionnel*. Aucune échéance : la page garde vos coches, vous pouvez arrêter et reprendre. Au moindre écart, même cosmétique (« ça marche mais c'est loin »), mettez KO ou laissez une note avec l'heure."],"regle":"**Vos vrais serveurs ne servent qu'à regarder.** Tout ce qui démarre, modifie un fichier ou supprime se fait sur le serveur `test-1013` créé à l'étape 4.1, et il est retiré à la fin (bloc 7).","environnement":[{"quoi":"Panel","ou":"`http://127.0.0.1:3000` — dossier `E:\\mmo-panel\\mmo-panel-1.0.13`, lancé par l'icône près de l'horloge (sans fenêtre)"},{"quoi":"Agent","ou":"sur cette même machine ; encore en **1.0.11** tant que l'étape 1.3 n'est pas faite"},{"quoi":"Compte","ou":"votre compte administrateur (le zip par chemin est réservé à l'administrateur)"},{"quoi":"Un zip « server files »","ou":"celui d'un modpack, là où il est déjà (Téléchargements, par exemple) : ne le déplacez pas"}],"sections":[{"titre":"0. Avant de commencer","contexte":"Vérifie que c'est bien la 1.0.13 qui tourne : un test fait sur l'ancienne version ne vaut rien.","etapes":[{"id":"0.1","action":"Ouvrir `http://127.0.0.1:3000` dans le navigateur et se connecter avec le compte administrateur.","attendu":"Le **Tableau de bord** s'affiche, avec le bouton **Créer un serveur**."},{"id":"0.2","action":"Regarder le haut du tableau de bord.","attendu":"Un bandeau bleu dit « L'agent de « … » peut passer de 1.0.11 à 1.0.13. » avec le bouton **Mettre à jour l'agent**, et dessous « Les serveurs Minecraft continuent de tourner pendant la mise à jour. ». *S'il n'y a pas de bandeau, l'agent est déjà à jour : mettez « Passé » ici et sur tout le bloc 1.*"}]},{"titre":"1. Agent trop ancien : le refus, puis la mise à jour sur place","contexte":"À faire AVANT de mettre l'agent à jour : on vérifie d'abord que le refus dit quoi faire.","etapes":[{"id":"1.1","action":"Sur le tableau de bord, cliquer **Créer un serveur**, puis choisir **Archive (.zip)**.","attendu":"Le premier champ s'appelle « Chemin du zip sur la machine », avec le bouton **Utiliser ce zip**. La liste « Ou choisissez un zip déjà posé dans un dossier surveillé » est en dessous."},{"id":"1.2","action":"Dans l'Explorateur Windows, clic droit sur votre zip → **Copier en tant que chemin**. Coller dans le champ, puis cliquer **Utiliser ce zip**.","attendu":"Un message rouge dit : « L'agent de cette machine est trop ancien pour cette opération : mettez-le à jour (bandeau du tableau de bord), puis réessayez. ». Fermer l'assistant."},{"id":"1.3","action":"Sur le tableau de bord, cliquer **Mettre à jour l'agent** dans le bandeau bleu.","attendu":"Une notification verte « Mise à jour 1.0.13 envoyée. » apparaît. En moins d'une minute (recharger la page avec F5 au besoin), le bandeau bleu a disparu."},{"id":"1.4","action":"Ouvrir **Réglages**, section **Machine**, et regarder la carte **Agent**.","attendu":"« Version de l'agent » indique 1.0.13 et la mention « à jour »."},{"id":"1.5","action":"Revenir sur **Serveurs** et regarder les cartes des serveurs qui étaient en marche avant la mise à jour (s'il y en avait).","attendu":"Ils sont toujours « en marche » : la mise à jour de l'agent ne les a pas arrêtés.","optionnel":true}]},{"titre":"2. Créer un serveur depuis un zip, par son chemin","contexte":"Le zip reste où il est. Rien n'est installé avant l'étape 2.5, qui est optionnelle.","etapes":[{"id":"2.1","action":"**Créer un serveur** → **Archive (.zip)**. Coller de nouveau le chemin du zip, **avec ses guillemets**, puis cliquer **Utiliser ce zip**.","attendu":"Les guillemets disparaissent du champ. « Lecture de l'archive… » s'affiche quelques secondes, puis : le nom du zip, « N fichiers, X une fois dépliés. » et « Le panel installera *chargeur* *version* pour Minecraft *version* (lu dans …). »"},{"id":"2.2","action":"Remplacer le chemin par un chemin relatif, `Downloads\\pack.zip`, puis appuyer sur **Entrée**.","attendu":"Message rouge : « Donnez le chemin complet d'un fichier .zip sur la machine, par exemple C:\\Users\\vous\\Downloads\\pack.zip. ». L'assistant ne passe pas à l'étape suivante."},{"id":"2.3","action":"Remplacer par un fichier qui n'est pas un zip, `C:\\Windows\\win.ini`, puis **Utiliser ce zip**.","attendu":"Le même message rouge « Donnez le chemin complet d'un fichier .zip… »."},{"id":"2.4","action":"Remplacer par un zip qui n'existe pas, `C:\\nexiste-pas.zip`, puis **Utiliser ce zip**.","attendu":"Message rouge qui commence par « L'archive n'est plus à cet endroit : C:\\nexiste-pas.zip. »."},{"id":"2.5","action":"Recoller le vrai chemin, **Utiliser ce zip**, puis aller au bout de l'assistant avec le nom de dossier `test-1013-pack` et cliquer **Créer le serveur**. *Un gros modpack met plusieurs minutes à se déplier.*","attendu":"La page du serveur `test-1013-pack` s'ouvre ; l'indicateur des tâches (en haut) montre l'installation, puis elle se termine sans erreur. Le zip d'origine est toujours à sa place, intact.","optionnel":true},{"id":"2.6","action":"Sur la page de `test-1013-pack`, cliquer **Démarrer** et attendre (plusieurs minutes pour un gros modpack).","attendu":"« Démarrage depuis … » puis « Prêt : on peut rejoindre le serveur à l'adresse … ». Cliquer ensuite **Arrêter**.","optionnel":true}]},{"titre":"3. Page Serveurs : actualiser et ajouter, sur place","etapes":[{"id":"3.1","action":"Cliquer **Serveurs** dans le menu et regarder le haut de la page.","attendu":"Trois boutons côte à côte : **Créer un serveur**, **Ajouter un dossier serveur**, **Actualiser**."},{"id":"3.2","action":"Laisser la souris sur **Actualiser** sans cliquer.","attendu":"Une infobulle dit : « Cherche dans les dossiers surveillés les serveurs ajoutés ou retirés sur le disque. »"},{"id":"3.3","action":"Cliquer **Actualiser**.","attendu":"Le bouton tourne quelques secondes, puis une notification verte « N serveurs trouvés, dont 0 nouveau(x). » (N proche de 63). La liste n'a pas changé."},{"id":"3.4","action":"Cliquer **Ajouter un dossier serveur**.","attendu":"Une fenêtre s'ouvre avec le champ « Chemin absolu sur la machine » (exemple grisé : `E:\\Minecraft\\Server\\MonServeur …`), un champ « Nom » et le bouton **Ajouter**."},{"id":"3.5","action":"Sans rien saisir, cliquer **Ajouter**.","attendu":"Le champ du chemin passe en rouge, la fenêtre reste ouverte, aucun serveur n'est ajouté. Fermer la fenêtre."}]},{"titre":"4. Créer, démarrer, savoir quand on peut rejoindre","contexte":"On crée ici le serveur de test, sur un port inhabituel pour voir la pastille.","etapes":[{"id":"4.1","action":"**Créer un serveur** → **Vanilla**, version proposée par défaut, nom de dossier `test-1013`, **Port de jeu** `25570`, cocher la case de l'EULA, puis **Créer le serveur**.","attendu":"En une à deux minutes, la page du serveur `test-1013` s'ouvre sur l'onglet **Aperçu**, serveur arrêté, bouton **Démarrer** visible."},{"id":"4.2","action":"Revenir sur **Serveurs** et regarder la carte `test-1013`.","attendu":"Elle porte une pastille « Port 25570 (à taper dans l'adresse) », lisible en thème sombre."},{"id":"4.3","action":"Sur la même page, regarder la carte d'un serveur resté sur le port 25565.","attendu":"Pas de pastille : seulement le texte gris « Port de jeu : 25565 »."},{"id":"4.4","action":"Sur la carte `test-1013`, cliquer **Démarrer**.","attendu":"Sous le nom, une ligne « Démarrage depuis 5 s : on ne peut pas encore rejoindre. » dont le compteur avance chaque seconde."},{"id":"4.5","action":"Attendre sans toucher (un premier lancement Vanilla prend une à trois minutes).","attendu":"La ligne devient verte : « Prêt : on peut rejoindre le serveur à l'adresse … », et l'adresse se termine par `:25570`."},{"id":"4.6","action":"Ouvrir la page de `test-1013` (cliquer son nom).","attendu":"La même ligne verte « Prêt : on peut rejoindre le serveur à l'adresse … » figure en haut de la page."},{"id":"4.7","action":"Dans Minecraft (même version), **Multijoueur** → **Connexion directe**, saisir l'adresse affichée, port compris.","attendu":"On entre dans le monde.","optionnel":true},{"id":"4.8","action":"Cliquer **Arrêter** et attendre l'arrêt.","attendu":"Le serveur repasse à l'arrêt et la ligne « Prêt… » a disparu."}]},{"titre":"5. Un démarrage refusé propose son remède","contexte":"Sur `test-1013` uniquement, serveur arrêté. On retire l'acceptation de l'EULA pour provoquer le refus.","etapes":[{"id":"5.1","action":"Page de `test-1013` → menu **Plus** → **Fichiers**. Ouvrir `eula.txt`, remplacer `eula=true` par `eula=false`, enregistrer.","attendu":"Le fichier est enregistré sans erreur ; en le rouvrant on lit `eula=false`."},{"id":"5.2","action":"Cliquer **Démarrer**.","attendu":"Le serveur ne démarre pas, et une fenêtre « EULA Minecraft » s'ouvre avec une case « J'ai lu et j'accepte l'EULA de Minecraft » et le bouton **Accepter et continuer** — pas seulement un message rouge."},{"id":"5.3","action":"Cocher la case, puis cliquer **Accepter et continuer**.","attendu":"La fenêtre se ferme et le serveur démarre **tout seul**, sans recliquer Démarrer (« Démarrage depuis … »). L'arrêter ensuite."},{"id":"5.4","action":"Refaire 5.1, cliquer **Démarrer**, puis fermer la fenêtre de l'EULA par sa croix, sans accepter.","attendu":"Le serveur reste à l'arrêt ; rien n'a été accepté (`eula.txt` contient toujours `eula=false`)."}]},{"titre":"6. Si ça se présente","contexte":"Ces refus sont difficiles à provoquer sans risque : ne les forcez pas. Si l'un d'eux arrive pendant votre usage normal, notez ici ce que vous avez vu.","etapes":[{"id":"6.1","action":"Un démarrage refusé parce que **le port est déjà pris** par un autre serveur en marche.","attendu":"Fenêtre « *nom* n'a pas démarré », avec « Le port N est déjà utilisé. » et le bouton **Ouvrir les réglages du serveur**, qui mène à l'onglet **Réglages** de ce serveur.","optionnel":true},{"id":"6.2","action":"Un démarrage refusé parce que **la mémoire manque**.","attendu":"Fenêtre « *nom* n'a pas démarré », avec « Mémoire insuffisante : … Mo nécessaires, … Mo disponibles. » et le bouton **Ouvrir les réglages du serveur**.","optionnel":true},{"id":"6.3","action":"Un démarrage refusé parce que **Java manque** sur la machine.","attendu":"Fenêtre « Java N manque sur la machine » avec le bouton **Installer Java N** ; après le clic, notification « Installation de Java N lancée. Relancez le serveur dès qu'elle est terminée… ».","optionnel":true},{"id":"6.4","action":"L'agent est arrêté (machine hors ligne) : regarder **Créer un serveur** et **Actualiser** sur la page Serveurs.","attendu":"Les deux boutons sont toujours là, grisés ; au survol : « Aucune machine n'est connectée : l'agent doit tourner sur la machine pour agir dessus. »","optionnel":true}]},{"titre":"7. Nettoyage","contexte":"« Oublier » ne supprime rien sur le disque : le dossier se retire à la main.","etapes":[{"id":"7.1","action":"Vérifier que `test-1013` est arrêté, puis sur sa page ouvrir le menu **Plus** → **Réglages**, cliquer **Oublier ce serveur** (en bas, en rouge) et confirmer. Faire de même pour `test-1013-pack` s'il a été créé.","attendu":"La confirmation dit « Le panel cesse de le gérer ; rien n'est supprimé sur le disque. » ; ensuite le serveur n'est plus dans la page **Serveurs**."},{"id":"7.2","action":"Dans l'Explorateur, supprimer les dossiers `test-1013` (et `test-1013-pack`) du répertoire surveillé, puis cliquer **Actualiser** sur la page Serveurs.","attendu":"Notification « N serveurs trouvés, dont 0 nouveau(x). » ; `test-1013` ne revient pas dans la liste."}]}]}</script>
+
+<script>
+(() => {
+  const DATA = JSON.parse(document.getElementById('fiche-data').textContent);
+  const L = {
+    fr: { ok: 'OK', ko: 'KO', skip: 'Passé', note: 'Note', expect: 'Attendu', copy: 'Copier le bilan', next: 'Étape suivante',
+          notePh: 'Ce que vous avez vu, l’écart, l’heure…', done: 'faites', remaining: 'restantes', optional: 'optionnel',
+          report: 'Bilan', copied: 'Bilan copié', close: 'Fermer', reset: 'Tout remettre à zéro',
+          resetAsk: 'Effacer toutes les coches et toutes les notes de cette fiche ?', env: ['Quoi', 'Où'],
+          failed: 'KO', skipped: 'Passées', notes: 'Notes sur des étapes OK', todo: 'Pas encore faites', none: 'aucune',
+          allDone: 'Toutes les étapes sont tranchées.' },
+    en: { ok: 'OK', ko: 'Fail', skip: 'Skipped', note: 'Note', expect: 'Expected', copy: 'Copy the report', next: 'Next step',
+          notePh: 'What you saw, the gap, the time…', done: 'done', remaining: 'left', optional: 'optional',
+          report: 'Report', copied: 'Report copied', close: 'Close', reset: 'Reset everything',
+          resetAsk: 'Erase every mark and every note of this sheet?', env: ['What', 'Where'],
+          failed: 'Failed', skipped: 'Skipped', notes: 'Notes on passed steps', todo: 'Not done yet', none: 'none',
+          allDone: 'Every step has a verdict.' },
+  }[DATA.langue === 'en' ? 'en' : 'fr'];
+  document.documentElement.lang = DATA.langue === 'en' ? 'en' : 'fr';
+
+  // --- État : une entrée par étape, gardée dans ce navigateur. Une étape dont la révision a changé
+  // --- (elle a été corrigée ou réécrite) perd son verdict : elle est à rejouer.
+  const KEY = 'fiche-de-test:' + (DATA.cle || DATA.titre || 'fiche');
+  let state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { state = {}; }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* navigation privée */ } };
+  const steps = DATA.sections.flatMap((s) => s.etapes.map((e) => ({ ...e, section: s })));
+  for (const e of steps) {
+    const st = state[e.id];
+    if (st && (st.rev || 0) !== (e.revision || 0)) state[e.id] = { note: st.note || '', rev: e.revision || 0 };
+  }
+
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  // Mise en forme minimale : `code`, **gras**, *italique*. Rien d'autre n'est interprété.
+  const rich = (t) => esc(t)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[\s(])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>');
+  const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html !== undefined) n.innerHTML = html; return n; };
+
+  document.title = DATA.titre;
+  document.getElementById('brand').textContent = DATA.titre;
+  document.getElementById('sub').textContent = DATA.sousTitre || '';
+  document.getElementById('copy').textContent = L.copy;
+  document.getElementById('next').textContent = L.next;
+
+  const main = document.getElementById('main');
+  const side = document.getElementById('side');
+  main.append(el('h1', '', esc(DATA.titre)));
+  for (const p of DATA.intro || []) main.append(el('p', '', rich(p)));
+  if (DATA.regle) main.append(el('div', 'rule', rich(DATA.regle)));
+  if ((DATA.environnement || []).length > 0) {
+    const rows = DATA.environnement.map((r) => `<tr><td>${rich(r.quoi)}</td><td>${rich(r.ou)}</td></tr>`).join('');
+    main.append(el('div', 'tablewrap', `<table><thead><tr><th>${L.env[0]}</th><th>${L.env[1]}</th></tr></thead><tbody>${rows}</tbody></table>`));
+  }
+
+  const items = new Map();
+  DATA.sections.forEach((s, i) => {
+    const sid = 's' + i;
+    const link = el('a', '', `<span>${rich(s.titre)}</span><span class="mini"></span>`);
+    link.href = '#' + sid; link.dataset.sec = sid; side.append(link);
+    const h2 = el('h2', '', `${rich(s.titre)}<span class="mini" data-sec="${sid}"></span>`); h2.id = sid; main.append(h2);
+    if (s.contexte) main.append(el('p', '', rich(s.contexte)));
+    const ol = el('ol', 'items'); main.append(ol);
+    for (const e of s.etapes) {
+      const li = el('li', 'item'); li.id = 'e-' + e.id; li.dataset.sec = sid;
+      const tags = (e.marque ? `<span class="tag">${esc(e.marque)}</span>` : '') + (e.optionnel ? `<span class="tag opt">${L.optional}</span>` : '');
+      const body = el('div', 'body',
+        `<p><span class="id">${esc(e.id)}</span>${tags}${rich(e.action)}</p>` +
+        (e.code ? `<pre><code>${esc(e.code)}</code></pre>` : '') +
+        `<p class="expect"><b>${L.expect}</b>${rich(e.attendu)}</p>`);
+      const ctl = el('div', 'ctl'); ctl.setAttribute('role', 'group'); ctl.setAttribute('aria-label', e.id);
+      for (const s2 of ['ok', 'ko', 'skip']) {
+        const b = el('button', '', L[s2]); b.type = 'button'; b.dataset.s = s2;
+        b.addEventListener('click', () => { setStatus(e, s2); });
+        ctl.append(b);
+      }
+      const nb = el('button', 'note-btn', L.note); nb.type = 'button';
+      const ta = el('textarea', 'note'); ta.placeholder = L.notePh; ta.setAttribute('aria-label', L.note + ' ' + e.id); ta.hidden = true;
+      nb.addEventListener('click', () => { ta.hidden = !ta.hidden; if (!ta.hidden) ta.focus(); });
+      ta.addEventListener('input', () => { cell(e).note = ta.value; save(); paint(e); });
+      ctl.append(nb); li.append(body, ctl, ta); ol.append(li);
+      items.set(e.id, { li, ctl, ta, nb });
+    }
+  });
+
+  function cell(e) { return (state[e.id] ||= { rev: e.revision || 0, note: '' }); }
+  function setStatus(e, s) {
+    const c = cell(e);
+    c.status = c.status === s ? undefined : s; // re-cliquer annule
+    c.at = c.status ? new Date().toISOString() : undefined;
+    // Un KO sans explication ne sert à rien à celui qui corrige : on ouvre la note.
+    if (c.status === 'ko') { const it = items.get(e.id); it.ta.hidden = false; it.ta.focus(); }
+    save(); paint(e); totals();
+  }
+  function paint(e) {
+    const it = items.get(e.id); const c = state[e.id] || {};
+    it.li.className = 'item' + (c.status ? ' s-' + c.status : '');
+    it.li.dataset.status = c.status || '';
+    for (const b of it.ctl.querySelectorAll('button[data-s]')) {
+      const on = b.dataset.s === c.status; b.className = on ? 'on-' + b.dataset.s : ''; b.setAttribute('aria-pressed', String(on));
+    }
+    if (it.ta.value !== (c.note || '')) it.ta.value = c.note || '';
+    if (c.note) it.ta.hidden = false;
+    it.nb.className = 'note-btn' + (c.note ? ' has-note' : '');
+  }
+  function totals() {
+    const n = { ok: 0, ko: 0, skip: 0 };
+    for (const e of steps) { const s = state[e.id]?.status; if (s) n[s]++; }
+    const total = steps.length || 1;
+    for (const k of ['ok', 'ko', 'skip']) document.getElementById('b-' + k).style.width = (100 * n[k] / total) + '%';
+    const done = n.ok + n.ko + n.skip;
+    document.getElementById('count').textContent = `${done}/${steps.length} ${L.done} · ${n.ko} ${L.ko}`;
+    DATA.sections.forEach((s, i) => {
+      const sid = 's' + i; const st = s.etapes.map((e) => state[e.id]?.status);
+      const d = st.filter(Boolean).length; const txt = `${d}/${s.etapes.length}`;
+      for (const m of document.querySelectorAll(`.mini[data-sec="${sid}"], a[data-sec="${sid}"] .mini`)) m.textContent = txt;
+      const a = side.querySelector(`a[data-sec="${sid}"]`);
+      a.className = (st.includes('ko') ? 'has-ko' : '') + (d === s.etapes.length && s.etapes.length > 0 ? ' done' : '');
+    });
+  }
+
+  function report() {
+    const line = (e) => `- ${e.id} — ${e.action.replace(/\s+/g, ' ').slice(0, 140)}` + (state[e.id]?.note ? `\n    Note : ${state[e.id].note.replace(/\n/g, '\n    ')}` : '');
+    const by = (s) => steps.filter((e) => state[e.id]?.status === s);
+    const block = (title, list) => `\n## ${title} (${list.length})\n` + (list.length ? list.map(line).join('\n') : `- ${L.none}`);
+    const ok = by('ok'); const ko = by('ko'); const skip = by('skip');
+    const todo = steps.filter((e) => !state[e.id]?.status);
+    return `# ${L.report} — ${DATA.titre}\n${DATA.sousTitre ? DATA.sousTitre + '\n' : ''}${new Date().toLocaleString()}\n` +
+      `${ok.length} ${L.ok} · ${ko.length} ${L.ko} · ${skip.length} ${L.skip} · ${todo.length} ${L.remaining} / ${steps.length}\n` +
+      block(L.failed, ko) + '\n' + block(L.skipped, skip) + '\n' + block(L.notes, ok.filter((e) => state[e.id]?.note)) +
+      `\n\n## ${L.todo} (${todo.length})\n` + (todo.length ? todo.map((e) => e.id).join(', ') : `- ${L.none}`) + '\n';
+  }
+
+  const modal = document.getElementById('modal');
+  document.getElementById('modal-close').textContent = L.close;
+  document.getElementById('modal-reset').textContent = L.reset;
+  document.getElementById('copy').addEventListener('click', async () => {
+    const text = report();
+    let copied = false;
+    try { await navigator.clipboard.writeText(text); copied = true; } catch { /* page locale ou http : on montre le texte */ }
+    document.getElementById('modal-title').textContent = copied ? L.copied : L.report;
+    const ta = document.getElementById('modal-text'); ta.value = text; modal.hidden = false; ta.focus(); ta.select();
+  });
+  document.getElementById('modal-close').addEventListener('click', () => { modal.hidden = true; });
+  document.getElementById('modal-reset').addEventListener('click', () => {
+    if (!confirm(L.resetAsk)) return;
+    state = {}; save(); for (const e of steps) paint(e); totals(); modal.hidden = true;
+  });
+  document.getElementById('next').addEventListener('click', () => {
+    const e = steps.find((x) => !state[x.id]?.status);
+    if (!e) { alert(L.allDone); return; }
+    const li = items.get(e.id).li; li.scrollIntoView({ block: 'center' }); li.querySelector('button').focus({ preventScroll: true });
+  });
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') modal.hidden = true; });
+
+  save(); for (const e of steps) paint(e); totals();
+})();
+</script>
+</body>
+</html>

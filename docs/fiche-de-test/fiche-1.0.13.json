@@ -1,0 +1,254 @@
+{
+  "cle": "mmo-1.0.13",
+  "titre": "Fiche de test — MMO 1.0.13 « pas de détour »",
+  "sousTitre": "Version 1.0.13 · 36 étapes (dont 8 optionnelles) · écrite le 2 octobre 2026",
+  "langue": "fr",
+  "intro": [
+    "Cette fiche ne couvre que **ce que la 1.0.13 apporte** : le zip par son chemin, « Actualiser » sur la page Serveurs, les remèdes aux refus de démarrage, la mise à jour de l'agent depuis le tableau de bord, « prêt à rejoindre » et la pastille de port. Le reste de l'application n'y est pas.",
+    "Comptez **20 à 30 minutes** sans les étapes *optionnel*. Aucune échéance : la page garde vos coches, vous pouvez arrêter et reprendre. Au moindre écart, même cosmétique (« ça marche mais c'est loin »), mettez KO ou laissez une note avec l'heure."
+  ],
+  "regle": "**Vos vrais serveurs ne servent qu'à regarder.** Tout ce qui démarre, modifie un fichier ou supprime se fait sur le serveur `test-1013` créé à l'étape 4.1, et il est retiré à la fin (bloc 7).",
+  "environnement": [
+    { "quoi": "Panel", "ou": "`http://127.0.0.1:3000` — dossier `E:\\mmo-panel\\mmo-panel-1.0.13`, lancé par l'icône près de l'horloge (sans fenêtre)" },
+    { "quoi": "Agent", "ou": "sur cette même machine ; encore en **1.0.11** tant que l'étape 1.3 n'est pas faite" },
+    { "quoi": "Compte", "ou": "votre compte administrateur (le zip par chemin est réservé à l'administrateur)" },
+    { "quoi": "Un zip « server files »", "ou": "celui d'un modpack, là où il est déjà (Téléchargements, par exemple) : ne le déplacez pas" }
+  ],
+  "sections": [
+    {
+      "titre": "0. Avant de commencer",
+      "contexte": "Vérifie que c'est bien la 1.0.13 qui tourne : un test fait sur l'ancienne version ne vaut rien.",
+      "etapes": [
+        {
+          "id": "0.1",
+          "action": "Ouvrir `http://127.0.0.1:3000` dans le navigateur et se connecter avec le compte administrateur.",
+          "attendu": "Le **Tableau de bord** s'affiche, avec le bouton **Créer un serveur**."
+        },
+        {
+          "id": "0.2",
+          "action": "Regarder le haut du tableau de bord.",
+          "attendu": "Un bandeau bleu dit « L'agent de « … » peut passer de 1.0.11 à 1.0.13. » avec le bouton **Mettre à jour l'agent**, et dessous « Les serveurs Minecraft continuent de tourner pendant la mise à jour. ». *S'il n'y a pas de bandeau, l'agent est déjà à jour : mettez « Passé » ici et sur tout le bloc 1.*"
+        }
+      ]
+    },
+    {
+      "titre": "1. Agent trop ancien : le refus, puis la mise à jour sur place",
+      "contexte": "À faire AVANT de mettre l'agent à jour : on vérifie d'abord que le refus dit quoi faire.",
+      "etapes": [
+        {
+          "id": "1.1",
+          "action": "Sur le tableau de bord, cliquer **Créer un serveur**, puis choisir **Archive (.zip)**.",
+          "attendu": "Le premier champ s'appelle « Chemin du zip sur la machine », avec le bouton **Utiliser ce zip**. La liste « Ou choisissez un zip déjà posé dans un dossier surveillé » est en dessous."
+        },
+        {
+          "id": "1.2",
+          "action": "Dans l'Explorateur Windows, clic droit sur votre zip → **Copier en tant que chemin**. Coller dans le champ, puis cliquer **Utiliser ce zip**.",
+          "attendu": "Un message rouge dit : « L'agent de cette machine est trop ancien pour cette opération : mettez-le à jour (bandeau du tableau de bord), puis réessayez. ». Fermer l'assistant."
+        },
+        {
+          "id": "1.3",
+          "action": "Sur le tableau de bord, cliquer **Mettre à jour l'agent** dans le bandeau bleu.",
+          "attendu": "Une notification verte « Mise à jour 1.0.13 envoyée. » apparaît. En moins d'une minute (recharger la page avec F5 au besoin), le bandeau bleu a disparu."
+        },
+        {
+          "id": "1.4",
+          "action": "Ouvrir **Réglages**, section **Machine**, et regarder la carte **Agent**.",
+          "attendu": "« Version de l'agent » indique 1.0.13 et la mention « à jour »."
+        },
+        {
+          "id": "1.5",
+          "action": "Revenir sur **Serveurs** et regarder les cartes des serveurs qui étaient en marche avant la mise à jour (s'il y en avait).",
+          "attendu": "Ils sont toujours « en marche » : la mise à jour de l'agent ne les a pas arrêtés.",
+          "optionnel": true
+        }
+      ]
+    },
+    {
+      "titre": "2. Créer un serveur depuis un zip, par son chemin",
+      "contexte": "Le zip reste où il est. Rien n'est installé avant l'étape 2.5, qui est optionnelle.",
+      "etapes": [
+        {
+          "id": "2.1",
+          "action": "**Créer un serveur** → **Archive (.zip)**. Coller de nouveau le chemin du zip, **avec ses guillemets**, puis cliquer **Utiliser ce zip**.",
+          "attendu": "Les guillemets disparaissent du champ. « Lecture de l'archive… » s'affiche quelques secondes, puis : le nom du zip, « N fichiers, X une fois dépliés. » et « Le panel installera *chargeur* *version* pour Minecraft *version* (lu dans …). »"
+        },
+        {
+          "id": "2.2",
+          "action": "Remplacer le chemin par un chemin relatif, `Downloads\\pack.zip`, puis appuyer sur **Entrée**.",
+          "attendu": "Message rouge : « Donnez le chemin complet d'un fichier .zip sur la machine, par exemple C:\\Users\\vous\\Downloads\\pack.zip. ». L'assistant ne passe pas à l'étape suivante."
+        },
+        {
+          "id": "2.3",
+          "action": "Remplacer par un fichier qui n'est pas un zip, `C:\\Windows\\win.ini`, puis **Utiliser ce zip**.",
+          "attendu": "Le même message rouge « Donnez le chemin complet d'un fichier .zip… »."
+        },
+        {
+          "id": "2.4",
+          "action": "Remplacer par un zip qui n'existe pas, `C:\\nexiste-pas.zip`, puis **Utiliser ce zip**.",
+          "attendu": "Message rouge qui commence par « L'archive n'est plus à cet endroit : C:\\nexiste-pas.zip. »."
+        },
+        {
+          "id": "2.5",
+          "action": "Recoller le vrai chemin, **Utiliser ce zip**, puis aller au bout de l'assistant avec le nom de dossier `test-1013-pack` et cliquer **Créer le serveur**. *Un gros modpack met plusieurs minutes à se déplier.*",
+          "attendu": "La page du serveur `test-1013-pack` s'ouvre ; l'indicateur des tâches (en haut) montre l'installation, puis elle se termine sans erreur. Le zip d'origine est toujours à sa place, intact.",
+          "optionnel": true
+        },
+        {
+          "id": "2.6",
+          "action": "Sur la page de `test-1013-pack`, cliquer **Démarrer** et attendre (plusieurs minutes pour un gros modpack).",
+          "attendu": "« Démarrage depuis … » puis « Prêt : on peut rejoindre le serveur à l'adresse … ». Cliquer ensuite **Arrêter**.",
+          "optionnel": true
+        }
+      ]
+    },
+    {
+      "titre": "3. Page Serveurs : actualiser et ajouter, sur place",
+      "etapes": [
+        {
+          "id": "3.1",
+          "action": "Cliquer **Serveurs** dans le menu et regarder le haut de la page.",
+          "attendu": "Trois boutons côte à côte : **Créer un serveur**, **Ajouter un dossier serveur**, **Actualiser**."
+        },
+        {
+          "id": "3.2",
+          "action": "Laisser la souris sur **Actualiser** sans cliquer.",
+          "attendu": "Une infobulle dit : « Cherche dans les dossiers surveillés les serveurs ajoutés ou retirés sur le disque. »"
+        },
+        {
+          "id": "3.3",
+          "action": "Cliquer **Actualiser**.",
+          "attendu": "Le bouton tourne quelques secondes, puis une notification verte « N serveurs trouvés, dont 0 nouveau(x). » (N proche de 63). La liste n'a pas changé."
+        },
+        {
+          "id": "3.4",
+          "action": "Cliquer **Ajouter un dossier serveur**.",
+          "attendu": "Une fenêtre s'ouvre avec le champ « Chemin absolu sur la machine » (exemple grisé : `E:\\Minecraft\\Server\\MonServeur …`), un champ « Nom » et le bouton **Ajouter**."
+        },
+        {
+          "id": "3.5",
+          "action": "Sans rien saisir, cliquer **Ajouter**.",
+          "attendu": "Le champ du chemin passe en rouge, la fenêtre reste ouverte, aucun serveur n'est ajouté. Fermer la fenêtre."
+        }
+      ]
+    },
+    {
+      "titre": "4. Créer, démarrer, savoir quand on peut rejoindre",
+      "contexte": "On crée ici le serveur de test, sur un port inhabituel pour voir la pastille.",
+      "etapes": [
+        {
+          "id": "4.1",
+          "action": "**Créer un serveur** → **Vanilla**, version proposée par défaut, nom de dossier `test-1013`, **Port de jeu** `25570`, cocher la case de l'EULA, puis **Créer le serveur**.",
+          "attendu": "En une à deux minutes, la page du serveur `test-1013` s'ouvre sur l'onglet **Aperçu**, serveur arrêté, bouton **Démarrer** visible."
+        },
+        {
+          "id": "4.2",
+          "action": "Revenir sur **Serveurs** et regarder la carte `test-1013`.",
+          "attendu": "Elle porte une pastille « Port 25570 (à taper dans l'adresse) », lisible en thème sombre."
+        },
+        {
+          "id": "4.3",
+          "action": "Sur la même page, regarder la carte d'un serveur resté sur le port 25565.",
+          "attendu": "Pas de pastille : seulement le texte gris « Port de jeu : 25565 »."
+        },
+        {
+          "id": "4.4",
+          "action": "Sur la carte `test-1013`, cliquer **Démarrer**.",
+          "attendu": "Sous le nom, une ligne « Démarrage depuis 5 s : on ne peut pas encore rejoindre. » dont le compteur avance chaque seconde."
+        },
+        {
+          "id": "4.5",
+          "action": "Attendre sans toucher (un premier lancement Vanilla prend une à trois minutes).",
+          "attendu": "La ligne devient verte : « Prêt : on peut rejoindre le serveur à l'adresse … », et l'adresse se termine par `:25570`."
+        },
+        {
+          "id": "4.6",
+          "action": "Ouvrir la page de `test-1013` (cliquer son nom).",
+          "attendu": "La même ligne verte « Prêt : on peut rejoindre le serveur à l'adresse … » figure en haut de la page."
+        },
+        {
+          "id": "4.7",
+          "action": "Dans Minecraft (même version), **Multijoueur** → **Connexion directe**, saisir l'adresse affichée, port compris.",
+          "attendu": "On entre dans le monde.",
+          "optionnel": true
+        },
+        {
+          "id": "4.8",
+          "action": "Cliquer **Arrêter** et attendre l'arrêt.",
+          "attendu": "Le serveur repasse à l'arrêt et la ligne « Prêt… » a disparu."
+        }
+      ]
+    },
+    {
+      "titre": "5. Un démarrage refusé propose son remède",
+      "contexte": "Sur `test-1013` uniquement, serveur arrêté. On retire l'acceptation de l'EULA pour provoquer le refus.",
+      "etapes": [
+        {
+          "id": "5.1",
+          "action": "Page de `test-1013` → menu **Plus** → **Fichiers**. Ouvrir `eula.txt`, remplacer `eula=true` par `eula=false`, enregistrer.",
+          "attendu": "Le fichier est enregistré sans erreur ; en le rouvrant on lit `eula=false`."
+        },
+        {
+          "id": "5.2",
+          "action": "Cliquer **Démarrer**.",
+          "attendu": "Le serveur ne démarre pas, et une fenêtre « EULA Minecraft » s'ouvre avec une case « J'ai lu et j'accepte l'EULA de Minecraft » et le bouton **Accepter et continuer** — pas seulement un message rouge."
+        },
+        {
+          "id": "5.3",
+          "action": "Cocher la case, puis cliquer **Accepter et continuer**.",
+          "attendu": "La fenêtre se ferme et le serveur démarre **tout seul**, sans recliquer Démarrer (« Démarrage depuis … »). L'arrêter ensuite."
+        },
+        {
+          "id": "5.4",
+          "action": "Refaire 5.1, cliquer **Démarrer**, puis fermer la fenêtre de l'EULA par sa croix, sans accepter.",
+          "attendu": "Le serveur reste à l'arrêt ; rien n'a été accepté (`eula.txt` contient toujours `eula=false`)."
+        }
+      ]
+    },
+    {
+      "titre": "6. Si ça se présente",
+      "contexte": "Ces refus sont difficiles à provoquer sans risque : ne les forcez pas. Si l'un d'eux arrive pendant votre usage normal, notez ici ce que vous avez vu.",
+      "etapes": [
+        {
+          "id": "6.1",
+          "action": "Un démarrage refusé parce que **le port est déjà pris** par un autre serveur en marche.",
+          "attendu": "Fenêtre « *nom* n'a pas démarré », avec « Le port N est déjà utilisé. » et le bouton **Ouvrir les réglages du serveur**, qui mène à l'onglet **Réglages** de ce serveur.",
+          "optionnel": true
+        },
+        {
+          "id": "6.2",
+          "action": "Un démarrage refusé parce que **la mémoire manque**.",
+          "attendu": "Fenêtre « *nom* n'a pas démarré », avec « Mémoire insuffisante : … Mo nécessaires, … Mo disponibles. » et le bouton **Ouvrir les réglages du serveur**.",
+          "optionnel": true
+        },
+        {
+          "id": "6.3",
+          "action": "Un démarrage refusé parce que **Java manque** sur la machine.",
+          "attendu": "Fenêtre « Java N manque sur la machine » avec le bouton **Installer Java N** ; après le clic, notification « Installation de Java N lancée. Relancez le serveur dès qu'elle est terminée… ».",
+          "optionnel": true
+        },
+        {
+          "id": "6.4",
+          "action": "L'agent est arrêté (machine hors ligne) : regarder **Créer un serveur** et **Actualiser** sur la page Serveurs.",
+          "attendu": "Les deux boutons sont toujours là, grisés ; au survol : « Aucune machine n'est connectée : l'agent doit tourner sur la machine pour agir dessus. »",
+          "optionnel": true
+        }
+      ]
+    },
+    {
+      "titre": "7. Nettoyage",
+      "contexte": "« Oublier » ne supprime rien sur le disque : le dossier se retire à la main.",
+      "etapes": [
+        {
+          "id": "7.1",
+          "action": "Vérifier que `test-1013` est arrêté, puis sur sa page ouvrir le menu **Plus** → **Réglages**, cliquer **Oublier ce serveur** (en bas, en rouge) et confirmer. Faire de même pour `test-1013-pack` s'il a été créé.",
+          "attendu": "La confirmation dit « Le panel cesse de le gérer ; rien n'est supprimé sur le disque. » ; ensuite le serveur n'est plus dans la page **Serveurs**."
+        },
+        {
+          "id": "7.2",
+          "action": "Dans l'Explorateur, supprimer les dossiers `test-1013` (et `test-1013-pack`) du répertoire surveillé, puis cliquer **Actualiser** sur la page Serveurs.",
+          "attendu": "Notification « N serveurs trouvés, dont 0 nouveau(x). » ; `test-1013` ne revient pas dans la liste."
+        }
+      ]
+    }
+  ]
+}
