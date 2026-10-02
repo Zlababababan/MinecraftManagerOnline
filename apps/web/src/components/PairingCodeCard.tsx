@@ -14,6 +14,7 @@ import {
 import { IconCheck, IconCopy } from '@tabler/icons-react';
 import { useT } from '../i18n/hooks.js';
 import { HelpLink } from './HelpLink.js';
+import { InstallHereNotice } from './InstallHereNotice.js';
 
 import type { PairingCodeDto } from '@mmo/protocol/client';
 
@@ -106,6 +107,7 @@ export function PairingCodeCard({ pairing }: { pairing: PairingCodeDto }) {
           </Text>
           <CopyField value={pairing.install.windows} label={t('web:machine.pairing.windows')} />
           <CopyField value={pairing.install.unix} label={t('web:machine.pairing.unix')} />
+          <InstallHereNotice here={pairing.installHere} />
         </Stack>
       )}
     </Stack>

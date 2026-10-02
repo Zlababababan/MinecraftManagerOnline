@@ -19,6 +19,8 @@ import { renderAgentDiagnostics } from '../../services/agent-diagnostics.js';
 import { SETTING_KEYS } from '../../services/settings.js';
 import { requireUser } from '../auth.js';
 import { parseJson } from '../../util/json.js';
+import { installChoices } from '../../util/install-commands.js';
+import { requestOrigin } from './phase11.js';
 import { machineUpdateFields } from './phase9.js';
 import { auditMeta } from './setup-auth.js';
 
@@ -84,23 +86,24 @@ function pairingDto(
   machineId: string,
   code: string,
   expiresAt: number,
+  currentOrigin: string | undefined,
 ): PairingCodeDto {
   // Lot 2 : la machine peut avoir SA voie d'accès (une machine hors tailnet se rattache à l'URL
   // directe pendant que les autres passent par Tailscale). C'est cette URL que l'agent mémorise.
   const machine = ctx.machines.get(machineId);
-  const publicUrl = machine?.panelUrl ?? ctx.settings.get(SETTING_KEYS.publicUrl);
+  const choices = installChoices({
+    saved: machine?.panelUrl ?? ctx.settings.get(SETTING_KEYS.publicUrl),
+    current: currentOrigin,
+    pairCode: code,
+  });
   return {
     machineId,
     code,
     expiresAt,
-    ...(publicUrl === undefined
+    ...(choices.install === undefined
       ? {}
-      : {
-          install: {
-            windows: `& ([scriptblock]::Create((irm ${publicUrl}/install.ps1))) -PairCode ${code}`,
-            unix: `curl -fsSL ${publicUrl}/install.sh | sh -s -- --pair-code ${code}`,
-          },
-        }),
+      : { install: { windows: choices.install.windows, unix: choices.install.unix } }),
+    ...(choices.installHere === undefined ? {} : { installHere: choices.installHere }),
   };
 }
 
@@ -149,7 +152,7 @@ export function registerMachineRoutes(app: FastifyInstance, ctx: AppContext): vo
       });
       return reply.code(201).send({
         machine: machineDto(ctx, machine),
-        pairing: pairingDto(ctx, machine.id, code, expiresAt),
+        pairing: pairingDto(ctx, machine.id, code, expiresAt, requestOrigin(request)),
       });
     },
   );
@@ -168,7 +171,9 @@ export function registerMachineRoutes(app: FastifyInstance, ctx: AppContext): vo
         targetId: machine.id,
         targetLabel: machine.name,
       });
-      return reply.code(201).send({ pairing: pairingDto(ctx, machine.id, code, expiresAt) });
+      return reply
+        .code(201)
+        .send({ pairing: pairingDto(ctx, machine.id, code, expiresAt, requestOrigin(request)) });
     },
   );
 

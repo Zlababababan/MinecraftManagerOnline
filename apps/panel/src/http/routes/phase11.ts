@@ -59,8 +59,8 @@ export function registerPhase11Routes(app: FastifyInstance, ctx: AppContext): vo
     },
   );
 
-  r.get('/api/dist', { config: { public: true }, preValidation: limited }, () =>
-    ctx.distribution.status(),
+  r.get('/api/dist', { config: { public: true }, preValidation: limited }, (request) =>
+    ctx.distribution.status(requestOrigin(request)),
   );
 
   r.get(

@@ -51,6 +51,7 @@ import { formatDateTime } from '../../lib/format.js';
 import { coerceOriginInput } from '../../lib/origin.js';
 import { TECHNICAL_INPUT_PROPS } from '../../lib/inputs.js';
 import { HelpLink } from '../HelpLink.js';
+import { LeaveTailscale } from './LeaveTailscale.js';
 
 const LE_STAGING = 'https://acme-staging-v02.api.letsencrypt.org/directory';
 
@@ -472,6 +473,7 @@ export function AccessCard() {
             {tDynamic(i18n, `web:access.requestVia.${s.requestVia}`)}
           </Badge>
         </Group>
+        <LeaveTailscale status={s} />
         <Select
           label={t('web:access.mode')}
           value={mode}

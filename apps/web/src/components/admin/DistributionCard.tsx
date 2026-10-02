@@ -27,6 +27,7 @@ import { useT } from '../../i18n/hooks.js';
 import { tDynamic } from '../../i18n/index.js';
 import { describeError } from '../../lib/errors.js';
 import { formatBytes } from '../../lib/format.js';
+import { InstallHereNotice } from '../InstallHereNotice.js';
 
 function OneLiner({ label, value, testId }: { label: string; value: string; testId: string }) {
   const { t } = useT();
@@ -183,6 +184,7 @@ export function DistributionCard() {
                   value={d.install.unix}
                   testId="dist-oneliner-unix"
                 />
+                <InstallHereNotice here={d.installHere} />
               </Stack>
             )}
           </>

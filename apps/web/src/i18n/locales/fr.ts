@@ -1662,6 +1662,24 @@ export const webFr = {
     download: 'Télécharger',
     restoreHint: 'Restauration (panel arrêté, depuis le dossier du panel) :',
   },
+  installHere: {
+    why: 'La commande ci-dessus utilise l’adresse enregistrée du panel. Vous le consultez en ce moment par {{url}} : si la machine à installer ne joint pas l’adresse enregistrée (Tailscale coupé, par exemple), utilisez plutôt ces commandes, qui passent par {{url}}.',
+    loopback:
+      'Une adresse en 127.0.0.1 ou localhost ne marche que sur la machine où tourne le panel.',
+  },
+  leaveTailscale: {
+    why: 'Le panel est réglé pour Tailscale, mais vous le consultez sans passer par Tailscale. S’il ne sert plus, un seul geste remet les trois réglages concernés d’accord.',
+    button: 'Ne plus utiliser Tailscale',
+    plan: 'Trois réglages vont changer :',
+    stepMode: 'Mode d’accès du panel : « Manuel » au lieu de « Tailscale ».',
+    stepUrl:
+      'URL publique du panel : {{url}} (l’adresse par laquelle vous le consultez), reprise par les commandes d’installation et les liens des notifications.',
+    stepPlayers:
+      'Adresse donnée aux joueurs : « Direct » pour tous les serveurs, présents et futurs.',
+    note: 'Rien n’est désinstallé et tout se modifie de nouveau ici, dans « Joueurs et réseau ».',
+    confirm: 'Appliquer les trois réglages',
+    done: 'Tailscale n’est plus utilisé : {{count}} serveur(s) passés en adresse directe.',
+  },
   distribution: {
     title: 'Distribution de l’agent',
     hint: 'Archives d’installation servies par ce panel (runtime Node épinglé + agent + launcher) et scripts install.ps1 / install.sh. Publiées avec tools/release/publish.mjs.',

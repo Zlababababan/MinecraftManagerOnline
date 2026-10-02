@@ -335,6 +335,26 @@ describe('panel — API, auth, RBAC, migrations', () => {
     expect(body.pairing.expiresAt).toBe(panel.clock.now() + 15 * 60_000);
     expect(body.pairing.install.unix).toContain('https://mmo.example/install.sh');
     expect(body.pairing.install.windows).toContain(body.pairing.code);
+    // Le panel est consulté ici par une autre adresse que celle enregistrée : la commande « par
+    // ici » est proposée en plus, avec son adresse explicite (02/10, Tailscale déconnecté).
+    const here = res.json<{ pairing: { installHere?: { url: string; windows: string } } }>().pairing
+      .installHere;
+    expect(here?.url).not.toBe('https://mmo.example');
+    expect(here?.windows).toContain(`-Panel ${here?.url ?? '?'} -PairCode ${body.pairing.code}`);
+    // Consulté par l'adresse enregistrée : une seule commande.
+    const same = await panel.app.inject({
+      method: 'GET',
+      url: '/api/dist',
+      headers: { host: 'mmo.example', 'x-forwarded-proto': 'https' },
+      remoteAddress: '127.0.0.1',
+    });
+    const dist = same.json<{ install: { unix: string } | null; installHere?: unknown }>();
+    expect(dist.install?.unix).toContain('https://mmo.example/install.sh');
+    expect(dist.installHere).toBeUndefined();
+    const other = await panel.app.inject({ method: 'GET', url: '/api/dist' });
+    expect(other.json<{ installHere?: { unix: string } }>().installHere?.unix).toContain(
+      '--panel http',
+    );
     // Jamais le code en clair en base.
     const rows = panel.ctx.sqlite.prepare('select code_hash from pairing_codes').all() as {
       code_hash: string;

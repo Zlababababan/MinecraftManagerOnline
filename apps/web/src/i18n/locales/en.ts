@@ -1644,6 +1644,22 @@ export const webEn = {
     download: 'Download',
     restoreHint: 'Restore (panel stopped, from the panel folder):',
   },
+  installHere: {
+    why: 'The command above uses the panel’s saved address. You are browsing it right now through {{url}}: if the machine to install cannot reach the saved address (Tailscale off, for instance), use these commands instead — they go through {{url}}.',
+    loopback: 'An address in 127.0.0.1 or localhost only works on the machine that runs the panel.',
+  },
+  leaveTailscale: {
+    why: 'The panel is set up for Tailscale, but you are browsing it without Tailscale. If you no longer use it, one action brings the three related settings in line.',
+    button: 'Stop using Tailscale',
+    plan: 'Three settings will change:',
+    stepMode: 'Panel access mode: "Manual" instead of "Tailscale".',
+    stepUrl:
+      'Panel public URL: {{url}} (the address you are browsing it through), used by the install commands and the links in notifications.',
+    stepPlayers: 'Address given to players: "Direct" for every server, present and future.',
+    note: 'Nothing is uninstalled, and everything can be changed again here, under "Players and network".',
+    confirm: 'Apply the three settings',
+    done: 'Tailscale is no longer used: {{count}} server(s) switched to a direct address.',
+  },
   distribution: {
     title: 'Agent distribution',
     hint: 'Install archives served by this panel (pinned Node runtime + agent + launcher) and the install.ps1 / install.sh scripts. Published with tools/release/publish.mjs.',

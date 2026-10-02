@@ -293,8 +293,13 @@ export const pairingCodeDtoSchema = z.object({
   /** Code en clair — affiché une seule fois, jamais stocké. */
   code: z.string(),
   expiresAt: epochMsSchema,
-  /** One-liners d'installation (nécessitent `publicUrl`). */
+  /** One-liners d'installation, par l'adresse enregistrée (machine, sinon `publicUrl`). */
   install: z.object({ windows: z.string(), unix: z.string() }).optional(),
+  /**
+   * Les mêmes par l'adresse CONSULTÉE en ce moment, quand elle diffère de l'adresse enregistrée
+   * (panel ouvert en local alors que l'adresse enregistrée est injoignable d'ici).
+   */
+  installHere: z.object({ url: z.string(), windows: z.string(), unix: z.string() }).optional(),
 });
 export type PairingCodeDto = z.infer<typeof pairingCodeDtoSchema>;
 export const addDirectorySchema = z.object({ path: z.string().min(1) });
@@ -2100,8 +2105,10 @@ export const distStatusDtoSchema = z.object({
   /** Le bundle du manifeste est-il publié comme release d'agent (`agent.update`) ? */
   releasePublished: z.boolean(),
   platforms: z.record(z.string(), distArtifactDtoSchema),
-  /** One-liners génériques (sans code d'appairage) — présents si `panel.publicUrl` est réglée. */
+  /** One-liners génériques (sans code d'appairage), par l'adresse enregistrée ou, à défaut, consultée. */
   install: z.object({ windows: z.string(), unix: z.string() }).nullable(),
+  /** Les mêmes par l'adresse consultée en ce moment, quand elle diffère de l'adresse enregistrée. */
+  installHere: z.object({ url: z.string(), windows: z.string(), unix: z.string() }).optional(),
 });
 export type DistStatusDto = z.infer<typeof distStatusDtoSchema>;
 

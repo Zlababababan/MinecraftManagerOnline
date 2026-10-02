@@ -21,6 +21,7 @@ import {
 } from '@mmo/protocol/client';
 
 import { AppError, notFound } from '../errors.js';
+import { installChoices } from '../util/install-commands.js';
 import { normalizeOrigin } from '../util/origin.js';
 import type { ReleasesService } from './releases.js';
 import { SETTING_KEYS, type SettingsService } from './settings.js';
@@ -78,16 +79,19 @@ export class DistributionService {
     }
   }
 
-  status(): DistStatusDto {
+  /** `currentOrigin` : l'adresse par laquelle la personne consulte le panel (voir `installChoices`). */
+  status(currentOrigin?: string): DistStatusDto {
     const m = this.manifest();
-    const publicUrl = this.deps.settings.get(SETTING_KEYS.publicUrl);
+    const choices = installChoices({
+      saved: normalizeOrigin(this.deps.settings.get(SETTING_KEYS.publicUrl)),
+      current: normalizeOrigin(currentOrigin),
+    });
     const install =
-      publicUrl === undefined
+      choices.install === undefined
         ? null
-        : {
-            windows: `& ([scriptblock]::Create((irm ${publicUrl}/install.ps1)))`,
-            unix: `curl -fsSL ${publicUrl}/install.sh | sh`,
-          };
+        : { windows: choices.install.windows, unix: choices.install.unix };
+    const installHere =
+      choices.installHere === undefined ? {} : { installHere: choices.installHere };
     if (!m) {
       return {
         available: false,
@@ -99,6 +103,7 @@ export class DistributionService {
         releasePublished: false,
         platforms: {},
         install,
+        ...installHere,
       };
     }
     return {
@@ -113,6 +118,7 @@ export class DistributionService {
         Object.entries(m.platforms).map(([p, f]) => [p, { ...f, url: `/dist/${f.file}` }]),
       ),
       install,
+      ...installHere,
     };
   }
 
